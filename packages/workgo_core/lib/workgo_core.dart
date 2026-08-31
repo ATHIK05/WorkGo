@@ -61,5 +61,6 @@ export "src/services/image_upload_service.dart";
 export "src/services/location_service.dart";
 export "src/services/c2pa_service.dart";
 
-// API Client
+// API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";
+export "package:url_launcher/url_launcher.dart";

@@ -396,6 +396,13 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             ),
             const SizedBox(height: 12),
 
+            // ── Real Identity Verification Alert Banner (if unverified)
+            if (worker.verificationStatus != VerificationStatus.approved)
+              KSlideFadeIn(
+                delay: const Duration(milliseconds: 20),
+                child: _buildVerificationAlertBanner(context, worker),
+              ),
+
             // ── Real-Time Daily Fuel Gauge Cockpit
             KSlideFadeIn(
               delay: const Duration(milliseconds: 40),
@@ -415,6 +422,78 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               delay: const Duration(milliseconds: 120),
               child: _buildTacticalActionGrid(context, worker),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerificationAlertBanner(BuildContext context, Worker worker) {
+    final stage = worker.verificationStage;
+    String stageText = "Start Aadhaar & Live Selfie verification";
+    if (stage == VerificationStage.selfieCapture) {
+      stageText = "Step 3/6: Capture your live front-camera selfie";
+    } else if (stage == VerificationStage.liveVideoVerification) {
+      stageText = "Step 4/6: Live Video KYC ready! Tap to enter waiting room";
+    } else if (stage == VerificationStage.pccUpload || stage == VerificationStage.pccManualReview) {
+      stageText = "Step 5/6: Upload Police Clearance Certificate for badging";
+    }
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (ctx) => DocumentUploadScreen(workerId: worker.id),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF7C3AED), Color(0xFFD97706)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD97706).withValues(alpha: 0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.25),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.shield_rounded, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Identity Verification Required",
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    stageText,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
           ],
         ),
       ),

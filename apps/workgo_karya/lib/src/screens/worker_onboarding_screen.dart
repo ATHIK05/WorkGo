@@ -23,11 +23,11 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
   final _workerService = WorkerService();
   final Set<String> _selectedSkills = {};
   double _serviceRadiusKm = 10.0;
-  String _selectedCity = "Erode";
-  final TextEditingController _streetAreaCtrl = TextEditingController(text: "Mosikeeranar Street, Indira Nagar");
-  final TextEditingController _pincodeCtrl = TextEditingController(text: "638001");
-  double _latitude = 11.3410;
-  double _longitude = 77.7172;
+  String _selectedCity = "Chennai";
+  final TextEditingController _streetAreaCtrl = TextEditingController();
+  final TextEditingController _pincodeCtrl = TextEditingController();
+  double _latitude = 13.0827;
+  double _longitude = 80.2707;
   String _formattedAddress = "";
   bool _isDetectingGps = false;
   String _workingHoursStart = "08:00";

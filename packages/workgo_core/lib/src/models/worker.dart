@@ -22,14 +22,21 @@ class VerificationDetails {
   final DateTime? aadhaarVerifiedAt;
   final DateTime? livenessPassedAt;
   final double? livenessScore;
+  final String? selfieBase64;
+  final String? selfieHash;
   final DateTime? videoCallScheduledAt;
   final DateTime? videoCallCompletedAt;
   final String? videoCallStaffId;
   final String? videoCallPhrase;
+  final String? videoCallRoomUrl;
+  final String? videoCallBookingId;
   final String? pccDocumentId;
   final DateTime? pccReviewedAt;
   final String? pccReviewedBy;
   final String? pccRejectionReason;
+  final double? aiRiskScore;
+  final bool? isAiSuspicious;
+  final List<String>? aiFlags;
   final String? biometricConsentVersion;
   final DateTime? biometricConsentTimestamp;
   final String? c2paProfileManifestId;
@@ -40,14 +47,21 @@ class VerificationDetails {
     this.aadhaarVerifiedAt,
     this.livenessPassedAt,
     this.livenessScore,
+    this.selfieBase64,
+    this.selfieHash,
     this.videoCallScheduledAt,
     this.videoCallCompletedAt,
     this.videoCallStaffId,
     this.videoCallPhrase,
+    this.videoCallRoomUrl,
+    this.videoCallBookingId,
     this.pccDocumentId,
     this.pccReviewedAt,
     this.pccReviewedBy,
     this.pccRejectionReason,
+    this.aiRiskScore,
+    this.isAiSuspicious,
+    this.aiFlags,
     this.biometricConsentVersion,
     this.biometricConsentTimestamp,
     this.c2paProfileManifestId,
@@ -61,14 +75,21 @@ class VerificationDetails {
       aadhaarVerifiedAt: _parseDateTime(map["aadhaarVerifiedAt"]),
       livenessPassedAt: _parseDateTime(map["livenessPassedAt"]),
       livenessScore: (map["livenessScore"] as num?)?.toDouble(),
+      selfieBase64: map["selfieBase64"] as String?,
+      selfieHash: map["selfieHash"] as String?,
       videoCallScheduledAt: _parseDateTime(map["videoCallScheduledAt"]),
       videoCallCompletedAt: _parseDateTime(map["videoCallCompletedAt"]),
       videoCallStaffId: map["videoCallStaffId"] as String?,
       videoCallPhrase: map["videoCallPhrase"] as String?,
+      videoCallRoomUrl: map["videoCallRoomUrl"] as String?,
+      videoCallBookingId: map["videoCallBookingId"] as String?,
       pccDocumentId: map["pccDocumentId"] as String?,
       pccReviewedAt: _parseDateTime(map["pccReviewedAt"]),
       pccReviewedBy: map["pccReviewedBy"] as String?,
       pccRejectionReason: map["pccRejectionReason"] as String?,
+      aiRiskScore: (map["aiRiskScore"] as num?)?.toDouble(),
+      isAiSuspicious: map["isAiSuspicious"] as bool?,
+      aiFlags: (map["aiFlags"] as List?)?.map((e) => e.toString()).toList(),
       biometricConsentVersion: map["biometricConsentVersion"] as String?,
       biometricConsentTimestamp: _parseDateTime(map["biometricConsentTimestamp"]),
       c2paProfileManifestId: map["c2paProfileManifestId"] as String?,
@@ -81,14 +102,21 @@ class VerificationDetails {
     "aadhaarVerifiedAt": aadhaarVerifiedAt != null ? Timestamp.fromDate(aadhaarVerifiedAt!) : null,
     "livenessPassedAt": livenessPassedAt != null ? Timestamp.fromDate(livenessPassedAt!) : null,
     "livenessScore": livenessScore,
+    "selfieBase64": selfieBase64,
+    "selfieHash": selfieHash,
     "videoCallScheduledAt": videoCallScheduledAt != null ? Timestamp.fromDate(videoCallScheduledAt!) : null,
     "videoCallCompletedAt": videoCallCompletedAt != null ? Timestamp.fromDate(videoCallCompletedAt!) : null,
     "videoCallStaffId": videoCallStaffId,
     "videoCallPhrase": videoCallPhrase,
+    "videoCallRoomUrl": videoCallRoomUrl,
+    "videoCallBookingId": videoCallBookingId,
     "pccDocumentId": pccDocumentId,
     "pccReviewedAt": pccReviewedAt != null ? Timestamp.fromDate(pccReviewedAt!) : null,
     "pccReviewedBy": pccReviewedBy,
     "pccRejectionReason": pccRejectionReason,
+    "aiRiskScore": aiRiskScore,
+    "isAiSuspicious": isAiSuspicious,
+    "aiFlags": aiFlags,
     "biometricConsentVersion": biometricConsentVersion,
     "biometricConsentTimestamp": biometricConsentTimestamp != null ? Timestamp.fromDate(biometricConsentTimestamp!) : null,
     "c2paProfileManifestId": c2paProfileManifestId,
@@ -100,14 +128,21 @@ class VerificationDetails {
     DateTime? aadhaarVerifiedAt,
     DateTime? livenessPassedAt,
     double? livenessScore,
+    String? selfieBase64,
+    String? selfieHash,
     DateTime? videoCallScheduledAt,
     DateTime? videoCallCompletedAt,
     String? videoCallStaffId,
     String? videoCallPhrase,
+    String? videoCallRoomUrl,
+    String? videoCallBookingId,
     String? pccDocumentId,
     DateTime? pccReviewedAt,
     String? pccReviewedBy,
     String? pccRejectionReason,
+    double? aiRiskScore,
+    bool? isAiSuspicious,
+    List<String>? aiFlags,
     String? biometricConsentVersion,
     DateTime? biometricConsentTimestamp,
     String? c2paProfileManifestId,
@@ -118,14 +153,21 @@ class VerificationDetails {
       aadhaarVerifiedAt: aadhaarVerifiedAt ?? this.aadhaarVerifiedAt,
       livenessPassedAt: livenessPassedAt ?? this.livenessPassedAt,
       livenessScore: livenessScore ?? this.livenessScore,
+      selfieBase64: selfieBase64 ?? this.selfieBase64,
+      selfieHash: selfieHash ?? this.selfieHash,
       videoCallScheduledAt: videoCallScheduledAt ?? this.videoCallScheduledAt,
       videoCallCompletedAt: videoCallCompletedAt ?? this.videoCallCompletedAt,
       videoCallStaffId: videoCallStaffId ?? this.videoCallStaffId,
       videoCallPhrase: videoCallPhrase ?? this.videoCallPhrase,
+      videoCallRoomUrl: videoCallRoomUrl ?? this.videoCallRoomUrl,
+      videoCallBookingId: videoCallBookingId ?? this.videoCallBookingId,
       pccDocumentId: pccDocumentId ?? this.pccDocumentId,
       pccReviewedAt: pccReviewedAt ?? this.pccReviewedAt,
       pccReviewedBy: pccReviewedBy ?? this.pccReviewedBy,
       pccRejectionReason: pccRejectionReason ?? this.pccRejectionReason,
+      aiRiskScore: aiRiskScore ?? this.aiRiskScore,
+      isAiSuspicious: isAiSuspicious ?? this.isAiSuspicious,
+      aiFlags: aiFlags ?? this.aiFlags,
       biometricConsentVersion: biometricConsentVersion ?? this.biometricConsentVersion,
       biometricConsentTimestamp: biometricConsentTimestamp ?? this.biometricConsentTimestamp,
       c2paProfileManifestId: c2paProfileManifestId ?? this.c2paProfileManifestId,

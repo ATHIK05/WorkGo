@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("crypto");
 const router = express.Router();
 const { verifyAadhaarOfflineKyc } = require("../services/aadhaar_xml_verifier");
+const { detectSyntheticImage } = require("../services/synthetic_image_detector");
 
 /**
  * Helper to record tamper-proof audit log entry in Firestore.
@@ -145,11 +146,45 @@ router.post("/liveness-pass", async (req, res) => {
     const currentStage = workerDoc.exists ? workerDoc.data().verificationStage || "selfieCapture" : "selfieCapture";
 
     const passedTime = new Date().toISOString();
+    const selfieHash = selfieBase64
+      ? crypto.createHash("sha256").update(selfieBase64).digest("hex")
+      : "";
+
+    // Run Synthetic / AI-Generated Image Inspection
+    let syntheticReport = { isSuspicious: false, riskScore: 0.0, flags: [] };
+    if (selfieBase64) {
+      syntheticReport = detectSyntheticImage(selfieBase64);
+      if (syntheticReport.recommendation === "REJECT_SYNTHETIC_IMAGE") {
+        await recordAuditLog(req.db, {
+          workerId,
+          fromStage: currentStage,
+          toStage: currentStage,
+          action: "SYNTHETIC_IMAGE_REJECTED",
+          actorId: req.user.uid,
+          actorRole: "system_detector",
+          reason: `Upload rejected: Generative AI / synthetic image detected (${syntheticReport.flags.join(", ")})`,
+          metadata: { syntheticReport },
+        });
+        return res.status(400).json({
+          error: "Generative AI or synthetic image detected. Please capture a real live photo using your phone camera.",
+          flags: syntheticReport.flags,
+          riskScore: syntheticReport.riskScore,
+        });
+      }
+    }
+
     await workerRef.set({
       verificationStage: "liveVideoVerification",
       verificationDetails: {
         livenessPassedAt: passedTime,
         livenessScore: Number(livenessScore),
+        ...(selfieBase64 ? {
+          selfieBase64,
+          selfieHash,
+          aiRiskScore: syntheticReport.riskScore,
+          aiFlags: syntheticReport.flags,
+          isAiSuspicious: syntheticReport.isSuspicious,
+        } : {}),
       },
     }, { merge: true });
 
@@ -157,14 +192,22 @@ router.post("/liveness-pass", async (req, res) => {
       workerId,
       fromStage: currentStage,
       toStage: "liveVideoVerification",
-      action: "ON_DEVICE_LIVENESS_PASSED",
+      action: syntheticReport.isSuspicious ? "ON_DEVICE_LIVENESS_PASSED_WITH_FLAGS" : "ON_DEVICE_LIVENESS_PASSED",
       actorId: req.user.uid,
       actorRole: "worker",
-      reason: `Camera liveness challenge passed with confidence score ${livenessScore}`,
-      metadata: { livenessScore, passedTime },
+      reason: syntheticReport.isSuspicious
+        ? `Selfie passed liveness but flagged for officer scrutiny (AI Risk: ${syntheticReport.riskScore})`
+        : `Real on-device camera selfie & liveness captured with score ${livenessScore}`,
+      metadata: { livenessScore, passedTime, selfieHash, syntheticReport },
     });
 
-    res.json({ success: true, nextStage: "liveVideoVerification" });
+    res.json({
+      success: true,
+      nextStage: "liveVideoVerification",
+      selfieHash,
+      isSuspicious: syntheticReport.isSuspicious,
+      riskScore: syntheticReport.riskScore,
+    });
   } catch (e) {
     console.error("verification/liveness-pass error:", e);
     res.status(500).json({ error: "Failed to record liveness result", detail: e.message });
@@ -185,20 +228,27 @@ router.post("/video-kyc/schedule", async (req, res) => {
       "RIVER-719-GOLD",
       "EAGLE-338-SKY",
       "LOTUS-552-STAR",
+      "PEACOCK-204-JADE",
+      "TEMPLE-610-DAWN",
     ];
     const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
     const roomName = `workgo_kyc_${workerId}_${Date.now().toString().slice(-6)}`;
+    const roomUrl = `https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false`;
 
     const bookingRef = req.db.collection("video_kyc_bookings").doc();
     const bookingData = {
       id: bookingRef.id,
       workerId,
       slotTime,
-      status: "scheduled",
+      status: "in_lobby",
+      workerStatus: "in_lobby",
+      adminStatus: "pending",
       roomName,
+      roomUrl,
       randomPhrase,
       assignedStaffId: "staff_coop_admin",
       createdAt: new Date().toISOString(),
+      lastPingAt: new Date().toISOString(),
     };
     await bookingRef.set(bookingData);
 
@@ -207,6 +257,8 @@ router.post("/video-kyc/schedule", async (req, res) => {
       verificationDetails: {
         videoCallScheduledAt: slotTime,
         videoCallPhrase: randomPhrase,
+        videoCallRoomUrl: roomUrl,
+        videoCallBookingId: bookingRef.id,
       },
     }, { merge: true });
 
@@ -217,20 +269,62 @@ router.post("/video-kyc/schedule", async (req, res) => {
       action: "VIDEO_KYC_SCHEDULED",
       actorId: req.user.uid,
       actorRole: "worker",
-      reason: `Live video verification booked for ${slotTime}`,
-      metadata: { bookingId: bookingRef.id, slotTime, roomName, challengePhrase: randomPhrase },
+      reason: `Live video verification session initiated in room ${roomName}`,
+      metadata: { bookingId: bookingRef.id, slotTime, roomName, roomUrl, challengePhrase: randomPhrase },
     });
 
     res.json({
       success: true,
       bookingId: bookingRef.id,
       roomName,
+      roomUrl,
       randomPhrase,
       slotTime,
     });
   } catch (e) {
     console.error("verification/video-kyc/schedule error:", e);
     res.status(500).json({ error: "Failed to schedule video KYC", detail: e.message });
+  }
+});
+
+// ── 4b. POST /api/verification/video-kyc/lobby-status ────────────────────────
+router.post("/video-kyc/lobby-status", async (req, res) => {
+  try {
+    const { workerId, bookingId, status, actorType = "worker" } = req.body;
+    if (!workerId || !status) {
+      return res.status(400).json({ error: "workerId and status are required" });
+    }
+
+    const updates = {
+      lastPingAt: new Date().toISOString(),
+    };
+
+    if (actorType === "worker") {
+      updates.workerStatus = status;
+      if (status === "in_lobby") updates.status = "in_lobby";
+    } else if (actorType === "admin") {
+      updates.adminStatus = status;
+      if (status === "in_call") updates.status = "in_call";
+    }
+
+    if (bookingId) {
+      await req.db.collection("video_kyc_bookings").doc(bookingId).set(updates, { merge: true });
+    } else {
+      // Find latest active booking for worker
+      const snap = await req.db
+        .collection("video_kyc_bookings")
+        .where("workerId", "==", workerId)
+        .get();
+      if (!snap.empty) {
+        const doc = snap.docs.sort((a, b) => new Date(b.data().createdAt) - new Date(a.data().createdAt))[0];
+        await doc.ref.set(updates, { merge: true });
+      }
+    }
+
+    res.json({ success: true, status });
+  } catch (e) {
+    console.error("verification/video-kyc/lobby-status error:", e);
+    res.status(500).json({ error: "Failed to update lobby status", detail: e.message });
   }
 });
 
@@ -251,11 +345,14 @@ router.post("/video-kyc/verify", async (req, res) => {
     const completedAt = new Date().toISOString();
 
     if (bookingId) {
-      await req.db.collection("video_kyc_bookings").doc(bookingId).update({
-        status: passed ? "completed" : "cancelled",
+      await req.db.collection("video_kyc_bookings").doc(bookingId).set({
+        status: passed ? "completed" : "rejected",
+        workerStatus: "completed",
+        adminStatus: "completed",
         reviewedBy: req.user.uid,
         reviewedAt: completedAt,
-      });
+        notes: notes || "",
+      }, { merge: true });
     }
 
     await req.db.collection("workers").doc(workerId).set({
@@ -263,6 +360,7 @@ router.post("/video-kyc/verify", async (req, res) => {
       verificationDetails: {
         videoCallCompletedAt: completedAt,
         videoCallStaffId: req.user.uid,
+        videoCallNotes: notes || "",
       },
     }, { merge: true });
 

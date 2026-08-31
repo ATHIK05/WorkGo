@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
@@ -358,9 +359,18 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 
   void _openLiveVideoCallDialog(BuildContext context, Worker worker) {
     final phrase = worker.verificationDetails?.videoCallPhrase ?? "VIOLET-892-SUN";
+    final selfieBase64 = worker.verificationDetails?.selfieBase64;
+    Uint8List? selfieBytes;
+    if (selfieBase64 != null && selfieBase64.isNotEmpty) {
+      try {
+        selfieBytes = base64Decode(selfieBase64);
+      } catch (_) {}
+    }
+
     bool photoMatch = true;
     bool phraseSpoken = true;
-    bool headTurn = true;
+    bool toolsVerified = true;
+    final notesCtrl = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -368,214 +378,326 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
-          return Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF0B0818),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border(top: BorderSide(color: Color(0xFF7928CA), width: 1.5)),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    const Icon(Icons.video_call_rounded, color: Color(0xFFC084FC), size: 28),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Live Video KYC Verification Room",
-                            style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
-                          ),
-                          Text(
-                            "Artisan: ${worker.name}",
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+          return StreamBuilder<VideoKycBooking?>(
+            stream: _workerService.streamActiveVideoKycBooking(worker.id),
+            builder: (context, snapshot) {
+              final booking = snapshot.data;
+              final isWorkerInLobby = booking?.workerStatus == "in_lobby" || booking?.status == VideoKycStatus.inLobby;
+              final roomUrl = booking?.roomUrl.isNotEmpty == true
+                  ? booking!.roomUrl
+                  : "https://meet.jit.si/workgo_kyc_${worker.id}#config.prejoinPageEnabled=false";
 
-                // Video Feed Simulation Box
-                Container(
-                  height: 160,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF130E2A),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFA855F7).withValues(alpha: 0.3)),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0B0818),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  border: Border(top: BorderSide(color: Color(0xFF7928CA), width: 1.5)),
+                ),
+                padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 32),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.videocam_rounded, color: Color(0xFFA855F7), size: 42),
-                          SizedBox(height: 6),
-                          Text(
-                            "WebRTC Live Video Feed Connected",
-                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            "720p 30fps · Low Latency WebRTC",
-                            style: TextStyle(color: Color(0xFF00E5FF), fontSize: 10),
-                          ),
-                        ],
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
+                      Center(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF10B981)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.fiber_manual_record, color: Color(0xFF10B981), size: 10),
-                              SizedBox(width: 4),
-                              Text("LIVE", style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
+                          width: 44,
+                          height: 4,
+                          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          const Icon(Icons.video_call_rounded, color: Color(0xFFC084FC), size: 28),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Live Video KYC Verification Room",
+                                  style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
+                                ),
+                                Text(
+                                  "Artisan: ${worker.name} • Skills: ${worker.skills.join(', ')}",
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
 
-                // Challenge Phrase Prompt
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.black45,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: WorkGoColors.accent.withValues(alpha: 0.4)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.record_voice_over_rounded, color: WorkGoColors.accent, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      // Worker Profile & Live Likeness Box
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF130E2A),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Row(
                           children: [
-                            const Text("REQUIRED SECURITY CHALLENGE PHRASE", style: TextStyle(color: WorkGoColors.accent, fontSize: 9.5, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 2),
-                            Text(phrase, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                            Container(
+                              width: 70,
+                              height: 70,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white10,
+                                border: Border.all(color: const Color(0xFF10B981), width: 2),
+                              ),
+                              child: ClipOval(
+                                child: selfieBytes != null
+                                    ? Image.memory(selfieBytes, fit: BoxFit.cover)
+                                    : const Icon(Icons.person_rounded, color: Colors.white54, size: 36),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        worker.name,
+                                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text("SELFIE AUTH", style: TextStyle(color: Color(0xFF10B981), fontSize: 9, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    "Aadhaar: ${worker.verificationDetails?.aadhaarMaskedNumber ?? 'Verified'}",
+                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "Liveness Score: ${((worker.verificationDetails?.livenessScore ?? 0.99) * 100).toStringAsFixed(1)}%",
+                                    style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 11),
+                                  ),
+                                  if (worker.verificationDetails?.isAiSuspicious == true || (worker.verificationDetails?.aiRiskScore ?? 0) > 0.3) ...[
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF43F5E).withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFF43F5E)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.warning_amber_rounded, color: Color(0xFFF43F5E), size: 12),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "AI SYNTHETIC RISK: ${((worker.verificationDetails?.aiRiskScore ?? 0.8) * 100).toInt()}%",
+                                            style: const TextStyle(color: Color(0xFFF43F5E), fontSize: 9.5, fontWeight: FontWeight.w900),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
+                      const SizedBox(height: 14),
 
-                // Staff Checklist
-                CheckboxListTile(
-                  title: const Text("Physical ID Matches UIDAI eKYC Photo", style: TextStyle(color: Colors.white, fontSize: 12)),
-                  value: photoMatch,
-                  activeColor: const Color(0xFF10B981),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  onChanged: (v) => setModalState(() => photoMatch = v ?? false),
-                ),
-                CheckboxListTile(
-                  title: const Text("Artisan Spoke Challenge Phrase Correctly", style: TextStyle(color: Colors.white, fontSize: 12)),
-                  value: phraseSpoken,
-                  activeColor: const Color(0xFF10B981),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  onChanged: (v) => setModalState(() => phraseSpoken = v ?? false),
-                ),
-                CheckboxListTile(
-                  title: const Text("Live Facial Movement & 3D Turn Confirmed", style: TextStyle(color: Colors.white, fontSize: 12)),
-                  value: headTurn,
-                  activeColor: const Color(0xFF10B981),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  onChanged: (v) => setModalState(() => headTurn = v ?? false),
-                ),
-                const SizedBox(height: 16),
+                      // Room & Presence Status
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isWorkerInLobby
+                              ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                              : Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isWorkerInLobby ? const Color(0xFF10B981) : Colors.white12,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isWorkerInLobby ? Icons.fiber_manual_record : Icons.schedule_rounded,
+                              color: isWorkerInLobby ? const Color(0xFF10B981) : Colors.amber,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                isWorkerInLobby
+                                    ? "Artisan is ACTIVE IN LOBBY waiting for your call!"
+                                    : "Waiting for artisan to enter lobby...",
+                                style: TextStyle(
+                                  color: isWorkerInLobby ? const Color(0xFF34D399) : Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
+                      // Join Call Button
+                      ElevatedButton.icon(
                         onPressed: () async {
-                          Navigator.of(context).pop();
-                          await _workerService.submitVideoKycReview(
+                          await _workerService.updateLobbyStatus(
                             workerId: worker.id,
-                            bookingId: "vcall_${worker.id}",
-                            passed: false,
-                            challengePhrase: phrase,
-                            checklist: {"photoMatch": photoMatch, "phraseSpoken": phraseSpoken, "headTurn": headTurn},
-                            notes: "Verification phrase mismatch or absent",
+                            bookingId: booking?.id,
+                            status: "in_call",
+                            actorType: "admin",
                           );
+                          final uri = Uri.parse(roomUrl);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
                         },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFF43F5E),
-                          side: const BorderSide(color: Color(0xFFF43F5E)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        icon: const Icon(Icons.videocam_rounded, size: 20),
+                        label: const Text("Launch Video Meeting Room", style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7928CA),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text("Reject & Flag"),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: (photoMatch && phraseSpoken && headTurn)
-                            ? () async {
+                      const SizedBox(height: 14),
+
+                      // Challenge Phrase Prompt
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black45,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: WorkGoColors.accent.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.record_voice_over_rounded, color: WorkGoColors.accent, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("CHALLENGE PHRASE TO VERIFY ON CALL", style: TextStyle(color: WorkGoColors.accent, fontSize: 9.5, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 2),
+                                  Text(phrase, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Officer Checklist
+                      CheckboxListTile(
+                        title: const Text("Physical ID Matches Selfie & Aadhaar", style: TextStyle(color: Colors.white, fontSize: 12)),
+                        value: photoMatch,
+                        activeColor: const Color(0xFF10B981),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        onChanged: (v) => setModalState(() => photoMatch = v ?? false),
+                      ),
+                      CheckboxListTile(
+                        title: const Text("Artisan Spoke Challenge Phrase Correctly", style: TextStyle(color: Colors.white, fontSize: 12)),
+                        value: phraseSpoken,
+                        activeColor: const Color(0xFF10B981),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        onChanged: (v) => setModalState(() => phraseSpoken = v ?? false),
+                      ),
+                      CheckboxListTile(
+                        title: const Text("Tools / Workshop Likeness Verified", style: TextStyle(color: Colors.white, fontSize: 12)),
+                        value: toolsVerified,
+                        activeColor: const Color(0xFF10B981),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        onChanged: (v) => setModalState(() => toolsVerified = v ?? false),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
                                 Navigator.of(context).pop();
                                 await _workerService.submitVideoKycReview(
                                   workerId: worker.id,
-                                  bookingId: "vcall_${worker.id}",
-                                  passed: true,
+                                  bookingId: booking?.id ?? "vcall_${worker.id}",
+                                  passed: false,
                                   challengePhrase: phrase,
-                                  checklist: {"photoMatch": true, "phraseSpoken": true, "headTurn": true},
+                                  checklist: {"photoMatch": photoMatch, "phraseSpoken": phraseSpoken, "toolsVerified": toolsVerified},
+                                  notes: notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : "Verification mismatch or challenge failed",
                                 );
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Video KYC approved! Worker advanced to PCC upload."),
-                                      backgroundColor: Color(0xFF047857),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              }
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: const Color(0xFF090714),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text("Approve Video KYC", style: TextStyle(fontWeight: FontWeight.bold)),
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFFF43F5E),
+                                side: const BorderSide(color: Color(0xFFF43F5E)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text("Reject & Flag"),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: (photoMatch && phraseSpoken && toolsVerified)
+                                  ? () async {
+                                      Navigator.of(context).pop();
+                                      await _workerService.submitVideoKycReview(
+                                        workerId: worker.id,
+                                        bookingId: booking?.id ?? "vcall_${worker.id}",
+                                        passed: true,
+                                        challengePhrase: phrase,
+                                        checklist: {"photoMatch": true, "phraseSpoken": true, "toolsVerified": true},
+                                        notes: "Passed live video examination",
+                                      );
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text("Video KYC approved! Worker advanced to PCC upload."),
+                                            backgroundColor: Color(0xFF047857),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text("Approve Video KYC", style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -585,6 +707,9 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   // ── PCC Review Drawer ───────────────────────────────────────────────────────
 
   void _openPccReviewDialog(BuildContext context, Worker worker) {
+    final docId = worker.verificationDetails?.pccDocumentId ?? "pcc_doc_${worker.id}";
+    final notesCtrl = TextEditingController();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -595,124 +720,140 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           border: Border(top: BorderSide(color: Color(0xFF047857), width: 1.5)),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 28),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Police Clearance Certificate Inspection",
-                        style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
-                      ),
-                      Text(
-                        "Artisan: ${worker.name} • Trades: ${worker.skills.join(', ')}",
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
-                  ),
+        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 32),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Decrypted Document Viewer Box
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF130E2A),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
               ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 18),
+              Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("DECRYPTED DOCUMENT (AES-256)", style: TextStyle(color: Color(0xFF00E5FF), fontSize: 10, fontWeight: FontWeight.bold)),
-                      Icon(Icons.lock_open_rounded, color: Color(0xFF00E5FF), size: 14),
-                    ],
+                  const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Police Clearance Certificate Inspection",
+                          style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          "Artisan: ${worker.name} • Trades: ${worker.skills.join(', ')}",
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 10),
-                  Text("Document ID: PCC_TN_POLICE_AUTH_2026_9942", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
-                  Text("Verification: Clean Record · No Criminal Antecedents Found", style: TextStyle(color: Color(0xFF10B981), fontSize: 12)),
-                  SizedBox(height: 4),
-                  Text("Issuing Authority: Police Commissionerate, Greater Chennai", style: TextStyle(color: Colors.white70, fontSize: 11)),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      await _workerService.submitPccReview(
-                        workerId: worker.id,
-                        approved: false,
-                        rejectionReason: "PCC signature mismatch or unclear scan",
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFF43F5E),
-                      side: const BorderSide(color: Color(0xFFF43F5E)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text("Reject Document"),
-                  ),
+              // Decrypted Document Viewer Box
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF130E2A),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white12),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                      await _workerService.submitPccReview(
-                        workerId: worker.id,
-                        approved: true,
-                      );
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Worker approved! Public visibility active on customer radar."),
-                            backgroundColor: Color(0xFF047857),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("AUTHENTICATED RECORD", style: TextStyle(color: Color(0xFF00E5FF), fontSize: 10, fontWeight: FontWeight.bold)),
+                        Icon(Icons.verified_user_rounded, color: Color(0xFF00E5FF), size: 16),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text("Document ID: $docId", style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    const Text("Status: Submitted by Artisan for Verification", style: TextStyle(color: Color(0xFF10B981), fontSize: 12)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              TextField(
+                controller: notesCtrl,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  labelText: "Officer Notes / Verification Remarks",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF130E2A),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _workerService.submitPccReview(
+                          workerId: worker.id,
+                          approved: false,
+                          rejectionReason: notesCtrl.text.trim().isNotEmpty
+                              ? notesCtrl.text.trim()
+                              : "PCC signature mismatch or unclear scan",
                         );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      foregroundColor: const Color(0xFF090714),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFF43F5E),
+                        side: const BorderSide(color: Color(0xFFF43F5E)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text("Reject Document"),
                     ),
-                    child: const Text("Approve & Publish Artisan", style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _workerService.submitPccReview(
+                          workerId: worker.id,
+                          approved: true,
+                          notes: notesCtrl.text.trim(),
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Worker approved! Public visibility active on customer radar."),
+                              backgroundColor: Color(0xFF047857),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text("Approve & Publish Artisan", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
