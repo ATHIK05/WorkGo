@@ -6,6 +6,7 @@ import '../karya_theme.dart';
 import 'document_upload_screen.dart';
 import 'worker_profile_setup_screen.dart';
 import 'worker_welfare_screen.dart';
+import '../widgets/karya_app_tour_dialog.dart';
 
 class WorkerProfileDetailScreen extends StatefulWidget {
   const WorkerProfileDetailScreen({
@@ -679,6 +680,14 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
   Future<void> _toggleTitanCheckIn(Worker worker) async {
     final isCurrentlyCheckedIn = worker.isTitan;
 
+    if (!isCurrentlyCheckedIn) {
+      if (worker.verificationStatus != VerificationStatus.approved) {
+        HapticFeedback.heavyImpact();
+        _showVerificationRequiredModal(context, worker);
+        return;
+      }
+    }
+
     if (isCurrentlyCheckedIn) {
       // Artisan is checking out! Slide up the Motivational Bottom Sheet!
       final confirmedCheckOut = await showCheckOutMotivationSheet(
@@ -721,6 +730,128 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     await _workerService.updateAvailability(
       worker.id,
       !isCurrentlyCheckedIn ? AvailabilityStatus.online : AvailabilityStatus.offline,
+    );
+  }
+
+  void _showVerificationRequiredModal(BuildContext context, Worker worker) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          decoration: const BoxDecoration(
+            color: Color(0xFF0F0B1E),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: Color(0xFFF59E0B), width: 1.5)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                  ),
+                  child: const Icon(Icons.lock_rounded, color: Color(0xFFF59E0B), size: 36),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Identity Verification Required",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "To protect artisan earnings, guarantee direct wage payouts, and maintain cooperative trust, you must complete identity verification before going live on customer radar.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF191233),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_user_rounded, color: KX.gold, size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Instant Co-op Badging",
+                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            "Status: ${worker.verificationStage.name.toUpperCase()} (Pending Review)",
+                            style: const TextStyle(color: KX.gold, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (c) => DocumentUploadScreen(workerId: worker.id),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF59E0B),
+                  foregroundColor: const Color(0xFF1E1035),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Complete Verification Now", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                    SizedBox(width: 6),
+                    Icon(Icons.arrow_forward_rounded, size: 18),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text("I'll do it later", style: TextStyle(color: Colors.white54)),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1003,6 +1134,17 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
   Widget _buildQuickNavigationLinks(Worker worker) {
     return Column(
       children: [
+        _buildNavTile(
+          title: "App Tour & Feature Guide",
+          subtitle: "Interactive guide for all 7 features & operational tools",
+          icon: Icons.explore_rounded,
+          iconColor: const Color(0xFF8B5CF6),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            KaryaAppTourDialog.checkAndShowTour(context, isManual: true);
+          },
+        ),
+        const SizedBox(height: 10),
         _buildNavTile(
           title: "upload_kyc".tr(),
           subtitle: worker.verificationStatus == VerificationStatus.approved ? "KYC Approved & Active" : "Pending Review",
