@@ -1,0 +1,34 @@
+# Firebase
+.firebase/
+firebase-debug.log
+.env
+serviceAccountKey.json
+
+# Flutter / Dart
+**/build/
+**/.dart_tool/
+**/.packages
+**/pubspec.lock
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/app/google-services.json
+
+# iOS
+**/ios/Pods/
+**/ios/GoogleService-Info.plist
+**/ios/.symlinks/
+
+# Node (backend)
+**/node_modules/
+backend/.env
+
+# IDE & Workspace Agents
+.vscode/
+.idea/
+*.iml
+.agents/

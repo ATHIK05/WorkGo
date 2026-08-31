@@ -1,0 +1,43 @@
+name: workgo_core
+description: Shared theme, localization, models, widgets, and Firebase service layer for all WorkGo apps.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.3
+  cloud_firestore: ^5.6.6
+  firebase_messaging: ^15.2.5
+  # HTTP
+  http: ^1.4.0
+  # Utilities
+  auto_size_text: ^3.0.0
+  shared_preferences: ^2.5.3
+  flutter_secure_storage: ^9.2.4
+  # Typography & Design
+  google_fonts: ^6.2.1
+  # Localization — easy_localization for view-layer .tr() translation
+  easy_localization: ^3.0.8
+  intl: ^0.20.2
+  image_picker: ^1.1.2
+  geolocator: ^14.0.2
+  crypto: ^3.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  assets:
+    - assets/lang/
+    - assets/lang/en.json
+    - assets/lang/hi.json
+    - assets/lang/ta.json

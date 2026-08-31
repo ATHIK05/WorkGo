@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // Workers collection:
+    // Clients CANNOT directly write or tamper with verificationStatus or visibilityStatus
+    match /workers/{workerId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus', 'visibilityStatus', 'verificationDetails.pccReviewedAt']) || isAdmin());
+      allow delete: if isAdmin();
+
+      match /documents/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+    }
+
+    // Verification Audit Logs: Immutable! Only backend Firebase Admin or Admin role can write.
+    match /verification_audit_logs/{logId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Video KYC Bookings
+    match /video_kyc_bookings/{bookingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // C2PA Manifests: Publicly readable for trust verification, write restricted
+    match /c2pa_manifests/{manifestId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default authenticated fallback for all other collections (bookings, users, reviews)
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
