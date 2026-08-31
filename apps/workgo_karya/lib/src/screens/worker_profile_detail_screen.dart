@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
 import 'document_upload_screen.dart';
+import 'karya_home_screen.dart';
 import 'worker_profile_setup_screen.dart';
 import 'worker_welfare_screen.dart';
 import '../widgets/karya_app_tour_dialog.dart';
@@ -1141,7 +1142,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           iconColor: const Color(0xFF8B5CF6),
           onTap: () {
             HapticFeedback.lightImpact();
-            KaryaAppTourDialog.checkAndShowTour(context, isManual: true);
+            Navigator.of(context).pop();
+            KaryaHomeScreen.launchLiveSpotlightTour(context);
           },
         ),
         const SizedBox(height: 10),

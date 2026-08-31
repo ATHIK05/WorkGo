@@ -13,6 +13,7 @@ import 'worker_profile_detail_screen.dart';
 import 'worker_profile_setup_screen.dart';
 import 'worker_welfare_screen.dart';
 import '../widgets/karya_app_tour_dialog.dart';
+import '../widgets/karya_spotlight_tour.dart';
 
 class KaryaHomeScreen extends StatefulWidget {
   const KaryaHomeScreen({
@@ -23,6 +24,13 @@ class KaryaHomeScreen extends StatefulWidget {
 
   final AppUser user;
   final VoidCallback onSignOut;
+
+  static _KaryaHomeScreenState? _activeState;
+
+  /// Launches the live interactive spotlight app tour on the live screen.
+  static void launchLiveSpotlightTour(BuildContext context) {
+    _activeState?.launchSpotlightTour(isManual: true);
+  }
 
   @override
   State<KaryaHomeScreen> createState() => _KaryaHomeScreenState();
@@ -36,9 +44,18 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   late AnimationController _radarCtrl;
   static bool _hasPromptedThisSession = false;
 
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _keyQuickShiftBar = GlobalKey();
+  final GlobalKey _keyAvailabilitySwitch = GlobalKey();
+  final GlobalKey _keyFuelGauge = GlobalKey();
+  final GlobalKey _keyRadar = GlobalKey();
+  final GlobalKey _keyBentoGrid = GlobalKey();
+  final GlobalKey _keyBottomNav = GlobalKey();
+
   @override
   void initState() {
     super.initState();
+    KaryaHomeScreen._activeState = this;
     _radarCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
@@ -51,10 +68,112 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     });
   }
 
+  @override
+  void dispose() {
+    if (KaryaHomeScreen._activeState == this) {
+      KaryaHomeScreen._activeState = null;
+    }
+    _radarCtrl.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkAndShowAppTour() async {
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (mounted) {
-      await KaryaAppTourDialog.checkAndShowTour(context);
+      await launchSpotlightTour(isManual: false);
+    }
+  }
+
+  List<SpotlightTarget> _buildSpotlightTargets() {
+    return [
+      SpotlightTarget(
+        key: _keyAvailabilitySwitch,
+        stepNumber: "1",
+        title: "1. Autonomous Shift & Check-In Switch",
+        description: "Tap here anytime to go live on customer radars across your district. Verification is required before your first check-in.",
+        badgeText: "AVAILABILITY",
+        icon: Icons.power_settings_new_rounded,
+        bulletPoints: [
+          "1-Tap Check-In toggles incoming job dispatch radar",
+          "Automatic verification check protects artisan earnings",
+        ],
+      ),
+      SpotlightTarget(
+        key: _keyQuickShiftBar,
+        stepNumber: "2",
+        title: "2. Artisan Identity & Profile Hub",
+        description: "Tap your holographic avatar to view verified badges, edit trade skills, adjust coverage radius (1-30 km), or switch languages.",
+        badgeText: "PROFILE & SKILLS",
+        icon: Icons.person_pin_rounded,
+        bulletPoints: [
+          "View customer ratings, badges, and welfare shield",
+          "Switch between தமிழ், हिंदी, and English instantly",
+        ],
+      ),
+      SpotlightTarget(
+        key: _keyFuelGauge,
+        stepNumber: "3",
+        title: "3. Daily Fuel Gauge & Earnings Cockpit",
+        description: "Track today's jobs, total earnings, active hours, and performance incentives with a strict 0% commission guarantee.",
+        badgeText: "0% COMMISSION",
+        icon: Icons.speed_rounded,
+        bulletPoints: [
+          "Live progress tracker towards daily earning milestones",
+          "Instant 1-tap UPI / Bank payout settlements",
+        ],
+      ),
+      SpotlightTarget(
+        key: _keyRadar,
+        stepNumber: "4",
+        title: "4. Live Dispatch Radar & Job Match",
+        description: "Nearby service requests flash in real time with distance, upfront pricing, and a 30-second priority acceptance countdown.",
+        badgeText: "PRIORITY RADAR",
+        icon: Icons.radar_rounded,
+        bulletPoints: [
+          "30s audio chime countdown to accept before others",
+          "Upfront pricing and customer pickup distance shown",
+        ],
+      ),
+      SpotlightTarget(
+        key: _keyBentoGrid,
+        stepNumber: "5",
+        title: "5. Tactical Action Matrix: KYC & Welfare",
+        description: "Direct shortcuts to complete your government Aadhaar & Video KYC, inspect your ₹2L PMJJBY welfare cover, and manage referrals.",
+        badgeText: "ACTION MATRIX",
+        icon: Icons.grid_view_rounded,
+        bulletPoints: [
+          "Complete Video KYC to earn the trusted Co-op Certified badge",
+          "₹2,00,000 accidental and disability insurance coverage",
+        ],
+      ),
+      SpotlightTarget(
+        key: _keyBottomNav,
+        stepNumber: "6",
+        title: "6. Master Navigation Dock",
+        description: "Switch seamlessly across your cockpit tabs: Home, Incoming Radar, Earnings Wallet, Welfare Shield, and Settings.",
+        badgeText: "DOCK TABS",
+        icon: Icons.dock_rounded,
+        bulletPoints: [
+          "Radar tab with live incoming requests counter badge",
+          "Earnings ledger with full booking receipts history",
+        ],
+      ),
+    ];
+  }
+
+  Future<void> launchSpotlightTour({bool isManual = false}) async {
+    if (_currentNavIndex != 0) {
+      setState(() => _currentNavIndex = 0);
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+    if (mounted) {
+      await KaryaSpotlightTourOverlay.startTour(
+        context: context,
+        targets: _buildSpotlightTargets(),
+        scrollController: _scrollController,
+        isManual: isManual,
+      );
     }
   }
 
@@ -122,12 +241,6 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       );
       await _workerService.upsertWorkerProfile(initialWorker);
     }
-  }
-
-  @override
-  void dispose() {
-    _radarCtrl.dispose();
-    super.dispose();
   }
 
   Future<void> _toggleAvailability(Worker worker) async {
@@ -382,8 +495,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Container(
-          height: 64,
+        child: KeyedSubtree(
+          key: _keyBottomNav,
+          child: Container(
+            height: 64,
           decoration: BoxDecoration(
             color: const Color(0xFF120C28).withValues(alpha: 0.96),
             borderRadius: BorderRadius.circular(26),
@@ -511,8 +626,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ──────────────────────────────────────────────────────────────
   //  THE ARTISAN MISSION CONTROL COCKPIT (Ultra-Dense, Zero Waste)
@@ -526,13 +642,17 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
     return SafeArea(
       child: SingleChildScrollView(
+        controller: _scrollController,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Top Quick-Shift Bar
             KSlideFadeIn(
-              child: _buildTopQuickShiftBar(name, worker, isOnline, context),
+              child: KeyedSubtree(
+                key: _keyQuickShiftBar,
+                child: _buildTopQuickShiftBar(name, worker, isOnline, context),
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -546,21 +666,30 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             // ── Real-Time Daily Fuel Gauge Cockpit
             KSlideFadeIn(
               delay: const Duration(milliseconds: 40),
-              child: _buildDailyFuelGauge(worker),
+              child: KeyedSubtree(
+                key: _keyFuelGauge,
+                child: _buildDailyFuelGauge(worker),
+              ),
             ),
             const SizedBox(height: 12),
 
             // ── Live Radar & Incoming Job Stream
             KSlideFadeIn(
               delay: const Duration(milliseconds: 80),
-              child: _buildLiveRadarSection(worker),
+              child: KeyedSubtree(
+                key: _keyRadar,
+                child: _buildLiveRadarSection(worker),
+              ),
             ),
             const SizedBox(height: 14),
 
             // ── Action Matrix (High Density 2x2)
             KSlideFadeIn(
               delay: const Duration(milliseconds: 120),
-              child: _buildTacticalActionGrid(context, worker),
+              child: KeyedSubtree(
+                key: _keyBentoGrid,
+                child: _buildTacticalActionGrid(context, worker),
+              ),
             ),
           ],
         ),
@@ -758,41 +887,44 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           ),
 
           // Instant Titan Shift Mode Button (One-tap switch!)
-          GestureDetector(
-            onTap: () => _toggleAvailability(worker),
-            child: AnimatedContainer(
-              duration: KAnim.fast,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: isOnline ? KX.luminaVioletGold : KX.auroraOffline,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: isOnline
-                    ? [
-                        BoxShadow(
-                          color: KX.gold.withValues(alpha: 0.4),
-                          blurRadius: 10,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isOnline ? Icons.flash_on_rounded : Icons.power_settings_new_rounded,
-                    color: isOnline ? const Color(0xFF1E1035) : Colors.white,
-                    size: 13,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    isOnline ? "titan_checked_in".trSafe("CHECKED IN") : "check_in_btn".trSafe("CHECK IN"),
-                    style: WorkGoFonts.badge(
+          KeyedSubtree(
+            key: _keyAvailabilitySwitch,
+            child: GestureDetector(
+              onTap: () => _toggleAvailability(worker),
+              child: AnimatedContainer(
+                duration: KAnim.fast,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: isOnline ? KX.luminaVioletGold : KX.auroraOffline,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: isOnline
+                      ? [
+                          BoxShadow(
+                            color: KX.gold.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isOnline ? Icons.flash_on_rounded : Icons.power_settings_new_rounded,
                       color: isOnline ? const Color(0xFF1E1035) : Colors.white,
-                      fontSize: 9.0,
-                      fontWeight: FontWeight.w900,
+                      size: 13,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 3),
+                    Text(
+                      isOnline ? "titan_checked_in".trSafe("CHECKED IN") : "check_in_btn".trSafe("CHECK IN"),
+                      style: WorkGoFonts.badge(
+                        color: isOnline ? const Color(0xFF1E1035) : Colors.white,
+                        fontSize: 9.0,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
