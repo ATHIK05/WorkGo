@@ -47,7 +47,7 @@ class KaryaSpotlightTourOverlay extends StatefulWidget {
     required this.onComplete,
   });
 
-  static const String prefKey = "has_completed_spotlight_tour_v3";
+  static const String prefKey = "has_completed_spotlight_tour_v4";
 
   /// Checks SharedPreferences and triggers the real multi-page spotlight coachmark tour.
   /// If [isManual] is true, launches regardless of prior completion.
@@ -64,7 +64,7 @@ class KaryaSpotlightTourOverlay extends StatefulWidget {
     if (!isManual && hasSeen) return;
 
     if (context.mounted) {
-      final overlay = Overlay.of(context);
+      final overlay = Overlay.of(context, rootOverlay: true);
       late OverlayEntry entry;
 
       entry = OverlayEntry(
@@ -73,7 +73,9 @@ class KaryaSpotlightTourOverlay extends StatefulWidget {
           scrollController: scrollController,
           onPageChange: onPageChange,
           onComplete: () {
-            entry.remove();
+            try {
+              entry.remove();
+            } catch (_) {}
             prefs.setBool(prefKey, true);
           },
         ),
@@ -92,7 +94,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
   int _currentIndex = 0;
   late AnimationController _pulseController;
   Rect? _targetRect;
-  bool _isTransitioningPage = false;
+  int _retryCount = 0;
 
   @override
   void initState() {
@@ -103,7 +105,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
     )..repeat(reverse: true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _activateTarget(_currentIndex);
+      _activateTarget(0);
     });
   }
 
@@ -120,20 +122,22 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
     final nextNav = widget.targets[index].navIndex;
 
     if (nextNav != currentNav && widget.onPageChange != null) {
-      setState(() {
-        _isTransitioningPage = true;
-        _targetRect = null;
-      });
+      if (mounted) {
+        setState(() {
+          _targetRect = null;
+        });
+      }
       widget.onPageChange!(nextNav);
-      await Future.delayed(const Duration(milliseconds: 360));
+      // Give AnimatedSwitcher time to render the new tab
+      await Future.delayed(const Duration(milliseconds: 400));
     }
 
     if (!mounted) return;
 
     setState(() {
       _currentIndex = index;
-      _isTransitioningPage = false;
       _targetRect = null;
+      _retryCount = 0;
     });
 
     _calculateCurrentTargetPosition();
@@ -145,7 +149,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
     final target = widget.targets[_currentIndex];
     final renderBox = target.key.currentContext?.findRenderObject() as RenderBox?;
 
-    if (renderBox != null && renderBox.hasSize) {
+    if (renderBox != null && renderBox.hasSize && renderBox.attached) {
       final position = renderBox.localToGlobal(Offset.zero);
       final size = renderBox.size;
       final rect = Rect.fromLTWH(
@@ -157,35 +161,41 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
 
       // Auto-scroll if target is outside of screen viewport
       final screenHeight = MediaQuery.of(context).size.height;
-      if (widget.scrollController != null && (rect.top < 80 || rect.bottom > screenHeight - 120)) {
+      if (widget.scrollController != null && (rect.top < 70 || rect.bottom > screenHeight - 110)) {
         try {
           await Scrollable.ensureVisible(
             target.key.currentContext!,
-            duration: const Duration(milliseconds: 320),
+            duration: const Duration(milliseconds: 250),
             curve: Curves.easeInOutCubic,
             alignment: 0.35,
           );
           final updatedBox = target.key.currentContext?.findRenderObject() as RenderBox?;
-          if (updatedBox != null) {
+          if (updatedBox != null && updatedBox.hasSize && updatedBox.attached) {
             final updatedPos = updatedBox.localToGlobal(Offset.zero);
-            setState(() {
-              _targetRect = Rect.fromLTWH(
-                updatedPos.dx - target.padding.left,
-                updatedPos.dy - target.padding.top,
-                updatedBox.size.width + target.padding.horizontal,
-                updatedBox.size.height + target.padding.vertical,
-              );
-            });
+            if (mounted) {
+              setState(() {
+                _targetRect = Rect.fromLTWH(
+                  updatedPos.dx - target.padding.left,
+                  updatedPos.dy - target.padding.top,
+                  updatedBox.size.width + target.padding.horizontal,
+                  updatedBox.size.height + target.padding.vertical,
+                );
+              });
+            }
             return;
           }
         } catch (_) {}
       }
 
-      setState(() => _targetRect = rect);
+      if (mounted) {
+        setState(() => _targetRect = rect);
+      }
     } else {
-      // Retry in 100ms if layout is still updating
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (mounted) _calculateCurrentTargetPosition();
+      if (_retryCount < 5) {
+        _retryCount++;
+        await Future.delayed(const Duration(milliseconds: 70));
+        if (mounted) _calculateCurrentTargetPosition();
+      }
     }
   }
 
@@ -207,7 +217,6 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
 
   void _finishTour() {
     HapticFeedback.heavyImpact();
-    // Return back to Cockpit Home (navIndex 0) on tour finish
     widget.onPageChange?.call(0);
     widget.onComplete();
   }
@@ -260,9 +269,12 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF140D2E).withValues(alpha: 0.9),
+                    color: const Color(0xFF140D2E).withValues(alpha: 0.95),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: KX.gold.withValues(alpha: 0.5), width: 1.2),
+                    border: Border.all(color: KX.gold.withValues(alpha: 0.6), width: 1.2),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 8),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -286,7 +298,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.75),
+                      color: Colors.black.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.white24),
                     ),
@@ -307,24 +319,27 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
             ),
           ),
 
-          // 4. Interactive Floating Coachmark Card
-          if (_targetRect != null && !_isTransitioningPage)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic,
-              left: 16,
-              right: 16,
-              top: showTooltipBelow
-                  ? (_targetRect!.bottom + 14).clamp(70.0, screenHeight - 350.0)
-                  : null,
-              bottom: !showTooltipBelow
-                  ? (screenHeight - _targetRect!.top + 14).clamp(70.0, screenHeight - 350.0)
-                  : null,
-              child: GestureDetector(
-                onTap: () {}, // Prevent tap through
-                child: _buildCoachmarkCard(target, isLast),
-              ),
+          // 4. Interactive Floating Coachmark Card (ALWAYS rendered so it NEVER disappears)
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic,
+            left: 16,
+            right: 16,
+            top: _targetRect != null
+                ? (showTooltipBelow
+                    ? (_targetRect!.bottom + 14).clamp(70.0, screenHeight - 340.0)
+                    : null)
+                : null,
+            bottom: _targetRect != null
+                ? (!showTooltipBelow
+                    ? (screenHeight - _targetRect!.top + 14).clamp(70.0, screenHeight - 340.0)
+                    : null)
+                : 28.0, // Fallback bottom anchor if measuring
+            child: GestureDetector(
+              onTap: () {}, // Prevent card tap from dismissing
+              child: _buildCoachmarkCard(target, isLast),
             ),
+          ),
         ],
       ),
     );
@@ -336,7 +351,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
       decoration: BoxDecoration(
         color: const Color(0xFF140D2E).withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: KX.gold.withValues(alpha: 0.65), width: 1.5),
+        border: Border.all(color: KX.gold.withValues(alpha: 0.7), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: KX.gold.withValues(alpha: 0.35),

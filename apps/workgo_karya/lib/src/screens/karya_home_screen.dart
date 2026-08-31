@@ -69,9 +69,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     )..repeat(reverse: true);
 
     _ensureWorkerProfileExists();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAndPromptWorkerLocation();
-      _checkAndShowAppTour();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkAndPromptWorkerLocation();
+      if (mounted) {
+        await _checkAndShowAppTour();
+      }
     });
   }
 
@@ -86,7 +88,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   }
 
   Future<void> _checkAndShowAppTour() async {
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 800));
     if (mounted) {
       await launchSpotlightTour(isManual: false);
     }
@@ -233,6 +235,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   }
 
   Future<void> launchSpotlightTour({bool isManual = false}) async {
+    if (!mounted) return;
     if (_currentNavIndex != 0) {
       setState(() => _currentNavIndex = 0);
       await Future.delayed(const Duration(milliseconds: 300));
@@ -243,7 +246,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         targets: _buildSpotlightTargets(),
         scrollController: _scrollController,
         onPageChange: (navIdx) {
-          setState(() => _currentNavIndex = navIdx);
+          if (mounted) {
+            setState(() => _currentNavIndex = navIdx);
+          }
         },
         isManual: isManual,
       );

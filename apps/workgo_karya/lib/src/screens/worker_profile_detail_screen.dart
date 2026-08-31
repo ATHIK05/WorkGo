@@ -1149,9 +1149,12 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             subtitle: "Interactive guide for all 7 features & operational tools",
             icon: Icons.explore_rounded,
             iconColor: const Color(0xFF8B5CF6),
-            onTap: () {
+            onTap: () async {
               HapticFeedback.lightImpact();
-              Navigator.of(context).pop();
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+                await Future.delayed(const Duration(milliseconds: 250));
+              }
               KaryaHomeScreen.launchLiveSpotlightTour(context);
             },
           ),

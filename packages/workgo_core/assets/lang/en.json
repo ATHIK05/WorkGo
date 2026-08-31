@@ -140,6 +140,7 @@
 
   "_comment_worker_app": "-- Karya Worker App --",
   "online_ready": "Online (Ready for Jobs)",
+  "quick_access_title": "Quick Access Hub",
   "offline_status": "Offline",
   "todays_earnings": "Today's Earnings",
   "completed_jobs": "Completed Jobs",
