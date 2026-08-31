@@ -5,8 +5,13 @@ import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
 
 class WorkerWelfareScreen extends StatelessWidget {
-  const WorkerWelfareScreen({super.key, required this.worker});
+  const WorkerWelfareScreen({
+    super.key,
+    required this.worker,
+    this.welfareShieldKey,
+  });
   final Worker worker;
+  final GlobalKey? welfareShieldKey;
 
   @override
   Widget build(BuildContext context) {
@@ -32,9 +37,12 @@ class WorkerWelfareScreen extends StatelessWidget {
                 children: [
                   // ── Digital Holographic ID Shield
                   KSlideFadeIn(
-                    child: _DigitalArtisanShieldCard(
-                      worker: liveWorker,
-                      isEnrolled: isEnrolled,
+                    child: KeyedSubtree(
+                      key: welfareShieldKey,
+                      child: _DigitalArtisanShieldCard(
+                        worker: liveWorker,
+                        isEnrolled: isEnrolled,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),

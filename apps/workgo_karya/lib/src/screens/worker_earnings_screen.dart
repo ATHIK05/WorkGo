@@ -4,8 +4,13 @@ import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
 
 class WorkerEarningsScreen extends StatelessWidget {
-  const WorkerEarningsScreen({super.key, required this.worker});
+  const WorkerEarningsScreen({
+    super.key,
+    required this.worker,
+    this.earningsHeroKey,
+  });
   final Worker worker;
+  final GlobalKey? earningsHeroKey;
 
   @override
   Widget build(BuildContext context) {
@@ -52,10 +57,13 @@ class WorkerEarningsScreen extends StatelessWidget {
                 children: [
                   // ── Hero Net Payout Card
                   KSlideFadeIn(
-                    child: _HeroLuminaPayoutCard(
-                      netPayout: netPayout,
-                      gross: totalGross,
-                      welfare: welfareReserve,
+                    child: KeyedSubtree(
+                      key: earningsHeroKey,
+                      child: _HeroLuminaPayoutCard(
+                        netPayout: netPayout,
+                        gross: totalGross,
+                        welfare: welfareReserve,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),

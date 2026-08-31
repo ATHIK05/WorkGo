@@ -52,6 +52,13 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   final GlobalKey _keyBentoGrid = GlobalKey();
   final GlobalKey _keyBottomNav = GlobalKey();
 
+  // Child Tab Keys for Multi-Page Guided App Tour
+  final GlobalKey _keyRequestsHub = GlobalKey();
+  final GlobalKey _keyEarningsHero = GlobalKey();
+  final GlobalKey _keyWelfareShield = GlobalKey();
+  final GlobalKey _keyProfileHub = GlobalKey();
+  final GlobalKey _keyProfileKyc = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -87,8 +94,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
   List<SpotlightTarget> _buildSpotlightTargets() {
     return [
+      // ── PAGE 1: HOME COCKPIT (navIndex: 0)
       SpotlightTarget(
         key: _keyAvailabilitySwitch,
+        navIndex: 0,
+        pageTitle: "Home Cockpit",
         stepNumber: "1",
         title: "1. Autonomous Shift & Check-In Switch",
         description: "Tap here anytime to go live on customer radars across your district. Verification is required before your first check-in.",
@@ -100,21 +110,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         ],
       ),
       SpotlightTarget(
-        key: _keyQuickShiftBar,
-        stepNumber: "2",
-        title: "2. Artisan Identity & Profile Hub",
-        description: "Tap your holographic avatar to view verified badges, edit trade skills, adjust coverage radius (1-30 km), or switch languages.",
-        badgeText: "PROFILE & SKILLS",
-        icon: Icons.person_pin_rounded,
-        bulletPoints: [
-          "View customer ratings, badges, and welfare shield",
-          "Switch between தமிழ், हिंदी, and English instantly",
-        ],
-      ),
-      SpotlightTarget(
         key: _keyFuelGauge,
-        stepNumber: "3",
-        title: "3. Daily Fuel Gauge & Earnings Cockpit",
+        navIndex: 0,
+        pageTitle: "Home Cockpit",
+        stepNumber: "2",
+        title: "2. Daily Fuel Gauge & Earnings Cockpit",
         description: "Track today's jobs, total earnings, active hours, and performance incentives with a strict 0% commission guarantee.",
         badgeText: "0% COMMISSION",
         icon: Icons.speed_rounded,
@@ -125,8 +125,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       ),
       SpotlightTarget(
         key: _keyRadar,
-        stepNumber: "4",
-        title: "4. Live Dispatch Radar & Job Match",
+        navIndex: 0,
+        pageTitle: "Home Cockpit",
+        stepNumber: "3",
+        title: "3. Live Dispatch Radar & Job Match",
         description: "Nearby service requests flash in real time with distance, upfront pricing, and a 30-second priority acceptance countdown.",
         badgeText: "PRIORITY RADAR",
         icon: Icons.radar_rounded,
@@ -137,9 +139,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       ),
       SpotlightTarget(
         key: _keyBentoGrid,
-        stepNumber: "5",
-        title: "5. Tactical Action Matrix: KYC & Welfare",
-        description: "Direct shortcuts to complete your government Aadhaar & Video KYC, inspect your ₹2L PMJJBY welfare cover, and manage referrals.",
+        navIndex: 0,
+        pageTitle: "Home Cockpit",
+        stepNumber: "4",
+        title: "4. Tactical Action Matrix",
+        description: "Quick access to government Aadhaar & Video KYC, ₹2L welfare cover, and peer referral network.",
         badgeText: "ACTION MATRIX",
         icon: Icons.grid_view_rounded,
         bulletPoints: [
@@ -147,16 +151,82 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           "₹2,00,000 accidental and disability insurance coverage",
         ],
       ),
+
+      // ── PAGE 2: INCOMING REQUESTS & RADAR (navIndex: 1)
       SpotlightTarget(
-        key: _keyBottomNav,
-        stepNumber: "6",
-        title: "6. Master Navigation Dock",
-        description: "Switch seamlessly across your cockpit tabs: Home, Incoming Radar, Earnings Wallet, Welfare Shield, and Settings.",
-        badgeText: "DOCK TABS",
-        icon: Icons.dock_rounded,
+        key: _keyRequestsHub,
+        navIndex: 1,
+        pageTitle: "Requests & Radar",
+        stepNumber: "5",
+        title: "5. Real-Time Dispatch Broadcast Hub",
+        description: "Live radar listening for broadcasts in your trade skills. Instant cards alert you with customer location, price, and distance.",
+        badgeText: "JOB ALERTS",
+        icon: Icons.cell_tower_rounded,
         bulletPoints: [
-          "Radar tab with live incoming requests counter badge",
-          "Earnings ledger with full booking receipts history",
+          "30-second priority allocation before secondary dispatch",
+          "1-tap Accept to claim job and start secure turn-by-turn navigation",
+        ],
+      ),
+
+      // ── PAGE 3: EARNINGS & INSTANT PAYOUTS (navIndex: 2)
+      SpotlightTarget(
+        key: _keyEarningsHero,
+        navIndex: 2,
+        pageTitle: "Earnings Ledger",
+        stepNumber: "6",
+        title: "6. Direct Wage Payouts (0% Commission)",
+        description: "All customer payments go 100% directly to you. WorkGo charges 0% platform commission with a tiny 2% allocated to your welfare fund.",
+        badgeText: "ZERO DEDUCTIONS",
+        icon: Icons.account_balance_wallet_rounded,
+        bulletPoints: [
+          "Instant 1-tap UPI transfer straight into your bank account",
+          "Complete transaction receipt log for every serviced booking",
+        ],
+      ),
+
+      // ── PAGE 4: WELFARE & INSURANCE SHIELD (navIndex: 3)
+      SpotlightTarget(
+        key: _keyWelfareShield,
+        navIndex: 3,
+        pageTitle: "Welfare & Insurance",
+        stepNumber: "7",
+        title: "7. ₹2 Lakh Welfare Shield & Protection",
+        description: "Every verified cooperative artisan receives ₹2,00,000 accidental & disability cover (PMSBY / PMJJBY) on duty.",
+        badgeText: "SAFETY SHIELD",
+        icon: Icons.health_and_safety_rounded,
+        bulletPoints: [
+          "Digital Holographic ID Card with verified policy number",
+          "24/7 Emergency SOS beacon and health claim support",
+        ],
+      ),
+
+      // ── PAGE 5: PROFILE & OPERATIONAL SETTINGS (navIndex: 4)
+      SpotlightTarget(
+        key: _keyProfileHub,
+        navIndex: 4,
+        pageTitle: "Profile & Hub",
+        stepNumber: "8",
+        title: "8. Operating Bases & Service Radius",
+        description: "Configure your workshop base, set coverage radius (1–30 km), manage trade skills, and customize working shift hours.",
+        badgeText: "BASE & RADIUS",
+        icon: Icons.location_on_rounded,
+        bulletPoints: [
+          "Set multiple operating bases (Primary Workshop & Home)",
+          "Adjust radar dispatch radius to match your vehicle range",
+        ],
+      ),
+      SpotlightTarget(
+        key: _keyProfileKyc,
+        navIndex: 4,
+        pageTitle: "Profile & Hub",
+        stepNumber: "9",
+        title: "9. Identity Verification & Language Hub",
+        description: "Access your government eKYC records, trigger Video KYC reviews, and switch app language instantly (தமிழ், हिंदी, English).",
+        badgeText: "KYC & VERNACULAR",
+        icon: Icons.verified_user_rounded,
+        bulletPoints: [
+          "Tamper-proof C2PA proof of work verification",
+          "Full vernacular audio voice support for illiterate artisans",
         ],
       ),
     ];
@@ -172,6 +242,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         context: context,
         targets: _buildSpotlightTargets(),
         scrollController: _scrollController,
+        onPageChange: (navIdx) {
+          setState(() => _currentNavIndex = navIdx);
+        },
         isManual: isManual,
       );
     }
@@ -463,13 +536,24 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                 key: ValueKey(_currentNavIndex),
                 child: switch (_currentNavIndex) {
                   0 => _buildCockpit(context, worker),
-                  1 => IncomingRequestsScreen(worker: worker),
-                  2 => WorkerEarningsScreen(worker: worker),
-                  3 => WorkerWelfareScreen(worker: worker),
+                  1 => IncomingRequestsScreen(
+                      worker: worker,
+                      requestsHubKey: _keyRequestsHub,
+                    ),
+                  2 => WorkerEarningsScreen(
+                      worker: worker,
+                      earningsHeroKey: _keyEarningsHero,
+                    ),
+                  3 => WorkerWelfareScreen(
+                      worker: worker,
+                      welfareShieldKey: _keyWelfareShield,
+                    ),
                   4 => WorkerProfileDetailScreen(
                       user: widget.user,
                       worker: worker,
                       onSignOut: widget.onSignOut,
+                      profileHubKey: _keyProfileHub,
+                      profileKycKey: _keyProfileKyc,
                     ),
                   _ => _buildCockpit(context, worker),
                 },

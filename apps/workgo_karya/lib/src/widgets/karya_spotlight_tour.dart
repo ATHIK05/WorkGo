@@ -7,6 +7,8 @@ import '../karya_theme.dart';
 
 class SpotlightTarget {
   final GlobalKey key;
+  final int navIndex;
+  final String pageTitle;
   final String stepNumber;
   final String title;
   final String description;
@@ -18,6 +20,8 @@ class SpotlightTarget {
 
   const SpotlightTarget({
     required this.key,
+    this.navIndex = 0,
+    required this.pageTitle,
     required this.stepNumber,
     required this.title,
     required this.description,
@@ -32,23 +36,26 @@ class SpotlightTarget {
 class KaryaSpotlightTourOverlay extends StatefulWidget {
   final List<SpotlightTarget> targets;
   final ScrollController? scrollController;
+  final ValueChanged<int>? onPageChange;
   final VoidCallback onComplete;
 
   const KaryaSpotlightTourOverlay({
     super.key,
     required this.targets,
     this.scrollController,
+    this.onPageChange,
     required this.onComplete,
   });
 
-  static const String prefKey = "has_completed_spotlight_tour_v2";
+  static const String prefKey = "has_completed_spotlight_tour_v3";
 
-  /// Checks SharedPreferences and triggers the real spotlight coachmark tour.
+  /// Checks SharedPreferences and triggers the real multi-page spotlight coachmark tour.
   /// If [isManual] is true, launches regardless of prior completion.
   static Future<void> startTour({
     required BuildContext context,
     required List<SpotlightTarget> targets,
     ScrollController? scrollController,
+    ValueChanged<int>? onPageChange,
     bool isManual = false,
   }) async {
     final prefs = await SharedPreferences.getInstance();
@@ -64,6 +71,7 @@ class KaryaSpotlightTourOverlay extends StatefulWidget {
         builder: (ctx) => KaryaSpotlightTourOverlay(
           targets: targets,
           scrollController: scrollController,
+          onPageChange: onPageChange,
           onComplete: () {
             entry.remove();
             prefs.setBool(prefKey, true);
@@ -84,6 +92,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
   int _currentIndex = 0;
   late AnimationController _pulseController;
   Rect? _targetRect;
+  bool _isTransitioningPage = false;
 
   @override
   void initState() {
@@ -94,7 +103,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
     )..repeat(reverse: true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _calculateCurrentTargetPosition();
+      _activateTarget(_currentIndex);
     });
   }
 
@@ -102,6 +111,32 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
   void dispose() {
     _pulseController.dispose();
     super.dispose();
+  }
+
+  Future<void> _activateTarget(int index) async {
+    if (!mounted || widget.targets.isEmpty) return;
+
+    final currentNav = widget.targets[_currentIndex].navIndex;
+    final nextNav = widget.targets[index].navIndex;
+
+    if (nextNav != currentNav && widget.onPageChange != null) {
+      setState(() {
+        _isTransitioningPage = true;
+        _targetRect = null;
+      });
+      widget.onPageChange!(nextNav);
+      await Future.delayed(const Duration(milliseconds: 360));
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _currentIndex = index;
+      _isTransitioningPage = false;
+      _targetRect = null;
+    });
+
+    _calculateCurrentTargetPosition();
   }
 
   Future<void> _calculateCurrentTargetPosition() async {
@@ -120,17 +155,16 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
         size.height + target.padding.vertical,
       );
 
-      // Auto-scroll if target is outside of comfortable screen viewport
+      // Auto-scroll if target is outside of screen viewport
       final screenHeight = MediaQuery.of(context).size.height;
       if (widget.scrollController != null && (rect.top < 80 || rect.bottom > screenHeight - 120)) {
         try {
           await Scrollable.ensureVisible(
             target.key.currentContext!,
-            duration: const Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 320),
             curve: Curves.easeInOutCubic,
             alignment: 0.35,
           );
-          // Recalculate after scroll
           final updatedBox = target.key.currentContext?.findRenderObject() as RenderBox?;
           if (updatedBox != null) {
             final updatedPos = updatedBox.localToGlobal(Offset.zero);
@@ -149,8 +183,8 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
 
       setState(() => _targetRect = rect);
     } else {
-      // If widget context is not ready yet, retry in 80ms
-      await Future.delayed(const Duration(milliseconds: 80));
+      // Retry in 100ms if layout is still updating
+      await Future.delayed(const Duration(milliseconds: 100));
       if (mounted) _calculateCurrentTargetPosition();
     }
   }
@@ -158,11 +192,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
   void _nextTarget() {
     HapticFeedback.mediumImpact();
     if (_currentIndex < widget.targets.length - 1) {
-      setState(() {
-        _currentIndex++;
-        _targetRect = null;
-      });
-      _calculateCurrentTargetPosition();
+      _activateTarget(_currentIndex + 1);
     } else {
       _finishTour();
     }
@@ -171,16 +201,14 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
   void _previousTarget() {
     HapticFeedback.lightImpact();
     if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-        _targetRect = null;
-      });
-      _calculateCurrentTargetPosition();
+      _activateTarget(_currentIndex - 1);
     }
   }
 
   void _finishTour() {
     HapticFeedback.heavyImpact();
+    // Return back to Cockpit Home (navIndex 0) on tour finish
+    widget.onPageChange?.call(0);
     widget.onComplete();
   }
 
@@ -191,9 +219,8 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
     final screenWidth = MediaQuery.of(context).size.width;
     final isLast = _currentIndex == widget.targets.length - 1;
 
-    // Determine whether to render tooltip card above or below target
     final targetCenterY = _targetRect != null ? _targetRect!.center.dy : screenHeight * 0.4;
-    final showTooltipBelow = targetCenterY < screenHeight * 0.55;
+    final showTooltipBelow = targetCenterY < screenHeight * 0.52;
 
     return Material(
       color: Colors.transparent,
@@ -222,49 +249,79 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
             ),
           ),
 
-          // 3. Top Skip Button
+          // 3. Top Skip & Page Indicator Header
           Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 16,
             right: 16,
-            child: GestureDetector(
-              onTap: _finishTour,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF140D2E).withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: KX.gold.withValues(alpha: 0.5), width: 1.2),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.explore_rounded, color: KX.gold, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        "${target.pageTitle.toUpperCase()} · STEP ${_currentIndex + 1}/${widget.targets.length}",
+                        style: const TextStyle(
+                          color: KX.gold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Skip Tour",
-                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                GestureDetector(
+                  onTap: _finishTour,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white24),
                     ),
-                    SizedBox(width: 4),
-                    Icon(Icons.close_rounded, color: Colors.white, size: 14),
-                  ],
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Skip Tour",
+                          style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.close_rounded, color: Colors.white, size: 14),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
 
           // 4. Interactive Floating Coachmark Card
-          if (_targetRect != null)
+          if (_targetRect != null && !_isTransitioningPage)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 320),
               curve: Curves.easeOutCubic,
               left: 16,
               right: 16,
               top: showTooltipBelow
-                  ? (_targetRect!.bottom + 16).clamp(80.0, screenHeight - 340.0)
+                  ? (_targetRect!.bottom + 14).clamp(70.0, screenHeight - 350.0)
                   : null,
               bottom: !showTooltipBelow
-                  ? (screenHeight - _targetRect!.top + 16).clamp(80.0, screenHeight - 340.0)
+                  ? (screenHeight - _targetRect!.top + 14).clamp(70.0, screenHeight - 350.0)
                   : null,
               child: GestureDetector(
-                onTap: () {}, // Prevent card tap from propagating
+                onTap: () {}, // Prevent tap through
                 child: _buildCoachmarkCard(target, isLast),
               ),
             ),
@@ -277,19 +334,19 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF140D2E).withValues(alpha: 0.96),
+        color: const Color(0xFF140D2E).withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: KX.gold.withValues(alpha: 0.6), width: 1.5),
+        border: Border.all(color: KX.gold.withValues(alpha: 0.65), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: KX.gold.withValues(alpha: 0.3),
-            blurRadius: 28,
+            color: KX.gold.withValues(alpha: 0.35),
+            blurRadius: 30,
             spreadRadius: 2,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.8),
-            blurRadius: 16,
+            color: Colors.black.withValues(alpha: 0.85),
+            blurRadius: 18,
           ),
         ],
       ),
@@ -317,13 +374,13 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: KX.gold.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        "STEP ${_currentIndex + 1} OF ${widget.targets.length} · ${target.badgeText}",
+                        "${target.pageTitle.toUpperCase()} · ${target.badgeText}",
                         style: const TextStyle(
                           color: KX.gold,
                           fontSize: 9.5,
@@ -414,7 +471,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        isLast ? "Finish Tour & Start 🚀" : "Next Feature",
+                        isLast ? "Complete Full App Tour 🚀" : "Next Page / Feature",
                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                       ),
                       const SizedBox(width: 4),
@@ -439,7 +496,7 @@ class _SpotlightPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final backgroundPaint = Paint()..color = const Color(0xE8080415);
+    final backgroundPaint = Paint()..color = const Color(0xEA080415);
 
     if (targetRect == null) {
       canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);

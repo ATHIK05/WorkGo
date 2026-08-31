@@ -5,8 +5,13 @@ import '../karya_theme.dart';
 import 'active_job_screen.dart';
 
 class IncomingRequestsScreen extends StatelessWidget {
-  const IncomingRequestsScreen({super.key, required this.worker});
+  const IncomingRequestsScreen({
+    super.key,
+    required this.worker,
+    this.requestsHubKey,
+  });
   final Worker worker;
+  final GlobalKey? requestsHubKey;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +23,9 @@ class IncomingRequestsScreen extends StatelessWidget {
         subtitle: "${worker.skills.length} trade skills registered",
       ),
       body: SafeArea(
-        child: StreamBuilder<List<Booking>>(
+        child: KeyedSubtree(
+          key: requestsHubKey,
+          child: StreamBuilder<List<Booking>>(
           stream: bookingService.streamWorkerIncomingRequests(
             workerId: worker.id,
             skills: worker.skills,
@@ -114,8 +121,9 @@ class IncomingRequestsScreen extends StatelessWidget {
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ──────────────────────────────────────────────────────────────

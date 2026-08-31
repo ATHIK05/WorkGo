@@ -15,11 +15,15 @@ class WorkerProfileDetailScreen extends StatefulWidget {
     required this.user,
     required this.worker,
     required this.onSignOut,
+    this.profileHubKey,
+    this.profileKycKey,
   });
 
   final AppUser user;
   final Worker worker;
   final VoidCallback onSignOut;
+  final GlobalKey? profileHubKey;
+  final GlobalKey? profileKycKey;
 
   @override
   State<WorkerProfileDetailScreen> createState() => _WorkerProfileDetailScreenState();
@@ -865,10 +869,12 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             ? addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first)
             : worker.baseAddress;
 
-        return KaryaCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        return KeyedSubtree(
+          key: widget.profileHubKey,
+          child: KaryaCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -998,10 +1004,11 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                 ),
             ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildCoverageAndTradesCard(Worker worker) {
     final area = worker.preferredAreas.isNotEmpty ? worker.preferredAreas.join(', ') : "active_coverage_zone".trSafe("Active Coverage Zone");
@@ -1133,45 +1140,48 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
   }
 
   Widget _buildQuickNavigationLinks(Worker worker) {
-    return Column(
-      children: [
-        _buildNavTile(
-          title: "App Tour & Feature Guide",
-          subtitle: "Interactive guide for all 7 features & operational tools",
-          icon: Icons.explore_rounded,
-          iconColor: const Color(0xFF8B5CF6),
-          onTap: () {
-            HapticFeedback.lightImpact();
-            Navigator.of(context).pop();
-            KaryaHomeScreen.launchLiveSpotlightTour(context);
-          },
-        ),
-        const SizedBox(height: 10),
-        _buildNavTile(
-          title: "upload_kyc".tr(),
-          subtitle: worker.verificationStatus == VerificationStatus.approved ? "KYC Approved & Active" : "Pending Review",
-          icon: Icons.verified_user_rounded,
-          iconColor: KX.emerald,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (ctx) => DocumentUploadScreen(
-                workerId: worker.id,
-                initialVerificationStatus: worker.verificationStatus,
+    return KeyedSubtree(
+      key: widget.profileKycKey,
+      child: Column(
+        children: [
+          _buildNavTile(
+            title: "App Tour & Feature Guide",
+            subtitle: "Interactive guide for all 7 features & operational tools",
+            icon: Icons.explore_rounded,
+            iconColor: const Color(0xFF8B5CF6),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              Navigator.of(context).pop();
+              KaryaHomeScreen.launchLiveSpotlightTour(context);
+            },
+          ),
+          const SizedBox(height: 10),
+          _buildNavTile(
+            title: "upload_kyc".tr(),
+            subtitle: worker.verificationStatus == VerificationStatus.approved ? "KYC Approved & Active" : "Pending Review",
+            icon: Icons.verified_user_rounded,
+            iconColor: KX.emerald,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (ctx) => DocumentUploadScreen(
+                  workerId: worker.id,
+                  initialVerificationStatus: worker.verificationStatus,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
-        _buildNavTile(
-          title: "welfare_status".tr(),
-          subtitle: "Cooperative Insurance & Welfare Fund",
-          icon: Icons.shield_rounded,
-          iconColor: KX.gold,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (ctx) => WorkerWelfareScreen(worker: worker)),
+          const SizedBox(height: 10),
+          _buildNavTile(
+            title: "welfare_status".tr(),
+            subtitle: "Cooperative Insurance & Welfare Fund",
+            icon: Icons.shield_rounded,
+            iconColor: KX.gold,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (ctx) => WorkerWelfareScreen(worker: worker)),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
