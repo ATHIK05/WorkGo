@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
+import '../../main.dart';
 import 'booking_creation_screen.dart';
 import 'live_booking_tracker_screen.dart';
 import 'worker_search_screen.dart';
@@ -1968,6 +1969,98 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ),
                 backgroundColor: const Color(
                   0xFFF43F5E,
+                ).withValues(alpha: 0.06),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Delete Account CTA (DPDP Act 2023 §12 Right to Erasure)
+            OutlinedButton.icon(
+              onPressed: () async {
+                final confirmed = await showDeleteAccountConfirmationSheet(context);
+                if (confirmed == true) {
+                  if (context.mounted) {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (ctx) => const Center(
+                        child: CircularProgressIndicator(color: Color(0xFFE11D48)),
+                      ),
+                    );
+                  }
+
+                  try {
+                    final authService = AuthService();
+                    await authService.deleteAccount(uid: widget.user.uid);
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.clear();
+
+                    if (context.mounted) {
+                      customerNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Row(
+                            children: [
+                              Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 22),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  "Account and personal data permanently erased under DPDP Act 2023.",
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: const Color(0xFF0F0B24),
+                          duration: const Duration(seconds: 5),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: Color(0xFF10B981), width: 1.2),
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      if (Navigator.of(context, rootNavigator: true).canPop()) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Error during erasure: $e"),
+                          backgroundColor: const Color(0xFFE11D48),
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+              icon: const Icon(
+                Icons.delete_forever_rounded,
+                color: Color(0xFFE11D48),
+                size: 20,
+              ),
+              label: const Text(
+                'Delete Account & Wipe Data',
+                style: TextStyle(
+                  color: Color(0xFFE11D48),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 52),
+                side: BorderSide(
+                  color: const Color(0xFFE11D48).withValues(alpha: 0.5),
+                  width: 1.3,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                backgroundColor: const Color(
+                  0xFFE11D48,
                 ).withValues(alpha: 0.06),
               ),
             ),

@@ -410,7 +410,7 @@ class NotificationEngine {
       for (const doc of workersSnap.docs) {
         const w = doc.data();
         const skills = w.skills || [];
-        const isOnline = w.availabilityStatus === "online" || !w.availabilityStatus;
+        const isOnline = w.availabilityStatus === "online" && (w.isCheckedIn === true || w.isCheckedIn === undefined);
         const isVerified = w.verificationStatus === "approved" || w.visibilityStatus === "public";
         const matchesTrade = serviceType === "All" || skills.includes(serviceType);
 

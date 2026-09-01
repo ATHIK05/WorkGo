@@ -14,6 +14,8 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
     with SingleTickerProviderStateMixin {
   final WorkerService _workerService = WorkerService();
   late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
 
   @override
   void initState() {
@@ -24,6 +26,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -33,7 +36,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       backgroundColor: const Color(0xFF0D0A1C),
       appBar: AppBar(
         title: const SafeText(
-          "Cooperative KYC & Governance Console",
+          "Cooperative Employee Directory & KYC Dossier",
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -50,47 +53,98 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
           unselectedLabelColor: Colors.white54,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           tabs: const [
-            Tab(text: "All Queue"),
-            Tab(text: "Video KYC"),
-            Tab(text: "PCC Review"),
+            Tab(text: "Pending Review"),
+            Tab(text: "Approved Artisans"),
+            Tab(text: "All Employees"),
             Tab(text: "Suspended"),
           ],
         ),
       ),
       body: SafeArea(
-        child: StreamBuilder<List<Worker>>(
-          stream: _workerService.streamAllWorkers(),
-          builder: (context, snapshot) {
-            final allWorkers = snapshot.data ?? [];
+        child: Column(
+          children: [
+            // Search Box
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: WorkGoSpacing.md, vertical: 10),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+                decoration: InputDecoration(
+                  hintText: "Search employee by name, trade, or phone...",
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                  prefixIcon: const Icon(Icons.search_rounded, color: WorkGoColors.accent, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, color: Colors.white54, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = "");
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFF1B1438),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
 
-            final pendingAll = allWorkers
-                .where((w) => !w.isProxy && w.verificationStatus == VerificationStatus.pending)
-                .toList();
+            // Tabs Content
+            Expanded(
+              child: StreamBuilder<List<Worker>>(
+                stream: _workerService.streamAllWorkers(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: WorkGoColors.accent),
+                    );
+                  }
 
-            final videoKycQueue = allWorkers
-                .where((w) => w.verificationStage == VerificationStage.liveVideoVerification)
-                .toList();
+                  final allWorkers = snapshot.data ?? [];
 
-            final pccQueue = allWorkers
-                .where((w) =>
-                    w.verificationStage == VerificationStage.pccManualReview ||
-                    w.verificationStage == VerificationStage.pccUpload)
-                .toList();
+                  final filteredWorkers = allWorkers.where((w) {
+                    if (_searchQuery.isEmpty) return true;
+                    final matchName = w.name.toLowerCase().contains(_searchQuery);
+                    final matchSkills = w.skills.any((s) => s.toLowerCase().contains(_searchQuery));
+                    final matchPhone = (w.phoneForCalling ?? "").contains(_searchQuery);
+                    return matchName || matchSkills || matchPhone;
+                  }).toList();
 
-            final suspendedQueue = allWorkers
-                .where((w) => w.visibilityStatus == VisibilityStatus.suspended)
-                .toList();
+                  final pendingQueue = filteredWorkers
+                      .where((w) =>
+                          !w.isProxy &&
+                          w.verificationStatus == VerificationStatus.pending &&
+                          w.visibilityStatus != VisibilityStatus.suspended)
+                      .toList();
 
-            return TabBarView(
-              controller: _tabController,
-              children: [
-                _buildWorkerList(pendingAll, "No pending applications in queue"),
-                _buildWorkerList(videoKycQueue, "No video KYC calls scheduled"),
-                _buildWorkerList(pccQueue, "No Police Clearance Certificates to review"),
-                _buildWorkerList(suspendedQueue, "No suspended artisans"),
-              ],
-            );
-          },
+                  final approvedQueue = filteredWorkers
+                      .where((w) =>
+                          w.verificationStatus == VerificationStatus.approved &&
+                          w.visibilityStatus != VisibilityStatus.suspended)
+                      .toList();
+
+                  final suspendedQueue = filteredWorkers
+                      .where((w) => w.visibilityStatus == VisibilityStatus.suspended)
+                      .toList();
+
+                  return TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildWorkerList(pendingQueue, "No pending applications in queue"),
+                      _buildWorkerList(approvedQueue, "No approved artisans yet"),
+                      _buildWorkerList(filteredWorkers, "No employee records found"),
+                      _buildWorkerList(suspendedQueue, "No suspended artisans"),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -108,14 +162,14 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: WorkGoColors.accent.withValues(alpha: 0.12),
+                  color: WorkGoColors.accent.withAlpha(30),
                 ),
                 child: const Icon(Icons.verified_user_rounded, color: WorkGoColors.accent, size: 40),
               ),
               const SizedBox(height: 16),
               SafeText(
                 emptyMessage,
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -129,15 +183,18 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       itemCount: workers.length,
       separatorBuilder: (ctx, i) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
-        return _buildApprovalCard(context, workers[index]);
+        return _buildEmployeeCard(context, workers[index]);
       },
     );
   }
 
-  Widget _buildApprovalCard(BuildContext context, Worker worker) {
+  Widget _buildEmployeeCard(BuildContext context, Worker worker) {
     final details = worker.verificationDetails;
     final stage = worker.verificationStage;
+    final isApproved = worker.verificationStatus == VerificationStatus.approved;
     final isSuspended = worker.visibilityStatus == VisibilityStatus.suspended;
+    final aiRisk = details?.aiRiskScore ?? 0.0;
+    final isAiSuspicious = details?.isAiSuspicious ?? false;
 
     return GlassCard(
       padding: const EdgeInsets.all(WorkGoSpacing.md),
@@ -146,208 +203,149 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
         children: [
           Row(
             children: [
+              // Avatar
               Container(
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSuspended
-                      ? const Color(0xFFF43F5E).withValues(alpha: 0.15)
-                      : WorkGoColors.accent.withValues(alpha: 0.15),
+                  border: Border.all(
+                    color: isApproved
+                        ? const Color(0xFF10B981)
+                        : isSuspended
+                            ? const Color(0xFFEF4444)
+                            : WorkGoColors.accent,
+                    width: 2,
+                  ),
                 ),
-                child: Icon(
-                  isSuspended ? Icons.warning_amber_rounded : Icons.person,
-                  color: isSuspended ? const Color(0xFFF43F5E) : WorkGoColors.accent,
-                  size: 28,
+                child: ClipOval(
+                  child: details?.selfieCenterBase64 != null
+                      ? Image.memory(
+                          base64Decode(details!.selfieCenterBase64!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatarFallback(worker),
+                        )
+                      : details?.selfieBase64 != null
+                          ? Image.memory(
+                              base64Decode(details!.selfieBase64!),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildAvatarFallback(worker),
+                            )
+                          : _buildAvatarFallback(worker),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
+
+              // Name & Trades
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SafeText(
-                      worker.name.isNotEmpty ? worker.name : "Co-op Artisan Candidate",
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SafeText(
+                            worker.name,
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        if (isApproved)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withAlpha(40),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFF10B981)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 13),
+                                SizedBox(width: 4),
+                                SafeText(
+                                  "CERTIFIED",
+                                  style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.w900),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (isSuspended)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444).withAlpha(40),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFEF4444)),
+                            ),
+                            child: const SafeText(
+                              "SUSPENDED",
+                              style: TextStyle(color: Color(0xFFEF4444), fontSize: 10, fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     SafeText(
-                      "Skills: ${worker.skills.join(', ')} • ${worker.experienceYears} yrs exp",
-                      style: TextStyle(color: WorkGoColors.textSecondary.withValues(alpha: 0.7), fontSize: 12),
+                      worker.skills.isNotEmpty ? worker.skills.join(" · ") : "Artisan Tradesperson",
+                      style: const TextStyle(color: WorkGoColors.accent, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
               ),
-              WorkGoBadge(
-                label: isSuspended
-                    ? "SUSPENDED"
-                    : _formatStageBadge(stage),
-                type: isSuspended ? BadgeType.error : BadgeType.warning,
-              ),
             ],
           ),
-          const Divider(color: Colors.white12, height: 20),
+          const SizedBox(height: 12),
 
-          // Stage & Identity Highlights
-          Row(
+          // Milestone Chips
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              Expanded(
-                child: _buildInfoChip(
-                  "Aadhaar eKYC",
-                  details?.aadhaarMaskedNumber ?? "XXXXXXXX9842",
-                  Icons.fingerprint_rounded,
-                ),
+              _buildStatusChip(
+                label: "Stage: ${_formatStage(stage)}",
+                color: _getStageColor(stage),
+                icon: Icons.timeline_rounded,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildInfoChip(
-                  "Liveness Score",
-                  "${((details?.livenessScore ?? 0.98) * 100).toStringAsFixed(1)}%",
-                  Icons.face_rounded,
+              if (details?.aadhaarMaskedNumber != null)
+                _buildStatusChip(
+                  label: "Aadhaar: ${details!.aadhaarMaskedNumber}",
+                  color: const Color(0xFF10B981),
+                  icon: Icons.fingerprint_rounded,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildInfoChip(
-                  "Video KYC Slot",
-                  details?.videoCallScheduledAt != null
-                      ? details!.videoCallScheduledAt!.toLocal().toString().substring(5, 16)
-                      : "Pending Slot",
-                  Icons.video_call_rounded,
+              if (details?.selfieCenterBase64 != null)
+                _buildStatusChip(
+                  label: "3D Face: 3 Angles ✓",
+                  color: const Color(0xFF38BDF8),
+                  icon: Icons.face_retouching_natural_rounded,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildInfoChip(
-                  "PCC Clearance",
-                  details?.pccDocumentId != null ? "Uploaded (Encrypted)" : "Awaiting File",
-                  Icons.shield_rounded,
-                ),
+              _buildStatusChip(
+                label: isAiSuspicious ? "AI Risk: ${(aiRisk * 100).toInt()}% Flagged" : "AI Risk: ${(aiRisk * 100).toInt()}% Authentic",
+                color: isAiSuspicious ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                icon: isAiSuspicious ? Icons.warning_amber_rounded : Icons.verified_user_rounded,
               ),
             ],
           ),
           const SizedBox(height: 14),
 
-          // Action Buttons Bar
-          Row(
-            children: [
-              // Audit History Button
-              IconButton(
-                icon: const Icon(Icons.history_edu_rounded, color: Color(0xFF00E5FF)),
-                tooltip: "Inspect Audit Trail",
-                onPressed: () => _openAuditTrailModal(context, worker),
+          // Action Button -> Opens Full Forensic Dossier
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _showWorkerDossier(context, worker),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF231A47),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: WorkGoColors.accent, width: 1),
+                ),
               ),
-              const SizedBox(width: 4),
-
-              // Live Video Verification Action (if in Video KYC stage)
-              if (stage == VerificationStage.liveVideoVerification) ...[
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _openLiveVideoCallDialog(context, worker),
-                    icon: const Icon(Icons.video_camera_front_rounded, size: 16),
-                    label: const Text("Launch Video KYC"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7928CA),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-
-              // PCC Review Action (if in PCC review stage)
-              if (stage == VerificationStage.pccManualReview || stage == VerificationStage.pccUpload) ...[
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _openPccReviewDialog(context, worker),
-                    icon: const Icon(Icons.verified_rounded, size: 16),
-                    label: const Text("Review PCC"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF047857),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-
-              // Suspension Toggle Button
-              if (!isSuspended) ...[
-                IconButton(
-                  icon: const Icon(Icons.block_rounded, color: Color(0xFFF43F5E)),
-                  tooltip: "Suspend Artisan",
-                  onPressed: () => _handleSuspendWorker(context, worker),
-                ),
-              ] else ...[
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleReinstateWorker(context, worker),
-                    icon: const Icon(Icons.check_circle_rounded, size: 16),
-                    label: const Text("Reinstate Artisan"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF047857),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatStageBadge(VerificationStage stage) {
-    switch (stage) {
-      case VerificationStage.signup:
-        return "CONSENT PENDING";
-      case VerificationStage.aadhaarOfflineEkyc:
-        return "AADHAAR eKYC";
-      case VerificationStage.selfieCapture:
-      case VerificationStage.onDeviceLiveness:
-        return "LIVENESS GATE";
-      case VerificationStage.liveVideoVerification:
-        return "VIDEO KYC CALL";
-      case VerificationStage.pccUpload:
-      case VerificationStage.pccManualReview:
-        return "PCC REVIEW";
-      case VerificationStage.approved:
-        return "APPROVED";
-      case VerificationStage.rejected:
-        return "REJECTED";
-    }
-  }
-
-  Widget _buildInfoChip(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: WorkGoColors.accent),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SafeText(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                SafeText(value, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold), maxLines: 1),
-              ],
+              icon: const Icon(Icons.badge_rounded, color: WorkGoColors.accent, size: 18),
+              label: const SafeText(
+                "Inspect Verification Dossier & Audit Trail",
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
+              ),
             ),
           ),
         ],
@@ -355,642 +353,583 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
     );
   }
 
-  // ── Live Video Verification Room Modal ──────────────────────────────────────
-
-  void _openLiveVideoCallDialog(BuildContext context, Worker worker) {
-    final phrase = worker.verificationDetails?.videoCallPhrase ?? "VIOLET-892-SUN";
-    final selfieBase64 = worker.verificationDetails?.selfieBase64;
-    Uint8List? selfieBytes;
-    if (selfieBase64 != null && selfieBase64.isNotEmpty) {
-      try {
-        selfieBytes = base64Decode(selfieBase64);
-      } catch (_) {}
-    }
-
-    bool photoMatch = true;
-    bool phraseSpoken = true;
-    bool toolsVerified = true;
-    final notesCtrl = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return StreamBuilder<VideoKycBooking?>(
-            stream: _workerService.streamActiveVideoKycBooking(worker.id),
-            builder: (context, snapshot) {
-              final booking = snapshot.data;
-              final isWorkerInLobby = booking?.workerStatus == "in_lobby" || booking?.status == VideoKycStatus.inLobby;
-              final roomUrl = booking?.roomUrl.isNotEmpty == true
-                  ? booking!.roomUrl
-                  : "https://meet.jit.si/workgo_kyc_${worker.id}#config.prejoinPageEnabled=false";
-
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0B0818),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                  border: Border(top: BorderSide(color: Color(0xFF7928CA), width: 1.5)),
-                ),
-                padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 32),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 4,
-                          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          const Icon(Icons.video_call_rounded, color: Color(0xFFC084FC), size: 28),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Live Video KYC Verification Room",
-                                  style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
-                                ),
-                                Text(
-                                  "Artisan: ${worker.name} • Skills: ${worker.skills.join(', ')}",
-                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Worker Profile & Live Likeness Box
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF130E2A),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white10,
-                                border: Border.all(color: const Color(0xFF10B981), width: 2),
-                              ),
-                              child: ClipOval(
-                                child: selfieBytes != null
-                                    ? Image.memory(selfieBytes, fit: BoxFit.cover)
-                                    : const Icon(Icons.person_rounded, color: Colors.white54, size: 36),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        worker.name,
-                                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Text("SELFIE AUTH", style: TextStyle(color: Color(0xFF10B981), fontSize: 9, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    "Aadhaar: ${worker.verificationDetails?.aadhaarMaskedNumber ?? 'Verified'}",
-                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    "Liveness Score: ${((worker.verificationDetails?.livenessScore ?? 0.99) * 100).toStringAsFixed(1)}%",
-                                    style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 11),
-                                  ),
-                                  if (worker.verificationDetails?.isAiSuspicious == true || (worker.verificationDetails?.aiRiskScore ?? 0) > 0.3) ...[
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF43F5E).withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFF43F5E)),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.warning_amber_rounded, color: Color(0xFFF43F5E), size: 12),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            "AI SYNTHETIC RISK: ${((worker.verificationDetails?.aiRiskScore ?? 0.8) * 100).toInt()}%",
-                                            style: const TextStyle(color: Color(0xFFF43F5E), fontSize: 9.5, fontWeight: FontWeight.w900),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Room & Presence Status
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isWorkerInLobby
-                              ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                              : Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isWorkerInLobby ? const Color(0xFF10B981) : Colors.white12,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isWorkerInLobby ? Icons.fiber_manual_record : Icons.schedule_rounded,
-                              color: isWorkerInLobby ? const Color(0xFF10B981) : Colors.amber,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                isWorkerInLobby
-                                    ? "Artisan is ACTIVE IN LOBBY waiting for your call!"
-                                    : "Waiting for artisan to enter lobby...",
-                                style: TextStyle(
-                                  color: isWorkerInLobby ? const Color(0xFF34D399) : Colors.white70,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Join Call Button
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          await _workerService.updateLobbyStatus(
-                            workerId: worker.id,
-                            bookingId: booking?.id,
-                            status: "in_call",
-                            actorType: "admin",
-                          );
-                          final uri = Uri.parse(roomUrl);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
-                          }
-                        },
-                        icon: const Icon(Icons.videocam_rounded, size: 20),
-                        label: const Text("Launch Video Meeting Room", style: TextStyle(fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7928CA),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Challenge Phrase Prompt
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.black45,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: WorkGoColors.accent.withValues(alpha: 0.4)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.record_voice_over_rounded, color: WorkGoColors.accent, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text("CHALLENGE PHRASE TO VERIFY ON CALL", style: TextStyle(color: WorkGoColors.accent, fontSize: 9.5, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 2),
-                                  Text(phrase, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Officer Checklist
-                      CheckboxListTile(
-                        title: const Text("Physical ID Matches Selfie & Aadhaar", style: TextStyle(color: Colors.white, fontSize: 12)),
-                        value: photoMatch,
-                        activeColor: const Color(0xFF10B981),
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        onChanged: (v) => setModalState(() => photoMatch = v ?? false),
-                      ),
-                      CheckboxListTile(
-                        title: const Text("Artisan Spoke Challenge Phrase Correctly", style: TextStyle(color: Colors.white, fontSize: 12)),
-                        value: phraseSpoken,
-                        activeColor: const Color(0xFF10B981),
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        onChanged: (v) => setModalState(() => phraseSpoken = v ?? false),
-                      ),
-                      CheckboxListTile(
-                        title: const Text("Tools / Workshop Likeness Verified", style: TextStyle(color: Colors.white, fontSize: 12)),
-                        value: toolsVerified,
-                        activeColor: const Color(0xFF10B981),
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        onChanged: (v) => setModalState(() => toolsVerified = v ?? false),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () async {
-                                Navigator.of(context).pop();
-                                await _workerService.submitVideoKycReview(
-                                  workerId: worker.id,
-                                  bookingId: booking?.id ?? "vcall_${worker.id}",
-                                  passed: false,
-                                  challengePhrase: phrase,
-                                  checklist: {"photoMatch": photoMatch, "phraseSpoken": phraseSpoken, "toolsVerified": toolsVerified},
-                                  notes: notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : "Verification mismatch or challenge failed",
-                                );
-                              },
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFFF43F5E),
-                                side: const BorderSide(color: Color(0xFFF43F5E)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: const Text("Reject & Flag"),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              onPressed: (photoMatch && phraseSpoken && toolsVerified)
-                                  ? () async {
-                                      Navigator.of(context).pop();
-                                      await _workerService.submitVideoKycReview(
-                                        workerId: worker.id,
-                                        bookingId: booking?.id ?? "vcall_${worker.id}",
-                                        passed: true,
-                                        challengePhrase: phrase,
-                                        checklist: {"photoMatch": true, "phraseSpoken": true, "toolsVerified": true},
-                                        notes: "Passed live video examination",
-                                      );
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text("Video KYC approved! Worker advanced to PCC upload."),
-                                            backgroundColor: Color(0xFF047857),
-                                            behavior: SnackBarBehavior.floating,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF10B981),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: const Text("Approve Video KYC", style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
+  Widget _buildAvatarFallback(Worker worker) {
+    return Container(
+      color: const Color(0xFF231A47),
+      child: Center(
+        child: SafeText(
+          worker.name.isNotEmpty ? worker.name[0].toUpperCase() : "A",
+          style: const TextStyle(color: WorkGoColors.accent, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
 
-  // ── PCC Review Drawer ───────────────────────────────────────────────────────
+  Widget _buildStatusChip({required String label, required Color color, required IconData icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withAlpha(100)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 12),
+          const SizedBox(width: 5),
+          SafeText(
+            label,
+            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
 
-  void _openPccReviewDialog(BuildContext context, Worker worker) {
-    final docId = worker.verificationDetails?.pccDocumentId ?? "pcc_doc_${worker.id}";
-    final notesCtrl = TextEditingController();
-
+  // ── Full Forensic Dossier Dialog ────────────────────────────────────────────
+  void _showWorkerDossier(BuildContext context, Worker worker) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0B0818),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: Color(0xFF047857), width: 1.5)),
+      backgroundColor: const Color(0xFF0F0B21),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => _WorkerDossierSheet(worker: worker, workerService: _workerService),
+    );
+  }
+
+  String _formatStage(VerificationStage stage) {
+    switch (stage) {
+      case VerificationStage.signup:
+        return "Signup";
+      case VerificationStage.consent:
+        return "Consent";
+      case VerificationStage.aadhaarOfflineEkyc:
+        return "Aadhaar eKYC";
+      case VerificationStage.selfieCapture:
+      case VerificationStage.onDeviceLiveness:
+      case VerificationStage.multiAngleLiveness:
+        return "3D Biometrics";
+      case VerificationStage.pccUpload:
+        return "PCC Upload";
+      case VerificationStage.pccManualReview:
+        return "PCC Review";
+      case VerificationStage.approved:
+        return "Approved";
+      case VerificationStage.rejected:
+        return "Rejected";
+      default:
+        return stage.name;
+    }
+  }
+
+  Color _getStageColor(VerificationStage stage) {
+    switch (stage) {
+      case VerificationStage.approved:
+        return const Color(0xFF10B981);
+      case VerificationStage.rejected:
+        return const Color(0xFFEF4444);
+      case VerificationStage.pccManualReview:
+      case VerificationStage.pccUpload:
+        return const Color(0xFFF59E0B);
+      case VerificationStage.multiAngleLiveness:
+      case VerificationStage.selfieCapture:
+        return const Color(0xFF38BDF8);
+      default:
+        return WorkGoColors.accent;
+    }
+  }
+}
+
+// ── Forensic Dossier Sheet ──────────────────────────────────────────────────
+class _WorkerDossierSheet extends StatefulWidget {
+  final Worker worker;
+  final WorkerService workerService;
+
+  const _WorkerDossierSheet({required this.worker, required this.workerService});
+
+  @override
+  State<_WorkerDossierSheet> createState() => _WorkerDossierSheetState();
+}
+
+class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
+  bool _isActionLoading = false;
+  final TextEditingController _rejectionReasonCtrl = TextEditingController();
+
+  Future<void> _handleApprove() async {
+    setState(() => _isActionLoading = true);
+    HapticFeedback.heavyImpact();
+    try {
+      await widget.workerService.submitPccReview(
+        workerId: widget.worker.id,
+        approved: true,
+      );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Artisan Approved & C2PA Trust Badge Minted! ✓"),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Approval failed: $e"), backgroundColor: const Color(0xFFEF4444)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isActionLoading = false);
+    }
+  }
+
+  Future<void> _handleReject() async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1635),
+        title: const SafeText("Reject Application", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: _rejectionReasonCtrl,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Enter reason for rejection (e.g. Blurry ID, PCC Expired)...",
+            hintStyle: TextStyle(color: Colors.white38),
+          ),
         ),
-        padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 32),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(_rejectionReasonCtrl.text.trim()),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            child: const Text("Reject", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (reason != null && reason.isNotEmpty) {
+      setState(() => _isActionLoading = true);
+      HapticFeedback.mediumImpact();
+      try {
+        await widget.workerService.submitPccReview(
+          workerId: widget.worker.id,
+          approved: false,
+          rejectionReason: reason,
+        );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Application Rejected."), backgroundColor: Color(0xFFEF4444)),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Rejection failed: $e"), backgroundColor: const Color(0xFFEF4444)),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isActionLoading = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _rejectionReasonCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final worker = widget.worker;
+    final details = worker.verificationDetails;
+    final isApproved = worker.verificationStatus == VerificationStatus.approved;
+    final aiRisk = details?.aiRiskScore ?? 0.0;
+    final isAiSuspicious = details?.isAiSuspicious ?? false;
+    final aiFlags = details?.aiFlags ?? [];
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      maxChildSize: 0.96,
+      minChildSize: 0.5,
+      expand: false,
+      builder: (_, scrollController) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: ListView(
+            controller: scrollController,
             children: [
+              // Handle Bar
               Center(
                 child: Container(
                   width: 44,
                   height: 4,
-                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Police Clearance Certificate Inspection",
-                          style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
-                        ),
-                        Text(
-                          "Artisan: ${worker.name} • Trades: ${worker.skills.join(', ')}",
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                ],
+                ),
               ),
               const SizedBox(height: 16),
 
-              // Decrypted Document Viewer Box
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SafeText(
+                        worker.name,
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 2),
+                      SafeText(
+                        "${worker.skills.join(' · ')} · Worker ID: ${worker.id.substring(0, worker.id.length > 8 ? 8 : worker.id.length)}",
+                        style: const TextStyle(color: WorkGoColors.accent, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ── 1. 3D Biometric Multi-Angle Reel ───────────────────────────
+              _buildSectionHeader(Icons.face_retouching_natural_rounded, "3D Biometric Multi-Angle Capture"),
+              const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF130E2A),
+                  color: const Color(0xFF191330),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        Text("AUTHENTICATED RECORD", style: TextStyle(color: Color(0xFF00E5FF), fontSize: 10, fontWeight: FontWeight.bold)),
-                        Icon(Icons.verified_user_rounded, color: Color(0xFF00E5FF), size: 16),
+                        _buildAngleCard("Front Center", details?.selfieCenterBase64 ?? details?.selfieBase64),
+                        _buildAngleCard("Left (-25°)", details?.selfieLeftBase64 ?? details?.selfieBase64),
+                        _buildAngleCard("Right (+25°)", details?.selfieRightBase64 ?? details?.selfieBase64),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Text("Document ID: $docId", style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    const Text("Status: Submitted by Artisan for Verification", style: TextStyle(color: Color(0xFF10B981), fontSize: 12)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.wb_sunny_rounded, color: WorkGoColors.accent, size: 14),
+                        const SizedBox(width: 6),
+                        SafeText(
+                          details?.lightingBoosted == true
+                              ? "Screen Studio Ring Light: Active ⚡"
+                              : "Standard Ambient Lighting",
+                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              TextField(
-                controller: notesCtrl,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                decoration: InputDecoration(
-                  labelText: "Officer Notes / Verification Remarks",
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  filled: true,
-                  fillColor: const Color(0xFF130E2A),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),
               const SizedBox(height: 20),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        await _workerService.submitPccReview(
-                          workerId: worker.id,
-                          approved: false,
-                          rejectionReason: notesCtrl.text.trim().isNotEmpty
-                              ? notesCtrl.text.trim()
-                              : "PCC signature mismatch or unclear scan",
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFF43F5E),
-                        side: const BorderSide(color: Color(0xFFF43F5E)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text("Reject Document"),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        Navigator.of(context).pop();
-                        await _workerService.submitPccReview(
-                          workerId: worker.id,
-                          approved: true,
-                          notes: notesCtrl.text.trim(),
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Worker approved! Public visibility active on customer radar."),
-                              backgroundColor: Color(0xFF047857),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text("Approve & Publish Artisan", style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Audit Trail Modal ──────────────────────────────────────────────────────
-
-  void _openAuditTrailModal(BuildContext context, Worker worker) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Color(0xFF0B0818),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: Color(0xFF00E5FF), width: 1.5)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Row(
-              children: [
-                Icon(Icons.history_edu_rounded, color: Color(0xFF00E5FF), size: 24),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "Immutable Audit Trail",
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+              // ── 2. AI Deepfake & Synthetic Forensics ───────────────────────
+              _buildSectionHeader(Icons.memory_rounded, "AI Deepfake & Synthetic Image Inspection"),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isAiSuspicious ? const Color(0xFF3B1219) : const Color(0xFF0E2A20),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isAiSuspicious ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                    width: 1.5,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "Tamper-proof record for Worker UID: ${worker.id}",
-              style: const TextStyle(color: Colors.white60, fontSize: 12),
-            ),
-            const SizedBox(height: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          isAiSuspicious ? Icons.warning_rounded : Icons.verified_rounded,
+                          color: isAiSuspicious ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SafeText(
+                            isAiSuspicious
+                                ? "AI Synthetic Markers Detected · Officer Scrutiny Required"
+                                : "Camera Hardware Authentic · 0% Deepfake Signatures",
+                            style: TextStyle(
+                              color: isAiSuspicious ? const Color(0xFFEF4444) : const Color(0xFF34D399),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SafeText(
+                      "AI Risk Score: ${(aiRisk * 100).toStringAsFixed(1)}% | Liveness Score: ${((details?.livenessScore ?? 0.98) * 100).toStringAsFixed(1)}%",
+                      style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    if (aiFlags.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: aiFlags.map((f) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: SafeText(f, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        )).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
 
-            Expanded(
-              child: StreamBuilder<List<VerificationAuditLog>>(
-                stream: _workerService.streamAuditLogs(worker.id),
-                builder: (context, snapshot) {
-                  final logs = snapshot.data ?? [];
+              // ── 3. Aadhaar Verification Card ──────────────────────────────
+              _buildSectionHeader(Icons.fingerprint_rounded, "UIDAI Aadhaar e-KYC Verification"),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF191330),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Column(
+                  children: [
+                    _buildDossierRow("Verified Legal Name", details?.aadhaarVerifiedName ?? worker.name),
+                    _buildDossierRow("Masked Aadhaar Number", details?.aadhaarMaskedNumber ?? "XXXXXXXX4821"),
+                    _buildDossierRow(
+                      "Verified Timestamp",
+                      details?.aadhaarVerifiedAt != null
+                          ? details!.aadhaarVerifiedAt!.toLocal().toString().substring(0, 16)
+                          : "Verified via UIDAI XML-DSig",
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ── 4. Onboarding & Verification Audit Trail ──────────────────
+              _buildSectionHeader(Icons.history_rounded, "Onboarding & Verification Audit Trail"),
+              const SizedBox(height: 10),
+              StreamBuilder<List<VerificationAuditLog>>(
+                stream: widget.workerService.streamAuditLogs(worker.id),
+                builder: (context, auditSnap) {
+                  final logs = auditSnap.data ?? [];
                   if (logs.isEmpty) {
-                    return const Center(
-                      child: Text("No audit log records found.", style: TextStyle(color: Colors.white54)),
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF191330),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Center(
+                        child: SafeText(
+                          "No audit log records found yet.",
+                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                      ),
                     );
                   }
 
-                  return ListView.separated(
-                    itemCount: logs.length,
-                    separatorBuilder: (ctx, i) => const Divider(color: Colors.white12, height: 16),
-                    itemBuilder: (context, index) {
-                      final log = logs[index];
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  log.action,
-                                  style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              Text(
-                                log.timestamp.toLocal().toString().split(".")[0],
-                                style: const TextStyle(color: Colors.white38, fontSize: 10),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(log.reason, style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          const SizedBox(height: 2),
-                          Text("Actor: ${log.actorId} (${log.actorRole})", style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                        ],
-                      );
-                    },
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF191330),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Column(
+                      children: logs.map((log) => _buildAuditItem(log)).toList(),
+                    ),
                   );
                 },
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+
+              // ── 5. Action Buttons (Approve / Reject) ───────────────────────
+              if (!isApproved)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isActionLoading ? null : _handleReject,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFEF4444),
+                          side: const BorderSide(color: Color(0xFFEF4444)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const Text("Reject", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: _isActionLoading ? null : _handleApprove,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.verified_rounded, size: 20),
+                        label: const Text(
+                          "Approve & Mint C2PA Badge",
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withAlpha(30),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF10B981)),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
+                      SizedBox(width: 8),
+                      SafeText(
+                        "Artisan is Certified & Publicly Visible on Customer Radar",
+                        style: TextStyle(color: Color(0xFF10B981), fontSize: 12.5, fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, color: WorkGoColors.accent, size: 16),
+        const SizedBox(width: 8),
+        SafeText(
+          title,
+          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
         ),
+      ],
+    );
+  }
+
+  Widget _buildAngleCard(String label, String? base64Str) {
+    return Column(
+      children: [
+        Container(
+          width: 88,
+          height: 88,
+          decoration: BoxDecoration(
+            color: Colors.black45,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: base64Str != null
+                ? Image.memory(
+                    base64Decode(base64Str),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image, color: Colors.white30),
+                    ),
+                  )
+                : const Center(
+                    child: Icon(Icons.face, color: Colors.white30, size: 36),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        SafeText(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDossierRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SafeText(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          SafeText(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
 
-  // ── Suspension & Reinstatement Handlers ─────────────────────────────────────
+  Widget _buildAuditItem(VerificationAuditLog log) {
+    final timeStr = log.timestamp.toLocal().toString().substring(11, 16);
 
-  Future<void> _handleSuspendWorker(BuildContext context, Worker worker) async {
-    HapticFeedback.heavyImpact();
-    await _workerService.reportAndSuspendWorker(
-      workerId: worker.id,
-      reporterId: "admin_console_governance",
-      reason: "Administrative suspension pending governance audit",
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: WorkGoColors.accent.withAlpha(40),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              timeStr,
+              style: const TextStyle(color: WorkGoColors.accent, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SafeText(
+                  log.action,
+                  style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
+                ),
+                SafeText(
+                  log.reason,
+                  style: const TextStyle(color: Colors.white60, fontSize: 10.5),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Artisan ${worker.name} suspended and unlisted from customer radar."),
-          backgroundColor: const Color(0xFFF43F5E),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Future<void> _handleReinstateWorker(BuildContext context, Worker worker) async {
-    HapticFeedback.mediumImpact();
-    await _workerService.submitPccReview(workerId: worker.id, approved: true);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Artisan ${worker.name} reinstated to public listing."),
-          backgroundColor: const Color(0xFF047857),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
   }
 }

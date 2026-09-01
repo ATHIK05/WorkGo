@@ -135,10 +135,119 @@ router.post("/aadhaar-offline", async (req, res) => {
   }
 });
 
-// ── 3. POST /api/verification/liveness-pass ──────────────────────────────────
+// ── 3. POST /api/verification/multi-angle-liveness ─────────────────────────
+router.post("/multi-angle-liveness", async (req, res) => {
+  try {
+    const {
+      workerId,
+      centerBase64,
+      leftBase64,
+      rightBase64,
+      livenessScore = 0.98,
+      lightingBoosted = false,
+    } = req.body;
+
+    if (!workerId || !centerBase64) {
+      return res.status(400).json({ error: "workerId and centerBase64 are required" });
+    }
+
+    const workerRef = req.db.collection("workers").doc(workerId);
+    const workerDoc = await workerRef.get();
+    const currentStage = workerDoc.exists ? workerDoc.data().verificationStage || "selfieCapture" : "selfieCapture";
+    const passedTime = new Date().toISOString();
+
+    // 1. Compute Cryptographic Hashes for all 3 angles
+    const centerHash = crypto.createHash("sha256").update(centerBase64).digest("hex");
+    const leftHash = leftBase64 ? crypto.createHash("sha256").update(leftBase64).digest("hex") : "";
+    const rightHash = rightBase64 ? crypto.createHash("sha256").update(rightBase64).digest("hex") : "";
+
+    // 2. Run Forensic Synthetic / AI-Generated Deepfake Detector on all angles
+    const centerReport = detectSyntheticImage(centerBase64);
+    const leftReport = leftBase64 ? detectSyntheticImage(leftBase64) : { isSuspicious: false, riskScore: 0.0, flags: [] };
+    const rightReport = rightBase64 ? detectSyntheticImage(rightBase64) : { isSuspicious: false, riskScore: 0.0, flags: [] };
+
+    const maxRiskScore = Math.max(centerReport.riskScore, leftReport.riskScore, rightReport.riskScore);
+    const allFlags = [...new Set([...centerReport.flags, ...leftReport.flags, ...rightReport.flags])];
+    const isSuspicious = centerReport.isSuspicious || leftReport.isSuspicious || rightReport.isSuspicious;
+
+    if (centerReport.recommendation === "REJECT_SYNTHETIC_IMAGE" || leftReport.recommendation === "REJECT_SYNTHETIC_IMAGE" || rightReport.recommendation === "REJECT_SYNTHETIC_IMAGE") {
+      await recordAuditLog(req.db, {
+        workerId,
+        fromStage: currentStage,
+        toStage: currentStage,
+        action: "SYNTHETIC_IMAGE_REJECTED",
+        actorId: req.user ? req.user.uid : workerId,
+        actorRole: "system_detector",
+        reason: `Upload rejected: Generative AI / synthetic image detected (${allFlags.join(", ")})`,
+        metadata: { centerReport, leftReport, rightReport, maxRiskScore },
+      });
+      return res.status(400).json({
+        error: "Generative AI or synthetic image detected. Please capture a real live photo using your phone camera.",
+        flags: allFlags,
+        riskScore: maxRiskScore,
+      });
+    }
+
+    // 3. Advance to Police Clearance Upload stage (pccUpload)
+    await workerRef.set({
+      verificationStage: "pccUpload",
+      verificationDetails: {
+        livenessPassedAt: passedTime,
+        livenessScore: Number(livenessScore),
+        livenessMethod: "ML_KIT_3D_MULTI_ANGLE",
+        lightingBoosted: Boolean(lightingBoosted),
+        selfieBase64: centerBase64,
+        selfieCenterBase64: centerBase64,
+        selfieLeftBase64: leftBase64 || null,
+        selfieRightBase64: rightBase64 || null,
+        selfieHash: centerHash,
+        selfieCenterHash: centerHash,
+        selfieLeftHash: leftHash || null,
+        selfieRightHash: rightHash || null,
+        aiRiskScore: maxRiskScore,
+        aiFlags: allFlags,
+        isAiSuspicious: isSuspicious,
+      },
+    }, { merge: true });
+
+    await recordAuditLog(req.db, {
+      workerId,
+      fromStage: currentStage,
+      toStage: "pccUpload",
+      action: isSuspicious ? "3D_MULTI_ANGLE_PASSED_WITH_FLAGS" : "3D_MULTI_ANGLE_LIVENESS_PASSED",
+      actorId: req.user ? req.user.uid : workerId,
+      actorRole: "worker",
+      reason: isSuspicious
+        ? `3D Multi-angle liveness passed but flagged for admin scrutiny (AI Risk: ${maxRiskScore.toFixed(2)})`
+        : `Artisan passed on-device 3D multi-angle liveness (Center, Left -25°, Right +25°) with anti-spoof checks.`,
+      metadata: {
+        livenessScore,
+        lightingBoosted,
+        centerHash,
+        leftHash,
+        rightHash,
+        maxRiskScore,
+        allFlags,
+      },
+    });
+
+    res.json({
+      success: true,
+      nextStage: "pccUpload",
+      centerHash,
+      isSuspicious,
+      riskScore: maxRiskScore,
+    });
+  } catch (e) {
+    console.error("verification/multi-angle-liveness error:", e);
+    res.status(500).json({ error: "Failed to record multi-angle liveness", detail: e.message });
+  }
+});
+
+// ── 3b. POST /api/verification/liveness-pass (Legacy / Fallback Single Camera) ──
 router.post("/liveness-pass", async (req, res) => {
   try {
-    const { workerId, livenessScore = 0.98, selfieBase64 } = req.body;
+    const { workerId, livenessScore = 0.98, selfieBase64, lightingBoosted = false } = req.body;
     if (!workerId) return res.status(400).json({ error: "workerId is required" });
 
     const workerRef = req.db.collection("workers").doc(workerId);
@@ -160,7 +269,7 @@ router.post("/liveness-pass", async (req, res) => {
           fromStage: currentStage,
           toStage: currentStage,
           action: "SYNTHETIC_IMAGE_REJECTED",
-          actorId: req.user.uid,
+          actorId: req.user ? req.user.uid : workerId,
           actorRole: "system_detector",
           reason: `Upload rejected: Generative AI / synthetic image detected (${syntheticReport.flags.join(", ")})`,
           metadata: { syntheticReport },
@@ -174,13 +283,16 @@ router.post("/liveness-pass", async (req, res) => {
     }
 
     await workerRef.set({
-      verificationStage: "liveVideoVerification",
+      verificationStage: "pccUpload",
       verificationDetails: {
         livenessPassedAt: passedTime,
         livenessScore: Number(livenessScore),
+        lightingBoosted: Boolean(lightingBoosted),
         ...(selfieBase64 ? {
           selfieBase64,
+          selfieCenterBase64: selfieBase64,
           selfieHash,
+          selfieCenterHash: selfieHash,
           aiRiskScore: syntheticReport.riskScore,
           aiFlags: syntheticReport.flags,
           isAiSuspicious: syntheticReport.isSuspicious,
@@ -191,9 +303,9 @@ router.post("/liveness-pass", async (req, res) => {
     await recordAuditLog(req.db, {
       workerId,
       fromStage: currentStage,
-      toStage: "liveVideoVerification",
+      toStage: "pccUpload",
       action: syntheticReport.isSuspicious ? "ON_DEVICE_LIVENESS_PASSED_WITH_FLAGS" : "ON_DEVICE_LIVENESS_PASSED",
-      actorId: req.user.uid,
+      actorId: req.user ? req.user.uid : workerId,
       actorRole: "worker",
       reason: syntheticReport.isSuspicious
         ? `Selfie passed liveness but flagged for officer scrutiny (AI Risk: ${syntheticReport.riskScore})`
@@ -203,7 +315,7 @@ router.post("/liveness-pass", async (req, res) => {
 
     res.json({
       success: true,
-      nextStage: "liveVideoVerification",
+      nextStage: "pccUpload",
       selfieHash,
       isSuspicious: syntheticReport.isSuspicious,
       riskScore: syntheticReport.riskScore,
@@ -211,176 +323,6 @@ router.post("/liveness-pass", async (req, res) => {
   } catch (e) {
     console.error("verification/liveness-pass error:", e);
     res.status(500).json({ error: "Failed to record liveness result", detail: e.message });
-  }
-});
-
-// ── 4. POST /api/verification/video-kyc/schedule ─────────────────────────────
-router.post("/video-kyc/schedule", async (req, res) => {
-  try {
-    const { workerId, slotTime } = req.body;
-    if (!workerId || !slotTime) {
-      return res.status(400).json({ error: "workerId and slotTime are required" });
-    }
-
-    const phrases = [
-      "VIOLET-892-SUN",
-      "TIGER-441-MOON",
-      "RIVER-719-GOLD",
-      "EAGLE-338-SKY",
-      "LOTUS-552-STAR",
-      "PEACOCK-204-JADE",
-      "TEMPLE-610-DAWN",
-    ];
-    const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-    const roomName = `workgo_kyc_${workerId}_${Date.now().toString().slice(-6)}`;
-    const roomUrl = `https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false`;
-
-    const bookingRef = req.db.collection("video_kyc_bookings").doc();
-    const bookingData = {
-      id: bookingRef.id,
-      workerId,
-      slotTime,
-      status: "in_lobby",
-      workerStatus: "in_lobby",
-      adminStatus: "pending",
-      roomName,
-      roomUrl,
-      randomPhrase,
-      assignedStaffId: "staff_coop_admin",
-      createdAt: new Date().toISOString(),
-      lastPingAt: new Date().toISOString(),
-    };
-    await bookingRef.set(bookingData);
-
-    const workerRef = req.db.collection("workers").doc(workerId);
-    await workerRef.set({
-      verificationDetails: {
-        videoCallScheduledAt: slotTime,
-        videoCallPhrase: randomPhrase,
-        videoCallRoomUrl: roomUrl,
-        videoCallBookingId: bookingRef.id,
-      },
-    }, { merge: true });
-
-    await recordAuditLog(req.db, {
-      workerId,
-      fromStage: "liveVideoVerification",
-      toStage: "liveVideoVerification",
-      action: "VIDEO_KYC_SCHEDULED",
-      actorId: req.user.uid,
-      actorRole: "worker",
-      reason: `Live video verification session initiated in room ${roomName}`,
-      metadata: { bookingId: bookingRef.id, slotTime, roomName, roomUrl, challengePhrase: randomPhrase },
-    });
-
-    res.json({
-      success: true,
-      bookingId: bookingRef.id,
-      roomName,
-      roomUrl,
-      randomPhrase,
-      slotTime,
-    });
-  } catch (e) {
-    console.error("verification/video-kyc/schedule error:", e);
-    res.status(500).json({ error: "Failed to schedule video KYC", detail: e.message });
-  }
-});
-
-// ── 4b. POST /api/verification/video-kyc/lobby-status ────────────────────────
-router.post("/video-kyc/lobby-status", async (req, res) => {
-  try {
-    const { workerId, bookingId, status, actorType = "worker" } = req.body;
-    if (!workerId || !status) {
-      return res.status(400).json({ error: "workerId and status are required" });
-    }
-
-    const updates = {
-      lastPingAt: new Date().toISOString(),
-    };
-
-    if (actorType === "worker") {
-      updates.workerStatus = status;
-      if (status === "in_lobby") updates.status = "in_lobby";
-    } else if (actorType === "admin") {
-      updates.adminStatus = status;
-      if (status === "in_call") updates.status = "in_call";
-    }
-
-    if (bookingId) {
-      await req.db.collection("video_kyc_bookings").doc(bookingId).set(updates, { merge: true });
-    } else {
-      // Find latest active booking for worker
-      const snap = await req.db
-        .collection("video_kyc_bookings")
-        .where("workerId", "==", workerId)
-        .get();
-      if (!snap.empty) {
-        const doc = snap.docs.sort((a, b) => new Date(b.data().createdAt) - new Date(a.data().createdAt))[0];
-        await doc.ref.set(updates, { merge: true });
-      }
-    }
-
-    res.json({ success: true, status });
-  } catch (e) {
-    console.error("verification/video-kyc/lobby-status error:", e);
-    res.status(500).json({ error: "Failed to update lobby status", detail: e.message });
-  }
-});
-
-// ── 5. POST /api/verification/video-kyc/verify (Admin Only) ──────────────────
-router.post("/video-kyc/verify", async (req, res) => {
-  try {
-    const adminCheck = await isAdmin(req);
-    if (!adminCheck) {
-      return res.status(403).json({ error: "Admin access required for live video KYC review" });
-    }
-
-    const { workerId, bookingId, passed, challengePhrase, checklist = {}, notes = "" } = req.body;
-    if (!workerId || typeof passed !== "boolean") {
-      return res.status(400).json({ error: "workerId and passed (boolean) are required" });
-    }
-
-    const nextStage = passed ? "pccUpload" : "rejected";
-    const completedAt = new Date().toISOString();
-
-    if (bookingId) {
-      await req.db.collection("video_kyc_bookings").doc(bookingId).set({
-        status: passed ? "completed" : "rejected",
-        workerStatus: "completed",
-        adminStatus: "completed",
-        reviewedBy: req.user.uid,
-        reviewedAt: completedAt,
-        notes: notes || "",
-      }, { merge: true });
-    }
-
-    await req.db.collection("workers").doc(workerId).set({
-      verificationStage: nextStage,
-      verificationDetails: {
-        videoCallCompletedAt: completedAt,
-        videoCallStaffId: req.user.uid,
-        videoCallNotes: notes || "",
-      },
-    }, { merge: true });
-
-    await recordAuditLog(req.db, {
-      workerId,
-      fromStage: "liveVideoVerification",
-      toStage: nextStage,
-      action: passed ? "VIDEO_CALL_PASSED" : "VIDEO_CALL_FAILED",
-      actorId: req.user.uid,
-      actorRole: "coop_admin",
-      reason: passed
-        ? `Artisan physically matched ID and repeated challenge phrase '${challengePhrase}'`
-        : `Video verification failed. Reason: ${notes || "Mismatch detected"}`,
-      metadata: { checklist, challengePhrase, notes },
-    });
-
-    res.json({ success: true, nextStage });
-  } catch (e) {
-    console.error("verification/video-kyc/verify error:", e);
-    res.status(500).json({ error: "Failed to submit video KYC review", detail: e.message });
   }
 });
 
@@ -445,6 +387,26 @@ router.post("/pcc-review", async (req, res) => {
     const verificationStatus = approved ? "approved" : "rejected";
     const visibilityStatus = approved ? "public" : "pending";
 
+    let manifestId = null;
+    if (approved) {
+      try {
+        const workerSnap = await req.db.collection("workers").doc(workerId).get();
+        const wData = workerSnap.data() || {};
+        const vDetails = wData.verificationDetails || {};
+        const assetSha256 = vDetails.selfieCenterHash || vDetails.selfieHash || crypto.createHash("sha256").update(workerId).digest("hex");
+        const { generateAndSignC2paManifest } = require("../services/c2pa_signer");
+        const manifest = await generateAndSignC2paManifest({
+          workerId,
+          artisanName: wData.name || "Co-op Verified Artisan",
+          trade: (wData.skills && wData.skills[0]) || "Certified Trade",
+          assetSha256,
+        }, req.db);
+        manifestId = manifest.id;
+      } catch (c2paErr) {
+        console.warn("[pcc-review] C2PA signing non-blocking error:", c2paErr.message);
+      }
+    }
+
     await req.db.collection("workers").doc(workerId).set({
       verificationStatus,
       visibilityStatus,
@@ -454,6 +416,7 @@ router.post("/pcc-review", async (req, res) => {
         pccReviewedAt: reviewTime,
         pccReviewedBy: req.user.uid,
         pccRejectionReason: approved ? null : rejectionReason,
+        ...(manifestId ? { c2paProfileManifestId: manifestId } : {}),
       },
     }, { merge: true });
 
@@ -465,12 +428,12 @@ router.post("/pcc-review", async (req, res) => {
       actorId: req.user.uid,
       actorRole: "coop_admin",
       reason: approved
-        ? `Police Clearance authenticated. Worker granted Co-op Certified status and public visibility.`
+        ? `Police Clearance authenticated. Worker granted Co-op Certified status and C2PA trust credential issued.`
         : `Police Clearance rejected: ${rejectionReason || notes}`,
-      metadata: { approved, rejectionReason, notes, reviewTime },
+      metadata: { approved, rejectionReason, notes, reviewTime, manifestId },
     });
 
-    res.json({ success: true, verificationStatus, visibilityStatus, nextStage });
+    res.json({ success: true, verificationStatus, visibilityStatus, nextStage, manifestId });
   } catch (e) {
     console.error("verification/pcc-review error:", e);
     res.status(500).json({ error: "Failed to submit PCC review", detail: e.message });

@@ -30,6 +30,7 @@ dependencies:
   geolocator: ^14.0.2
   crypto: ^3.0.6
   url_launcher: ^6.3.1
+  local_auth: ^2.3.0
 
 dev_dependencies:
   flutter_test:

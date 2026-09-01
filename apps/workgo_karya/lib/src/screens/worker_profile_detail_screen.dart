@@ -1,13 +1,13 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
 import 'document_upload_screen.dart';
 import 'karya_home_screen.dart';
 import 'worker_profile_setup_screen.dart';
 import 'worker_welfare_screen.dart';
-import '../widgets/karya_app_tour_dialog.dart';
 
 class WorkerProfileDetailScreen extends StatefulWidget {
   const WorkerProfileDetailScreen({
@@ -63,7 +63,71 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
   void _handleSignOut() async {
     final confirmed = await showSignOutConfirmationSheet(context);
     if (confirmed == true) {
+      if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+      }
       widget.onSignOut();
+    }
+  }
+
+  void _handleDeleteAccount() async {
+    final confirmed = await showDeleteAccountConfirmationSheet(context);
+    if (confirmed == true) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => const Center(
+            child: CircularProgressIndicator(color: Color(0xFFE11D48)),
+          ),
+        );
+      }
+
+      try {
+        final authService = AuthService();
+        await authService.deleteAccount(uid: widget.worker.id);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 22),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Account and all biometric/KYC records permanently erased under DPDP Act 2023.",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF0F0B24),
+              duration: const Duration(seconds: 5),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFF10B981), width: 1.2),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          if (Navigator.of(context, rootNavigator: true).canPop()) {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error during erasure: $e"),
+              backgroundColor: const Color(0xFFE11D48),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -691,9 +755,34 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         _showVerificationRequiredModal(context, worker);
         return;
       }
+
+      // Native Biometric Fingerprint/Face ID verification prompt
+      final authenticated = await BiometricService().authenticate(
+        reason: "Scan fingerprint or face to verify identity before checking in.",
+      );
+      if (!authenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.fingerprint_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(child: Text("Biometric verification cancelled. Check-in aborted.")),
+                ],
+              ),
+              backgroundColor: const Color(0xFFE11D48),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+        return;
+      }
     }
 
     if (isCurrentlyCheckedIn) {
+      if (!mounted) return;
       // Artisan is checking out! Slide up the Motivational Bottom Sheet!
       final confirmedCheckOut = await showCheckOutMotivationSheet(
         context,
@@ -1149,12 +1238,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             subtitle: "Interactive guide for all 7 features & operational tools",
             icon: Icons.explore_rounded,
             iconColor: const Color(0xFF8B5CF6),
-            onTap: () async {
+            onTap: () {
               HapticFeedback.lightImpact();
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-                await Future.delayed(const Duration(milliseconds: 250));
-              }
               KaryaHomeScreen.launchLiveSpotlightTour(context);
             },
           ),
@@ -1182,6 +1267,22 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (ctx) => WorkerWelfareScreen(worker: worker)),
             ),
+          ),
+          const SizedBox(height: 10),
+          _buildNavTile(
+            title: "sign_out".tr(),
+            subtitle: "Sign out of your active session",
+            icon: Icons.logout_rounded,
+            iconColor: const Color(0xFFFB7185),
+            onTap: _handleSignOut,
+          ),
+          const SizedBox(height: 10),
+          _buildNavTile(
+            title: "Delete Account & Wipe Records",
+            subtitle: "DPDP Act 2023 · Permanently purge all data & biometrics",
+            icon: Icons.delete_forever_rounded,
+            iconColor: const Color(0xFFE11D48),
+            onTap: _handleDeleteAccount,
           ),
         ],
       ),

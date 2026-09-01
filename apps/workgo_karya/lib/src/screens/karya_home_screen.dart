@@ -12,7 +12,6 @@ import 'worker_earnings_screen.dart';
 import 'worker_profile_detail_screen.dart';
 import 'worker_profile_setup_screen.dart';
 import 'worker_welfare_screen.dart';
-import '../widgets/karya_app_tour_dialog.dart';
 import '../widgets/karya_spotlight_tour.dart';
 
 class KaryaHomeScreen extends StatefulWidget {
@@ -310,7 +309,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         skills: ["Plumbing", "Electrical"],
         experienceYears: 2,
         verificationStatus: VerificationStatus.pending,
-        availabilityStatus: AvailabilityStatus.online,
+        availabilityStatus: AvailabilityStatus.offline,
+        isCheckedIn: false,
         avgRating: 0.0,
         totalRatings: 0,
         homesServiced: 0,
@@ -331,9 +331,34 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         _showVerificationRequiredModal(context, worker);
         return;
       }
+
+      // Native Biometric Fingerprint/Face ID verification prompt
+      final authenticated = await BiometricService().authenticate(
+        reason: "Scan fingerprint or face to verify identity before going live on radar.",
+      );
+      if (!authenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.fingerprint_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(child: Text("Biometric verification cancelled. Check-in aborted.")),
+                ],
+              ),
+              backgroundColor: const Color(0xFFE11D48),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+        return;
+      }
     }
 
     if (isCurrentlyOnline) {
+      if (!mounted) return;
       // Artisan is checking out / going offline! Slide up Motivational Bottom Sheet!
       final confirmedCheckOut = await showCheckOutMotivationSheet(
         context,
@@ -513,7 +538,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               skills: [],
               experienceYears: 0,
               verificationStatus: VerificationStatus.pending,
-              availabilityStatus: AvailabilityStatus.online,
+              availabilityStatus: AvailabilityStatus.offline,
+              isCheckedIn: false,
               avgRating: 5.0,
               totalRatings: 0,
               insuranceStatus: false,
@@ -788,13 +814,15 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
   Widget _buildVerificationAlertBanner(BuildContext context, Worker worker) {
     final stage = worker.verificationStage;
-    String stageText = "Start Aadhaar & Live Selfie verification";
-    if (stage == VerificationStage.selfieCapture) {
-      stageText = "Step 3/6: Capture your live front-camera selfie";
-    } else if (stage == VerificationStage.liveVideoVerification) {
-      stageText = "Step 4/6: Live Video KYC ready! Tap to enter waiting room";
+    String stageText = "Start Aadhaar & 3D Face Biometric verification";
+    if (stage == VerificationStage.consent) {
+      stageText = "Step 1/4: Review & accept DPDP 2023 Biometric Consent";
+    } else if (stage == VerificationStage.aadhaarOfflineEkyc) {
+      stageText = "Step 2/4: Upload Aadhaar Offline ZIP or Card Photo";
+    } else if (stage == VerificationStage.selfieCapture || stage == VerificationStage.onDeviceLiveness || stage == VerificationStage.multiAngleLiveness) {
+      stageText = "Step 3/4: Start 3D Multi-Angle Face Biometrics (Center, Left, Right)";
     } else if (stage == VerificationStage.pccUpload || stage == VerificationStage.pccManualReview) {
-      stageText = "Step 5/6: Upload Police Clearance Certificate for badging";
+      stageText = "Step 4/4: Upload Police Clearance Certificate for badging";
     }
 
     return GestureDetector(

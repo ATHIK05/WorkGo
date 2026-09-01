@@ -25,12 +25,15 @@ void main() async {
   );
 }
 
+final GlobalKey<NavigatorState> customerNavigatorKey = GlobalKey<NavigatorState>();
+
 class WorkGoCustomerApp extends StatelessWidget {
   const WorkGoCustomerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: customerNavigatorKey,
       title: 'WorkGo Customer',
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
@@ -96,6 +99,7 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
             return CustomerHomeScreen(
               user: appUser,
               onSignOut: () async {
+                customerNavigatorKey.currentState?.popUntil((route) => route.isFirst);
                 await _authService.signOut();
               },
             );

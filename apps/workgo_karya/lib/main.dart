@@ -26,12 +26,15 @@ void main() async {
   );
 }
 
+final GlobalKey<NavigatorState> karyaNavigatorKey = GlobalKey<NavigatorState>();
+
 class WorkGoKaryaApp extends StatelessWidget {
   const WorkGoKaryaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: karyaNavigatorKey,
       title: 'WorkGo Karya',
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
@@ -129,7 +132,8 @@ class _KaryaRootScreenState extends State<KaryaRootScreen> {
                         skills: const ["Plumbing", "Electrical"],
                         experienceYears: 2,
                         verificationStatus: VerificationStatus.pending,
-                        availabilityStatus: AvailabilityStatus.online,
+                        availabilityStatus: AvailabilityStatus.offline,
+                        isCheckedIn: false,
                         serviceRadiusKm: 10.0,
                       );
 
@@ -146,6 +150,7 @@ class _KaryaRootScreenState extends State<KaryaRootScreen> {
                 return KaryaHomeScreen(
                   user: appUser,
                   onSignOut: () async {
+                    karyaNavigatorKey.currentState?.popUntil((route) => route.isFirst);
                     setState(() {
                       _forceSkipOnboarding = false;
                     });

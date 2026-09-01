@@ -6,9 +6,11 @@ enum AvailabilityStatus { online, offline, busy }
 enum VisibilityStatus { hidden, pending, public, suspended }
 enum VerificationStage {
   signup,
+  consent,
   aadhaarOfflineEkyc,
   selfieCapture,
   onDeviceLiveness,
+  multiAngleLiveness,
   liveVideoVerification,
   pccUpload,
   pccManualReview,
@@ -24,6 +26,14 @@ class VerificationDetails {
   final double? livenessScore;
   final String? selfieBase64;
   final String? selfieHash;
+  final String? selfieCenterBase64;
+  final String? selfieLeftBase64;
+  final String? selfieRightBase64;
+  final String? selfieCenterHash;
+  final String? selfieLeftHash;
+  final String? selfieRightHash;
+  final String? livenessMethod;
+  final bool? lightingBoosted;
   final DateTime? videoCallScheduledAt;
   final DateTime? videoCallCompletedAt;
   final String? videoCallStaffId;
@@ -49,6 +59,14 @@ class VerificationDetails {
     this.livenessScore,
     this.selfieBase64,
     this.selfieHash,
+    this.selfieCenterBase64,
+    this.selfieLeftBase64,
+    this.selfieRightBase64,
+    this.selfieCenterHash,
+    this.selfieLeftHash,
+    this.selfieRightHash,
+    this.livenessMethod,
+    this.lightingBoosted,
     this.videoCallScheduledAt,
     this.videoCallCompletedAt,
     this.videoCallStaffId,
@@ -77,6 +95,14 @@ class VerificationDetails {
       livenessScore: (map["livenessScore"] as num?)?.toDouble(),
       selfieBase64: map["selfieBase64"] as String?,
       selfieHash: map["selfieHash"] as String?,
+      selfieCenterBase64: map["selfieCenterBase64"] as String?,
+      selfieLeftBase64: map["selfieLeftBase64"] as String?,
+      selfieRightBase64: map["selfieRightBase64"] as String?,
+      selfieCenterHash: map["selfieCenterHash"] as String?,
+      selfieLeftHash: map["selfieLeftHash"] as String?,
+      selfieRightHash: map["selfieRightHash"] as String?,
+      livenessMethod: map["livenessMethod"] as String?,
+      lightingBoosted: map["lightingBoosted"] as bool?,
       videoCallScheduledAt: _parseDateTime(map["videoCallScheduledAt"]),
       videoCallCompletedAt: _parseDateTime(map["videoCallCompletedAt"]),
       videoCallStaffId: map["videoCallStaffId"] as String?,
@@ -104,6 +130,14 @@ class VerificationDetails {
     "livenessScore": livenessScore,
     "selfieBase64": selfieBase64,
     "selfieHash": selfieHash,
+    "selfieCenterBase64": selfieCenterBase64,
+    "selfieLeftBase64": selfieLeftBase64,
+    "selfieRightBase64": selfieRightBase64,
+    "selfieCenterHash": selfieCenterHash,
+    "selfieLeftHash": selfieLeftHash,
+    "selfieRightHash": selfieRightHash,
+    "livenessMethod": livenessMethod,
+    "lightingBoosted": lightingBoosted,
     "videoCallScheduledAt": videoCallScheduledAt != null ? Timestamp.fromDate(videoCallScheduledAt!) : null,
     "videoCallCompletedAt": videoCallCompletedAt != null ? Timestamp.fromDate(videoCallCompletedAt!) : null,
     "videoCallStaffId": videoCallStaffId,
@@ -130,6 +164,14 @@ class VerificationDetails {
     double? livenessScore,
     String? selfieBase64,
     String? selfieHash,
+    String? selfieCenterBase64,
+    String? selfieLeftBase64,
+    String? selfieRightBase64,
+    String? selfieCenterHash,
+    String? selfieLeftHash,
+    String? selfieRightHash,
+    String? livenessMethod,
+    bool? lightingBoosted,
     DateTime? videoCallScheduledAt,
     DateTime? videoCallCompletedAt,
     String? videoCallStaffId,
@@ -155,6 +197,14 @@ class VerificationDetails {
       livenessScore: livenessScore ?? this.livenessScore,
       selfieBase64: selfieBase64 ?? this.selfieBase64,
       selfieHash: selfieHash ?? this.selfieHash,
+      selfieCenterBase64: selfieCenterBase64 ?? this.selfieCenterBase64,
+      selfieLeftBase64: selfieLeftBase64 ?? this.selfieLeftBase64,
+      selfieRightBase64: selfieRightBase64 ?? this.selfieRightBase64,
+      selfieCenterHash: selfieCenterHash ?? this.selfieCenterHash,
+      selfieLeftHash: selfieLeftHash ?? this.selfieLeftHash,
+      selfieRightHash: selfieRightHash ?? this.selfieRightHash,
+      livenessMethod: livenessMethod ?? this.livenessMethod,
+      lightingBoosted: lightingBoosted ?? this.lightingBoosted,
       videoCallScheduledAt: videoCallScheduledAt ?? this.videoCallScheduledAt,
       videoCallCompletedAt: videoCallCompletedAt ?? this.videoCallCompletedAt,
       videoCallStaffId: videoCallStaffId ?? this.videoCallStaffId,
@@ -251,7 +301,7 @@ class Worker {
     this.baseRate = 149.0,
     this.perKmRate = 12.0,
     this.verificationBadge = "Co-op Certified",
-    required this.availabilityStatus,
+    this.availabilityStatus = AvailabilityStatus.offline,
     this.insuranceStatus = false,
     this.welfareSchemeId,
     this.workingHoursStart = "08:00",
@@ -272,7 +322,7 @@ class Worker {
     this.baseArea,
   });
 
-  bool get isTitan => isCheckedIn || availabilityStatus == AvailabilityStatus.online;
+  bool get isTitan => isCheckedIn && availabilityStatus == AvailabilityStatus.online;
   bool get isApproved => verificationStatus == VerificationStatus.approved;
   bool get isPubliclyVisible => visibilityStatus == VisibilityStatus.public;
 
@@ -283,48 +333,38 @@ class Worker {
     final homesServiced = d["homesServiced"] ?? (totalRatings > 0 ? totalRatings * 2 + 5 : 0);
     final rawName = d["name"] ?? d["displayName"] ?? d["artisanName"];
     final defaultName = d["isProxy"] == true ? "Artisan Partner" : "Co-op Artisan";
-
-    final addrList = (d["addresses"] as List<dynamic>?)
-            ?.map((a) => UserAddress.fromMap(a as Map<String, dynamic>))
-            .toList() ??
-        [];
-
-    final baseAddrMap = d["baseAddress"] as Map<String, dynamic>?;
-    final baseAddr = baseAddrMap != null
-        ? UserAddress.fromMap(baseAddrMap)
-        : (addrList.isNotEmpty ? addrList.firstWhere((a) => a.isDefault, orElse: () => addrList.first) : null);
-
-    final rawVerStatus = d["verificationStatus"] ?? "pending";
+    final rawVerStatus = d["verificationStatus"] ?? (d["verified"] == true ? "approved" : "pending");
     final verStatus = VerificationStatus.values.firstWhere(
       (v) => v.name == rawVerStatus,
       orElse: () => VerificationStatus.pending,
     );
-
-    final visStatus = d["visibilityStatus"] != null
-        ? VisibilityStatus.values.firstWhere(
-            (v) => v.name == d["visibilityStatus"],
-            orElse: () => verStatus == VerificationStatus.approved ? VisibilityStatus.public : VisibilityStatus.pending,
-          )
-        : (verStatus == VerificationStatus.approved ? VisibilityStatus.public : VisibilityStatus.pending);
-
-    final verStage = d["verificationStage"] != null
-        ? VerificationStage.values.firstWhere(
-            (s) => s.name == d["verificationStage"],
-            orElse: () => verStatus == VerificationStatus.approved ? VerificationStage.approved : VerificationStage.signup,
-          )
-        : (verStatus == VerificationStatus.approved ? VerificationStage.approved : VerificationStage.signup);
-
+    final visStatus = VisibilityStatus.values.firstWhere(
+      (v) => v.name == (d["visibilityStatus"] ?? "pending"),
+      orElse: () => VisibilityStatus.pending,
+    );
+    final verStage = VerificationStage.values.firstWhere(
+      (s) => s.name == (d["verificationStage"] ?? (verStatus == VerificationStatus.approved ? "approved" : "signup")),
+      orElse: () => VerificationStage.signup,
+    );
     final verDetails = d["verificationDetails"] != null
-        ? VerificationDetails.fromMap(d["verificationDetails"] as Map<String, dynamic>)
+        ? VerificationDetails.fromMap(Map<String, dynamic>.from(d["verificationDetails"]))
+        : null;
+
+    final addrList = (d["addresses"] as List<dynamic>?)
+            ?.map((a) => UserAddress.fromMap(Map<String, dynamic>.from(a as Map)))
+            .toList() ??
+        const [];
+    final baseAddr = d["baseAddress"] != null
+        ? UserAddress.fromMap(Map<String, dynamic>.from(d["baseAddress"] as Map))
         : null;
 
     return Worker(
       id: doc.id,
-      userId: d["userId"] ?? "",
-      name: (rawName != null && rawName.toString().trim().isNotEmpty) ? rawName.toString().trim() : defaultName,
-      organizationId: d["organizationId"],
+      userId: d["userId"] ?? doc.id,
+      name: (rawName != null && rawName.toString().isNotEmpty) ? rawName : defaultName,
+      organizationId: d["organizationId"] ?? "coop_tn_01",
       skills: List<String>.from(d["skills"] ?? []),
-      experienceYears: d["experienceYears"] ?? 0,
+      experienceYears: d["experienceYears"] ?? 2,
       isProxy: d["isProxy"] ?? false,
       proxyReferrerId: d["proxyReferrerId"],
       phoneForCalling: d["phoneForCalling"],
@@ -356,7 +396,7 @@ class Worker {
       referralEarnings: (d["referralEarnings"] ?? 0.0).toDouble(),
       secondLineReferralIds: List<String>.from(d["secondLineReferralIds"] ?? []),
       engagementMode: d["engagementMode"] ?? "passion",
-      isCheckedIn: d["isCheckedIn"] ?? (d["availabilityStatus"] == "online"),
+      isCheckedIn: (d["isCheckedIn"] == true) && (d["availabilityStatus"] == "online"),
       checkedInAt: (d["checkedInAt"] as Timestamp?)?.toDate(),
       passionBio: d["passionBio"],
       addresses: addrList,

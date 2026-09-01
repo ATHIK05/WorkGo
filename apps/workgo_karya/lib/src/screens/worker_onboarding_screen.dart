@@ -184,7 +184,8 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
         longitude: _longitude,
         workingHoursStart: _workingHoursStart,
         workingHoursEnd: _workingHoursEnd,
-        availabilityStatus: AvailabilityStatus.online,
+        availabilityStatus: AvailabilityStatus.offline,
+        isCheckedIn: false,
       );
 
       await _workerService.upsertWorkerProfile(updated);

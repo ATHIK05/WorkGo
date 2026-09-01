@@ -8,6 +8,15 @@ import 'package:workgo_core/workgo_core.dart';
 //  Obsidian Canvas · Electric Royal Violet · Solar Neon Gold
 // ══════════════════════════════════════════════════════════════
 
+class KaryaColors {
+  KaryaColors._();
+  static const Color backgroundDark = Color(0xFF090714);
+  static const Color surfaceCard = Color(0xFF130E2A);
+  static const Color brandYellow = Color(0xFFFFD600);
+  static const Color brandPurple = Color(0xFF7928CA);
+  static const Color emerald = Color(0xFF10B981);
+}
+
 class KX {
   KX._();
 

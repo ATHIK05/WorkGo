@@ -89,4 +89,49 @@ class AuthService {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+  // ── Delete Account (Right to Erasure - DPDP Act 2023 §12) ───────────────────
+
+  /// Permanently erases all user profile records, KYC documents, biometric hashes,
+  /// worker records, subcollections, and deletes the Firebase Auth account.
+  Future<void> deleteAccount({required String uid}) async {
+    // 1. Delete worker documents subcollection and worker profile
+    try {
+      final docsSnap = await _db.collection("workers").doc(uid).collection("documents").get();
+      for (final doc in docsSnap.docs) {
+        await doc.reference.delete();
+      }
+      final reviewsSnap = await _db.collection("workers").doc(uid).collection("reviews").get();
+      for (final doc in reviewsSnap.docs) {
+        await doc.reference.delete();
+      }
+      await _db.collection("workers").doc(uid).delete();
+    } catch (_) {
+      // Continue even if worker record didn't exist (e.g. for customer)
+    }
+
+    // 2. Anonymize/Wipe audit logs for this user under DPDP 2023 Right to Erasure
+    try {
+      final auditSnap = await _db.collection("verification_audit_logs").where("workerId", isEqualTo: uid).get();
+      for (final doc in auditSnap.docs) {
+        await doc.reference.delete();
+      }
+    } catch (_) {}
+
+    // 3. Delete user document from users collection
+    try {
+      await _db.collection("users").doc(uid).delete();
+    } catch (_) {}
+
+    // 4. Delete user from Firebase Auth
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        await user.delete();
+      } catch (_) {
+        // If re-authentication is required by Firebase Auth, sign out gracefully
+        await _auth.signOut();
+      }
+    }
+  }
 }

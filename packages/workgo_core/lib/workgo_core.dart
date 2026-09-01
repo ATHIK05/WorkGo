@@ -34,6 +34,7 @@ export "src/widgets/star_rating.dart";
 export "src/widgets/proxy_worker_dialog.dart";
 export "src/widgets/exit_confirmation_bottom_sheet.dart";
 export "src/widgets/sign_out_confirmation_bottom_sheet.dart";
+export "src/widgets/delete_account_confirmation_bottom_sheet.dart";
 export "src/widgets/workgo_avatar.dart";
 export "src/widgets/checkout_motivation_bottom_sheet.dart";
 export "src/widgets/location_prompt_dialog.dart";
@@ -60,6 +61,7 @@ export "src/services/broadcast_alert_service.dart";
 export "src/services/image_upload_service.dart";
 export "src/services/location_service.dart";
 export "src/services/c2pa_service.dart";
+export "src/services/biometric_service.dart";
 
 // API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";
