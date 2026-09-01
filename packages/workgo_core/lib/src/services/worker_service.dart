@@ -129,7 +129,9 @@ class WorkerService {
       // Direct Firestore write with real SHA-256 signature
       final rawBytes = base64Decode(base64Data);
       final fileHash = sha256.convert(rawBytes).toString();
-      final maskedNumber = "XXXXXXXX${shareCode.substring(0, 2)}${shareCode.substring(2, 4)}";
+      // Masked number is unknown without decrypting the zip — show placeholder
+      // The share code is the ZIP password, NOT the Aadhaar UID digits
+      const maskedNumber = "XXXX-XXXX-XXXX (Zip-Locked)";
 
       final workerSnap = await _db.collection("workers").doc(workerId).get();
       final workerName = (workerSnap.data()?["name"] as String?) ?? "Artisan Cardholder";
@@ -143,12 +145,22 @@ class WorkerService {
         "uploadedAt": FieldValue.serverTimestamp(),
       });
 
-      await _db.collection("workers").doc(workerId).update({
+      final isImage = fileName?.toLowerCase().endsWith('.jpg') == true ||
+          fileName?.toLowerCase().endsWith('.jpeg') == true ||
+          fileName?.toLowerCase().endsWith('.png') == true;
+
+      await _db.collection("workers").doc(workerId).set({
         "verificationStage": VerificationStage.selfieCapture.name,
-        "verificationDetails.aadhaarVerifiedName": workerName,
-        "verificationDetails.aadhaarMaskedNumber": maskedNumber,
-        "verificationDetails.aadhaarVerifiedAt": FieldValue.serverTimestamp(),
-      });
+        "verificationDetails": {
+          "aadhaarVerifiedName": workerName,
+          "aadhaarMaskedNumber": maskedNumber,
+          "aadhaarVerifiedAt": FieldValue.serverTimestamp(),
+          "aadhaarZipBase64": base64Data,
+          "aadhaarShareCode": shareCode,
+          "aadhaarFileName": fileName ?? (isImage ? "aadhaar_card.jpg" : "offline_aadhaar.zip"),
+          if (isImage) "aadhaarPhotoBase64": base64Data,
+        },
+      }, SetOptions(merge: true));
 
       return {
         "success": true,

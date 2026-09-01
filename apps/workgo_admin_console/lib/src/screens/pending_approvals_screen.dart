@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:workgo_core/workgo_core.dart';
 
 class PendingApprovalsScreen extends StatefulWidget {
@@ -540,20 +543,22 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
 
   Future<void> _downloadAadhaarZip(String base64Str, String fileName) async {
     try {
-      final uri = Uri.parse("data:application/zip;base64,$base64Str");
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Direct download triggered via browser/OS.")),
-          );
-        }
-      }
+      final bytes = base64Decode(base64Str);
+      final dir = await getTemporaryDirectory();
+      final safeFileName = fileName.isNotEmpty ? fileName : "aadhaar_offline.zip";
+      final file = File('${dir.path}/$safeFileName');
+      await file.writeAsBytes(bytes, flush: true);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/zip', name: safeFileName)],
+        subject: "UIDAI Offline Aadhaar Archive",
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Download notice: $e")),
+          SnackBar(
+            content: Text("Download failed: $e"),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
         );
       }
     }
@@ -787,42 +792,52 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     const SizedBox(height: 12),
 
                     // ── 3B. Encrypted Zip File Badge & Download ──
-                    if (details?.aadhaarZipBase64 != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(8),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withAlpha(30),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.folder_zip_rounded, color: Color(0xFF10B981), size: 24),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(8),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: details?.aadhaarZipBase64 != null
+                                  ? const Color(0xFF10B981).withAlpha(30)
+                                  : Colors.white10,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    details?.aadhaarFileName ?? "aadhaar_offline.zip",
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    "Encrypted UIDAI Zip Archive (Spark Tier)",
-                                    style: TextStyle(color: Colors.white54, fontSize: 10.5),
-                                  ),
-                                ],
-                              ),
+                            child: Icon(
+                              Icons.folder_zip_rounded,
+                              color: details?.aadhaarZipBase64 != null
+                                  ? const Color(0xFF10B981)
+                                  : Colors.white38,
+                              size: 24,
                             ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  details?.aadhaarFileName ?? (details?.aadhaarZipBase64 != null ? "aadhaar_offline.zip" : "No zip archive attached"),
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  details?.aadhaarZipBase64 != null
+                                      ? "Encrypted UIDAI Zip Archive (Spark Tier)"
+                                      : "Manual / Direct Demographics Record",
+                                  style: const TextStyle(color: Colors.white54, fontSize: 10.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (details?.aadhaarZipBase64 != null)
                             ElevatedButton.icon(
                               onPressed: () => _downloadAadhaarZip(
                                 details!.aadhaarZipBase64!,
@@ -837,48 +852,52 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                               icon: const Icon(Icons.download_rounded, size: 16),
                               label: const Text("Download", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                    ],
+                    ),
+                    const SizedBox(height: 12),
 
                     // ── 3C. UIDAI Official ID Photo vs Live Camera Selfie ──
-                    if (details?.aadhaarPhotoBase64 != null && details!.aadhaarPhotoBase64!.isNotEmpty) ...[
+                    if ((details?.aadhaarPhotoBase64 != null && details!.aadhaarPhotoBase64!.isNotEmpty) ||
+                        (details?.selfieBase64 != null) ||
+                        (details?.selfieCenterBase64 != null)) ...[
                       Row(
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "UIDAI Official ID Photo",
-                                  style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  height: 110,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+                          if (details?.aadhaarPhotoBase64 != null && details!.aadhaarPhotoBase64!.isNotEmpty)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "UIDAI Official ID Photo",
+                                    style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.memory(
-                                      base64Decode(details.aadhaarPhotoBase64!),
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Center(
-                                        child: Icon(Icons.badge_rounded, color: Colors.white38, size: 36),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    height: 110,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.memory(
+                                        base64Decode(details.aadhaarPhotoBase64!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Center(
+                                          child: Icon(Icons.badge_rounded, color: Colors.white38, size: 36),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          if (details.selfieBase64 != null || details.selfieCenterBase64 != null)
+                          if ((details?.aadhaarPhotoBase64 != null && details?.aadhaarPhotoBase64!.isNotEmpty == true) &&
+                              (details?.selfieBase64 != null || details?.selfieCenterBase64 != null))
+                            const SizedBox(width: 12),
+                          if (details?.selfieBase64 != null || details?.selfieCenterBase64 != null)
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -898,7 +917,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(10),
                                       child: Image.memory(
-                                        base64Decode(details.selfieCenterBase64 ?? details.selfieBase64!),
+                                        base64Decode((details?.selfieCenterBase64 ?? details?.selfieBase64)!),
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, __, ___) => const Center(
                                           child: Icon(Icons.face_rounded, color: Colors.white38, size: 36),
@@ -916,7 +935,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
 
                     // ── 3D. Verified Demographics Rows ──
                     _buildDossierRow("Verified Legal Name", details?.aadhaarVerifiedName ?? worker.name),
-                    _buildDossierRow("Masked Aadhaar Number", details?.aadhaarMaskedNumber ?? "XXXXXXXX4821"),
+                    _buildDossierRow("Masked Aadhaar Number", details?.aadhaarMaskedNumber ?? "Encrypted in Zip Archive"),
                     if (details?.aadhaarDob != null && details!.aadhaarDob!.isNotEmpty)
                       _buildDossierRow("Date of Birth", details.aadhaarDob!),
                     if (details?.aadhaarGender != null && details!.aadhaarGender!.isNotEmpty)

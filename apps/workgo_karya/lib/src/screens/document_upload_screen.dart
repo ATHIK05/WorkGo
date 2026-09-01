@@ -230,6 +230,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
       final boosted = result["lightingBoosted"] as bool? ?? false;
 
       if (centerB64 != null) {
+        // Store captures in state — user must tap "Save & Continue" to confirm
         setState(() {
           _centerBase64 = centerB64;
           _leftBase64 = leftB64 ?? centerB64;
@@ -239,9 +240,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
           _rightBytes = base64Decode(_rightBase64!);
           _lightingBoosted = boosted;
         });
-
-        // Submit to backend
-        _submit3DBiometrics();
+        // ⬆ No auto-submit — user reviews photos and taps "Save & Continue"
       }
     }
   }
@@ -622,7 +621,8 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
 
   // ── 2. DPDP 2023 Consent Card ───────────────────────────────────────────────
   Widget _buildConsentCard(VerificationStage stage) {
-    final isDone = stage.index > VerificationStage.signup.index && stage != VerificationStage.consent;
+    // isDone when worker has advanced past the signup stage to Aadhaar or beyond
+    final isDone = stage.index >= VerificationStage.aadhaarOfflineEkyc.index;
 
     return Container(
       padding: const EdgeInsets.all(18),
