@@ -69,6 +69,8 @@ async function verifyAadhaarOfflineKyc({ base64Data, shareCode, fileName }) {
   let maskedAadhaar = "";
   let dob = "";
   let gender = "";
+  let photoBase64 = "";
+  let address = "";
   let hasValidSignature = false;
 
   if (isXmlBased && xmlString) {
@@ -82,6 +84,26 @@ async function verifyAadhaarOfflineKyc({ base64Data, shareCode, fileName }) {
           name = poiNode.getAttribute("name") || "";
           dob = poiNode.getAttribute("dob") || "";
           gender = poiNode.getAttribute("gender") || "";
+        }
+
+        const poaNode = doc.getElementsByTagName("Poa")[0] || doc.getElementsByTagName("poa")[0];
+        if (poaNode) {
+          const parts = [
+            poaNode.getAttribute("house"),
+            poaNode.getAttribute("street"),
+            poaNode.getAttribute("loc"),
+            poaNode.getAttribute("vtc"),
+            poaNode.getAttribute("dist"),
+            poaNode.getAttribute("state"),
+            poaNode.getAttribute("pc"),
+          ].filter(Boolean);
+          address = parts.join(", ");
+        }
+
+        const phtNode = doc.getElementsByTagName("Pht")[0] || doc.getElementsByTagName("pht")[0] ||
+                        doc.getElementsByTagName("Photo")[0] || doc.getElementsByTagName("photo")[0];
+        if (phtNode) {
+          photoBase64 = (phtNode.textContent || "").trim();
         }
 
         const uidDataNode = doc.getElementsByTagName("UidData")[0] || doc.getElementsByTagName("uidData")[0];
@@ -110,6 +132,16 @@ async function verifyAadhaarOfflineKyc({ base64Data, shareCode, fileName }) {
       const genderMatch = xmlString.match(/gender=["']([^"']+)["']/i);
       if (genderMatch) gender = genderMatch[1];
     }
+    if (!photoBase64) {
+      const phtMatch = xmlString.match(/<(?:Pht|pht|Photo|photo)>([\s\S]*?)<\/(?:Pht|pht|Photo|photo)>/i);
+      if (phtMatch) photoBase64 = phtMatch[1].trim();
+    }
+    if (!address) {
+      const stateMatch = xmlString.match(/state=["']([^"']+)["']/i);
+      const distMatch = xmlString.match(/dist=["']([^"']+)["']/i);
+      const pcMatch = xmlString.match(/pc=["']([^"']+)["']/i);
+      address = [distMatch ? distMatch[1] : "", stateMatch ? stateMatch[1] : "", pcMatch ? pcMatch[1] : ""].filter(Boolean).join(", ");
+    }
     if (!maskedAadhaar) {
       const uidMatch = xmlString.match(/(?:maskedUid|uid)=["']([^"']+)["']/i);
       if (uidMatch) maskedAadhaar = uidMatch[1];
@@ -126,6 +158,8 @@ async function verifyAadhaarOfflineKyc({ base64Data, shareCode, fileName }) {
     maskedAadhaar: maskedNumber,
     dob: dob || "",
     gender: gender || "",
+    photoBase64: photoBase64 || "",
+    address: address || "",
     hasValidSignature: hasValidSignature || isXmlBased,
     xmlSha256: fileSha256,
     fileType: isXmlBased ? "UIDAI_OFFLINE_XML" : (isPdf ? "DOCUMENT_PDF" : "CARD_PHOTO_SCAN"),

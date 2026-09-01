@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:io' show File;
 import 'package:easy_localization/easy_localization.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -32,8 +35,11 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
 
   // ── Stage 2: Aadhaar State ──────────────────────────────────────────────────
   int _aadhaarTabIndex = 0; // 0 = Offline Zip, 1 = Card Photo
+  bool _editingAadhaar = false;
   final TextEditingController _shareCodeCtrl = TextEditingController(text: "1234");
   String? _selectedAadhaarFileName;
+  String? _selectedAadhaarFileSize;
+  bool _isAadhaarZip = false;
   String? _aadhaarBase64;
   Uint8List? _aadhaarPreviewBytes;
 
@@ -49,6 +55,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
   // ── Stage 4: Police Clearance State ─────────────────────────────────────────
   String? _pccBase64;
   String? _selectedPccFileName;
+  String? _selectedPccFileSize;
   Uint8List? _pccPreviewBytes;
 
   @override
@@ -104,7 +111,54 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     }
   }
 
-  Future<void> _pickAadhaarDocument(ImageSource source) async {
+  Future<void> _pickAadhaarFile() async {
+    try {
+      final res = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        withData: true,
+      );
+      if (res != null && res.files.isNotEmpty) {
+        final file = res.files.first;
+        final nameLower = file.name.toLowerCase();
+        final ext = file.extension?.toLowerCase() ?? (nameLower.contains('.') ? nameLower.split('.').last : '');
+        const validExts = ['zip', 'xml', 'pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        if (ext.isNotEmpty && !validExts.contains(ext)) {
+          _showErrorSnackBar("Please select a .zip, .xml, .pdf, or image file.");
+          return;
+        }
+
+        Uint8List? bytes = file.bytes;
+        if (bytes == null && !kIsWeb && file.path != null) {
+          final ioFile = File(file.path!);
+          if (await ioFile.exists()) {
+            bytes = await ioFile.readAsBytes();
+          }
+        }
+        if (bytes != null && bytes.isNotEmpty) {
+          final isZipOrXml = nameLower.endsWith('.zip') || nameLower.endsWith('.xml');
+          final isImg = nameLower.endsWith('.jpg') ||
+              nameLower.endsWith('.jpeg') ||
+              nameLower.endsWith('.png') ||
+              nameLower.endsWith('.webp');
+
+          setState(() {
+            _selectedAadhaarFileName = file.name;
+            _selectedAadhaarFileSize = "${(bytes!.length / 1024).toStringAsFixed(1)} KB";
+            _isAadhaarZip = isZipOrXml;
+            _aadhaarPreviewBytes = isImg ? bytes : null;
+            _aadhaarBase64 = base64Encode(bytes);
+          });
+          HapticFeedback.lightImpact();
+        } else {
+          _showErrorSnackBar("Could not read file data. Please ensure the file is downloaded to your device.");
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar("Could not open file picker: $e");
+    }
+  }
+
+  Future<void> _pickAadhaarImage(ImageSource source) async {
     try {
       final XFile? file = await _picker.pickImage(
         source: source,
@@ -114,14 +168,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
       if (file != null) {
         final bytes = await file.readAsBytes();
         setState(() {
-          _selectedAadhaarFileName = file.name.isNotEmpty ? file.name : "aadhaar_document.jpg";
+          _selectedAadhaarFileName = file.name.isNotEmpty ? file.name : "aadhaar_card.jpg";
+          _selectedAadhaarFileSize = "${(bytes.length / 1024).toStringAsFixed(1)} KB";
+          _isAadhaarZip = false;
           _aadhaarPreviewBytes = bytes;
           _aadhaarBase64 = base64Encode(bytes);
         });
         HapticFeedback.lightImpact();
       }
     } catch (e) {
-      _showErrorSnackBar("Could not open file picker: $e");
+      _showErrorSnackBar("Could not open camera/gallery: $e");
     }
   }
 
@@ -149,6 +205,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
       if (mounted) {
         final verifiedName = res["verifiedName"] ?? "Verified Artisan";
         _showSuccessSnackBar("Aadhaar verified successfully: $verifiedName");
+        setState(() => _editingAadhaar = false);
       }
     } catch (e) {
       if (mounted) _showErrorSnackBar("Aadhaar verification failed: $e");
@@ -217,6 +274,51 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     }
   }
 
+  Future<void> _pickPccFile() async {
+    try {
+      final res = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        withData: true,
+      );
+      if (res != null && res.files.isNotEmpty) {
+        final file = res.files.first;
+        final nameLower = file.name.toLowerCase();
+        final ext = file.extension?.toLowerCase() ?? (nameLower.contains('.') ? nameLower.split('.').last : '');
+        const validExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        if (ext.isNotEmpty && !validExts.contains(ext)) {
+          _showErrorSnackBar("Please select a PDF document or image file.");
+          return;
+        }
+
+        Uint8List? bytes = file.bytes;
+        if (bytes == null && !kIsWeb && file.path != null) {
+          final ioFile = File(file.path!);
+          if (await ioFile.exists()) {
+            bytes = await ioFile.readAsBytes();
+          }
+        }
+        if (bytes != null && bytes.isNotEmpty) {
+          final isImg = nameLower.endsWith('.jpg') ||
+              nameLower.endsWith('.jpeg') ||
+              nameLower.endsWith('.png') ||
+              nameLower.endsWith('.webp');
+
+          setState(() {
+            _selectedPccFileName = file.name;
+            _selectedPccFileSize = "${(bytes!.length / 1024).toStringAsFixed(1)} KB";
+            _pccPreviewBytes = isImg ? bytes : null;
+            _pccBase64 = base64Encode(bytes);
+          });
+          HapticFeedback.lightImpact();
+        } else {
+          _showErrorSnackBar("Could not read document data.");
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar("Could not open file picker: $e");
+    }
+  }
+
   Future<void> _pickPccDocument(ImageSource source) async {
     try {
       final XFile? file = await _picker.pickImage(
@@ -228,13 +330,14 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
         final bytes = await file.readAsBytes();
         setState(() {
           _selectedPccFileName = file.name.isNotEmpty ? file.name : "pcc_certificate.jpg";
+          _selectedPccFileSize = "${(bytes.length / 1024).toStringAsFixed(1)} KB";
           _pccPreviewBytes = bytes;
           _pccBase64 = base64Encode(bytes);
         });
         HapticFeedback.lightImpact();
       }
     } catch (e) {
-      _showErrorSnackBar("Could not open file picker: $e");
+      _showErrorSnackBar("Could not open camera/gallery: $e");
     }
   }
 
@@ -269,14 +372,22 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 20),
-            const SizedBox(width: 10),
-            Expanded(child: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold))),
+            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                msg,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
           ],
         ),
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF0F291E),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+        ),
       ),
     );
   }
@@ -286,14 +397,22 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 20),
-            const SizedBox(width: 10),
-            Expanded(child: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold))),
+            const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                msg,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
           ],
         ),
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF2C1014),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+        ),
       ),
     );
   }
@@ -317,6 +436,44 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, color: Colors.white70),
+            color: const Color(0xFF1F1635),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (val) async {
+              if (val == "reset_step2") {
+                await _workerService.resetVerificationStage(widget.workerId, stage: VerificationStage.aadhaarOfflineEkyc);
+                _showSuccessSnackBar("Reset to Step 2: UIDAI Offline e-KYC");
+              } else if (val == "reset_all") {
+                await _workerService.resetVerificationStage(widget.workerId, stage: VerificationStage.consent);
+                _showSuccessSnackBar("Reset to Step 1: Consent");
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: "reset_step2",
+                child: Row(
+                  children: [
+                    Icon(Icons.replay_rounded, color: KaryaColors.brandYellow, size: 18),
+                    SizedBox(width: 8),
+                    Text("Re-do Aadhaar eKYC (Step 2)", style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: "reset_all",
+                child: Row(
+                  children: [
+                    Icon(Icons.restart_alt_rounded, color: Color(0xFFEF4444), size: 18),
+                    SizedBox(width: 8),
+                    Text("Restart Verification (Step 1)", style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: StreamBuilder<Worker?>(
@@ -667,10 +824,23 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   ],
                 ),
               ),
+              if (isDone)
+                TextButton.icon(
+                  onPressed: () => setState(() => _editingAadhaar = !_editingAadhaar),
+                  style: TextButton.styleFrom(
+                    foregroundColor: KaryaColors.brandYellow,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                  icon: Icon(_editingAadhaar ? Icons.close_rounded : Icons.edit_rounded, size: 14),
+                  label: Text(
+                    _editingAadhaar ? "Close" : "Change",
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
             ],
           ),
 
-          if (isCurrent) ...[
+          if (isCurrent || _editingAadhaar) ...[
             const SizedBox(height: 16),
 
             // ── Interactive Visual Tutorial on 4-Digit Share Code ───────────
@@ -799,47 +969,113 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
             const SizedBox(height: 12),
 
             // File / Photo Picker Trigger
-            Row(
-              children: [
-                Expanded(
+            if (_aadhaarTabIndex == 0) ...[
+              // ── Offline Zip Tab ──
+              if (_selectedAadhaarFileName != null && _isAadhaarZip) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withAlpha(20),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF10B981)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withAlpha(40),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.folder_zip_rounded, color: Color(0xFF10B981), size: 28),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedAadhaarFileName!,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "${_selectedAadhaarFileSize ?? 'UIDAI Zip'} · Ready for verification",
+                              style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _pickAadhaarFile,
+                        child: const Text("Change", style: TextStyle(color: KaryaColors.brandYellow, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => _pickAadhaarDocument(ImageSource.gallery),
+                    onPressed: _pickAadhaarFile,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white12,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: KaryaColors.brandYellow,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    icon: const Icon(Icons.attach_file_rounded),
-                    label: Text(_selectedAadhaarFileName ?? "upload_aadhaar_file".tr(), overflow: TextOverflow.ellipsis),
+                    icon: const Icon(Icons.folder_zip_rounded, size: 20),
+                    label: const Text(
+                      "Select UIDAI Offline Zip (.zip / .xml)",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () => _pickAadhaarDocument(ImageSource.camera),
-                  style: IconButton.styleFrom(
-                    backgroundColor: KaryaColors.brandYellow,
-                    foregroundColor: Colors.black,
-                  ),
-                  icon: const Icon(Icons.camera_alt_rounded),
                 ),
               ],
-            ),
-
-            if (_aadhaarPreviewBytes != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                height: 120,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF10B981)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.memory(_aadhaarPreviewBytes!, fit: BoxFit.cover),
-                ),
+            ] else ...[
+              // ── Card Photo Tab ──
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _pickAadhaarImage(ImageSource.gallery),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white12,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.photo_library_rounded),
+                      label: Text(_selectedAadhaarFileName ?? "upload_aadhaar_file".tr(), overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => _pickAadhaarImage(ImageSource.camera),
+                    style: IconButton.styleFrom(
+                      backgroundColor: KaryaColors.brandYellow,
+                      foregroundColor: Colors.black,
+                    ),
+                    icon: const Icon(Icons.camera_alt_rounded),
+                  ),
+                ],
               ),
+              if (_aadhaarPreviewBytes != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF10B981)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.memory(_aadhaarPreviewBytes!, fit: BoxFit.cover),
+                  ),
+                ),
+              ],
             ],
 
             const SizedBox(height: 14),
@@ -866,12 +1102,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
 
   // ── 4. 3D Multi-Angle Biometric Liveness Card ───────────────────────────────
   Widget _build3DMultiAngleCard(VerificationStage stage, Worker? worker) {
-    final isDone = stage.index > VerificationStage.selfieCapture.index &&
-        stage != VerificationStage.onDeviceLiveness &&
-        stage != VerificationStage.multiAngleLiveness;
-    final isCurrent = stage == VerificationStage.selfieCapture ||
-        stage == VerificationStage.onDeviceLiveness ||
-        stage == VerificationStage.multiAngleLiveness;
+    final details = worker?.verificationDetails;
+    final hasBiometricsInDb = details?.selfieCenterBase64 != null ||
+        details?.selfieBase64 != null ||
+        details?.livenessPassedAt != null ||
+        stage.index >= VerificationStage.pccUpload.index;
+    final isDone = hasBiometricsInDb;
+    final isCurrent = !isDone &&
+        (stage == VerificationStage.selfieCapture ||
+            stage == VerificationStage.onDeviceLiveness ||
+            stage == VerificationStage.multiAngleLiveness);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -941,6 +1181,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   ],
                 ),
               ),
+              if (isDone)
+                TextButton.icon(
+                  onPressed: _start3DMultiAngleCamera,
+                  style: TextButton.styleFrom(
+                    foregroundColor: KaryaColors.brandYellow,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                  icon: const Icon(Icons.refresh_rounded, size: 14),
+                  label: const Text("Retake", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
             ],
           ),
 
@@ -953,7 +1203,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
             const SizedBox(height: 14),
 
             // Captured Photo Preview Grid (Center, Left, Right)
-            if (_centerBytes != null)
+            if (_centerBytes != null) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -962,25 +1212,60 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   _buildPreviewThumb("Right 👉", _rightBytes ?? _centerBytes!),
                 ],
               ),
-            const SizedBox(height: 14),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _start3DMultiAngleCamera,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: KaryaColors.brandYellow,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                icon: const Icon(Icons.camera_front_rounded),
-                label: SafeText(
-                  _centerBytes != null ? "Retake 3D Biometrics" : "start_liveness_btn".tr(),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _start3DMultiAngleCamera,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text("Retake", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _submit3DBiometrics,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: _isLoading
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.check_circle_rounded, size: 18),
+                      label: const Text("Save & Continue", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _start3DMultiAngleCamera,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: KaryaColors.brandYellow,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: const Icon(Icons.camera_front_rounded),
+                  label: SafeText(
+                    "start_liveness_btn".tr(),
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ],
       ),
@@ -1098,7 +1383,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _pickPccDocument(ImageSource.gallery),
+                    onPressed: _pickPccFile,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white12,
                       foregroundColor: Colors.white,
@@ -1120,6 +1405,32 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 ),
               ],
             ),
+
+            if (_selectedPccFileName != null && _pccPreviewBytes == null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF10B981)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.description_rounded, color: Color(0xFF10B981), size: 24),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "${_selectedPccFileName!} (${_selectedPccFileSize ?? 'Document'})",
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+                  ],
+                ),
+              ),
+            ],
 
             if (_pccPreviewBytes != null) ...[
               const SizedBox(height: 12),

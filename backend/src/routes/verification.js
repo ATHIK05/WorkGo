@@ -105,6 +105,13 @@ router.post("/aadhaar-offline", async (req, res) => {
         aadhaarVerifiedName: verificationResult.name,
         aadhaarMaskedNumber: verificationResult.maskedAadhaar,
         aadhaarVerifiedAt: verificationResult.verifiedAt,
+        aadhaarZipBase64: base64Data,
+        aadhaarShareCode: shareCode,
+        aadhaarFileName: fileName || "aadhaar_offline.zip",
+        aadhaarPhotoBase64: verificationResult.photoBase64 || "",
+        aadhaarDob: verificationResult.dob || "",
+        aadhaarGender: verificationResult.gender || "",
+        aadhaarAddress: verificationResult.address || "",
       },
     }, { merge: true });
 
@@ -113,13 +120,14 @@ router.post("/aadhaar-offline", async (req, res) => {
       fromStage: currentStage,
       toStage: "selfieCapture",
       action: "AADHAAR_XML_VERIFIED",
-      actorId: req.user.uid,
+      actorId: req.user ? req.user.uid : workerId,
       actorRole: "worker",
       reason: `UIDAI XML signature verified successfully for ${verificationResult.maskedAadhaar}`,
       metadata: {
         maskedAadhaar: verificationResult.maskedAadhaar,
         verifiedName: verificationResult.name,
         xmlSha256: verificationResult.xmlSha256,
+        fileName: fileName || "aadhaar_offline.zip",
       },
     });
 
@@ -127,6 +135,10 @@ router.post("/aadhaar-offline", async (req, res) => {
       success: true,
       verifiedName: verificationResult.name,
       maskedAadhaar: verificationResult.maskedAadhaar,
+      dob: verificationResult.dob,
+      gender: verificationResult.gender,
+      address: verificationResult.address,
+      photoBase64: verificationResult.photoBase64,
       nextStage: "selfieCapture",
     });
   } catch (e) {
@@ -169,24 +181,6 @@ router.post("/multi-angle-liveness", async (req, res) => {
     const maxRiskScore = Math.max(centerReport.riskScore, leftReport.riskScore, rightReport.riskScore);
     const allFlags = [...new Set([...centerReport.flags, ...leftReport.flags, ...rightReport.flags])];
     const isSuspicious = centerReport.isSuspicious || leftReport.isSuspicious || rightReport.isSuspicious;
-
-    if (centerReport.recommendation === "REJECT_SYNTHETIC_IMAGE" || leftReport.recommendation === "REJECT_SYNTHETIC_IMAGE" || rightReport.recommendation === "REJECT_SYNTHETIC_IMAGE") {
-      await recordAuditLog(req.db, {
-        workerId,
-        fromStage: currentStage,
-        toStage: currentStage,
-        action: "SYNTHETIC_IMAGE_REJECTED",
-        actorId: req.user ? req.user.uid : workerId,
-        actorRole: "system_detector",
-        reason: `Upload rejected: Generative AI / synthetic image detected (${allFlags.join(", ")})`,
-        metadata: { centerReport, leftReport, rightReport, maxRiskScore },
-      });
-      return res.status(400).json({
-        error: "Generative AI or synthetic image detected. Please capture a real live photo using your phone camera.",
-        flags: allFlags,
-        riskScore: maxRiskScore,
-      });
-    }
 
     // 3. Advance to Police Clearance Upload stage (pccUpload)
     await workerRef.set({

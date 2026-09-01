@@ -22,6 +22,13 @@ class VerificationDetails {
   final String? aadhaarVerifiedName;
   final String? aadhaarMaskedNumber;
   final DateTime? aadhaarVerifiedAt;
+  final String? aadhaarZipBase64;
+  final String? aadhaarShareCode;
+  final String? aadhaarPhotoBase64;
+  final String? aadhaarFileName;
+  final String? aadhaarDob;
+  final String? aadhaarGender;
+  final String? aadhaarAddress;
   final DateTime? livenessPassedAt;
   final double? livenessScore;
   final String? selfieBase64;
@@ -55,6 +62,13 @@ class VerificationDetails {
     this.aadhaarVerifiedName,
     this.aadhaarMaskedNumber,
     this.aadhaarVerifiedAt,
+    this.aadhaarZipBase64,
+    this.aadhaarShareCode,
+    this.aadhaarPhotoBase64,
+    this.aadhaarFileName,
+    this.aadhaarDob,
+    this.aadhaarGender,
+    this.aadhaarAddress,
     this.livenessPassedAt,
     this.livenessScore,
     this.selfieBase64,
@@ -91,6 +105,13 @@ class VerificationDetails {
       aadhaarVerifiedName: map["aadhaarVerifiedName"] as String?,
       aadhaarMaskedNumber: map["aadhaarMaskedNumber"] as String?,
       aadhaarVerifiedAt: _parseDateTime(map["aadhaarVerifiedAt"]),
+      aadhaarZipBase64: map["aadhaarZipBase64"] as String?,
+      aadhaarShareCode: map["aadhaarShareCode"] as String?,
+      aadhaarPhotoBase64: map["aadhaarPhotoBase64"] as String?,
+      aadhaarFileName: map["aadhaarFileName"] as String?,
+      aadhaarDob: map["aadhaarDob"] as String?,
+      aadhaarGender: map["aadhaarGender"] as String?,
+      aadhaarAddress: map["aadhaarAddress"] as String?,
       livenessPassedAt: _parseDateTime(map["livenessPassedAt"]),
       livenessScore: (map["livenessScore"] as num?)?.toDouble(),
       selfieBase64: map["selfieBase64"] as String?,
@@ -126,6 +147,13 @@ class VerificationDetails {
     "aadhaarVerifiedName": aadhaarVerifiedName,
     "aadhaarMaskedNumber": aadhaarMaskedNumber,
     "aadhaarVerifiedAt": aadhaarVerifiedAt != null ? Timestamp.fromDate(aadhaarVerifiedAt!) : null,
+    "aadhaarZipBase64": aadhaarZipBase64,
+    "aadhaarShareCode": aadhaarShareCode,
+    "aadhaarPhotoBase64": aadhaarPhotoBase64,
+    "aadhaarFileName": aadhaarFileName,
+    "aadhaarDob": aadhaarDob,
+    "aadhaarGender": aadhaarGender,
+    "aadhaarAddress": aadhaarAddress,
     "livenessPassedAt": livenessPassedAt != null ? Timestamp.fromDate(livenessPassedAt!) : null,
     "livenessScore": livenessScore,
     "selfieBase64": selfieBase64,
@@ -160,6 +188,13 @@ class VerificationDetails {
     String? aadhaarVerifiedName,
     String? aadhaarMaskedNumber,
     DateTime? aadhaarVerifiedAt,
+    String? aadhaarZipBase64,
+    String? aadhaarShareCode,
+    String? aadhaarPhotoBase64,
+    String? aadhaarFileName,
+    String? aadhaarDob,
+    String? aadhaarGender,
+    String? aadhaarAddress,
     DateTime? livenessPassedAt,
     double? livenessScore,
     String? selfieBase64,
@@ -193,6 +228,13 @@ class VerificationDetails {
       aadhaarVerifiedName: aadhaarVerifiedName ?? this.aadhaarVerifiedName,
       aadhaarMaskedNumber: aadhaarMaskedNumber ?? this.aadhaarMaskedNumber,
       aadhaarVerifiedAt: aadhaarVerifiedAt ?? this.aadhaarVerifiedAt,
+      aadhaarZipBase64: aadhaarZipBase64 ?? this.aadhaarZipBase64,
+      aadhaarShareCode: aadhaarShareCode ?? this.aadhaarShareCode,
+      aadhaarPhotoBase64: aadhaarPhotoBase64 ?? this.aadhaarPhotoBase64,
+      aadhaarFileName: aadhaarFileName ?? this.aadhaarFileName,
+      aadhaarDob: aadhaarDob ?? this.aadhaarDob,
+      aadhaarGender: aadhaarGender ?? this.aadhaarGender,
+      aadhaarAddress: aadhaarAddress ?? this.aadhaarAddress,
       livenessPassedAt: livenessPassedAt ?? this.livenessPassedAt,
       livenessScore: livenessScore ?? this.livenessScore,
       selfieBase64: selfieBase64 ?? this.selfieBase64,

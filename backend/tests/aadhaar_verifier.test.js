@@ -24,6 +24,9 @@ describe("UIDAI Offline Aadhaar eKYC Verifier", () => {
     expect(result.verified).toBe(true);
     expect(result.name).toBe("Murugan Shanmugam");
     expect(result.dob).toBe("1990-04-12");
+    expect(result.gender).toBe("M");
+    expect(result.photoBase64).toContain("/9j/4AAQSkZJRg");
+    expect(result.address).toContain("Chennai");
     expect(result.maskedAadhaar).toContain("XXXXXXXX");
     expect(result.hasValidSignature).toBe(true);
     expect(result.xmlSha256).toBeDefined();

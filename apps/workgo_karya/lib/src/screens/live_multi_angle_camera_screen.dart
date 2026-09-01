@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:screen_brightness/screen_brightness.dart';
@@ -261,7 +262,21 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
       }
 
       final XFile photo = await _cameraController!.takePicture();
-      final bytes = await photo.readAsBytes();
+      Uint8List bytes = await photo.readAsBytes();
+      try {
+        final compressed = await FlutterImageCompress.compressWithList(
+          bytes,
+          minWidth: 480,
+          minHeight: 480,
+          quality: 65,
+          format: CompressFormat.jpeg,
+        );
+        if (compressed.isNotEmpty) {
+          bytes = compressed;
+        }
+      } catch (e) {
+        debugPrint("[LiveCamera] Image compress error: $e");
+      }
       final base64Str = base64Encode(bytes);
 
       if (!mounted) return;
@@ -304,9 +319,19 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
   // Fallback photo picker if running on desktop or camera is unavailable
   Future<void> _fallbackPickAngle(BiometricAngleStep step) async {
     final picker = ImagePicker();
-    final XFile? file = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    final XFile? file = await picker.pickImage(source: ImageSource.camera, imageQuality: 60, maxWidth: 480);
     if (file != null) {
-      final bytes = await file.readAsBytes();
+      Uint8List bytes = await file.readAsBytes();
+      try {
+        final compressed = await FlutterImageCompress.compressWithList(
+          bytes,
+          minWidth: 480,
+          minHeight: 480,
+          quality: 65,
+          format: CompressFormat.jpeg,
+        );
+        if (compressed.isNotEmpty) bytes = compressed;
+      } catch (_) {}
       final base64Str = base64Encode(bytes);
       setState(() {
         if (step == BiometricAngleStep.center) {

@@ -53,6 +53,14 @@ class WorkerService {
     );
   }
 
+  /// Reset verification stage for testing or re-upload.
+  Future<void> resetVerificationStage(String workerId, {VerificationStage stage = VerificationStage.aadhaarOfflineEkyc}) async {
+    await _db.collection("workers").doc(workerId).update({
+      "verificationStage": stage.name,
+      "verificationStatus": VerificationStatus.pending.name,
+    });
+  }
+
   /// Worker updates availability toggle (Online / Offline / Busy).
   Future<void> updateAvailability(String workerId, AvailabilityStatus status) async {
     await _db.collection("workers").doc(workerId).update({
@@ -175,21 +183,23 @@ class WorkerService {
       final leftHash = sha256.convert(base64Decode(leftBase64)).toString();
       final rightHash = sha256.convert(base64Decode(rightBase64)).toString();
 
-      await _db.collection("workers").doc(workerId).update({
+      await _db.collection("workers").doc(workerId).set({
         "verificationStage": VerificationStage.pccUpload.name,
-        "verificationDetails.livenessPassedAt": FieldValue.serverTimestamp(),
-        "verificationDetails.livenessScore": livenessScore,
-        "verificationDetails.selfieBase64": centerBase64,
-        "verificationDetails.selfieCenterBase64": centerBase64,
-        "verificationDetails.selfieLeftBase64": leftBase64,
-        "verificationDetails.selfieRightBase64": rightBase64,
-        "verificationDetails.selfieHash": centerHash,
-        "verificationDetails.selfieCenterHash": centerHash,
-        "verificationDetails.selfieLeftHash": leftHash,
-        "verificationDetails.selfieRightHash": rightHash,
-        "verificationDetails.livenessMethod": "ML_KIT_3D_MULTI_ANGLE",
-        "verificationDetails.lightingBoosted": lightingBoosted,
-      });
+        "verificationDetails": {
+          "livenessPassedAt": FieldValue.serverTimestamp(),
+          "livenessScore": livenessScore,
+          "selfieBase64": centerBase64,
+          "selfieCenterBase64": centerBase64,
+          "selfieLeftBase64": leftBase64,
+          "selfieRightBase64": rightBase64,
+          "selfieHash": centerHash,
+          "selfieCenterHash": centerHash,
+          "selfieLeftHash": leftHash,
+          "selfieRightHash": rightHash,
+          "livenessMethod": "ML_KIT_3D_MULTI_ANGLE",
+          "lightingBoosted": lightingBoosted,
+        },
+      }, SetOptions(merge: true));
 
       // Record audit entry in Firestore
       await _db.collection("verification_audit_logs").add({

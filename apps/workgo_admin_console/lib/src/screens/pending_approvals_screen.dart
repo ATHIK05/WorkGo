@@ -538,6 +538,27 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     }
   }
 
+  Future<void> _downloadAadhaarZip(String base64Str, String fileName) async {
+    try {
+      final uri = Uri.parse("data:application/zip;base64,$base64Str");
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Direct download triggered via browser/OS.")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Download notice: $e")),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _rejectionReasonCtrl.dispose();
@@ -705,7 +726,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               ),
               const SizedBox(height: 20),
 
-              // ── 3. Aadhaar Verification Card ──────────────────────────────
+              // ── 3. UIDAI Aadhaar e-KYC Verification ────────────────────────
               _buildSectionHeader(Icons.fingerprint_rounded, "UIDAI Aadhaar e-KYC Verification"),
               const SizedBox(height: 10),
               Container(
@@ -716,9 +737,192 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   border: Border.all(color: Colors.white12),
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ── 3A. UIDAI 4-Digit Share Code ──
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withAlpha(25),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF8B5CF6).withAlpha(80)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.key_rounded, color: Color(0xFFA78BFA), size: 20),
+                              const SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("UIDAI 4-Digit Share Code", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                  Text(
+                                    details?.aadhaarShareCode ?? "1234",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 18,
+                                      letterSpacing: 4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            tooltip: "Copy Share Code",
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: details?.aadhaarShareCode ?? "1234"));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Share code copied to clipboard")),
+                              );
+                            },
+                            icon: const Icon(Icons.copy_rounded, color: Color(0xFFA78BFA), size: 18),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // ── 3B. Encrypted Zip File Badge & Download ──
+                    if (details?.aadhaarZipBase64 != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(8),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withAlpha(30),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.folder_zip_rounded, color: Color(0xFF10B981), size: 24),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    details?.aadhaarFileName ?? "aadhaar_offline.zip",
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    "Encrypted UIDAI Zip Archive (Spark Tier)",
+                                    style: TextStyle(color: Colors.white54, fontSize: 10.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () => _downloadAadhaarZip(
+                                details!.aadhaarZipBase64!,
+                                details.aadhaarFileName ?? "aadhaar_offline.zip",
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              icon: const Icon(Icons.download_rounded, size: 16),
+                              label: const Text("Download", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // ── 3C. UIDAI Official ID Photo vs Live Camera Selfie ──
+                    if (details?.aadhaarPhotoBase64 != null && details!.aadhaarPhotoBase64!.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "UIDAI Official ID Photo",
+                                  style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  height: 110,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.memory(
+                                      base64Decode(details.aadhaarPhotoBase64!),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Center(
+                                        child: Icon(Icons.badge_rounded, color: Colors.white38, size: 36),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          if (details.selfieBase64 != null || details.selfieCenterBase64 != null)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Live Captured Selfie",
+                                    style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    height: 110,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFA78BFA), width: 1.5),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.memory(
+                                        base64Decode(details.selfieCenterBase64 ?? details.selfieBase64!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Center(
+                                          child: Icon(Icons.face_rounded, color: Colors.white38, size: 36),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // ── 3D. Verified Demographics Rows ──
                     _buildDossierRow("Verified Legal Name", details?.aadhaarVerifiedName ?? worker.name),
                     _buildDossierRow("Masked Aadhaar Number", details?.aadhaarMaskedNumber ?? "XXXXXXXX4821"),
+                    if (details?.aadhaarDob != null && details!.aadhaarDob!.isNotEmpty)
+                      _buildDossierRow("Date of Birth", details.aadhaarDob!),
+                    if (details?.aadhaarGender != null && details!.aadhaarGender!.isNotEmpty)
+                      _buildDossierRow("Gender", details.aadhaarGender!),
+                    if (details?.aadhaarAddress != null && details!.aadhaarAddress!.isNotEmpty)
+                      _buildDossierRow("Verified Address", details.aadhaarAddress!),
                     _buildDossierRow(
                       "Verified Timestamp",
                       details?.aadhaarVerifiedAt != null
