@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:workgo_core/workgo_core.dart';
 
 class PendingApprovalsScreen extends StatefulWidget {
@@ -20,6 +22,9 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
 
+  Key _streamKey = UniqueKey();
+  bool _isReloading = false;
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +36,32 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _reloadFreshly() async {
+    setState(() {
+      _isReloading = true;
+      _streamKey = UniqueKey();
+    });
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) {
+      setState(() => _isReloading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+              SizedBox(width: 8),
+              SafeText("Employee directory reloaded freshly from live cluster"),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1F1635),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(milliseconds: 1400),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   @override
@@ -48,6 +79,20 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: "Fresh Reload",
+            icon: _isReloading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: WorkGoColors.accent),
+                  )
+                : const Icon(Icons.refresh_rounded, color: WorkGoColors.accent),
+            onPressed: _isReloading ? null : _reloadFreshly,
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: WorkGoColors.accent,
@@ -100,6 +145,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             // Tabs Content
             Expanded(
               child: StreamBuilder<List<Worker>>(
+                key: _streamKey,
                 stream: _workerService.streamAllWorkers(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -155,39 +201,58 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 
   Widget _buildWorkerList(List<Worker> workers, String emptyMessage) {
     if (workers.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(WorkGoSpacing.xl),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: WorkGoColors.accent.withAlpha(30),
+      return RefreshIndicator(
+        color: WorkGoColors.accent,
+        backgroundColor: const Color(0xFF1B1438),
+        onRefresh: _reloadFreshly,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: 350,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(WorkGoSpacing.xl),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: WorkGoColors.accent.withAlpha(30),
+                        ),
+                        child: const Icon(Icons.verified_user_rounded, color: WorkGoColors.accent, size: 40),
+                      ),
+                      const SizedBox(height: 16),
+                      SafeText(
+                        emptyMessage,
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Icon(Icons.verified_user_rounded, color: WorkGoColors.accent, size: 40),
               ),
-              const SizedBox(height: 16),
-              SafeText(
-                emptyMessage,
-                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(WorkGoSpacing.md),
-      itemCount: workers.length,
-      separatorBuilder: (ctx, i) => const SizedBox(height: 14),
-      itemBuilder: (context, index) {
-        return _buildEmployeeCard(context, workers[index]);
-      },
+    return RefreshIndicator(
+      color: WorkGoColors.accent,
+      backgroundColor: const Color(0xFF1B1438),
+      onRefresh: _reloadFreshly,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(WorkGoSpacing.md),
+        itemCount: workers.length,
+        separatorBuilder: (ctx, i) => const SizedBox(height: 14),
+        itemBuilder: (context, index) {
+          return _buildEmployeeCard(context, workers[index]);
+        },
+      ),
     );
   }
 
@@ -285,6 +350,15 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                               style: TextStyle(color: Color(0xFFEF4444), fontSize: 10, fontWeight: FontWeight.w900),
                             ),
                           ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.white38, size: 20),
+                          tooltip: "Purge / Delete Worker Record",
+                          splashRadius: 18,
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _confirmDeleteWorker(context, worker),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -444,6 +518,143 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
         return WorkGoColors.accent;
     }
   }
+
+  Future<void> _confirmDeleteWorker(BuildContext context, Worker worker) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1635),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: const Color(0xFFEF4444).withAlpha(100), width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withAlpha(30),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.delete_forever_rounded, color: Color(0xFFEF4444), size: 22),
+            ),
+            const SizedBox(width: 12),
+            const SafeText(
+              "Purge Worker Record",
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SafeText(
+              "Permanently delete this worker profile and all associated KYC/documents from the database?",
+              style: TextStyle(color: Colors.white.withAlpha(200), fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF130D26),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const SafeText("Name: ", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      SafeText(worker.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const SafeText("Trades: ", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      Expanded(
+                        child: SafeText(
+                          worker.skills.isNotEmpty ? worker.skills.join(", ") : "None",
+                          style: const TextStyle(color: WorkGoColors.accent, fontSize: 12),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const SafeText("ID: ", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      Expanded(
+                        child: SafeText(
+                          worker.id,
+                          style: const TextStyle(color: Colors.white38, fontSize: 11, fontFamily: "monospace"),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const SafeText(
+              "⚠️ This action cannot be undone under DPDP Act 2023 Right to Erasure.",
+              style: TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const SafeText("Cancel", style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.delete_forever_rounded, size: 16),
+            label: const SafeText("Delete Permanently", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _workerService.deleteWorker(worker.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+                  const SizedBox(width: 8),
+                  Text("Purged record for '${worker.name}'"),
+                ],
+              ),
+              backgroundColor: const Color(0xFF1F1635),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to delete record: $e"),
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+          );
+        }
+      }
+    }
+  }
 }
 
 // ── Forensic Dossier Sheet ──────────────────────────────────────────────────
@@ -541,17 +752,95 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     }
   }
 
+  Future<void> _handlePurge() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1635),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: const Color(0xFFEF4444).withAlpha(100), width: 1.5),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_forever_rounded, color: Color(0xFFEF4444), size: 22),
+            SizedBox(width: 8),
+            SafeText("Purge Worker Record?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: SafeText(
+          "Permanently delete '${widget.worker.name}' (${widget.worker.id}) and all verification files from the database?",
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Purge Permanently", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isActionLoading = true);
+      HapticFeedback.heavyImpact();
+      try {
+        await widget.workerService.deleteWorker(widget.worker.id);
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Record for '${widget.worker.name}' permanently deleted."),
+              backgroundColor: const Color(0xFF1F1635),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Delete failed: $e"), backgroundColor: const Color(0xFFEF4444)),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isActionLoading = false);
+      }
+    }
+  }
+
   Future<void> _downloadAadhaarZip(String base64Str, String fileName) async {
     try {
       final bytes = base64Decode(base64Str);
-      final dir = await getTemporaryDirectory();
       final safeFileName = fileName.isNotEmpty ? fileName : "aadhaar_offline.zip";
-      final file = File('${dir.path}/$safeFileName');
-      await file.writeAsBytes(bytes, flush: true);
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/zip', name: safeFileName)],
-        subject: "UIDAI Offline Aadhaar Archive",
-      );
+
+      if (kIsWeb) {
+        final uri = Uri.dataFromBytes(bytes, mimeType: 'application/zip');
+        await launchUrl(uri);
+      } else {
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/$safeFileName');
+        await file.writeAsBytes(bytes, flush: true);
+        await Share.shareXFiles(
+          [XFile(file.path, mimeType: 'application/zip', name: safeFileName)],
+          subject: "UIDAI Offline Aadhaar Archive",
+        );
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Aadhaar ZIP '$safeFileName' downloaded successfully!"),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1047,6 +1336,18 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     ],
                   ),
                 ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _isActionLoading ? null : _handlePurge,
+                  icon: const Icon(Icons.delete_forever_rounded, color: Color(0xFFEF4444), size: 18),
+                  label: const Text(
+                    "Purge Worker Record (Remove Test / Duplicate Account)",
+                    style: TextStyle(color: Color(0xFFEF4444), fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
             ],
           ),

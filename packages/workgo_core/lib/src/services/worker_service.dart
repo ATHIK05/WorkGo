@@ -652,4 +652,19 @@ class WorkerService {
       "welfareSchemeId": schemeId ?? (status ? "PMJJBY_COOP_2026" : null),
     });
   }
+
+  /// Admin permanently deletes worker profile and associated document/review subcollections.
+  Future<void> deleteWorker(String workerId) async {
+    try {
+      final docsSnap = await _db.collection("workers").doc(workerId).collection("documents").get();
+      for (final doc in docsSnap.docs) {
+        await doc.reference.delete();
+      }
+      final reviewsSnap = await _db.collection("workers").doc(workerId).collection("reviews").get();
+      for (final doc in reviewsSnap.docs) {
+        await doc.reference.delete();
+      }
+    } catch (_) {}
+    await _db.collection("workers").doc(workerId).delete();
+  }
 }
