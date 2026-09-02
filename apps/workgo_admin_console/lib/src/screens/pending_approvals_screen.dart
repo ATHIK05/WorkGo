@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:workgo_core/workgo_core.dart';
+import '../utils/file_download_helper.dart';
 
 class PendingApprovalsScreen extends StatefulWidget {
   const PendingApprovalsScreen({super.key});
@@ -826,12 +827,23 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
 
   Future<void> _downloadAadhaarZip(String base64Str, String fileName) async {
     try {
-      final bytes = base64Decode(base64Str);
+      String cleanBase64 = base64Str.trim();
+      if (cleanBase64.contains(',')) {
+        cleanBase64 = cleanBase64.split(',').last.trim();
+      }
+      cleanBase64 = cleanBase64.replaceAll(RegExp(r'\s+'), '');
+      while (cleanBase64.length % 4 != 0) {
+        cleanBase64 += '=';
+      }
+      final bytes = base64Decode(cleanBase64);
       final safeFileName = fileName.isNotEmpty ? fileName : "aadhaar_offline.zip";
 
       if (kIsWeb) {
-        final uri = Uri.dataFromBytes(bytes, mimeType: 'application/zip');
-        await launchUrl(uri);
+        FileDownloadHelper.downloadInBrowser(
+          bytes,
+          safeFileName,
+          mimeType: 'application/zip',
+        );
       } else {
         final dir = await getTemporaryDirectory();
         final file = File('${dir.path}/$safeFileName');
