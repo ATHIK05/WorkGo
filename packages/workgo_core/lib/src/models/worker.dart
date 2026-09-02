@@ -29,6 +29,8 @@ class VerificationDetails {
   final String? aadhaarDob;
   final String? aadhaarGender;
   final String? aadhaarAddress;
+  final bool? aadhaarSignatureValid;
+  final String? aadhaarReferenceId;
   final DateTime? livenessPassedAt;
   final double? livenessScore;
   final String? selfieBase64;
@@ -69,6 +71,8 @@ class VerificationDetails {
     this.aadhaarDob,
     this.aadhaarGender,
     this.aadhaarAddress,
+    this.aadhaarSignatureValid,
+    this.aadhaarReferenceId,
     this.livenessPassedAt,
     this.livenessScore,
     this.selfieBase64,
@@ -112,6 +116,8 @@ class VerificationDetails {
       aadhaarDob: map["aadhaarDob"] as String?,
       aadhaarGender: map["aadhaarGender"] as String?,
       aadhaarAddress: map["aadhaarAddress"] as String?,
+      aadhaarSignatureValid: map["aadhaarSignatureValid"] as bool?,
+      aadhaarReferenceId: map["aadhaarReferenceId"] as String?,
       livenessPassedAt: _parseDateTime(map["livenessPassedAt"]),
       livenessScore: (map["livenessScore"] as num?)?.toDouble(),
       selfieBase64: map["selfieBase64"] as String?,
@@ -154,6 +160,8 @@ class VerificationDetails {
     "aadhaarDob": aadhaarDob,
     "aadhaarGender": aadhaarGender,
     "aadhaarAddress": aadhaarAddress,
+    "aadhaarSignatureValid": aadhaarSignatureValid,
+    "aadhaarReferenceId": aadhaarReferenceId,
     "livenessPassedAt": livenessPassedAt != null ? Timestamp.fromDate(livenessPassedAt!) : null,
     "livenessScore": livenessScore,
     "selfieBase64": selfieBase64,
@@ -195,6 +203,8 @@ class VerificationDetails {
     String? aadhaarDob,
     String? aadhaarGender,
     String? aadhaarAddress,
+    bool? aadhaarSignatureValid,
+    String? aadhaarReferenceId,
     DateTime? livenessPassedAt,
     double? livenessScore,
     String? selfieBase64,
@@ -235,6 +245,8 @@ class VerificationDetails {
       aadhaarDob: aadhaarDob ?? this.aadhaarDob,
       aadhaarGender: aadhaarGender ?? this.aadhaarGender,
       aadhaarAddress: aadhaarAddress ?? this.aadhaarAddress,
+      aadhaarSignatureValid: aadhaarSignatureValid ?? this.aadhaarSignatureValid,
+      aadhaarReferenceId: aadhaarReferenceId ?? this.aadhaarReferenceId,
       livenessPassedAt: livenessPassedAt ?? this.livenessPassedAt,
       livenessScore: livenessScore ?? this.livenessScore,
       selfieBase64: selfieBase64 ?? this.selfieBase64,

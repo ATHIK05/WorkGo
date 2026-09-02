@@ -47,8 +47,19 @@ async function verifyAadhaarOfflineKyc({ base64Data, shareCode, fileName }) {
       const xmlEntry = zipEntries.find((e) => e.entryName.toLowerCase().endsWith(".xml") || !e.isDirectory);
 
       if (xmlEntry) {
-        xmlString = zip.readAsText(xmlEntry, "utf8");
-        isXmlBased = true;
+        try {
+          xmlString = zip.readAsText(xmlEntry, "utf8", shareCode);
+        } catch (_) {
+          try {
+            const buf = zip.readFile(xmlEntry, shareCode);
+            if (buf) xmlString = buf.toString("utf8");
+          } catch (_) {
+            xmlString = zip.readAsText(xmlEntry, "utf8");
+          }
+        }
+        if (xmlString && (xmlString.includes("<OfflinePaperlessKyc") || xmlString.includes("<UidData") || xmlString.includes("<Poi") || xmlString.includes("<?xml"))) {
+          isXmlBased = true;
+        }
       }
     } catch (zipErr) {
       console.warn("[aadhaar_verifier] Zip extraction attempt:", zipErr.message);

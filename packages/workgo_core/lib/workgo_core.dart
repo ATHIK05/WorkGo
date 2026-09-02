@@ -63,6 +63,7 @@ export "src/services/image_upload_service.dart";
 export "src/services/location_service.dart";
 export "src/services/c2pa_service.dart";
 export "src/services/biometric_service.dart";
+export "src/services/aadhaar_offline_parser.dart";
 
 // API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";

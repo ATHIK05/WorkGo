@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../api_client/workgo_api_client.dart';
 import '../models/worker.dart';
 import '../models/verification_audit_model.dart';
+import 'aadhaar_offline_parser.dart';
 
 class WorkerService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -169,6 +170,29 @@ class WorkerService {
         "nextStage": "selfieCapture",
       };
     }
+  }
+
+  /// Sync decrypted Aadhaar demographics directly to the worker document in Firestore.
+  Future<void> syncDecryptedAadhaarDetails({
+    required String workerId,
+    required DecryptedAadhaarData data,
+  }) async {
+    if (!data.isSuccess) return;
+
+    final updates = <String, dynamic>{
+      if (data.name != null && data.name!.isNotEmpty) "name": data.name,
+      if (data.name != null && data.name!.isNotEmpty) "verificationDetails.aadhaarVerifiedName": data.name,
+      if (data.maskedUid != null && data.maskedUid!.isNotEmpty) "verificationDetails.aadhaarMaskedNumber": data.maskedUid,
+      if (data.dob != null && data.dob!.isNotEmpty) "verificationDetails.aadhaarDob": data.dob,
+      if (data.gender != null && data.gender!.isNotEmpty) "verificationDetails.aadhaarGender": data.gender,
+      if (data.address != null && data.address!.isNotEmpty) "verificationDetails.aadhaarAddress": data.address,
+      if (data.photoBase64 != null && data.photoBase64!.isNotEmpty) "verificationDetails.aadhaarPhotoBase64": data.photoBase64,
+      "verificationDetails.aadhaarVerifiedAt": FieldValue.serverTimestamp(),
+      "verificationDetails.aadhaarSignatureValid": data.hasValidSignature,
+      if (data.referenceId != null) "verificationDetails.aadhaarReferenceId": data.referenceId,
+    };
+
+    await _db.collection("workers").doc(workerId).update(updates);
   }
 
   /// 3. Record Real On-Device 3D Multi-Angle Liveness Pass (Center, Left, Right)
