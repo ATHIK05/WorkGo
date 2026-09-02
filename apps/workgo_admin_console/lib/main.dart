@@ -15,6 +15,9 @@ void main() async {
     debugPrint("Firebase init note: $e");
   }
 
+  // Pre-warm local session cache
+  await SessionManager.instance.init();
+
   runApp(
     EasyLocalization(
       supportedLocales: WorkGoLocale.supported,
@@ -61,46 +64,73 @@ class AdminRootScreen extends StatefulWidget {
 
 class _AdminRootScreenState extends State<AdminRootScreen> {
   final AuthService _authService = AuthService();
+  AppUser? _cachedUser;
+  bool _isLoadingCache = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialSession();
+  }
+
+  Future<void> _loadInitialSession() async {
+    final cached = await _authService.getCachedSession(UserRole.admin);
+    if (mounted) {
+      setState(() {
+        _cachedUser = cached;
+        _isLoadingCache = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingCache) {
+      return const WorkGoSplashScreen(
+        appName: "WorkGo Console",
+        tagline: "Cooperative Governance & Telemetry Cockpit",
+      );
+    }
+
     return StreamBuilder<User?>(
       stream: _authService.authStateChanges,
       builder: (context, authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const WorkGoSplashScreen(
-            appName: "WorkGo Console",
-            tagline: "Cooperative Governance & Telemetry Cockpit",
-          );
-        }
-
         final firebaseUser = authSnapshot.data;
-        if (firebaseUser == null) {
+
+        // If no active Firebase user and no cached user, show AuthShell
+        if (firebaseUser == null && _cachedUser == null) {
           return AuthShell(
             role: UserRole.admin,
             onSuccess: (user) {
-              setState(() {});
+              setState(() {
+                _cachedUser = user;
+              });
+            },
+          );
+        }
+
+        final effectiveUid = firebaseUser?.uid ?? _cachedUser?.uid;
+        if (effectiveUid == null || effectiveUid.isEmpty) {
+          return AuthShell(
+            role: UserRole.admin,
+            onSuccess: (user) {
+              setState(() {
+                _cachedUser = user;
+              });
             },
           );
         }
 
         return StreamBuilder<AppUser?>(
-          stream: _authService.streamAppUser(firebaseUser.uid),
+          stream: _authService.streamAppUser(effectiveUid),
           builder: (context, userSnapshot) {
-            if (userSnapshot.connectionState == ConnectionState.waiting &&
-                !userSnapshot.hasData) {
-              return const WorkGoSplashScreen(
-                appName: "WorkGo Console",
-                tagline: "Cooperative Governance & Telemetry Cockpit",
-              );
-            }
-
             final appUser = userSnapshot.data ??
+                _cachedUser ??
                 AppUser(
-                  uid: firebaseUser.uid,
-                  email: firebaseUser.email ?? "admin@workgo.coop",
+                  uid: effectiveUid,
+                  email: firebaseUser?.email ?? _cachedUser?.email ?? "admin@workgo.coop",
                   role: UserRole.admin,
-                  displayName: firebaseUser.displayName ?? "Cooperative Administrator",
+                  displayName: firebaseUser?.displayName ?? _cachedUser?.displayName ?? "Cooperative Administrator",
                   region: "Tamil Nadu",
                 );
 
@@ -108,7 +138,10 @@ class _AdminRootScreenState extends State<AdminRootScreen> {
               user: appUser,
               onSignOut: () async {
                 adminNavigatorKey.currentState?.popUntil((route) => route.isFirst);
-                await _authService.signOut();
+                setState(() {
+                  _cachedUser = null;
+                });
+                await _authService.signOut(role: UserRole.admin);
               },
             );
           },

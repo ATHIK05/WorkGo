@@ -26,6 +26,7 @@ class _SignInFormState extends State<SignInForm> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _rememberMe = true;
 
   @override
   void dispose() {
@@ -123,25 +124,62 @@ class _SignInFormState extends State<SignInForm> {
           ),
           const SizedBox(height: WorkGoSpacing.xs),
 
-          // Forgot Password
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: widget.isLoading ? null : widget.onForgotPassword,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: SafeText(
-                'forgot_password'.tr(),
-                style: const TextStyle(
-                  color: Color(0xFF2563EB),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+          // Remember Me & Forgot Password Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              InkWell(
+                onTap: widget.isLoading
+                    ? null
+                    : () => setState(() => _rememberMe = !_rememberMe),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: Checkbox(
+                          value: _rememberMe,
+                          onChanged: widget.isLoading
+                              ? null
+                              : (v) => setState(() => _rememberMe = v ?? true),
+                          activeColor: const Color(0xFF141416),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const SafeText(
+                        'Stay signed in',
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+              TextButton(
+                onPressed: widget.isLoading ? null : widget.onForgotPassword,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: SafeText(
+                  'forgot_password'.tr(),
+                  style: const TextStyle(
+                    color: Color(0xFF2563EB),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: WorkGoSpacing.lg),
 

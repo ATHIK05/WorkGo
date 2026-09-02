@@ -1,19 +1,34 @@
 import "package:firebase_auth/firebase_auth.dart";
 import "package:cloud_firestore/cloud_firestore.dart";
 import "../models/app_user.dart";
+import "../services/session_manager.dart";
 
 /// Authentication service for all three WorkGo apps.
-/// Uses Firebase Email + Password auth.
-/// Phone OTP was removed in favour of email (simpler, no telephony billing).
+/// Uses Firebase Email + Password auth with multi-role SessionManager caching.
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final SessionManager _sessionManager = SessionManager.instance;
 
   // ── Current user accessors ─────────────────────────────────────────────────
 
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
+
+  // ── Session Management Accessors ───────────────────────────────────────────
+
+  /// Retrieve cached user for a role from SessionManager
+  Future<AppUser?> getCachedSession(UserRole role) => _sessionManager.getCachedSession(role);
+
+  /// Synchronous retrieval of cached session
+  AppUser? getCachedSessionSync(UserRole role) => _sessionManager.getCachedSessionSync(role);
+
+  /// Save session manually
+  Future<void> saveSession(AppUser user) => _sessionManager.saveSession(user);
+
+  /// Clear session for a role
+  Future<void> clearSession(UserRole role) => _sessionManager.clearSession(role);
 
   // ── Sign Up ────────────────────────────────────────────────────────────────
 
@@ -61,7 +76,10 @@ class AuthService {
     try {
       final doc = await _db.collection("users").doc(uid).get();
       if (!doc.exists) return null;
-      return AppUser.fromFirestore(doc);
+      final user = AppUser.fromFirestore(doc);
+      // Auto-cache session
+      await _sessionManager.saveSession(user);
+      return user;
     } catch (e) {
       return null;
     }
@@ -71,7 +89,10 @@ class AuthService {
   Stream<AppUser?> streamAppUser(String uid) {
     return _db.collection("users").doc(uid).snapshots().map((doc) {
       if (!doc.exists) return null;
-      return AppUser.fromFirestore(doc);
+      final user = AppUser.fromFirestore(doc);
+      // Background cache sync
+      _sessionManager.saveSession(user);
+      return user;
     });
   }
 
@@ -82,11 +103,18 @@ class AuthService {
       user.toFirestore(),
       SetOptions(merge: true),
     );
+    // Auto-cache session
+    await _sessionManager.saveSession(user);
   }
 
   // ── Sign Out ───────────────────────────────────────────────────────────────
 
-  Future<void> signOut() async {
+  Future<void> signOut({UserRole? role}) async {
+    if (role != null) {
+      await _sessionManager.clearSession(role);
+    } else {
+      await _sessionManager.clearAllSessions();
+    }
     await _auth.signOut();
   }
 
@@ -94,7 +122,13 @@ class AuthService {
 
   /// Permanently erases all user profile records, KYC documents, biometric hashes,
   /// worker records, subcollections, and deletes the Firebase Auth account.
-  Future<void> deleteAccount({required String uid}) async {
+  Future<void> deleteAccount({required String uid, UserRole? role}) async {
+    if (role != null) {
+      await _sessionManager.clearSession(role);
+    } else {
+      await _sessionManager.clearAllSessions();
+    }
+
     // 1. Delete worker documents subcollection and worker profile
     try {
       final docsSnap = await _db.collection("workers").doc(uid).collection("documents").get();

@@ -83,6 +83,77 @@ class AppUser {
     );
   }
 
+  factory AppUser.fromMap(Map<String, dynamic> d) {
+    final addrList = (d["addresses"] as List<dynamic>?)
+            ?.map((a) => UserAddress.fromMap(Map<String, dynamic>.from(a as Map)))
+            .toList() ??
+        [];
+
+    final currentAddrMap = d["currentAddress"] != null
+        ? Map<String, dynamic>.from(d["currentAddress"] as Map)
+        : null;
+    final currentAddr = currentAddrMap != null
+        ? UserAddress.fromMap(currentAddrMap)
+        : (addrList.isNotEmpty ? addrList.firstWhere((a) => a.isDefault, orElse: () => addrList.first) : null);
+
+    GeoPoint? loc;
+    if (d["location"] != null) {
+      if (d["location"] is GeoPoint) {
+        loc = d["location"] as GeoPoint;
+      } else if (d["location"] is Map) {
+        final m = d["location"] as Map;
+        final lat = (m["latitude"] as num?)?.toDouble() ?? 0.0;
+        final lng = (m["longitude"] as num?)?.toDouble() ?? 0.0;
+        loc = GeoPoint(lat, lng);
+      }
+    }
+
+    return AppUser(
+      uid: d["uid"] ?? d["id"] ?? "",
+      email: d["email"] ?? "",
+      displayName: d["displayName"] ?? "",
+      photoUrl: d["photoUrl"],
+      avatarBase64: d["avatarBase64"] ?? d["photoUrl"],
+      role: UserRole.values.firstWhere(
+        (r) => r.name == (d["role"] ?? "customer"),
+        orElse: () => UserRole.customer,
+      ),
+      preferredLanguage: d["preferredLanguage"],
+      region: d["region"] ?? "Tamil Nadu",
+      organizationId: d["organizationId"],
+      phoneNumber: d["phoneNumber"],
+      address: d["address"],
+      location: loc,
+      isOnboardingComplete: d["isOnboardingComplete"] ?? true,
+      addresses: addrList,
+      currentAddress: currentAddr,
+      latitude: (d["latitude"] as num?)?.toDouble() ?? currentAddr?.latitude,
+      longitude: (d["longitude"] as num?)?.toDouble() ?? currentAddr?.longitude,
+      primaryArea: d["primaryArea"] ?? currentAddr?.shortSummary,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    "uid": uid,
+    "email": email,
+    "displayName": displayName,
+    "photoUrl": photoUrl ?? avatarBase64,
+    "avatarBase64": avatarBase64,
+    "role": role.name,
+    "preferredLanguage": preferredLanguage,
+    "region": region,
+    "organizationId": organizationId,
+    "phoneNumber": phoneNumber,
+    "address": address,
+    "location": location != null ? {"latitude": location!.latitude, "longitude": location!.longitude} : null,
+    "isOnboardingComplete": isOnboardingComplete,
+    "addresses": addresses.map((a) => a.toMap()).toList(),
+    "currentAddress": currentAddress?.toMap(),
+    "latitude": latitude ?? currentAddress?.latitude,
+    "longitude": longitude ?? currentAddress?.longitude,
+    "primaryArea": primaryArea ?? currentAddress?.shortSummary,
+  };
+
   Map<String, dynamic> toFirestore() => {
     "email": email,
     "displayName": displayName,

@@ -15,6 +15,9 @@ void main() async {
     debugPrint("Firebase init note: $e");
   }
 
+  // Pre-warm local session cache
+  await SessionManager.instance.init();
+
   runApp(
     EasyLocalization(
       supportedLocales: WorkGoLocale.supported,
@@ -75,55 +78,78 @@ class CustomerRootScreen extends StatefulWidget {
 
 class _CustomerRootScreenState extends State<CustomerRootScreen> {
   final AuthService _authService = AuthService();
+  AppUser? _cachedUser;
+  bool _isLoadingCache = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialSession();
+  }
+
+  Future<void> _loadInitialSession() async {
+    final cached = await _authService.getCachedSession(UserRole.customer);
+    if (mounted) {
+      setState(() {
+        _cachedUser = cached;
+        _isLoadingCache = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingCache) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F0E17),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFFFB800),
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+
     return StreamBuilder<User?>(
       stream: _authService.authStateChanges,
       builder: (context, authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF0F0E17),
-            body: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFFFB800),
-                strokeWidth: 2.5,
-              ),
-            ),
-          );
-        }
-
         final firebaseUser = authSnapshot.data;
-        if (firebaseUser == null) {
+
+        // If no active Firebase user and no cached user, show AuthShell
+        if (firebaseUser == null && _cachedUser == null) {
           return AuthShell(
             role: UserRole.customer,
             onSuccess: (user) {
-              setState(() {});
+              setState(() {
+                _cachedUser = user;
+              });
+            },
+          );
+        }
+
+        // If we have a cached user but Firebase Auth is still resolving, use cached user
+        final effectiveUid = firebaseUser?.uid ?? _cachedUser?.uid;
+        if (effectiveUid == null || effectiveUid.isEmpty) {
+          return AuthShell(
+            role: UserRole.customer,
+            onSuccess: (user) {
+              setState(() {
+                _cachedUser = user;
+              });
             },
           );
         }
 
         return StreamBuilder<AppUser?>(
-          stream: _authService.streamAppUser(firebaseUser.uid),
+          stream: _authService.streamAppUser(effectiveUid),
           builder: (context, userSnapshot) {
-            if (userSnapshot.connectionState == ConnectionState.waiting &&
-                !userSnapshot.hasData) {
-              return const Scaffold(
-                backgroundColor: Color(0xFF0F0E17),
-                body: Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFFFB800),
-                    strokeWidth: 2.5,
-                  ),
-                ),
-              );
-            }
-
             final appUser = userSnapshot.data ??
+                _cachedUser ??
                 AppUser(
-                  uid: firebaseUser.uid,
-                  email: firebaseUser.email ?? "",
-                  displayName: firebaseUser.displayName ?? "Customer",
+                  uid: effectiveUid,
+                  email: firebaseUser?.email ?? _cachedUser?.email ?? "",
+                  displayName: firebaseUser?.displayName ?? _cachedUser?.displayName ?? "Customer",
                   role: UserRole.customer,
                   region: "Tamil Nadu",
                 );
@@ -132,7 +158,10 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
               user: appUser,
               onSignOut: () async {
                 customerNavigatorKey.currentState?.popUntil((route) => route.isFirst);
-                await _authService.signOut();
+                setState(() {
+                  _cachedUser = null;
+                });
+                await _authService.signOut(role: UserRole.customer);
               },
             );
           },

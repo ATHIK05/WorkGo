@@ -133,12 +133,15 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Full-Bleed Rapido Live Vector Map with Roaming Trade Vehicles
-                  InteractiveRapidoMap(
+                  // Real OSM map with nearby worker markers replacing the illustrated radar
+                  LiveMapView(
                     serviceCategory: widget.serviceCategory,
                     mode: MapMode.broadcastScanning,
                     pickupAddress: address,
                     height: 280,
+                    // Real pickup coords (customer location saved at booking creation)
+                    pickupLatitude: booking?.customerLatitude,
+                    pickupLongitude: booking?.customerLongitude,
                   ),
                   const SizedBox(height: 20),
 

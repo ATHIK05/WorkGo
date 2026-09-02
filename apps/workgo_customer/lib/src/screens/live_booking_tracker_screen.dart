@@ -68,9 +68,9 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Live Rapido Real-Time Vector Map with Moving Artisan Vehicle
+                  // Live Real-Time Map with Moving Artisan Vehicle (OSM tiles)
                   SlideFadeIn(
-                    child: InteractiveRapidoMap(
+                    child: LiveMapView(
                       serviceCategory: booking.serviceType,
                       mode: MapMode.routeNavigation,
                       artisanName: booking.acceptedWorkerName ?? "Artisan Partner",
@@ -81,6 +81,11 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                       etaMinutes: booking.status == BookingStatus.accepted ? 4 : 0,
                       distanceKm: booking.status == BookingStatus.accepted ? 1.4 : 0.0,
                       height: 260,
+                      // Real-time GPS from Firestore (updated by artisan via BookingService.updateWorkerLiveLocation)
+                      partnerLatitude: booking.workerLatitude,
+                      partnerLongitude: booking.workerLongitude,
+                      pickupLatitude: booking.customerLatitude,
+                      pickupLongitude: booking.customerLongitude,
                     ),
                   ),
                   const SizedBox(height: 16),

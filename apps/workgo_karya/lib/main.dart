@@ -16,6 +16,9 @@ void main() async {
     debugPrint("Firebase init note: $e");
   }
 
+  // Pre-warm local session cache
+  await SessionManager.instance.init();
+
   runApp(
     EasyLocalization(
       supportedLocales: WorkGoLocale.supported,
@@ -63,26 +66,60 @@ class KaryaRootScreen extends StatefulWidget {
 class _KaryaRootScreenState extends State<KaryaRootScreen> {
   final AuthService _authService = AuthService();
   final WorkerService _workerService = WorkerService();
+  AppUser? _cachedUser;
+  bool _isLoadingCache = true;
   bool _forceSkipOnboarding = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadInitialSession();
+  }
+
+  Future<void> _loadInitialSession() async {
+    final cached = await _authService.getCachedSession(UserRole.worker);
+    if (mounted) {
+      setState(() {
+        _cachedUser = cached;
+        _isLoadingCache = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoadingCache) {
+      return const WorkGoSplashScreen(
+        appName: 'WorkGo Karya',
+        tagline: 'Artisan Co-op Network',
+      );
+    }
+
     return StreamBuilder<User?>(
       stream: _authService.authStateChanges,
       builder: (context, authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const WorkGoSplashScreen(
-            appName: 'WorkGo Karya',
-            tagline: 'Artisan Co-op Network',
-          );
-        }
-
         final firebaseUser = authSnapshot.data;
-        if (firebaseUser == null) {
+
+        // If no active Firebase user and no cached user, show AuthShell
+        if (firebaseUser == null && _cachedUser == null) {
           return AuthShell(
             role: UserRole.worker,
             onSuccess: (user) {
               setState(() {
+                _cachedUser = user;
+                _forceSkipOnboarding = false;
+              });
+            },
+          );
+        }
+
+        final effectiveUid = firebaseUser?.uid ?? _cachedUser?.uid;
+        if (effectiveUid == null || effectiveUid.isEmpty) {
+          return AuthShell(
+            role: UserRole.worker,
+            onSuccess: (user) {
+              setState(() {
+                _cachedUser = user;
                 _forceSkipOnboarding = false;
               });
             },
@@ -90,43 +127,28 @@ class _KaryaRootScreenState extends State<KaryaRootScreen> {
         }
 
         return StreamBuilder<AppUser?>(
-          stream: _authService.streamAppUser(firebaseUser.uid),
+          stream: _authService.streamAppUser(effectiveUid),
           builder: (context, userSnapshot) {
-            if (userSnapshot.connectionState == ConnectionState.waiting &&
-                !userSnapshot.hasData) {
-              return const WorkGoSplashScreen(
-                appName: 'WorkGo Karya',
-                tagline: 'Artisan Co-op Network',
-              );
-            }
-
             final appUser = userSnapshot.data ??
+                _cachedUser ??
                 AppUser(
-                  uid: firebaseUser.uid,
-                  email: firebaseUser.email ?? "",
-                  displayName: firebaseUser.displayName ?? "Artisan",
+                  uid: effectiveUid,
+                  email: firebaseUser?.email ?? _cachedUser?.email ?? "",
+                  displayName: firebaseUser?.displayName ?? _cachedUser?.displayName ?? "Artisan",
                   role: UserRole.worker,
                   region: "Tamil Nadu",
                 );
 
             return StreamBuilder<Worker?>(
-              stream: _workerService.streamWorker(firebaseUser.uid),
+              stream: _workerService.streamWorker(effectiveUid),
               builder: (context, workerSnapshot) {
-                if (workerSnapshot.connectionState == ConnectionState.waiting &&
-                    !workerSnapshot.hasData) {
-                  return const WorkGoSplashScreen(
-                    appName: 'WorkGo Karya',
-                    tagline: 'Artisan Co-op Network',
-                  );
-                }
-
                 final worker = workerSnapshot.data;
                 // If worker document does not exist or skills are empty, prompt onboarding once
                 if (!_forceSkipOnboarding && (worker == null || worker.skills.isEmpty)) {
                   final initialWorker = worker ??
                       Worker(
-                        id: firebaseUser.uid,
-                        userId: firebaseUser.uid,
+                        id: effectiveUid,
+                        userId: effectiveUid,
                         name: appUser.displayName.isNotEmpty ? appUser.displayName : "Co-op Artisan",
                         organizationId: "coop_tn_01",
                         skills: const ["Plumbing", "Electrical"],
@@ -152,9 +174,10 @@ class _KaryaRootScreenState extends State<KaryaRootScreen> {
                   onSignOut: () async {
                     karyaNavigatorKey.currentState?.popUntil((route) => route.isFirst);
                     setState(() {
+                      _cachedUser = null;
                       _forceSkipOnboarding = false;
                     });
-                    await _authService.signOut();
+                    await _authService.signOut(role: UserRole.worker);
                   },
                 );
               },

@@ -43,6 +43,7 @@ export "src/widgets/peer_referral_network_sheet.dart";
 export "src/widgets/workgo_splash_screen.dart";
 export "src/widgets/c2pa_badge.dart";
 export "src/widgets/interactive_rapido_map.dart";
+export "src/widgets/live_map_view.dart";
 
 // Auth Widgets
 export "src/widgets/auth/auth_shell.dart";
@@ -64,6 +65,7 @@ export "src/services/location_service.dart";
 export "src/services/c2pa_service.dart";
 export "src/services/biometric_service.dart";
 export "src/services/aadhaar_offline_parser.dart";
+export "src/services/session_manager.dart";
 
 // API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";
