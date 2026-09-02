@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:workgo_core/workgo_core.dart';
 
 class PendingApprovalsScreen extends StatefulWidget {
@@ -52,10 +51,10 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             children: [
               Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
               SizedBox(width: 8),
-              SafeText("Employee directory reloaded freshly from live cluster"),
+              SafeText("Employee directory reloaded freshly from live cluster", style: TextStyle(color: WorkGoColors.textPrimary)),
             ],
           ),
-          backgroundColor: const Color(0xFF1F1635),
+          backgroundColor: const Color(0xFFFFF3D6),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(milliseconds: 1400),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -67,14 +66,14 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0A1C),
+      backgroundColor: WorkGoColors.surfaceLight,
       appBar: AppBar(
         title: const SafeText(
           "Cooperative Employee Directory & KYC Dossier",
           style: TextStyle(
-            color: Colors.white,
+            color: WorkGoColors.textPrimary,
             fontSize: 18,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w800,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -86,19 +85,19 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: WorkGoColors.accent),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: WorkGoColors.primary),
                   )
-                : const Icon(Icons.refresh_rounded, color: WorkGoColors.accent),
+                : const Icon(Icons.refresh_rounded, color: WorkGoColors.primary),
             onPressed: _isReloading ? null : _reloadFreshly,
           ),
           const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: WorkGoColors.accent,
+          indicatorColor: WorkGoColors.primary,
           indicatorWeight: 3,
-          labelColor: WorkGoColors.accent,
-          unselectedLabelColor: Colors.white54,
+          labelColor: WorkGoColors.textPrimary,
+          unselectedLabelColor: WorkGoColors.textSecondary,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: "Pending Review"),
@@ -116,15 +115,15 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
               padding: const EdgeInsets.symmetric(horizontal: WorkGoSpacing.md, vertical: 10),
               child: TextField(
                 controller: _searchController,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 13),
                 onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
                 decoration: InputDecoration(
                   hintText: "Search employee by name, trade, or phone...",
-                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search_rounded, color: WorkGoColors.accent, size: 20),
+                  hintStyle: const TextStyle(color: WorkGoColors.textDisabled, fontSize: 13),
+                  prefixIcon: const Icon(Icons.search_rounded, color: WorkGoColors.primary, size: 20),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, color: Colors.white54, size: 18),
+                          icon: const Icon(Icons.clear_rounded, color: WorkGoColors.textSecondary, size: 18),
                           onPressed: () {
                             _searchController.clear();
                             setState(() => _searchQuery = "");
@@ -132,11 +131,19 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                         )
                       : null,
                   filled: true,
-                  fillColor: const Color(0xFF1B1438),
+                  fillColor: const Color(0xFFF9F6EE),
                   contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+                    borderSide: const BorderSide(color: WorkGoColors.dividerLight),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: WorkGoColors.dividerLight),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: WorkGoColors.primary, width: 1.5),
                   ),
                 ),
               ),
@@ -202,8 +209,8 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   Widget _buildWorkerList(List<Worker> workers, String emptyMessage) {
     if (workers.isEmpty) {
       return RefreshIndicator(
-        color: WorkGoColors.accent,
-        backgroundColor: const Color(0xFF1B1438),
+        color: WorkGoColors.primary,
+        backgroundColor: Colors.white,
         onRefresh: _reloadFreshly,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -220,14 +227,14 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: WorkGoColors.accent.withAlpha(30),
+                          color: const Color(0xFFFFF3D6),
                         ),
-                        child: const Icon(Icons.verified_user_rounded, color: WorkGoColors.accent, size: 40),
+                        child: const Icon(Icons.verified_user_rounded, color: WorkGoColors.primaryDark, size: 40),
                       ),
                       const SizedBox(height: 16),
                       SafeText(
                         emptyMessage,
-                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+                        style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -241,8 +248,8 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
     }
 
     return RefreshIndicator(
-      color: WorkGoColors.accent,
-      backgroundColor: const Color(0xFF1B1438),
+      color: WorkGoColors.primary,
+      backgroundColor: Colors.white,
       onRefresh: _reloadFreshly,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -282,7 +289,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                         ? const Color(0xFF10B981)
                         : isSuspended
                             ? const Color(0xFFEF4444)
-                            : WorkGoColors.accent,
+                            : WorkGoColors.primary,
                     width: 2,
                   ),
                 ),
@@ -314,25 +321,25 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                         Expanded(
                           child: SafeText(
                             worker.name,
-                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                            style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                         ),
                         if (isApproved)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withAlpha(40),
+                              color: const Color(0xFFD1FAE5),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFF10B981)),
+                              border: Border.all(color: const Color(0xFF6EE7B7)),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 13),
+                                Icon(Icons.verified_rounded, color: Color(0xFF065F46), size: 13),
                                 SizedBox(width: 4),
                                 SafeText(
                                   "CERTIFIED",
-                                  style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.w900),
+                                  style: TextStyle(color: Color(0xFF065F46), fontSize: 10, fontWeight: FontWeight.w800),
                                 ),
                               ],
                             ),
@@ -341,18 +348,18 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEF4444).withAlpha(40),
+                              color: const Color(0xFFFEE2E2),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFEF4444)),
+                              border: Border.all(color: const Color(0xFFFCA5A5)),
                             ),
                             child: const SafeText(
                               "SUSPENDED",
-                              style: TextStyle(color: Color(0xFFEF4444), fontSize: 10, fontWeight: FontWeight.w900),
+                              style: TextStyle(color: Color(0xFF991B1B), fontSize: 10, fontWeight: FontWeight.w800),
                             ),
                           ),
                         const SizedBox(width: 4),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.white38, size: 20),
+                          icon: const Icon(Icons.delete_outline_rounded, color: WorkGoColors.textDisabled, size: 20),
                           tooltip: "Purge / Delete Worker Record",
                           splashRadius: 18,
                           padding: const EdgeInsets.all(4),
@@ -364,7 +371,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                     const SizedBox(height: 4),
                     SafeText(
                       worker.skills.isNotEmpty ? worker.skills.join(" · ") : "Artisan Tradesperson",
-                      style: const TextStyle(color: WorkGoColors.accent, fontSize: 12, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -386,18 +393,18 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
               if (details?.aadhaarMaskedNumber != null)
                 _buildStatusChip(
                   label: "Aadhaar: ${details!.aadhaarMaskedNumber}",
-                  color: const Color(0xFF10B981),
+                  color: const Color(0xFF065F46),
                   icon: Icons.fingerprint_rounded,
                 ),
               if (details?.selfieCenterBase64 != null)
                 _buildStatusChip(
                   label: "3D Face: 3 Angles ✓",
-                  color: const Color(0xFF38BDF8),
+                  color: const Color(0xFF1E40AF),
                   icon: Icons.face_retouching_natural_rounded,
                 ),
               _buildStatusChip(
                 label: isAiSuspicious ? "AI Risk: ${(aiRisk * 100).toInt()}% Flagged" : "AI Risk: ${(aiRisk * 100).toInt()}% Authentic",
-                color: isAiSuspicious ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                color: isAiSuspicious ? const Color(0xFF991B1B) : const Color(0xFF065F46),
                 icon: isAiSuspicious ? Icons.warning_amber_rounded : Icons.verified_user_rounded,
               ),
             ],
@@ -410,18 +417,19 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             child: ElevatedButton.icon(
               onPressed: () => _showWorkerDossier(context, worker),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF231A47),
-                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFFFFF3D6),
+                foregroundColor: WorkGoColors.textPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 12),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: WorkGoColors.accent, width: 1),
+                  side: const BorderSide(color: WorkGoColors.primary, width: 1),
                 ),
               ),
-              icon: const Icon(Icons.badge_rounded, color: WorkGoColors.accent, size: 18),
+              icon: const Icon(Icons.badge_rounded, color: WorkGoColors.primaryDark, size: 18),
               label: const SafeText(
                 "Inspect Verification Dossier & Audit Trail",
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
               ),
             ),
           ),
@@ -432,11 +440,11 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 
   Widget _buildAvatarFallback(Worker worker) {
     return Container(
-      color: const Color(0xFF231A47),
+      color: const Color(0xFFFFF3D6),
       child: Center(
         child: SafeText(
           worker.name.isNotEmpty ? worker.name[0].toUpperCase() : "A",
-          style: const TextStyle(color: WorkGoColors.accent, fontSize: 20, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -469,7 +477,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0F0B21),
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -520,10 +528,11 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   }
 
   Future<void> _confirmDeleteWorker(BuildContext context, Worker worker) async {
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1F1635),
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: const Color(0xFFEF4444).withAlpha(100), width: 1.5),
@@ -541,7 +550,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             const SizedBox(width: 12),
             const SafeText(
               "Purge Worker Record",
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: WorkGoColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -549,35 +558,35 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SafeText(
+            const SafeText(
               "Permanently delete this worker profile and all associated KYC/documents from the database?",
-              style: TextStyle(color: Colors.white.withAlpha(200), fontSize: 13),
+              style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF130D26),
+                color: const Color(0xFFF9F6EE),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white10),
+                border: Border.all(color: WorkGoColors.dividerLight),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const SafeText("Name: ", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      SafeText(worker.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                      const SafeText("Name: ", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
+                      SafeText(worker.name, style: const TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const SafeText("Trades: ", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      const SafeText("Trades: ", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
                       Expanded(
                         child: SafeText(
                           worker.skills.isNotEmpty ? worker.skills.join(", ") : "None",
-                          style: const TextStyle(color: WorkGoColors.accent, fontSize: 12),
+                          style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 12, fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -586,11 +595,11 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const SafeText("ID: ", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      const SafeText("ID: ", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
                       Expanded(
                         child: SafeText(
                           worker.id,
-                          style: const TextStyle(color: Colors.white38, fontSize: 11, fontFamily: "monospace"),
+                          style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 11, fontFamily: "monospace"),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -602,14 +611,14 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             const SizedBox(height: 10),
             const SafeText(
               "⚠️ This action cannot be undone under DPDP Act 2023 Right to Erasure.",
-              style: TextStyle(color: Colors.white38, fontSize: 11),
+              style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 11),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const SafeText("Cancel", style: TextStyle(color: Colors.white60)),
+            child: const SafeText("Cancel", style: TextStyle(color: WorkGoColors.textSecondary)),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -629,23 +638,23 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       try {
         await _workerService.deleteWorker(worker.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Row(
                 children: [
                   const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
                   const SizedBox(width: 8),
-                  Text("Purged record for '${worker.name}'"),
+                  Text("Purged record for '${worker.name}'", style: const TextStyle(color: WorkGoColors.textPrimary)),
                 ],
               ),
-              backgroundColor: const Color(0xFF1F1635),
+              backgroundColor: const Color(0xFFFFF3D6),
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text("Failed to delete record: $e"),
               backgroundColor: const Color(0xFFEF4444),
@@ -704,18 +713,18 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     final reason = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1F1635),
-        title: const SafeText("Reject Application", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        title: const SafeText("Reject Application", style: TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: _rejectionReasonCtrl,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: WorkGoColors.textPrimary),
           decoration: const InputDecoration(
             hintText: "Enter reason for rejection (e.g. Blurry ID, PCC Expired)...",
-            hintStyle: TextStyle(color: Colors.white38),
+            hintStyle: TextStyle(color: WorkGoColors.textSecondary),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("Cancel", style: TextStyle(color: WorkGoColors.textSecondary))),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(_rejectionReasonCtrl.text.trim()),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
@@ -756,7 +765,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1F1635),
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: const Color(0xFFEF4444).withAlpha(100), width: 1.5),
@@ -765,17 +774,17 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
           children: [
             Icon(Icons.delete_forever_rounded, color: Color(0xFFEF4444), size: 22),
             SizedBox(width: 8),
-            SafeText("Purge Worker Record?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            SafeText("Purge Worker Record?", style: TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
         content: SafeText(
           "Permanently delete '${widget.worker.name}' (${widget.worker.id}) and all verification files from the database?",
-          style: const TextStyle(color: Colors.white70, fontSize: 13),
+          style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text("Cancel", style: TextStyle(color: Colors.white60)),
+            child: const Text("Cancel", style: TextStyle(color: WorkGoColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -901,18 +910,18 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     children: [
                       SafeText(
                         worker.name,
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                        style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 2),
                       SafeText(
                         "${worker.skills.join(' · ')} · Worker ID: ${worker.id.substring(0, worker.id.length > 8 ? 8 : worker.id.length)}",
-                        style: const TextStyle(color: WorkGoColors.accent, fontSize: 12, fontWeight: FontWeight.w600),
+                        style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                    icon: const Icon(Icons.close_rounded, color: WorkGoColors.textSecondary),
                   ),
                 ],
               ),
@@ -924,9 +933,9 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF191330),
+                  color: const Color(0xFFF9F6EE),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white12),
+                  border: Border.all(color: WorkGoColors.dividerLight),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -942,13 +951,13 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.wb_sunny_rounded, color: WorkGoColors.accent, size: 14),
+                        const Icon(Icons.wb_sunny_rounded, color: WorkGoColors.primaryDark, size: 14),
                         const SizedBox(width: 6),
                         SafeText(
                           details?.lightingBoosted == true
                               ? "Screen Studio Ring Light: Active ⚡"
                               : "Standard Ambient Lighting",
-                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -963,7 +972,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isAiSuspicious ? const Color(0xFF3B1219) : const Color(0xFF0E2A20),
+                  color: isAiSuspicious ? const Color(0xFFFEE2E2) : const Color(0xFFD1FAE5),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isAiSuspicious ? const Color(0xFFEF4444) : const Color(0xFF10B981),
@@ -987,7 +996,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                                 ? "AI Synthetic Markers Detected · Officer Scrutiny Required"
                                 : "Camera Hardware Authentic · 0% Deepfake Signatures",
                             style: TextStyle(
-                              color: isAiSuspicious ? const Color(0xFFEF4444) : const Color(0xFF34D399),
+                              color: isAiSuspicious ? const Color(0xFF991B1B) : const Color(0xFF065F46),
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
                             ),
@@ -998,7 +1007,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     const SizedBox(height: 8),
                     SafeText(
                       "AI Risk Score: ${(aiRisk * 100).toStringAsFixed(1)}% | Liveness Score: ${((details?.livenessScore ?? 0.98) * 100).toStringAsFixed(1)}%",
-                      style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: isAiSuspicious ? const Color(0xFF991B1B) : const Color(0xFF065F46), fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     if (aiFlags.isNotEmpty) ...[
                       const SizedBox(height: 8),
@@ -1008,10 +1017,10 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                         children: aiFlags.map((f) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.black45,
+                            color: isAiSuspicious ? const Color(0xFFFECACA) : const Color(0xFFA7F3D0),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: SafeText(f, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                          child: SafeText(f, style: TextStyle(color: isAiSuspicious ? const Color(0xFF7F1D1D) : const Color(0xFF064E3B), fontSize: 10, fontWeight: FontWeight.bold)),
                         )).toList(),
                       ),
                     ],
@@ -1026,9 +1035,9 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF191330),
+                  color: const Color(0xFFF9F6EE),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white12),
+                  border: Border.all(color: WorkGoColors.dividerLight),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1037,26 +1046,26 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withAlpha(25),
+                        color: const Color(0xFFFFF3D6),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF8B5CF6).withAlpha(80)),
+                        border: Border.all(color: WorkGoColors.primary.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.key_rounded, color: Color(0xFFA78BFA), size: 20),
+                              const Icon(Icons.key_rounded, color: WorkGoColors.primaryDark, size: 20),
                               const SizedBox(width: 10),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text("UIDAI 4-Digit Share Code", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                  const Text("UIDAI 4-Digit Share Code", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 11)),
                                   Text(
                                     details?.aadhaarShareCode ?? "1234",
                                     style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
+                                      color: WorkGoColors.textPrimary,
+                                      fontWeight: FontWeight.w800,
                                       fontSize: 18,
                                       letterSpacing: 4,
                                     ),
@@ -1073,7 +1082,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                                 const SnackBar(content: Text("Share code copied to clipboard")),
                               );
                             },
-                            icon: const Icon(Icons.copy_rounded, color: Color(0xFFA78BFA), size: 18),
+                            icon: const Icon(Icons.copy_rounded, color: WorkGoColors.primaryDark, size: 18),
                           ),
                         ],
                       ),
@@ -1084,9 +1093,9 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(8),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white12),
+                        border: Border.all(color: WorkGoColors.dividerLight),
                       ),
                       child: Row(
                         children: [
@@ -1094,15 +1103,15 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: details?.aadhaarZipBase64 != null
-                                  ? const Color(0xFF10B981).withAlpha(30)
-                                  : Colors.white10,
+                                  ? const Color(0xFFD1FAE5)
+                                  : const Color(0xFFF3F0EA),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               Icons.folder_zip_rounded,
                               color: details?.aadhaarZipBase64 != null
-                                  ? const Color(0xFF10B981)
-                                  : Colors.white38,
+                                  ? const Color(0xFF065F46)
+                                  : WorkGoColors.textDisabled,
                               size: 24,
                             ),
                           ),
@@ -1113,7 +1122,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                               children: [
                                 Text(
                                   details?.aadhaarFileName ?? (details?.aadhaarZipBase64 != null ? "aadhaar_offline.zip" : "No zip archive attached"),
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                  style: const TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 12),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 2),
@@ -1121,7 +1130,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                                   details?.aadhaarZipBase64 != null
                                       ? "Encrypted UIDAI Zip Archive (Spark Tier)"
                                       : "Manual / Direct Demographics Record",
-                                  style: const TextStyle(color: Colors.white54, fontSize: 10.5),
+                                  style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 10.5),
                                 ),
                               ],
                             ),
@@ -1137,6 +1146,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                elevation: 0,
                               ),
                               icon: const Icon(Icons.download_rounded, size: 16),
                               label: const Text("Download", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
@@ -1253,13 +1263,14 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     return Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF191330),
+                        color: const Color(0xFFF9F6EE),
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: WorkGoColors.dividerLight),
                       ),
                       child: const Center(
                         child: SafeText(
                           "No audit log records found yet.",
-                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                          style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12),
                         ),
                       ),
                     );
@@ -1268,9 +1279,9 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   return Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF191330),
+                      color: const Color(0xFFF9F6EE),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white12),
+                      border: Border.all(color: WorkGoColors.dividerLight),
                     ),
                     child: Column(
                       children: logs.map((log) => _buildAuditItem(log)).toList(),
@@ -1359,11 +1370,11 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
   Widget _buildSectionHeader(IconData icon, String title) {
     return Row(
       children: [
-        Icon(icon, color: WorkGoColors.accent, size: 16),
+        Icon(icon, color: WorkGoColors.primaryDark, size: 16),
         const SizedBox(width: 8),
         SafeText(
           title,
-          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -1376,9 +1387,16 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
           width: 88,
           height: 88,
           decoration: BoxDecoration(
-            color: Colors.black45,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white24),
+            border: Border.all(color: WorkGoColors.dividerLight),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(14),
@@ -1387,18 +1405,18 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     base64Decode(base64Str),
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(Icons.broken_image, color: Colors.white30),
+                      child: Icon(Icons.broken_image, color: WorkGoColors.textDisabled),
                     ),
                   )
                 : const Center(
-                    child: Icon(Icons.face, color: Colors.white30, size: 36),
+                    child: Icon(Icons.face, color: WorkGoColors.textDisabled, size: 36),
                   ),
           ),
         ),
         const SizedBox(height: 6),
         SafeText(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -1410,8 +1428,8 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          SafeText(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-          SafeText(value, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          SafeText(label, style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
+          SafeText(value, style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -1428,12 +1446,12 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: WorkGoColors.accent.withAlpha(40),
+              color: const Color(0xFFFFF3D6),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               timeStr,
-              style: const TextStyle(color: WorkGoColors.accent, fontSize: 10, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 10, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 10),
@@ -1443,11 +1461,11 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               children: [
                 SafeText(
                   log.action,
-                  style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 11.5, fontWeight: FontWeight.bold),
                 ),
                 SafeText(
                   log.reason,
-                  style: const TextStyle(color: Colors.white60, fontSize: 10.5),
+                  style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 10.5),
                 ),
               ],
             ),

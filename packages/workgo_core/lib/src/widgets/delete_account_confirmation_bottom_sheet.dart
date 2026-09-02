@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/colors.dart';
 import '../theme/typography.dart';
 import 'workgo_button.dart';
 
@@ -31,18 +32,17 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0B24),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: const Color(0xFFE11D48).withValues(alpha: 0.6),
-          width: 1.8,
+          color: const Color(0xFFF0EDE6),
+          width: 1.2,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFFE11D48).withValues(alpha: 0.35),
-            blurRadius: 36,
-            spreadRadius: -4,
-            offset: const Offset(0, -6),
+            color: Color(0x18000000),
+            blurRadius: 28,
+            offset: Offset(0, -4),
           ),
         ],
       ),
@@ -56,7 +56,7 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
               width: 44,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: const Color(0xFFE5E0D8),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -72,13 +72,13 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF881337), Color(0xFFE11D48)],
+                    colors: [Color(0xFFF43F5E), Color(0xFFE11D48)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFE11D48).withValues(alpha: 0.4),
+                      color: const Color(0xFFE11D48).withValues(alpha: 0.35),
                       blurRadius: 16,
                     ),
                   ],
@@ -99,16 +99,16 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                     Text(
                       "Delete Account & Wipe Data",
                       style: WorkGoFonts.display(
-                        color: Colors.white,
+                        color: WorkGoColors.textPrimary,
                         fontSize: 16.5,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 2),
                     const Text(
                       "DPDP Act 2023 · Right to Erasure",
                       style: TextStyle(
-                        color: Color(0xFFFB7185),
+                        color: Color(0xFFE11D48),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -124,9 +124,9 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1028),
+              color: const Color(0xFFFFF1F2),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE11D48).withValues(alpha: 0.25)),
+              border: Border.all(color: const Color(0xFFFECDD3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,7 +155,7 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                   child: Text(
                     "I acknowledge that this action is permanent and cannot be undone.",
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: WorkGoColors.textPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -187,7 +187,7 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE11D48),
-                    disabledBackgroundColor: Colors.white12,
+                    disabledBackgroundColor: const Color(0xFFE5E0D8),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -212,15 +212,16 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFFFB7185), size: 16),
+          Icon(icon, color: const Color(0xFFE11D48), size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
+              style: const TextStyle(
+                color: Color(0xFF9F1239),
                 fontSize: 11.5,
                 height: 1.35,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

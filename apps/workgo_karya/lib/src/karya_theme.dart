@@ -3,84 +3,94 @@ import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 
 // ══════════════════════════════════════════════════════════════
-//  KARYA LUMINA DESIGN SYSTEM — "Cyber Violet & Solar Gold"
-//  High-end, market-defining artisan cockpit:
-//  Obsidian Canvas · Electric Royal Violet · Solar Neon Gold
+//  KARYA DESIGN SYSTEM — "Artisan Light + Amber"
+//  Premium artisan cockpit: Warm White Canvas · Amber Gold · Dark Text
 // ══════════════════════════════════════════════════════════════
 
 class KaryaColors {
   KaryaColors._();
-  static const Color backgroundDark = Color(0xFF090714);
-  static const Color surfaceCard = Color(0xFF130E2A);
-  static const Color brandYellow = Color(0xFFFFD600);
-  static const Color brandPurple = Color(0xFF7928CA);
+  static const Color backgroundLight = Color(0xFFFFFBF2);
+  static const Color surfaceCard = Color(0xFFFFFFFF);
+  static const Color brandYellow = Color(0xFFFFB800);
+  static const Color brandAmber = Color(0xFFE8A500);
   static const Color emerald = Color(0xFF10B981);
 }
 
 class KX {
   KX._();
 
-  // Canvas & Surfaces
-  static const Color canvas = Color(0xFF090714);
-  static const Color canvasCard = Color(0xFF130E2A);
-  static const Color canvasMid = Color(0xFF1A1338);
-  static const Color canvasElevated = Color(0xFF231A4C);
+  // Canvas & Surfaces — Warm Off-White
+  static const Color canvas = Color(0xFFFFFBF2);       // App background
+  static const Color canvasCard = Color(0xFFFFFFFF);   // Card surface
+  static const Color canvasMid = Color(0xFFFFF8EE);    // Mid surface
+  static const Color canvasElevated = Color(0xFFFFF3D6); // Accent tint panel
+  static const Color dividerLight = Color(0xFFF0EDE6);   // Subtle divider
 
-  // Purple / Violet Primaries
-  static const Color purpleDeep = Color(0xFF581C87);
-  static const Color violet = Color(0xFF7928CA);
-  static const Color violetVivid = Color(0xFF9333EA);
-  static const Color violetNeon = Color(0xFFA855F7);
-  static const Color violetLight = Color(0xFFC084FC);
-  static const Color violetGlow = Color(0xFF7928CA);
+  // Primary — Amber Yellow (replaces violet/purple)
+  static const Color purpleDeep = Color(0xFFE8A500);   // Pressed amber
+  static const Color violet = Color(0xFFFFB800);       // Primary CTA amber
+  static const Color violetVivid = Color(0xFFFFCD4A);  // Hover amber
+  static const Color violetNeon = Color(0xFFFFE066);   // Bright amber
+  static const Color violetLight = Color(0xFFFFF3D6);  // Soft amber tint
+  static const Color violetGlow = Color(0xFFFFB800);   // Glow (softer on light)
 
-  // Solar Yellow / Electric Gold Accents
-  static const Color gold = Color(0xFFFFD600);
-  static const Color yellowNeon = Color(0xFFFFE600);
-  static const Color amber = Color(0xFFFBBF24);
+  // Accent Gold — warm gold family
+  static const Color gold = Color(0xFFFFB800);
+  static const Color yellowNeon = Color(0xFFFFCD4A);
+  static const Color amber = Color(0xFFF59E0B);        // Warning
   static const Color amberDark = Color(0xFFD97706);
-  static const Color goldGlow = Color(0xFFFFD600);
+  static const Color goldGlow = Color(0xFFFFB800);
 
   // Supporting Semantics
   static const Color emerald = Color(0xFF10B981);
   static const Color emeraldLight = Color(0xFF34D399);
-  static const Color rose = Color(0xFFF43F5E);
-  static const Color info = Color(0xFF38BDF8);
-  static const Color cyan = Color(0xFF06B6D4);
-  static const Color cyanLight = Color(0xFF38BDF8);
+  static const Color rose = Color(0xFFEF4444);
+  static const Color info = Color(0xFF3B82F6);
+  static const Color cyan = Color(0xFF3B82F6);
+  static const Color cyanLight = Color(0xFF93C5FD);
 
-  // Glass & Borders
-  static Color glass(double opacity) => Colors.white.withValues(alpha: opacity);
-  static Color glassCard = Colors.white.withValues(alpha: 0.05);
-  static Color glassBorder = const Color(0xFFA855F7).withValues(alpha: 0.18);
-  static Color glassBorderBright = const Color(0xFFFFD600).withValues(alpha: 0.35);
+  // Glass & Borders — Light-aware
+  static Color glass(double opacity) => Colors.black.withValues(alpha: opacity * 0.04);
+  static Color glassCard = const Color(0xFFFFF3D6).withValues(alpha: 0.5);
+  static Color glassBorder = const Color(0xFFFFB800).withValues(alpha: 0.18);
+  static Color glassBorderBright = const Color(0xFFFFB800).withValues(alpha: 0.40);
 
-  // Text
-  static const Color textPrimary = Color(0xFFFAF5FF);
-  static const Color textSecondary = Color(0xFFB8A9D9);
-  static const Color textMuted = Color(0xFF6E608F);
+  // Text — Dark on warm white
+  static const Color textPrimary = Color(0xFF1A1A1A);
+  static const Color textSecondary = Color(0xFF6B6B6B);
+  static const Color textMuted = Color(0xFFB0B0B0);
 
-  // High-Voltage Luxury Gradients
+  // Reference Template Pastel & Dock Tokens
+  static const Color pastelAmber = Color(0xFFFFDE9C);     // Sunny amber tall plan card
+  static const Color pastelAmberLight = Color(0xFFFFF1D6);
+  static const Color pastelLavender = Color(0xFFE9E4FF);  // Soft lavender hero card
+  static const Color pastelSky = Color(0xFFD6EBFF);       // Soft sky blue radar card
+  static const Color pastelPink = Color(0xFFFFD6EC);      // Soft pink action capsule
+  static const Color pastelMint = Color(0xFFD1FAE5);      // Soft mint verified pill
+  static const Color dockBlack = Color(0xFF141416);       // Floating dark capsule dock
+  static const Color pillSurface = Color(0xFFFFFFFF);     // Pure white capsule pill
+
+  // Gradients — Amber/Yellow family
   static const LinearGradient luminaVioletGold = LinearGradient(
-    colors: [Color(0xFF7928CA), Color(0xFFFFD600)],
+    colors: [Color(0xFFE8A500), Color(0xFFFFCD4A)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient luminaGoldViolet = LinearGradient(
-    colors: [Color(0xFFFFD600), Color(0xFF9333EA)],
+    colors: [Color(0xFFFFCD4A), Color(0xFFE8A500)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient auroraVioletNeon = LinearGradient(
-    colors: [Color(0xFF581C87), Color(0xFFA855F7)],
+    colors: [Color(0xFFE8A500), Color(0xFFFFCD4A)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient solarGold = LinearGradient(
-    colors: [Color(0xFFF59E0B), Color(0xFFFFD600)],
+    colors: [Color(0xFFE8A500), Color(0xFFFFB800)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -92,7 +102,7 @@ class KX {
   );
 
   static const LinearGradient auroraDecline = LinearGradient(
-    colors: [Color(0xFF9F1239), Color(0xFFF43F5E)],
+    colors: [Color(0xFF9F1239), Color(0xFFEF4444)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -102,7 +112,7 @@ class KX {
   );
 
   static const LinearGradient auroraOffline = LinearGradient(
-    colors: [Color(0xFF374151), Color(0xFF4B5563)],
+    colors: [Color(0xFFD1D5DB), Color(0xFF9CA3AF)],  // warm gray offline
   );
 }
 
@@ -144,7 +154,7 @@ class KaryaScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: KX.canvas,
+      backgroundColor: KX.canvas,  // #FFFBF2 warm off-white
       extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       appBar: appBar,
@@ -152,27 +162,10 @@ class KaryaScaffold extends StatelessWidget {
       floatingActionButton: floatingActionButton,
       body: Stack(
         children: [
-          // Background ambient cyber nebulas
+          // Warm ambient blobs on light background
           Positioned(
-            top: -100,
-            left: -80,
-            child: Container(
-              width: 320,
-              height: 320,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    KX.violet.withValues(alpha: 0.22),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 220,
-            right: -80,
+            top: -80,
+            left: -60,
             child: Container(
               width: 280,
               height: 280,
@@ -180,7 +173,24 @@ class KaryaScaffold extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    KX.gold.withValues(alpha: 0.12),
+                    const Color(0xFFFFB800).withValues(alpha: 0.07),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 200,
+            right: -80,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFF59E0B).withValues(alpha: 0.05),
                     Colors.transparent,
                   ],
                 ),
@@ -189,15 +199,15 @@ class KaryaScaffold extends StatelessWidget {
           ),
           Positioned(
             bottom: 80,
-            left: -60,
+            left: -40,
             child: Container(
-              width: 240,
-              height: 240,
+              width: 200,
+              height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    KX.purpleDeep.withValues(alpha: 0.20),
+                    const Color(0xFFFFE3C2).withValues(alpha: 0.10),
                     Colors.transparent,
                   ],
                 ),
@@ -234,17 +244,18 @@ class KaryaAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.transparent,
+      backgroundColor: KX.canvasCard,  // white surface
       elevation: 0,
+      scrolledUnderElevation: 0,
       leading: leading ??
           (Navigator.canPop(context)
               ? IconButton(
                   icon: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: KX.canvasMid,
+                      color: const Color(0xFFF3F0EA), // warm gray tint
                       shape: BoxShape.circle,
-                      border: Border.all(color: KX.glassBorder),
+                      border: Border.all(color: const Color(0xFFF0EDE6)),
                     ),
                     child: const Icon(Icons.arrow_back_ios_new_rounded,
                         size: 14, color: KX.textPrimary),
@@ -261,8 +272,8 @@ class KaryaAppBar extends StatelessWidget implements PreferredSizeWidget {
             style: WorkGoFonts.display(
               color: KX.textPrimary,
               fontSize: 20,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.6,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.4,
             ),
           ),
           if (subtitle != null) ...[
@@ -307,41 +318,47 @@ class KaryaCard extends StatelessWidget {
   final Color? glowColor;
   final VoidCallback? onTap;
   final Gradient? gradient;
-  final double blurSigma;
+  final double blurSigma;  // API-compat, not used on light
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBorder = borderColor ?? KX.glassBorder;
     final glow = glowColor;
 
     Widget content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        gradient: gradient ??
-            LinearGradient(
-              colors: [
-                KX.canvasCard.withValues(alpha: 0.92),
-                KX.canvasMid.withValues(alpha: 0.85),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        gradient: gradient,
+        color: gradient == null ? KX.canvasCard : null,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: effectiveBorder, width: 1.1),
+        border: borderColor != null
+            ? Border.all(color: borderColor!, width: 1.1)
+            : const Border.fromBorderSide(
+                BorderSide(color: Color(0xFFF0EDE6), width: 1)), // warm divider
         boxShadow: glow != null
             ? [
+                const BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
                 BoxShadow(
-                  color: glow.withValues(alpha: 0.25),
-                  blurRadius: 22,
+                  color: glow.withValues(alpha: 0.14),
+                  blurRadius: 20,
                   spreadRadius: -4,
                   offset: const Offset(0, 4),
                 ),
               ]
             : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 18,
-                  offset: const Offset(0, 5),
+                const BoxShadow(
+                  color: Color(0x0E000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 4),
+                ),
+                const BoxShadow(
+                  color: Color(0x10FFB800),  // warm amber tint
+                  blurRadius: 20,
+                  spreadRadius: -3,
+                  offset: Offset(0, 5),
                 ),
               ],
       ),

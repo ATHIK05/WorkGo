@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
 import 'booking_creation_screen.dart';
@@ -69,12 +70,24 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
 
   @override
   Widget build(BuildContext context) {
-    return AuroraScaffold(
-      appBar: AuroraAppBar(
-        title: 'search_workers'.tr(),
+    return Scaffold(
+      backgroundColor: const Color(0xFFFDFBF7),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 1,
+        title: Text(
+          'search_workers'.tr(),
+          style: WorkGoFonts.heading(
+            color: const Color(0xFF141416),
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        centerTitle: false,
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF141416)),
                 onPressed: () => Navigator.pop(context),
               )
             : null,
@@ -83,19 +96,26 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: CX.cyan.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: CX.cyan.withValues(alpha: 0.35)),
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                PulsingDot(color: CX.cyan, size: 6),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
                 const SizedBox(width: 6),
                 Text(
                   "RADAR ${_radiusKm.toInt()}KM",
                   style: const TextStyle(
-                    color: CX.cyanLight,
+                    color: Color(0xFF1D4ED8),
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.5,
@@ -109,26 +129,57 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Search + Dynamic Radius Cockpit
-            SlideFadeIn(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-                child: _buildDiscoveryCockpit(),
-              ),
+            // 1. Luxury Large Floating Search Capsule
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: _buildLuxurySearchBar(),
+            ),
+
+            // 2. Horizontal Quick Filters & Sort Strip
+            SizedBox(
+              height: 42,
+              child: _buildQuickFiltersStrip(),
             ),
             const SizedBox(height: 12),
 
-            // 2. Vibrant Category Rail
-            SlideFadeIn(
-              delay: const Duration(milliseconds: 60),
-              child: SizedBox(
-                height: 44,
-                child: _buildCategoryPillsRail(),
+            // 3. Select Craft Rail Title + Pills (Image 1 Style)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Select craft specialty",
+                    style: TextStyle(
+                      color: Color(0xFF141416),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  if (_selectedCategory != "All")
+                    GestureDetector(
+                      onTap: () => setState(() => _selectedCategory = "All"),
+                      child: const Text(
+                        "Reset",
+                        style: TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 40,
+              child: _buildCategoryPillsRail(),
+            ),
+            const SizedBox(height: 8),
 
-            // 3. Workers Results Stream
+            // 4. Workers Results Stream
             Expanded(
               child: _buildWorkersStream(),
             ),
@@ -139,219 +190,124 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   }
 
   // ──────────────────────────────────────────
-  //  DISCOVERY COCKPIT (SEARCH + RADIUS CHIPS + ONLINE TOGGLE)
+  //  MODERN ANDROID SEARCH BAR (EXACT TEMPLATE IMPLEMENTATION)
   // ──────────────────────────────────────────
-  Widget _buildDiscoveryCockpit() {
-    final radiusOptions = [5.0, 10.0, 25.0, 50.0];
+  Widget _buildLuxurySearchBar() {
+    final hasActiveFilter = _onlineOnly || _sortBy != "nearest" || _radiusKm != 10.0;
 
     return AnimatedContainer(
-      duration: CAnim.normal,
-      curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.all(14),
+      duration: const Duration(milliseconds: 180),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: CX.canvasCard.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(22),
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _searchFocused
-              ? CX.cyan.withValues(alpha: 0.7)
-              : CX.glassBorder,
+              ? const Color(0xFF94A3B8)
+              : const Color(0xFFE5E7EB),
           width: 1.2,
         ),
-        boxShadow: _searchFocused
-            ? [
-                BoxShadow(
-                  color: CX.cyan.withValues(alpha: 0.18),
-                  blurRadius: 22,
-                  spreadRadius: -4,
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
       ),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Search Input Row
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: CX.auroraVioletCyan,
-                  boxShadow: [
-                    BoxShadow(
-                      color: CX.violet.withValues(alpha: 0.35),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.search_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocus,
-                  style: const TextStyle(
-                    color: CX.textPrimary,
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: "Search artisan, trade or area...",
-                    hintStyle: TextStyle(
-                      color: CX.textMuted.withValues(alpha: 0.8),
-                      fontSize: 13.5,
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              if (_searchController.text.isNotEmpty)
-                GestureDetector(
-                  onTap: () => setState(() => _searchController.clear()),
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.12),
-                    ),
-                    child: const Icon(
-                      Icons.close_rounded,
-                      size: 14,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ),
-            ],
+          // Left Search Icon
+          const Icon(
+            Icons.search_rounded,
+            color: Color(0xFF6B7280),
+            size: 22,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(width: 14),
 
-          // Radius Chips & Online Filter Row
-          Row(
-            children: [
-              // Radius Label with Pulse
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.radar_rounded, color: CX.cyan, size: 14),
-                  const SizedBox(width: 4),
-                  Text(
-                    "Radius:",
-                    style: TextStyle(
-                      color: CX.textSecondary.withValues(alpha: 0.9),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+          // Central Input Field (Overrides theme borders to prevent nested yellow focus ring)
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocus,
+              style: const TextStyle(
+                color: Color(0xFF111827),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                letterSpacing: -0.2,
               ),
-              const SizedBox(width: 8),
+              cursorColor: const Color(0xFF111827),
+              decoration: const InputDecoration(
+                hintText: "Search...",
+                hintStyle: TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                ),
+                filled: false,
+                fillColor: Colors.transparent,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
 
-              // Radius Chips (5, 10, 25, 50 km)
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: radiusOptions.map((r) {
-                      final isSelected = _radiusKm == r;
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          _radiusKm = r;
-                          _dismissedFloatingBanner = false;
-                        }),
-                        child: AnimatedContainer(
-                          duration: CAnim.fast,
-                          margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? CX.cyan.withValues(alpha: 0.25)
-                                : Colors.white.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(9),
-                            border: Border.all(
-                              color: isSelected
-                                  ? CX.cyan.withValues(alpha: 0.7)
-                                  : Colors.white.withValues(alpha: 0.1),
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Text(
-                            "${r.toInt()} km",
-                            style: TextStyle(
-                              color: isSelected ? CX.cyanLight : CX.textSecondary,
-                              fontSize: 11,
-                              fontWeight: isSelected
-                                  ? FontWeight.w900
-                                  : FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+          // Trailing Actions (Clear, Filter Sliders, Mic)
+          if (_searchController.text.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () => setState(() => _searchController.clear()),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: Color(0xFF6B7280),
                 ),
               ),
+            ),
+            const SizedBox(width: 6),
+          ],
 
-              // Online Only Toggle Chip
-              GestureDetector(
-                onTap: () => setState(() => _onlineOnly = !_onlineOnly),
-                child: AnimatedContainer(
-                  duration: CAnim.fast,
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: _onlineOnly
-                        ? CX.emerald.withValues(alpha: 0.25)
-                        : Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(
-                      color: _onlineOnly
-                          ? CX.emerald.withValues(alpha: 0.7)
-                          : Colors.white.withValues(alpha: 0.1),
-                      width: 1.0,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _onlineOnly ? CX.emerald : CX.textMuted,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        "Live Online",
-                        style: TextStyle(
-                          color: _onlineOnly ? const Color(0xFF6EE7B7) : CX.textSecondary,
-                          fontSize: 11,
-                          fontWeight: _onlineOnly ? FontWeight.w800 : FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          // Filter Sliders Icon (Tune)
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                if (_sortBy == "nearest") {
+                  _sortBy = "rating";
+                } else if (_sortBy == "rating") {
+                  _sortBy = "fare";
+                } else {
+                  _sortBy = "nearest";
+                }
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Icon(
+                Icons.tune_rounded,
+                size: 22,
+                color: hasActiveFilter
+                    ? const Color(0xFF1D4ED8)
+                    : const Color(0xFF6B7280),
               ),
-            ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Microphone Icon
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+            },
+            child: const Padding(
+              padding: EdgeInsets.only(left: 2),
+              child: Icon(
+                Icons.mic_rounded,
+                size: 22,
+                color: Color(0xFF6B7280),
+              ),
+            ),
           ),
         ],
       ),
@@ -359,7 +315,150 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   }
 
   // ──────────────────────────────────────────
-  //  VIBRANT CATEGORY PILLS RAIL
+  //  QUICK FILTERS & SORT STRIP (HORIZONTAL SCROLL)
+  // ──────────────────────────────────────────
+  Widget _buildQuickFiltersStrip() {
+    final radiusOptions = [5.0, 10.0, 25.0, 50.0];
+
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        // Live Online Toggle Pill
+        GestureDetector(
+          onTap: () => setState(() => _onlineOnly = !_onlineOnly),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _onlineOnly ? const Color(0xFFECFDF5) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _onlineOnly ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
+                width: 1.1,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x04000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _onlineOnly ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  "Live Online",
+                  style: TextStyle(
+                    color: _onlineOnly ? const Color(0xFF065F46) : const Color(0xFF475569),
+                    fontSize: 11.5,
+                    fontWeight: _onlineOnly ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // Radius Chips
+        ...radiusOptions.map((r) {
+          final isSelected = _radiusKm == r;
+          return GestureDetector(
+            onTap: () => setState(() {
+              _radiusKm = r;
+              _dismissedFloatingBanner = false;
+            }),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFF141416) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? const Color(0xFF141416) : const Color(0xFFE2E8F0),
+                  width: 1.1,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x04000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  "${r.toInt()} km",
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF475569),
+                    fontSize: 11.5,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+
+        // Sort Options
+        _buildSortChip("nearest", "⚡ Nearest"),
+        _buildSortChip("rating", "★ Top Rated"),
+        _buildSortChip("fare", "💰 Best Value"),
+      ],
+    );
+  }
+
+  Widget _buildSortChip(String sortKey, String label) {
+    final isSelected = _sortBy == sortKey;
+    return GestureDetector(
+      onTap: () => setState(() => _sortBy = sortKey),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+            width: 1.1,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x04000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : const Color(0xFF475569),
+              fontSize: 11.5,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  CATEGORY PILLS RAIL (Image 1 Style Dark Active Pill)
   // ──────────────────────────────────────────
   Widget _buildCategoryPillsRail() {
     return ListView.separated(
@@ -377,41 +476,46 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             _dismissedFloatingBanner = false;
           }),
           child: AnimatedContainer(
-            duration: CAnim.normal,
+            duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              gradient: isSelected ? cat.gradient : null,
-              color: isSelected ? null : CX.canvasCard.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(16),
+              color: isSelected ? const Color(0xFF141416) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isSelected
-                    ? cat.color.withValues(alpha: 0.8)
-                    : CX.glassBorder,
-                width: 1.2,
+                    ? const Color(0xFF141416)
+                    : const Color(0xFFE2E8F0),
+                width: 1.0,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: cat.color.withValues(alpha: 0.4),
-                        blurRadius: 14,
-                        offset: const Offset(0, 3),
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ]
-                  : null,
+                  : const [
+                      BoxShadow(
+                        color: Color(0x04000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   cat.emoji,
-                  style: const TextStyle(fontSize: 15),
+                  style: const TextStyle(fontSize: 13),
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(width: 6),
                 Text(
                   cat.title,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : CX.textSecondary,
+                    color: isSelected ? Colors.white : const Color(0xFF64748B),
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                     letterSpacing: -0.2,
@@ -451,19 +555,24 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AuroraOrb(
-                    icon: Icons.wifi_off_rounded,
-                    gradient: LinearGradient(
-                      colors: [CX.rose.withValues(alpha: 0.6), CX.rose],
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFFEE2E2),
                     ),
-                    size: 56,
-                    iconSize: 28,
+                    child: const Icon(
+                      Icons.wifi_off_rounded,
+                      color: Color(0xFFDC2626),
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     "Connection Interrupted",
                     style: TextStyle(
-                      color: CX.textPrimary,
+                      color: Color(0xFF141416),
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
@@ -471,7 +580,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                   const SizedBox(height: 6),
                   Text(
                     "${snapshot.error}",
-                    style: const TextStyle(color: CX.textSecondary, fontSize: 12),
+                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -535,41 +644,27 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                       Text(
                         "Found ${workers.length} verified ${workers.length == 1 ? 'artisan' : 'artisans'}",
                         style: const TextStyle(
-                          color: CX.textSecondary,
-                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      Row(
-                        children: [
-                          Text(
-                            "Sort:",
-                            style: TextStyle(
-                              color: CX.textMuted.withValues(alpha: 0.8),
-                              fontSize: 11,
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _sortBy == "rating"
+                              ? "Sorted by Rating"
+                              : (_sortBy == "fare" ? "Sorted by Value" : "Sorted by Proximity"),
+                          style: const TextStyle(
+                            color: Color(0xFF334155),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
                           ),
-                          const SizedBox(width: 4),
-                          DropdownButton<String>(
-                            value: _sortBy,
-                            dropdownColor: const Color(0xFF161133),
-                            underline: const SizedBox.shrink(),
-                            icon: const Icon(Icons.arrow_drop_down, color: CX.cyan, size: 18),
-                            style: const TextStyle(
-                              color: CX.cyanLight,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: "nearest", child: Text("⚡ Nearest")),
-                              DropdownMenuItem(value: "rating", child: Text("★ Top Rated")),
-                              DropdownMenuItem(value: "fare", child: Text("💰 Low Fare")),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) setState(() => _sortBy = val);
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -611,22 +706,14 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF1C1542).withValues(alpha: 0.95),
-                            const Color(0xFF0F0B24).withValues(alpha: 0.98),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: CX.cyan.withValues(alpha: 0.45),
-                          width: 1.1,
-                        ),
-                        boxShadow: [
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                        boxShadow: const [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.45),
-                            blurRadius: 18,
-                            offset: const Offset(0, 4),
+                            color: Color(0x14000000),
+                            blurRadius: 16,
+                            offset: Offset(0, 4),
                           ),
                         ],
                       ),
@@ -636,11 +723,11 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: CX.cyan.withValues(alpha: 0.2),
+                              color: const Color(0xFFEFF6FF),
                             ),
                             child: const Icon(
                               Icons.radar_rounded,
-                              color: CX.cyanLight,
+                              color: Color(0xFF2563EB),
                               size: 16,
                             ),
                           ),
@@ -649,8 +736,8 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                             child: Text(
                               "Showing within ${_radiusKm.toInt()} km",
                               style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
+                                color: Color(0xFF141416),
+                                fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -664,11 +751,11 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
-                                vertical: 5,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                gradient: CX.auroraVioletCyan,
-                                borderRadius: BorderRadius.circular(10),
+                                color: const Color(0xFF141416),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 "Scan ${_radiusKm < 25 ? '25 km' : '50 km'}",
@@ -685,14 +772,14 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                             onTap: () => setState(() => _dismissedFloatingBanner = true),
                             child: Container(
                               padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withValues(alpha: 0.1),
+                                color: Color(0xFFF1F5F9),
                               ),
                               child: const Icon(
                                 Icons.close_rounded,
                                 size: 14,
-                                color: Colors.white70,
+                                color: Color(0xFF64748B),
                               ),
                             ),
                           ),
@@ -731,28 +818,30 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             // 2. Expand Radius 1-Tap Recovery Button
             if (_radiusKm < 50) ...[
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      CX.cyan.withValues(alpha: 0.15),
-                      CX.violet.withValues(alpha: 0.12),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: CX.cyan.withValues(alpha: 0.35)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: CX.cyan.withValues(alpha: 0.2),
+                        color: Color(0xFFEFF6FF),
                       ),
                       child: const Icon(
                         Icons.travel_explore_rounded,
-                        color: CX.cyanLight,
+                        color: Color(0xFF2563EB),
                         size: 20,
                       ),
                     ),
@@ -764,7 +853,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                           const Text(
                             "Widen Search Coverage",
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Color(0xFF141416),
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                             ),
@@ -772,7 +861,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                           Text(
                             "Expand radar to ${_radiusKm < 25 ? '25 km' : '50 km'} to scan adjacent zones.",
                             style: const TextStyle(
-                              color: CX.textSecondary,
+                              color: Color(0xFF64748B),
                               fontSize: 11,
                             ),
                           ),
@@ -788,14 +877,8 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          gradient: CX.auroraVioletCyan,
+                          color: const Color(0xFF141416),
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: CX.cyan.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                            ),
-                          ],
                         ),
                         child: Text(
                           "Scan ${_radiusKm < 25 ? '25 km' : '50 km'}",
@@ -836,24 +919,31 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                 if (availableTrades.isEmpty) return const SizedBox.shrink();
 
                 return Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: CX.canvasCard.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: CX.glassBorder),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: const [
-                          Icon(Icons.bolt_rounded, color: CX.amber, size: 16),
+                          Icon(Icons.bolt_rounded, color: Color(0xFFD97706), size: 16),
                           SizedBox(width: 6),
                           Text(
                             "Active Trades Available Nearby Right Now",
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12.5,
+                              color: Color(0xFF141416),
+                              fontSize: 13,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -870,8 +960,8 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                               key: e.key,
                               emoji: "🔧",
                               title: e.key,
-                              color: CX.cyan,
-                              gradient: CX.auroraVioletCyan,
+                              color: const Color(0xFF2563EB),
+                              gradient: const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)]),
                             ),
                           );
 
@@ -883,10 +973,10 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: meta.color.withValues(alpha: 0.15),
+                                color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: meta.color.withValues(alpha: 0.4),
+                                  color: const Color(0xFFE2E8F0),
                                 ),
                               ),
                               child: Row(
@@ -896,8 +986,8 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                                   const SizedBox(width: 6),
                                   Text(
                                     "${meta.title} (${e.value})",
-                                    style: TextStyle(
-                                      color: meta.color,
+                                    style: const TextStyle(
+                                      color: Color(0xFF141416),
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -976,7 +1066,7 @@ class _RadarScanningBeaconState extends State<_RadarScanningBeacon>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: CX.cyan.withValues(alpha: (1.0 - progress) * 0.5),
+                        color: const Color(0xFF2563EB).withValues(alpha: (1.0 - progress) * 0.4),
                         width: 1.5,
                       ),
                     ),
@@ -994,7 +1084,7 @@ class _RadarScanningBeaconState extends State<_RadarScanningBeacon>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: CX.violet.withValues(alpha: (1.0 - progress) * 0.4),
+                        color: const Color(0xFF6366F1).withValues(alpha: (1.0 - progress) * 0.35),
                         width: 1.2,
                       ),
                     ),
@@ -1007,12 +1097,16 @@ class _RadarScanningBeaconState extends State<_RadarScanningBeacon>
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: CX.auroraVioletCyan,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: CX.cyan.withValues(alpha: 0.5),
-                      blurRadius: 24,
-                      spreadRadius: 2,
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.35),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -1025,14 +1119,14 @@ class _RadarScanningBeaconState extends State<_RadarScanningBeacon>
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         Text(
           widget.category == "All"
               ? "Scanning ${widget.radiusKm.toInt()} km Radar..."
               : "No ${widget.category} Artisans in ${widget.radiusKm.toInt()} km",
           style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16.5,
+            color: Color(0xFF141416),
+            fontSize: 17,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.3,
           ),
@@ -1041,8 +1135,8 @@ class _RadarScanningBeaconState extends State<_RadarScanningBeacon>
         const SizedBox(height: 4),
         Text(
           "All registered ${widget.category} specialists are currently on live job dispatches or beyond ${widget.radiusKm.toInt()} km.",
-          style: TextStyle(
-            color: CX.textSecondary.withValues(alpha: 0.8),
+          style: const TextStyle(
+            color: Color(0xFF64748B),
             fontSize: 12,
             height: 1.4,
           ),
@@ -1071,18 +1165,18 @@ class _WorkerCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) {
         return Container(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-          decoration: BoxDecoration(
-            color: const Color(0xFF140F2D),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border.all(color: CX.glassBorderBright, width: 1.2),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
             boxShadow: [
               BoxShadow(
-                color: CX.violet.withValues(alpha: 0.35),
-                blurRadius: 30,
-                spreadRadius: -4,
+                color: Color(0x1F000000),
+                blurRadius: 24,
+                offset: Offset(0, -4),
               ),
             ],
           ),
@@ -1095,7 +1189,7 @@ class _WorkerCard extends StatelessWidget {
                   width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: const Color(0xFFE2E8F0),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1104,14 +1198,14 @@ class _WorkerCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: CX.amber.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
                       Icons.receipt_long_rounded,
-                      color: CX.amber,
+                      color: Color(0xFFD97706),
                       size: 22,
                     ),
                   ),
@@ -1123,16 +1217,19 @@ class _WorkerCard extends StatelessWidget {
                         Text(
                           'fare_breakdown'.tr(),
                           style: WorkGoFonts.heading(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF141416),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.4,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          "Transparent on-demand pricing • ${worker.name}",
-                          style: WorkGoFonts.body(
-                            color: CX.textSecondary,
+                          "Transparent Co-op pricing • ${worker.name}",
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
                             fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -1140,13 +1237,13 @@ class _WorkerCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: CX.canvasCard,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: CX.glassBorder),
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   children: [
@@ -1155,48 +1252,49 @@ class _WorkerCard extends StatelessWidget {
                       "₹${fare.baseVisitFare.toStringAsFixed(0)}",
                       subtitle: "${fare.category} inspection & basic labour",
                     ),
-                    const Divider(color: Colors.white12, height: 16),
+                    const Divider(color: Color(0xFFE2E8F0), height: 18),
                     _fareRow(
                       'transit_distance_fare'.tr(),
                       "₹${fare.distanceTransitFare.toStringAsFixed(0)}",
                       subtitle:
-                          "${fare.distanceKm.toStringAsFixed(1)} km @ ₹${fare.perKmRate.toStringAsFixed(0)}/km",
+                          "${fare.distanceKm.toStringAsFixed(1)} km transit @ ₹${fare.perKmRate.toStringAsFixed(0)}/km",
                     ),
                     if (fare.experienceBonus > 0) ...[
-                      const Divider(color: Colors.white12, height: 16),
+                      const Divider(color: Color(0xFFE2E8F0), height: 18),
                       _fareRow(
                         'experience_bonus'.tr(),
                         "+₹${fare.experienceBonus.toStringAsFixed(0)}",
                         subtitle:
-                            "Senior Master Artisan (${fare.experienceYears} yrs)",
+                            "Senior Master Artisan (${fare.experienceYears} yrs exp)",
                         isBonus: true,
                       ),
                     ],
-                    const Divider(color: Colors.white12, height: 16),
+                    const Divider(color: Color(0xFFE2E8F0), height: 18),
                     _fareRow(
                       "Cooperative Platform Cut",
-                      "₹0 (0%)",
-                      subtitle: "100% earnings go directly to artisan",
+                      "₹0 (0% Cut)",
+                      subtitle: "100% of payment goes directly to artisan",
                       isFree: true,
                     ),
-                    const Divider(color: Colors.white24, height: 20),
+                    const Divider(color: Color(0xFFCBD5E1), height: 22, thickness: 1.2),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'total_amount'.tr(),
-                          style: WorkGoFonts.heading(
-                            color: Colors.white,
+                        const Text(
+                          "Total Estimated Fare",
+                          style: TextStyle(
+                            color: Color(0xFF141416),
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         Text(
                           "₹${fare.totalEstimatedFare.toStringAsFixed(0)}",
-                          style: WorkGoFonts.numeric(
-                            color: CX.amber,
-                            fontSize: 22,
+                          style: const TextStyle(
+                            color: Color(0xFF141416),
+                            fontSize: 24,
                             fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ],
@@ -1206,25 +1304,23 @@ class _WorkerCard extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: CX.emerald.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: CX.emerald.withValues(alpha: 0.3)),
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
                 ),
                 child: Row(
-                  children: [
-                    const Icon(Icons.security_rounded,
-                        color: CX.emerald, size: 16),
-                    const SizedBox(width: 8),
+                  children: const [
+                    Icon(Icons.shield_rounded, color: Color(0xFF059669), size: 18),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'transparent_pricing_note'.tr(),
-                        style: WorkGoFonts.body(
-                          color: const Color(0xFF6EE7B7),
+                        "Guaranteed by Worker Co-operative • Zero Surge Pricing",
+                        style: TextStyle(
+                          color: Color(0xFF047857),
                           fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -1232,10 +1328,8 @@ class _WorkerCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              GlowButton(
-                label: 'book_now'.tr(),
-                icon: Icons.calendar_month_rounded,
-                onPressed: () {
+              GestureDetector(
+                onTap: () {
                   Navigator.pop(ctx);
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -1248,9 +1342,36 @@ class _WorkerCard extends StatelessWidget {
                     ),
                   );
                 },
-                gradient: CX.auroraVioletCyan,
-                glowColor: CX.violet,
-                height: 48,
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141416),
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1F000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        "Book This Artisan",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -1270,8 +1391,8 @@ class _WorkerCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: WorkGoFonts.body(
-                  color: Colors.white,
+                style: const TextStyle(
+                  color: Color(0xFF141416),
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1279,9 +1400,10 @@ class _WorkerCard extends StatelessWidget {
               if (subtitle != null)
                 Text(
                   subtitle,
-                  style: WorkGoFonts.body(
-                    color: isFree ? const Color(0xFF6EE7B7) : CX.textSecondary,
+                  style: TextStyle(
+                    color: isFree ? const Color(0xFF059669) : const Color(0xFF64748B),
                     fontSize: 11,
+                    fontWeight: isFree ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
             ],
@@ -1289,12 +1411,12 @@ class _WorkerCard extends StatelessWidget {
         ),
         Text(
           value,
-          style: WorkGoFonts.numeric(
+          style: TextStyle(
             color: isFree
-                ? const Color(0xFF6EE7B7)
-                : (isBonus ? CX.amber : Colors.white),
+                ? const Color(0xFF059669)
+                : (isBonus ? const Color(0xFFB45309) : const Color(0xFF141416)),
             fontSize: 14,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
           ),
         ),
       ],
@@ -1307,7 +1429,6 @@ class _WorkerCard extends StatelessWidget {
         ? worker.skills.first
         : (selectedCategory != "All" ? selectedCategory : "Plumbing");
 
-    final style = categoryStyle(tradeCategory);
     final isOnline = worker.availabilityStatus == AvailabilityStatus.online;
 
     // Calculate Dynamic Fare using Cooperative Pricing Engine (Rapido-style)
@@ -1335,19 +1456,24 @@ class _WorkerCard extends StatelessWidget {
         ? "${worker.homesServiced} homes"
         : (worker.totalRatings > 0 ? "${worker.totalRatings} jobs" : "New Member");
 
-    final badgeLabel = worker.isProxy
-        ? "PROXY"
-        : (worker.verificationBadge.isNotEmpty
-            ? worker.verificationBadge.toUpperCase()
-            : (worker.isApproved ? "CO-OP CERTIFIED" : "PENDING"));
-
-    return AuroraCard(
-      glowColor: style.glow.withValues(alpha: 0.35),
-      borderColor: style.glow.withValues(alpha: 0.25),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── 1. Header: Avatar + Name + Verified Badge ──────────────────
+          // ── 1. Header: Avatar + Name + Verified Badge + Star Rating ───────
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1356,6 +1482,7 @@ class _WorkerCard extends StatelessWidget {
                 children: [
                   WorkGoAvatar(
                     name: displayName,
+                    avatarBase64: worker.verificationDetails?.selfieBase64,
                     radius: 26,
                   ),
                   Positioned(
@@ -1365,11 +1492,15 @@ class _WorkerCard extends StatelessWidget {
                       padding: const EdgeInsets.all(2),
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: CX.canvas,
+                        color: Colors.white,
                       ),
-                      child: PulsingDot(
-                        color: isOnline ? CX.success : CX.textMuted,
-                        size: 8,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                        ),
                       ),
                     ),
                   ),
@@ -1388,81 +1519,70 @@ class _WorkerCard extends StatelessWidget {
                           child: Text(
                             displayName,
                             style: WorkGoFonts.heading(
-                              color: CX.textPrimary,
+                              color: const Color(0xFF141416),
                               fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.2,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2.5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: worker.isProxy
-                                ? CX.cyan.withValues(alpha: 0.2)
-                                : (worker.isApproved
-                                    ? CX.emerald.withValues(alpha: 0.2)
-                                    : CX.amber.withValues(alpha: 0.2)),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: worker.isProxy
-                                  ? CX.cyan.withValues(alpha: 0.5)
-                                  : (worker.isApproved
-                                      ? CX.emerald.withValues(alpha: 0.6)
-                                      : CX.amber.withValues(alpha: 0.6)),
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                worker.isApproved
-                                    ? Icons.verified_rounded
-                                    : Icons.hourglass_top_rounded,
-                                size: 11,
-                                color: worker.isProxy
-                                    ? CX.cyan
-                                    : (worker.isApproved
-                                        ? const Color(0xFF6EE7B7)
-                                        : CX.amber),
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                badgeLabel,
-                                style: TextStyle(
-                                  color: worker.isProxy
-                                      ? CX.cyan
-                                      : (worker.isApproved
-                                          ? const Color(0xFF6EE7B7)
-                                          : CX.amber),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.4,
-                                ),
-                              ),
-                            ],
-                          ),
+                        const Icon(
+                          Icons.verified_rounded,
+                          color: Color(0xFF10B981),
+                          size: 16,
                         ),
                       ],
                     ),
                     const SizedBox(height: 3),
                     Text(
                       "${worker.skills.join(', ')} • ${worker.experienceYears} yrs exp (${worker.experienceYears >= 5 ? 'Master' : 'Senior'})",
-                      style: WorkGoFonts.body(
-                        color: CX.textSecondary,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
                         fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  ],
+                ),
+              ),
+
+              // Star Rating Pill (Image 1 Style)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star_rounded, color: Color(0xFFD97706), size: 14),
+                    const SizedBox(width: 3),
+                    Text(
+                      ratingDisplay,
+                      style: const TextStyle(
+                        color: Color(0xFFB45309),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (reviewCount > 0) ...[
+                      const SizedBox(width: 2),
+                      Text(
+                        " ($reviewCount)",
+                        style: const TextStyle(
+                          color: Color(0xFFB45309),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1475,73 +1595,62 @@ class _WorkerCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+              border: Border.all(color: const Color(0xFFF1F5F9)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Star Rating & Review Count
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, color: CX.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      ratingDisplay,
-                      style: WorkGoFonts.numeric(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    if (reviewCount > 0) ...[
-                      const SizedBox(width: 3),
-                      Text(
-                        "($reviewCount)",
-                        style: WorkGoFonts.body(
-                          color: CX.textMuted,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                Container(width: 1, height: 14, color: Colors.white12),
-
                 // Homes / Customers Serviced
                 Row(
                   children: [
                     const Icon(
                       Icons.home_work_rounded,
-                      color: Color(0xFF6EE7B7),
+                      color: Color(0xFF059669),
                       size: 14,
                     ),
                     const SizedBox(width: 5),
                     Text(
                       homesDisplay,
-                      style: WorkGoFonts.body(
-                        color: CX.textSecondary,
+                      style: const TextStyle(
+                        color: Color(0xFF334155),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-                Container(width: 1, height: 14, color: Colors.white12),
+                Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
 
-                // Distance & ETA (Rapido-style)
+                // Distance
                 Row(
                   children: [
-                    const Icon(Icons.near_me_rounded, color: CX.cyan, size: 13),
+                    const Icon(Icons.location_on_rounded, color: Color(0xFF2563EB), size: 13),
                     const SizedBox(width: 4),
                     Text(
                       worker.distanceKm > 0
-                          ? "${worker.distanceKm.toStringAsFixed(1)} km"
-                          : "1.2 km",
-                      style: WorkGoFonts.body(
-                        color: CX.cyan,
+                          ? "${worker.distanceKm.toStringAsFixed(1)} km away"
+                          : "1.2 km away",
+                      style: const TextStyle(
+                        color: Color(0xFF2563EB),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
+
+                // Escrow Safety
+                Row(
+                  children: const [
+                    Icon(Icons.shield_rounded, color: Color(0xFF7C3AED), size: 13),
+                    SizedBox(width: 4),
+                    Text(
+                      "₹50k Cover",
+                      style: TextStyle(
+                        color: Color(0xFF7C3AED),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1553,16 +1662,16 @@ class _WorkerCard extends StatelessWidget {
           ),
 
           // Divider
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Divider(color: CX.glassBorder, height: 1),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Divider(color: Color(0xFFF1F5F9), height: 1),
           ),
 
-          // ── 3. Price + Action Row ──────────────
+          // ── 3. Price + Action Row (Image 1 Style Dark Pill Button) ────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Rapido-Style Dynamic Pricing
+              // Dynamic Fare Info
               GestureDetector(
                 onTap: () => _showFareBreakdownSheet(context, fare),
                 behavior: HitTestBehavior.opaque,
@@ -1573,8 +1682,8 @@ class _WorkerCard extends StatelessWidget {
                       children: [
                         Text(
                           'est_fare'.tr(),
-                          style: WorkGoFonts.body(
-                            color: CX.textMuted,
+                          style: const TextStyle(
+                            color: Color(0xFF94A3B8),
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1582,7 +1691,7 @@ class _WorkerCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         const Icon(
                           Icons.info_outline_rounded,
-                          color: CX.amber,
+                          color: Color(0xFFD97706),
                           size: 12,
                         ),
                       ],
@@ -1595,7 +1704,7 @@ class _WorkerCard extends StatelessWidget {
                         Text(
                           "₹${fare.totalEstimatedFare.toStringAsFixed(0)}",
                           style: WorkGoFonts.numeric(
-                            color: CX.amber,
+                            color: const Color(0xFF141416),
                             fontSize: 19,
                             fontWeight: FontWeight.w900,
                           ),
@@ -1603,8 +1712,8 @@ class _WorkerCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           "(${fare.formattedBase} + ${fare.formattedTransit})",
-                          style: WorkGoFonts.body(
-                            color: CX.textSecondary.withValues(alpha: 0.7),
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
                             fontSize: 9.5,
                             fontWeight: FontWeight.w500,
                           ),
@@ -1615,55 +1724,47 @@ class _WorkerCard extends StatelessWidget {
                 ),
               ),
 
-              if (worker.isProxy)
-                GlowButton(
-                  label: 'call_to_book'.tr(),
-                  icon: Icons.phone_rounded,
-                  onPressed: () {
-                    final phone = worker.phoneForCalling;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(phone != null && phone.isNotEmpty
-                            ? "Calling ${worker.name} at $phone…"
-                            : "Calling cooperative direct dispatch line…"),
-                        backgroundColor: CX.success,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+              // Sleek Dark Pill Action Button (Image 1 Style)
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (ctx) => BookingCreationScreen(
+                        serviceCategory: tradeCategory,
+                        customerId: customerId,
+                        targetWorkerId: worker.id,
+                        worker: worker,
                       ),
-                    );
-                  },
-                  gradient: CX.auroraSuccess,
-                  glowColor: CX.emerald,
-                  isFullWidth: false,
-                  height: 38,
-                  borderRadius: 12,
-                  fontSize: 12,
-                )
-              else
-                GlowButton(
-                  label: 'book_now'.tr(),
-                  icon: Icons.calendar_month_rounded,
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (ctx) => BookingCreationScreen(
-                          serviceCategory: tradeCategory,
-                          customerId: customerId,
-                          targetWorkerId: worker.id,
-                          worker: worker,
-                        ),
-                      ),
-                    );
-                  },
-                  gradient: CX.auroraVioletCyan,
-                  glowColor: CX.violet,
-                  isFullWidth: false,
-                  height: 38,
-                  borderRadius: 12,
-                  fontSize: 12,
+                    ),
+                  );
+                },
+                icon: const Text(
+                  "Book Pro",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
+                label: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white24,
+                  ),
+                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF141416),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  minimumSize: const Size(0, 42),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                ),
+              ),
             ],
           ),
         ],

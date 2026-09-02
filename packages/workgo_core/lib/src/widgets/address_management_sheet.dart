@@ -44,15 +44,15 @@ class _AddressManagementSheetContent extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F0B24),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.2),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(top: BorderSide(color: Color(0xFFF0EDE6), width: 1.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.7),
-            blurRadius: 30,
-            offset: const Offset(0, -10),
+            color: Color(0x18000000),
+            blurRadius: 28,
+            offset: Offset(0, -4),
           ),
         ],
       ),
@@ -66,7 +66,7 @@ class _AddressManagementSheetContent extends StatelessWidget {
               width: 44,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: const Color(0xFFE5E0D8),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -82,18 +82,19 @@ class _AddressManagementSheetContent extends StatelessWidget {
                 children: [
                   Text(
                     userRole == "worker" ? "operating_bases_title".trSafe("Operating Bases & Hubs") : "saved_addresses_title".trSafe("Saved Addresses"),
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: const Color(0xFF1A1A1A),
                       fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     "select_address_subtitle".trSafe("Tap to select active location"),
                     style: GoogleFonts.plusJakartaSans(
-                      color: const Color(0xFF94A3B8),
+                      color: const Color(0xFF6B6B6B),
                       fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -119,7 +120,8 @@ class _AddressManagementSheetContent extends StatelessWidget {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF59E0B),
+                  backgroundColor: const Color(0xFFFFB800),
+                  foregroundColor: const Color(0xFF1E1035),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
@@ -138,7 +140,7 @@ class _AddressManagementSheetContent extends StatelessWidget {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+                      child: CircularProgressIndicator(color: Color(0xFFFFB800)),
                     ),
                   );
                 }
@@ -150,28 +152,28 @@ class _AddressManagementSheetContent extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1B153B),
+                      color: const Color(0xFFFFFBF2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      border: Border.all(color: const Color(0xFFF0EDE6)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.location_off_rounded, color: Color(0xFF94A3B8), size: 36),
+                        const Icon(Icons.location_off_rounded, color: Color(0xFF9CA3AF), size: 36),
                         const SizedBox(height: 10),
                         Text(
                           "no_addresses_yet".trSafe("No Saved Addresses Yet"),
-                          style: GoogleFonts.outfit(
-                            color: Colors.white,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: const Color(0xFF1A1A1A),
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "no_addresses_desc".trSafe("Add an address using GPS detection or manual input to easily book services."),
+                          "no_addresses_desc".trSafe("Add an address using GPS detection or manual input to easily set dispatch zones."),
                           style: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFF94A3B8),
+                            color: const Color(0xFF6B6B6B),
                             fontSize: 12,
                           ),
                           textAlign: TextAlign.center,
@@ -179,10 +181,10 @@ class _AddressManagementSheetContent extends StatelessWidget {
                         const SizedBox(height: 14),
                         OutlinedButton.icon(
                           onPressed: () => showAddAddressSheet(context, userId: userId, userRole: userRole),
-                          icon: const Icon(Icons.my_location_rounded, size: 16, color: Color(0xFFF59E0B)),
-                          label: Text("detect_current_location".trSafe("Detect Current Location"), style: const TextStyle(color: Color(0xFFF59E0B))),
+                          icon: const Icon(Icons.my_location_rounded, size: 16, color: Color(0xFFB45309)),
+                          label: Text("detect_current_location".trSafe("Detect Current Location"), style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w700)),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFF59E0B)),
+                            side: const BorderSide(color: Color(0xFFFFB800)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
@@ -221,14 +223,14 @@ class _AddressManagementSheetContent extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1B153B),
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("Delete Address", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Text("Are you sure you want to remove '${addr.displayTitle}'?", style: GoogleFonts.plusJakartaSans(color: Colors.white70)),
+        title: Text("Delete Address", style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.bold)),
+        content: Text("Are you sure you want to remove '${addr.displayTitle}'?", style: GoogleFonts.plusJakartaSans(color: const Color(0xFF6B6B6B))),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Cancel", style: TextStyle(color: Colors.white60)),
+            child: const Text("Cancel", style: TextStyle(color: Color(0xFF6B6B6B))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -268,10 +270,10 @@ class _AddressCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF261D52) : const Color(0xFF161131),
+          color: isSelected ? const Color(0xFFFFF3D6) : const Color(0xFFF9F6EE),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? const Color(0xFFF59E0B) : Colors.white.withValues(alpha: 0.08),
+            color: isSelected ? const Color(0xFFFFB800) : const Color(0xFFF0EDE6),
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -282,12 +284,12 @@ class _AddressCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFF59E0B).withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.06),
+                color: isSelected ? const Color(0xFFFFB800).withValues(alpha: 0.25) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 address.label.icon,
-                color: isSelected ? const Color(0xFFF59E0B) : Colors.white70,
+                color: isSelected ? const Color(0xFFB45309) : const Color(0xFF6B6B6B),
                 size: 20,
               ),
             ),
@@ -302,10 +304,10 @@ class _AddressCard extends StatelessWidget {
                     children: [
                       Text(
                         address.displayTitle.toUpperCase(),
-                        style: GoogleFonts.outfit(
-                          color: Colors.white,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF1A1A1A),
                           fontSize: 13.5,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -314,14 +316,14 @@ class _AddressCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                            color: const Color(0xFFD1FAE5),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
                           ),
                           child: const Text(
                             "DEFAULT",
                             style: TextStyle(
-                              color: Color(0xFF10B981),
+                              color: Color(0xFF065F46),
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
                             ),
@@ -329,14 +331,14 @@ class _AddressCard extends StatelessWidget {
                         ),
                       const Spacer(),
                       if (isSelected)
-                        const Icon(Icons.check_circle_rounded, color: Color(0xFFF59E0B), size: 18),
+                        const Icon(Icons.check_circle_rounded, color: Color(0xFFFFB800), size: 18),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     address.fullDisplayAddress,
                     style: GoogleFonts.plusJakartaSans(
-                      color: const Color(0xFFCBD5E1),
+                      color: const Color(0xFF6B6B6B),
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -353,7 +355,7 @@ class _AddressCard extends StatelessWidget {
                           onTap: onSetDefault,
                           child: const Text(
                             "Set as Default",
-                            style: TextStyle(color: Color(0xFFF59E0B), fontSize: 11, fontWeight: FontWeight.w700),
+                            style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w700),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -362,7 +364,7 @@ class _AddressCard extends StatelessWidget {
                         onTap: onEdit,
                         child: const Text(
                           "Edit",
-                          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w700),
+                          style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 11, fontWeight: FontWeight.w700),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -535,10 +537,17 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F0B24),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.2),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(top: BorderSide(color: Color(0xFFF0EDE6), width: 1.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x18000000),
+            blurRadius: 28,
+            offset: Offset(0, -4),
+          ),
+        ],
       ),
       child: SingleChildScrollView(
         child: Form(
@@ -553,7 +562,7 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                   width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: const Color(0xFFE5E0D8),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -566,16 +575,16 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                 children: [
                   Text(
                     widget.existingAddress != null ? "Edit Address" : "Add New Address",
-                    style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                    style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 18, fontWeight: FontWeight.w800),
                   ),
                   TextButton.icon(
                     onPressed: _isDetectingGps ? null : _autoDetectGps,
                     icon: _isDetectingGps
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFF59E0B)))
-                        : const Icon(Icons.my_location_rounded, size: 16, color: Color(0xFFF59E0B)),
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFB800)))
+                        : const Icon(Icons.my_location_rounded, size: 16, color: Color(0xFFB45309)),
                     label: Text(
                       _isDetectingGps ? "Detecting..." : "Detect GPS",
-                      style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 12, fontWeight: FontWeight.w800),
+                      style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.w800),
                     ),
                   ),
                 ],
@@ -583,7 +592,7 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
               const SizedBox(height: 14),
 
               // Address Label Selector Pills
-              Text("Save As", style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
+              Text("Save As", style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 12, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Row(
                 children: AddressLabel.values.map((lbl) {
@@ -594,16 +603,16 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(lbl.icon, size: 14, color: isSelected ? const Color(0xFF1E1035) : Colors.white70),
+                          Icon(lbl.icon, size: 14, color: isSelected ? const Color(0xFF1E1035) : const Color(0xFF6B6B6B)),
                           const SizedBox(width: 6),
                           Text(lbl.displayName),
                         ],
                       ),
                       selected: isSelected,
-                      selectedColor: const Color(0xFFF59E0B),
-                      backgroundColor: const Color(0xFF1B153B),
+                      selectedColor: const Color(0xFFFFB800),
+                      backgroundColor: const Color(0xFFF9F6EE),
                       labelStyle: TextStyle(
-                        color: isSelected ? const Color(0xFF1E1035) : Colors.white,
+                        color: isSelected ? const Color(0xFF1E1035) : const Color(0xFF1A1A1A),
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                       ),
@@ -680,12 +689,12 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _isDefault,
-                activeColor: const Color(0xFFF59E0B),
+                activeColor: const Color(0xFFFFB800),
                 checkColor: const Color(0xFF1E1035),
                 onChanged: (val) => setState(() => _isDefault = val ?? false),
                 title: Text(
                   "Set as default service address",
-                  style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(height: 16),
@@ -695,9 +704,10 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                 onPressed: _isSaving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 52),
-                  backgroundColor: const Color(0xFFF59E0B),
+                  backgroundColor: const Color(0xFFFFB800),
                   foregroundColor: const Color(0xFF1E1035),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
                 ),
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Color(0xFF1E1035))
@@ -724,27 +734,28 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
-      style: const TextStyle(color: Colors.white, fontSize: 13.5),
+      style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 13.5, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
-        prefixIcon: Icon(icon, color: const Color(0xFFF59E0B), size: 18),
+        labelStyle: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 12),
+        prefixIcon: Icon(icon, color: const Color(0xFFFFB800), size: 18),
         filled: true,
-        fillColor: const Color(0xFF1B153B),
+        fillColor: const Color(0xFFF9F6EE),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+          borderSide: const BorderSide(color: Color(0xFFF0EDE6)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+          borderSide: const BorderSide(color: Color(0xFFF0EDE6)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFFFFB800), width: 1.5),
         ),
       ),
     );
   }
 }
+

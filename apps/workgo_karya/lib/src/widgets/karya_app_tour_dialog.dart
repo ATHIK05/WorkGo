@@ -222,10 +222,10 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
-      decoration: const BoxDecoration(
-        color: Color(0xFF0F0B1E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(top: BorderSide(color: Colors.white24, width: 1.2)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF2),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(top: BorderSide(color: KX.glassBorder, width: 1.2)),
       ),
       child: SafeArea(
         top: false,
@@ -237,7 +237,7 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
               width: 44,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white30,
+                color: KX.dividerLight,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -274,13 +274,13 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white10,
+                        color: KX.canvasElevated,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Text(
                         "Skip Tour",
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: KX.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -323,7 +323,7 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                         width: isActive ? 24 : 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: isActive ? KX.gold : Colors.white24,
+                          color: isActive ? KX.gold : KX.dividerLight,
                           borderRadius: BorderRadius.circular(4),
                           boxShadow: isActive
                               ? [
@@ -348,8 +348,8 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                           child: OutlinedButton(
                             onPressed: _previousPage,
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white24),
+                              foregroundColor: KX.textPrimary,
+                              side: BorderSide(color: KX.glassBorder),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -494,7 +494,7 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
           Text(
             step.subtitle,
             style: const TextStyle(
-              color: Colors.white,
+              color: KX.textPrimary,
               fontSize: 13,
               height: 1.45,
             ),
@@ -505,9 +505,9 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF1B1536),
+              color: const Color(0xFFF9F6EE),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(color: KX.glassBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -527,7 +527,7 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                         child: Text(
                           point,
                           style: const TextStyle(
-                            color: Colors.white70,
+                            color: KX.textSecondary,
                             fontSize: 12,
                             height: 1.35,
                           ),

@@ -1,6 +1,5 @@
-﻿import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import '../../theme/colors.dart';
 import '../../theme/spacing.dart';
 import '../safe_text.dart';
 import 'auth_text_field.dart';
@@ -60,7 +59,7 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white70),
+              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF141416)),
               onPressed: widget.isLoading ? null : widget.onBackToSignIn,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -72,19 +71,20 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
           SafeText(
             'forgot_password'.tr(),
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
+              color: Color(0xFF141416),
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.6,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           SafeText(
             'reset_password'.tr(),
-            style: TextStyle(
-              color: WorkGoColors.textSecondary.withValues(alpha: 0.75),
+            style: const TextStyle(
+              color: Color(0xFF64748B),
               fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
@@ -105,21 +105,17 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
           ),
           const SizedBox(height: WorkGoSpacing.xl),
 
-          // Submit Button
+          // Submit Button (Sleek Dark Pill Button)
           Container(
             height: 52,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [WorkGoColors.accent, WorkGoColors.accentDark],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF141416),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: WorkGoColors.accentDark.withValues(alpha: 0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -127,7 +123,7 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
               color: Colors.transparent,
               child: InkWell(
                 onTap: widget.isLoading ? null : _submit,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(24),
                 child: Center(
                   child: widget.isLoading
                       ? const SizedBox(
@@ -135,16 +131,14 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFF1C1B2E),
-                            ),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : SafeText(
                           'reset_password'.tr(),
                           style: const TextStyle(
-                            color: Color(0xFF1C1B2E),
-                            fontSize: 16,
+                            color: Colors.white,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.3,
                           ),
@@ -166,15 +160,15 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
                   const Icon(
                     Icons.arrow_back_rounded,
                     size: 16,
-                    color: WorkGoColors.accent,
+                    color: Color(0xFF141416),
                   ),
                   const SizedBox(width: 6),
                   SafeText(
                     'sign_in'.tr(),
                     style: const TextStyle(
-                      color: WorkGoColors.accent,
+                      color: Color(0xFF141416),
                       fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],

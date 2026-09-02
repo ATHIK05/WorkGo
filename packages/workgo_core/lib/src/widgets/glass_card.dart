@@ -1,14 +1,16 @@
-﻿import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../theme/colors.dart';
 import '../theme/spacing.dart';
 
+/// Premium light card widget — replaces GlassCard (dark glassmorphic).
+/// Warm white surface with soft diffuse shadow. No backdrop blur needed on light.
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(WorkGoSpacing.md),
-    this.borderRadius = 20.0,
-    this.blurSigma = 16.0,
+    this.borderRadius = WorkGoSpacing.radiusMd,
+    this.blurSigma = 0.0,               // Not used on light — kept for API compat
     this.borderColor,
     this.backgroundColor,
     this.onTap,
@@ -18,7 +20,7 @@ class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final double borderRadius;
-  final double blurSigma;
+  final double blurSigma;               // API-compat; ignored on light surfaces
   final Color? borderColor;
   final Color? backgroundColor;
   final VoidCallback? onTap;
@@ -29,41 +31,30 @@ class GlassCard extends StatelessWidget {
     Widget content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: backgroundColor ?? const Color(0xFF1B1633).withValues(alpha: 0.65),
+        color: backgroundColor ?? WorkGoColors.cardLight,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(
-          color: borderColor ?? Colors.white.withValues(alpha: 0.12),
-          width: 1.2,
-        ),
+        border: borderColor != null
+            ? Border.all(color: borderColor!, width: 1)
+            : null,
+        boxShadow: elevation > 0
+            ? [
+                BoxShadow(
+                  color: const Color(0x0D000000),  // rgba(0,0,0,0.05) — whisper
+                  blurRadius: elevation * 1.8,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 3),
+                ),
+                BoxShadow(
+                  color: const Color(0x08FFB800),  // rgba(255,184,0,0.03) warm tint
+                  blurRadius: elevation,
+                  spreadRadius: -1,
+                  offset: Offset(0, elevation / 3),
+                ),
+              ]
+            : null,
       ),
       child: child,
     );
-
-    if (blurSigma > 0) {
-      content = ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-          child: content,
-        ),
-      );
-    }
-
-    if (elevation > 0) {
-      content = Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: elevation * 2,
-              offset: Offset(0, elevation / 2),
-            ),
-          ],
-        ),
-        child: content,
-      );
-    }
 
     if (onTap != null) {
       return Material(
@@ -72,6 +63,8 @@ class GlassCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(borderRadius),
+          splashColor: WorkGoColors.primary.withValues(alpha: 0.08),
+          highlightColor: WorkGoColors.primary.withValues(alpha: 0.05),
           child: content,
         ),
       );

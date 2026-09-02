@@ -39,6 +39,7 @@ export "src/widgets/workgo_avatar.dart";
 export "src/widgets/checkout_motivation_bottom_sheet.dart";
 export "src/widgets/location_prompt_dialog.dart";
 export "src/widgets/address_management_sheet.dart";
+export "src/widgets/peer_referral_network_sheet.dart";
 export "src/widgets/workgo_splash_screen.dart";
 export "src/widgets/c2pa_badge.dart";
 export "src/widgets/interactive_rapido_map.dart";

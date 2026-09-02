@@ -347,7 +347,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                               child: Text(
                                 skill,
                                 style: WorkGoFonts.heading(
-                                  color: isSelected ? Colors.white : KX.textSecondary,
+                                  color: isSelected ? const Color(0xFF1E1035) : KX.textSecondary,
                                   fontSize: 12.5,
                                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                                 ),
@@ -378,13 +378,13 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF2E1B4E), Color(0xFF1E1035)],
+                        gradient: LinearGradient(
+                          colors: [KX.canvasCard, KX.canvasMid],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: KX.violetNeon.withValues(alpha: 0.4)),
+                        border: Border.all(color: KX.gold.withValues(alpha: 0.4)),
                       ),
                       padding: const EdgeInsets.all(12),
                       child: Row(
@@ -414,7 +414,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                                 Text(
                                   _isDetectingGps ? "Detecting real-time GPS..." : "Live Hardware GPS Location",
                                   style: WorkGoFonts.heading(
-                                    color: Colors.white,
+                                    color: KX.textPrimary,
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -471,7 +471,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                         child: DropdownButton<String>(
                           value: _tamilNaduDistricts.contains(_selectedCity) ? _selectedCity : _tamilNaduDistricts.first,
                           isExpanded: true,
-                          dropdownColor: const Color(0xFF1B1438),
+                          dropdownColor: KX.canvasCard,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: KX.gold),
                           items: _tamilNaduDistricts.map((city) {
                             return DropdownMenuItem(
@@ -506,10 +506,10 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _streetAreaCtrl,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                       decoration: InputDecoration(
                         hintText: "e.g. 20, Mosikeeranar Street, Indira Nagar",
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
+                        hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
                         filled: true,
                         fillColor: KX.canvasElevated,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -538,10 +538,10 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                     TextFormField(
                       controller: _pincodeCtrl,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                       decoration: InputDecoration(
                         hintText: "e.g. 638001",
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
+                        hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
                         filled: true,
                         fillColor: KX.canvasElevated,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -741,7 +741,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                 Text(
                   time,
                   style: WorkGoFonts.numeric(
-                    color: Colors.white,
+                    color: KX.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),

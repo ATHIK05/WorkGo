@@ -8,6 +8,7 @@ import '../customer_theme.dart';
 import '../../main.dart';
 import 'booking_creation_screen.dart';
 import 'live_booking_tracker_screen.dart';
+import 'payment_receipt_screen.dart';
 import 'worker_search_screen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
@@ -27,23 +28,13 @@ class CustomerHomeScreen extends StatefulWidget {
 class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     with TickerProviderStateMixin {
   int _currentNavIndex = 0;
+  int _selectedDayIndex = 3; // Today default
   final BookingService _bookingService = BookingService();
   final AuthService _authService = AuthService();
   final WorkerService _workerService = WorkerService();
   late AnimationController _navIndicatorCtrl;
   String _bookingFilter = "all"; // 'all', 'active', 'completed', 'cancelled'
   static bool _hasPromptedThisSession = false;
-
-  final List<Map<String, dynamic>> _categories = [
-    {"name": "Plumbing", "key": "cat_plumbing"},
-    {"name": "Electrical", "key": "cat_electrical"},
-    {"name": "Carpentry", "key": "cat_carpentry"},
-    {"name": "Cleaning", "key": "cat_cleaning"},
-    {"name": "Painting", "key": "cat_painting"},
-    {"name": "Appliance Repair", "key": "cat_appliance"},
-    {"name": "Masonry", "key": "cat_masonry"},
-    {"name": "Gardening", "key": "cat_gardening"},
-  ];
 
   @override
   void initState() {
@@ -120,109 +111,83 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         }
       },
       child: AuroraScaffold(
-        bottomNavigationBar: _buildFloatingNav(),
-        body: AnimatedSwitcher(
-          duration: CAnim.normal,
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, anim) =>
-              FadeTransition(opacity: anim, child: child),
-          child: KeyedSubtree(
-            key: ValueKey(_currentNavIndex),
-            child: switch (_currentNavIndex) {
-              0 => _buildHomeFeed(context),
-              1 => WorkerSearchScreen(customerId: widget.user.uid),
-              2 => _buildMyBookingsTab(context),
-              3 => _buildProfileTab(context),
-              _ => _buildHomeFeed(context),
-            },
-          ),
+        bottomNavigationBar: _buildFloatingDock(),
+        body: IndexedStack(
+          index: _currentNavIndex,
+          children: [
+            _buildHomeFeed(context),
+            WorkerSearchScreen(customerId: widget.user.uid),
+            _buildMyBookingsTab(context),
+            _buildProfileTab(context),
+          ],
         ),
       ),
     );
   }
 
   // ──────────────────────────────────────────
-  //  FLOATING GLASS NAV BAR
+  //  FLOATING OBSIDIAN DOCK (Template Standard)
   // ──────────────────────────────────────────
-  Widget _buildFloatingNav() {
+  Widget _buildFloatingDock() {
     final items = [
-      (Icons.home_rounded, Icons.home_outlined, 'Home'),
-      (Icons.search_rounded, Icons.search_rounded, 'search_workers'),
-      (Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'my_bookings'),
-      (Icons.person_rounded, Icons.person_outline_rounded, 'profile'),
+      (Icons.home_rounded, "Home"),
+      (Icons.grid_view_rounded, "Explore"),
+      (Icons.receipt_long_rounded, "Orders"),
+      (Icons.person_outline_rounded, "Profile"),
     ];
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         child: Container(
           height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
-            color: CX.canvasCard.withValues(alpha: 0.94),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: CX.glassBorderBright, width: 1.2),
+            color: const Color(0xFF141416),
+            borderRadius: BorderRadius.circular(50),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 24,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(items.length, (i) {
-              final isActive = _currentNavIndex == i;
-              final item = items[i];
-              final labelKey = item.$3;
-              final label = labelKey == 'Home'
-                  ? 'Home'
-                  : labelKey == 'search_workers'
-                  ? 'search_workers'.tr()
-                  : labelKey == 'my_bookings'
-                  ? 'my_bookings'.tr()
-                  : 'profile'.tr();
+              final active = _currentNavIndex == i;
+              final (icon, _) = items[i];
 
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => _onNavTap(i),
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: CAnim.normal,
-                    curve: Curves.easeOutCubic,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: CAnim.fast,
-                          child: Icon(
-                            isActive ? item.$1 : item.$2,
-                            key: ValueKey(isActive),
-                            size: 22,
-                            color: isActive ? CX.amber : CX.textMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        AnimatedDefaultTextStyle(
-                          duration: CAnim.fast,
-                          style: TextStyle(
-                            color: isActive ? CX.amber : CX.textMuted,
-                            fontSize: 10,
-                            fontWeight: isActive
-                                ? FontWeight.w800
-                                : FontWeight.w500,
-                          ),
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        AnimatedContainer(
-                          duration: CAnim.normal,
-                          curve: Curves.easeOutCubic,
-                          width: isActive ? 18 : 0,
-                          height: 3,
-                          margin: const EdgeInsets.only(top: 2),
-                          decoration: BoxDecoration(
-                            color: isActive ? CX.amber : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ],
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  _onNavTap(i);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  width: active ? 52 : 46,
+                  height: active ? 52 : 46,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: active ? Colors.white : Colors.transparent,
+                    boxShadow: active
+                        ? const [
+                            BoxShadow(
+                              color: Color(0x1A000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      size: 22,
+                      color: active ? const Color(0xFF141416) : const Color(0xFF8E8E93),
                     ),
                   ),
                 ),
@@ -235,157 +200,112 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   }
 
   // ──────────────────────────────────────────
-  //  HOME FEED — Swiggy / Rapido Style Bento Experience
+  //  HOME FEED — WorkGo Luxury Customer Cockpit
   // ──────────────────────────────────────────
   Widget _buildHomeFeed(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Header Row (Greeting + Active Delivery Location + Lang)
-            SlideFadeIn(child: _buildHeader()),
+            // 1. Top Header (Avatar + Hello, Customer + Real Date + Search)
+            _buildSandraTopBar(),
+            const SizedBox(height: 18),
+
+            // 2. WorkGo Fast-Track Artisan Dispatch Card (Lavender / Soft Purple Card)
+            _buildWorkGoDispatchHeroCard(),
             const SizedBox(height: 16),
 
-            // 2. Interactive Quick Search Bar (Swiggy / Blinkit style)
-            SlideFadeIn(
-              delay: const Duration(milliseconds: 30),
-              child: _buildQuickSearchBar(),
-            ),
-            const SizedBox(height: 18),
+            // 3. Weekly 7-Day Calendar Strip (Sun .. Sat with Active Obsidian Pill)
+            _buildWeeklyCalendarStrip(),
+            const SizedBox(height: 22),
 
-            // 3. Instant 1-Tap Problem Fixes Rail
-            SlideFadeIn(
-              delay: const Duration(milliseconds: 60),
-              child: _buildInstantSolutionsRail(),
-            ),
-            const SizedBox(height: 20),
+            // 4. "Active Bookings & Fast Action" Bento Grid (Real Stream Data)
+            _buildCustomerWorkGoBentoGrid(),
+            const SizedBox(height: 24),
 
-            // 4. Kinetic Hero Bento Spotlight Deck (SOS Emergency + Titans Radar)
-            SlideFadeIn(
-              delay: const Duration(milliseconds: 90),
-              child: _buildHeroBentoSpotlight(),
-            ),
-            const SizedBox(height: 18),
-
-            // 5. Active Booking Pill (stream-driven)
-            _buildActiveBookingsStream(),
-
-            // 6. Section Header: Explore Craft Services
-            SlideFadeIn(
-              delay: const Duration(milliseconds: 120),
-              child: _buildSectionHeader(
-                title: "Explore Craft Services",
-                actionLabel: "View All (8)",
-                onAction: () => setState(() => _currentNavIndex = 1),
-              ),
+            // 5. Section Header: Explore Craft Services
+            _buildSectionHeader(
+              title: "Explore Craft Services",
+              actionLabel: "View All (8)",
+              onAction: () => _onNavTap(1),
             ),
             const SizedBox(height: 14),
 
-            // 7. World-Class Bento Category Grid (Rich Visual Depth)
-            SlideFadeIn(
-              delay: const Duration(milliseconds: 150),
-              child: _buildCategoryBentoGrid(),
-            ),
+            // 6. 8-Category Bento Grid
+            _buildCategoryBentoGrid(),
             const SizedBox(height: 24),
 
-            // 8. Top Verified Artisans Spotlight Carousel
-            SlideFadeIn(
-              delay: const Duration(milliseconds: 180),
-              child: _buildTopArtisansSpotlight(),
-            ),
-            const SizedBox(height: 24),
-
-            // 9. Cooperative Advantage Trust & Proxy Referral
-            SlideFadeIn(
-              delay: const Duration(milliseconds: 210),
-              child: _buildProxyBanner(),
-            ),
+            // 7. Top Verified Artisans Spotlight Carousel
+            _buildTopArtisansSpotlight(),
           ],
         ),
       ),
     );
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  }
-
-  Future<void> _handleAvatarUpload() async {
-    final result = await ImageUploadService.instance
-        .showAvatarPickerBottomSheet(context, uid: widget.user.uid);
-    if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                Icons.check_circle_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                "Profile photo updated successfully!",
-                style: WorkGoFonts.body(color: Colors.white),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF047857),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      );
-    }
-  }
-
-  Widget _buildHeader() {
+  // ──────────────────────────────────────────
+  //  TOP BAR (Avatar + Greeting + Date + Search)
+  // ──────────────────────────────────────────
+  Widget _buildSandraTopBar() {
     final name = widget.user.displayName.isNotEmpty
         ? widget.user.displayName.split(' ').first
         : widget.user.email.split('@').first;
+    final now = DateTime.now();
+    final dateStr = "Today ${DateFormat('d MMM').format(now)}";
 
     return StreamBuilder<AppUser?>(
       stream: _authService.streamAppUser(widget.user.uid),
       initialData: widget.user,
       builder: (context, snap) {
         final liveUser = snap.data ?? widget.user;
+        final avatar = liveUser.avatarBase64;
         final activeAddr = liveUser.currentAddress;
         final areaLabel = activeAddr != null
             ? "${activeAddr.displayTitle} · ${activeAddr.shortSummary}"
-            : (liveUser.primaryArea ?? "Select Service Address");
+            : (liveUser.primaryArea ?? "Select Address");
 
         return Row(
           children: [
+            // Circular User Avatar (with halo border)
             GestureDetector(
-              onTap: () => setState(() => _currentNavIndex = 3),
-              child: WorkGoAvatar(
-                avatarBase64: liveUser.avatarBase64,
-                name: name,
-                radius: 22,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _onNavTap(3);
+              },
+              child: Container(
+                padding: const EdgeInsets.all(2.5),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFF0EDE6), width: 1.5),
+                  color: Colors.white,
+                ),
+                child: WorkGoAvatar(
+                  avatarBase64: avatar,
+                  name: name,
+                  radius: 20,
+                ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
+
+            // Greeting + Date & Address Bar
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "${_getGreeting()}, $name",
-                    style: const TextStyle(
-                      color: CX.textPrimary,
-                      fontSize: 18,
+                    "Hello, $name",
+                    style: WorkGoFonts.heading(
+                      color: const Color(0xFF141416),
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  // Swiggy / Zomato style address picker bar
+                  const SizedBox(height: 1),
                   GestureDetector(
                     onTap: () => showAddressManagementSheet(
                       context,
@@ -393,20 +313,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       userRole: "customer",
                       selectedAddress: activeAddr,
                     ),
-                    behavior: HitTestBehavior.opaque,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          activeAddr?.label.icon ?? Icons.location_on_rounded,
-                          size: 13,
-                          color: CX.amber,
+                        Text(
+                          dateStr,
+                          style: WorkGoFonts.body(
+                            color: const Color(0xFF6B6B6B),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                        const SizedBox(width: 4),
+                        const Text("•", style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 11)),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
                             areaLabel,
                             style: const TextStyle(
-                              color: CX.amber,
+                              color: Color(0xFFD97706),
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
                             ),
@@ -414,11 +339,781 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 2),
-                        const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 15,
-                          color: CX.amber,
+                        const Icon(Icons.arrow_drop_down_rounded, size: 16, color: Color(0xFFD97706)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Search Icon Circle
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _onNavTap(1);
+              },
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.search_rounded,
+                    color: Color(0xFF141416),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  WORKGO DISPATCH HERO CARD (Live Artisan Availability)
+  // ──────────────────────────────────────────
+  Widget _buildWorkGoDispatchHeroCard() {
+    return StreamBuilder<List<Worker>>(
+      stream: _workerService.streamAvailableWorkers(skill: "All"),
+      builder: (context, snap) {
+        final workers = snap.data ?? [];
+        final totalCount = workers.isNotEmpty ? workers.length : 0;
+
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _onNavTap(1);
+          },
+          child: Container(
+            width: double.infinity,
+            height: 154,
+            padding: const EdgeInsets.fromLTRB(20, 18, 18, 18),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEDE8FF), Color(0xFFDFD4FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0A000000),
+                  blurRadius: 18,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Left Content
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Instant Pro Dispatch",
+                          style: WorkGoFonts.heading(
+                            color: const Color(0xFF141416),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "⚡ 15-Min Guaranteed Artisan Arrival",
+                          style: WorkGoFonts.body(
+                            color: const Color(0xFF4B5563),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Avatar Stack: Live Available Workers
+                    Row(
+                      children: [
+                        if (workers.isNotEmpty)
+                          SizedBox(
+                            width: (workers.length.clamp(1, 3) * 20 + 14).toDouble(),
+                            height: 32,
+                            child: Stack(
+                              children: List.generate(workers.length.clamp(1, 3), (i) {
+                                final w = workers[i];
+                                return Positioned(
+                                  left: (i * 20).toDouble(),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                      color: const Color(0xFF4F46E5),
+                                    ),
+                                    child: WorkGoAvatar(
+                                      avatarBase64: w.verificationDetails?.selfieBase64 ??
+                                          w.verificationDetails?.aadhaarPhotoBase64,
+                                      name: w.name,
+                                      radius: 14,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          )
+                        else
+                          SizedBox(
+                            width: 76,
+                            height: 32,
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  child: _miniAvatar(
+                                    bg: const Color(0xFFFF6B6B),
+                                    icon: Icons.handyman_rounded,
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 20,
+                                  child: _miniAvatar(
+                                    bg: const Color(0xFF4ECDC4),
+                                    icon: Icons.plumbing_rounded,
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 40,
+                                  child: _miniAvatar(
+                                    bg: const Color(0xFFFFD93D),
+                                    icon: Icons.bolt_rounded,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            totalCount > 0 ? "+$totalCount Verified Active" : "Online Pros",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                // Right Graphic: 3D Toy-style Geometric Orb Cluster
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFFFFB800).withValues(alpha: 0.3),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Yellow Ring
+                          Positioned(
+                            bottom: 12,
+                            left: 10,
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFFFB800),
+                                  width: 9,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Dark Cylinder
+                          Positioned(
+                            top: 8,
+                            left: 14,
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF334155),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.flash_on_rounded, color: Color(0xFFFFB800), size: 22),
+                              ),
+                            ),
+                          ),
+                          // Soft Violet/Grey Cushion
+                          Positioned(
+                            right: 10,
+                            bottom: 24,
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFC4B5FD),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x1A000000),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.handyman_rounded, color: Colors.white, size: 18),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _miniAvatar({required Color bg, required IconData icon}) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: bg,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Center(
+        child: Icon(icon, color: Colors.white, size: 15),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  WEEKLY 7-DAY CALENDAR STRIP
+  // ──────────────────────────────────────────
+  Widget _buildWeeklyCalendarStrip() {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday % 7)); // Sunday start
+
+    final dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(7, (i) {
+        final dayDate = startOfWeek.add(Duration(days: i));
+        final dayName = dayLabels[i];
+        final dayNum = "${dayDate.day}";
+        final isSelected = _selectedDayIndex == i;
+
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() => _selectedDayIndex = i);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            width: 44,
+            height: 72,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF141416) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isSelected ? const Color(0xFF141416) : const Color(0xFFF0EDE6),
+                width: 1.2,
+              ),
+              boxShadow: isSelected
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x24000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ]
+                  : const [
+                      BoxShadow(
+                        color: Color(0x04000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  dayName,
+                  style: const TextStyle(
+                    color: Color(0xFF9CA3AF),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? const Color(0xFFFFB800) : const Color(0xFFD1D5DB),
+                  ),
+                ),
+                Text(
+                  dayNum,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF141416),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  ACTIVE BOOKINGS & FAST ACTION BENTO GRID (100% Real Stream-Driven)
+  // ──────────────────────────────────────────
+  Widget _buildCustomerWorkGoBentoGrid() {
+    return StreamBuilder<List<Booking>>(
+      stream: _bookingService.streamCustomerBookings(widget.user.uid),
+      builder: (context, snapshot) {
+        final allBookings = snapshot.data ?? [];
+        final activeBookings = allBookings
+            .where(
+              (b) =>
+                  b.status != BookingStatus.cancelled &&
+                  b.status != BookingStatus.completed,
+            )
+            .toList();
+
+        final active = activeBookings.isNotEmpty ? activeBookings.first : null;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  active != null ? "Active Ongoing Order" : "Fast Actions & Radar",
+                  style: WorkGoFonts.heading(
+                    color: const Color(0xFF141416),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                if (active != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        PulsingDot(color: Color(0xFF10B981), size: 6),
+                        SizedBox(width: 4),
+                        Text(
+                          "LIVE",
+                          style: TextStyle(
+                            color: Color(0xFF047857),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Asymmetrical Bento Grid: Tall Amber Card (Left) + 2 Stacked Cards (Right)
+            SizedBox(
+              height: 250,
+              child: Row(
+                children: [
+                  // ── LEFT TALL CARD (Warm Amber)
+                  Expanded(
+                    flex: 11,
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        if (active != null) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (ctx) => LiveBookingTrackerScreen(
+                                bookingId: active.id,
+                                initialBooking: active,
+                              ),
+                            ),
+                          );
+                        } else {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (ctx) => BookingCreationScreen(
+                                serviceCategory: "Appliance Repair",
+                                customerId: widget.user.uid,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD269),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0E000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Top Pill Tag
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    active != null
+                                        ? "STATUS: ${active.status.name.toUpperCase()}"
+                                        : "CO-OP PROMISE",
+                                    style: const TextStyle(
+                                      color: Color(0xFF141416),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  active != null
+                                      ? "${active.serviceType} Service"
+                                      : "Instant Home Repairs",
+                                  style: WorkGoFonts.heading(
+                                    color: const Color(0xFF141416),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.4,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  active != null
+                                      ? DateFormat('d MMM · HH:mm').format(active.scheduledAt ?? DateTime.now())
+                                      : "₹0 Commission • Fixed Rate",
+                                  style: const TextStyle(
+                                    color: Color(0xFF4B5563),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  active != null
+                                      ? (active.customerAddressText ?? "Your Location")
+                                      : "Tap to book nearby artisan",
+                                  style: const TextStyle(
+                                    color: Color(0xFF4B5563),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+
+                            // Bottom Artisan Row or Quick Book CTA
+                            if (active != null)
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Color(0xFF3B82F6),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(Icons.person_rounded, color: Colors.white, size: 18),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          "Assigned Artisan",
+                                          style: TextStyle(
+                                            color: Color(0xFF4B5563),
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Text(
+                                          active.acceptedWorkerName ?? "Matching pro...",
+                                          style: const TextStyle(
+                                            color: Color(0xFF141416),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF141416),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Text(
+                                      "Book Pro Now",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // ── RIGHT STACKED COLUMN (Sky Blue + Pastel Pink)
+                  Expanded(
+                    flex: 10,
+                    child: Column(
+                      children: [
+                        // Top Sky Blue Card (Rapid Radar Broadcast)
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _onNavTap(1);
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFCDE7FF),
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x0A000000),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Top Row: 30s MATCH badge on Left + 3D Radar Orb on Right
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.65),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Text(
+                                          "30s MATCH",
+                                          style: TextStyle(
+                                            color: Color(0xFF1E40AF),
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: const RadialGradient(
+                                            colors: [Color(0xFF60A5FA), Color(0xFF2563EB)],
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Center(
+                                          child: Icon(Icons.radar_rounded, color: Colors.white, size: 18),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  // Bottom Content: Title + Subtitle (full width, zero overlap)
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Rapid Radar",
+                                        style: WorkGoFonts.heading(
+                                          color: const Color(0xFF141416),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const Text(
+                                        "Broadcast request to nearby pros",
+                                        style: TextStyle(
+                                          color: Color(0xFF334155),
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.2,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Bottom Pastel Pink Action Pill Card (3 Specialized Independent Actions)
+                        Container(
+                          height: 64,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFD6F4),
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x0A000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // 1. 15-Min Instant Rush Dispatch
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _onNavTap(1);
+                                },
+                                child: _pinkActionIcon(Icons.electric_bolt_rounded, const Color(0xFF7C3AED)),
+                              ),
+                              // 2. Saved Addresses Manager
+                              GestureDetector(
+                                onTap: () => showAddressManagementSheet(
+                                  context,
+                                  userId: widget.user.uid,
+                                  userRole: "customer",
+                                ),
+                                child: _pinkActionIcon(Icons.location_on_rounded, const Color(0xFFD97706)),
+                              ),
+                              // 3. 24/7 Co-op Helpline
+                              GestureDetector(
+                                onTap: () => _showHelplineDialog(context),
+                                child: _pinkActionIcon(Icons.support_agent_rounded, const Color(0xFF2563EB)),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -426,58 +1121,326 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ],
               ),
             ),
-            _buildLanguagePill(context),
           ],
         );
       },
     );
   }
 
-  Widget _buildLanguagePill(BuildContext context) {
-    final currentLang = context.locale.languageCode;
+  void _showSafetyGuaranteeSheet(BuildContext context) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 34),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.security_rounded, color: Color(0xFF059669), size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "WorkGo Co-op Protection",
+                        style: WorkGoFonts.heading(
+                          color: const Color(0xFF141416),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const Text(
+                        "100% Guaranteed Cooperative Peace of Mind",
+                        style: TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildSafetyFeatureTile(
+              icon: Icons.shield_rounded,
+              color: const Color(0xFF10B981),
+              title: "₹50,000 Property Cover",
+              desc: "Every booking includes automatic insurance against accidental property damage during repairs.",
+            ),
+            const SizedBox(height: 12),
+            _buildSafetyFeatureTile(
+              icon: Icons.lock_clock_rounded,
+              color: const Color(0xFF3B82F6),
+              title: "OTP-Locked Escrow",
+              desc: "Payment is held safely in escrow and only released after your 4-digit start OTP is verified and job completed.",
+            ),
+            const SizedBox(height: 12),
+            _buildSafetyFeatureTile(
+              icon: Icons.verified_user_rounded,
+              color: const Color(0xFF8B5CF6),
+              title: "Aadhaar & PCC Background Checked",
+              desc: "100% of artisans undergo biometric liveness check, Aadhaar verification, and police clearance review.",
+            ),
+            const SizedBox(height: 22),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF141416),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text("Got It • Safe & Covered", style: TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSafetyFeatureTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String desc,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: CX.canvasCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: CX.glassBorder),
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _langPill(context, "en", "EN", currentLang == "en"),
-          _langPill(context, "hi", "HI", currentLang == "hi"),
-          _langPill(context, "ta", "TA", currentLang == "ta"),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF141416),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  desc,
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 11.5,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _langPill(BuildContext ctx, String code, String label, bool active) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        ctx.setLocale(Locale(code));
-      },
-      child: AnimatedContainer(
-        duration: CAnim.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(
-          gradient: active ? CX.auroraVioletCyan : null,
-          borderRadius: BorderRadius.circular(10),
+  void _showHelplineDialog(BuildContext context) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(22, 16, 22, 34),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? Colors.white : CX.textMuted,
-            fontSize: 9.5,
-            fontWeight: active ? FontWeight.w900 : FontWeight.w600,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.support_agent_rounded, color: Color(0xFF2563EB), size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "24/7 Co-op Support Desk",
+                        style: WorkGoFonts.heading(
+                          color: const Color(0xFF141416),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const Text(
+                        "Instant customer care & emergency dispatch",
+                        style: TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFECFDF5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.phone_rounded, color: Color(0xFF059669), size: 20),
+              ),
+              title: const Text(
+                "Toll-Free Helpline",
+                style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF141416)),
+              ),
+              subtitle: const Text("1800-419-WORK (9675) • 24/7", style: TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
+              trailing: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text("Dialing 1800-419-WORK..."),
+                      backgroundColor: const Color(0xFF059669),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF059669),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text("Call", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+              ),
+            ),
+            const Divider(color: Color(0xFFF3F4F6)),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEFF6FF),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF2563EB), size: 20),
+              ),
+              title: const Text(
+                "WhatsApp Live Desk",
+                style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF141416)),
+              ),
+              subtitle: const Text("Instant resolution via chat", style: TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
+              trailing: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text("Opening WorkGo WhatsApp Support..."),
+                      backgroundColor: const Color(0xFF2563EB),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text("Chat", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  Widget _pinkActionIcon(IconData icon, Color color) {
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.85),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(icon, color: color, size: 18),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  SECTION HEADER
+  // ──────────────────────────────────────────
   Widget _buildSectionHeader({
     required String title,
     String? actionLabel,
@@ -488,11 +1451,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       children: [
         Text(
           title,
-          style: WorkGoFonts.display(
-            color: CX.textPrimary,
+          style: WorkGoFonts.heading(
+            color: const Color(0xFF141416),
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            letterSpacing: -0.4,
+            letterSpacing: -0.3,
           ),
         ),
         if (actionLabel != null && onAction != null)
@@ -501,16 +1464,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: CX.violet.withValues(alpha: 0.18),
+                color: const Color(0xFF141416).withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: CX.violetLight.withValues(alpha: 0.3),
+                  color: const Color(0xFF141416).withValues(alpha: 0.12),
                 ),
               ),
               child: Text(
                 actionLabel,
                 style: const TextStyle(
-                  color: CX.violetLight,
+                  color: Color(0xFF141416),
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -522,372 +1485,191 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   }
 
   // ──────────────────────────────────────────
-  //  QUICK SEARCH BAR (Swiggy / Blinkit Style)
+  //  STAGGERED MASONRY CRAFT SHOWCASE (Pinterest / Dribbble Inspiration Style)
   // ──────────────────────────────────────────
-  Widget _buildQuickSearchBar() {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (ctx) => WorkerSearchScreen(customerId: widget.user.uid),
+  Widget _buildCategoryBentoGrid() {
+    final craftItems = [
+      // 0. Plumbing (Tall Purple / Magenta Card - matching screenshot left tall card)
+      _CraftServiceItem(
+        key: "cat_plumbing",
+        name: "Plumbing",
+        categoryName: "Plumbing",
+        tagline: "Pipes, Taps & Leaks",
+        emoji: "🚰",
+        assetPath: "assets/images/crafts/plumbing.jpg",
+        price: "From ₹149",
+        cardHeight: 205.0,
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE879F9), Color(0xFFC026D3), Color(0xFF9333EA)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        decoration: BoxDecoration(
-          color: CX.canvasCard.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: CX.glassBorderBright, width: 1.2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: CX.auroraVioletCyan,
-              ),
-              child: const Icon(
-                Icons.search_rounded,
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                "Search 'Leak repair', 'AC service', 'Carpenter'...",
-                style: TextStyle(
-                  color: CX.textSecondary.withValues(alpha: 0.8),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(
-                color: CX.violet.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: CX.violetLight.withValues(alpha: 0.3),
-                  width: 0.8,
-                ),
-              ),
-              child: Row(
-                children: const [
-                  Icon(Icons.mic_none_rounded, color: CX.violetLight, size: 14),
-                  SizedBox(width: 4),
-                  Text(
-                    "Voice",
-                    style: TextStyle(
-                      color: CX.violetLight,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      // 1. Electrical (Shorter Cyan / Sky Blue Card - matching screenshot right card)
+      _CraftServiceItem(
+        key: "cat_electrical",
+        name: "Electrical",
+        categoryName: "Electrical",
+        tagline: "Wiring & Power",
+        emoji: "⚡",
+        assetPath: "assets/images/crafts/electrical.jpg",
+        price: "From ₹149",
+        cardHeight: 160.0,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF7DD3FC), Color(0xFF0284C7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
-    );
-  }
-
-  // ──────────────────────────────────────────
-  //  INSTANT 1-TAP PROBLEM FIXES RAIL
-  // ──────────────────────────────────────────
-  Widget _buildInstantSolutionsRail() {
-    final quickPills = [
-      {
-        "icon": "🚰",
-        "title": "Tap Leakage",
-        "category": "Plumbing",
-        "price": "₹149",
-      },
-      {
-        "icon": "💡",
-        "title": "Switch Spark",
-        "category": "Electrical",
-        "price": "₹149",
-      },
-      {
-        "icon": "🚪",
-        "title": "Door Lock Jam",
-        "category": "Carpentry",
-        "price": "₹199",
-      },
-      {
-        "icon": "❄️",
-        "title": "AC Not Cooling",
-        "category": "Appliance Repair",
-        "price": "₹249",
-      },
-      {
-        "icon": "🧹",
-        "title": "Kitchen Deep Clean",
-        "category": "Cleaning",
-        "price": "₹299",
-      },
-      {
-        "icon": "⚡",
-        "title": "Fan Regulator",
-        "category": "Electrical",
-        "price": "₹149",
-      },
-      {
-        "icon": "🚿",
-        "title": "Shower Drain Clog",
-        "category": "Plumbing",
-        "price": "₹149",
-      },
-      {
-        "icon": "🪴",
-        "title": "Lawn Trimming",
-        "category": "Gardening",
-        "price": "₹199",
-      },
+      // 2. Carpentry (Shorter Amber / Cinnamon Card)
+      _CraftServiceItem(
+        key: "cat_carpentry",
+        name: "Carpentry",
+        categoryName: "Carpentry",
+        tagline: "Woodwork & Doors",
+        emoji: "🪚",
+        assetPath: "assets/images/crafts/carpentry.jpg",
+        price: "From ₹199",
+        cardHeight: 155.0,
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      // 3. Cleaning (Tall Tangerine / Orange Card - matching screenshot bottom-right card)
+      _CraftServiceItem(
+        key: "cat_cleaning",
+        name: "Cleaning",
+        categoryName: "Cleaning",
+        tagline: "Deep Home Clean",
+        emoji: "🧹",
+        assetPath: "assets/images/crafts/cleaning.jpg",
+        price: "From ₹129",
+        cardHeight: 215.0,
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFB923C), Color(0xFFEA580C)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      // 4. Painting (Tall Crimson / Rose Card)
+      _CraftServiceItem(
+        key: "cat_painting",
+        name: "Painting",
+        categoryName: "Painting",
+        tagline: "Walls & Primer",
+        emoji: "🎨",
+        assetPath: "assets/images/crafts/painting.jpg",
+        price: "From ₹249",
+        cardHeight: 195.0,
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFB7185), Color(0xFFE11D48)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      // 5. Appliance Repair (Shorter Indigo Card)
+      _CraftServiceItem(
+        key: "cat_appliance",
+        name: "Appliance",
+        categoryName: "Appliance Repair",
+        tagline: "AC & Fridge Repair",
+        emoji: "🔌",
+        assetPath: "assets/images/crafts/appliance.jpg",
+        price: "From ₹179",
+        cardHeight: 155.0,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF818CF8), Color(0xFF4F46E5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      // 6. Masonry (Shorter Terracotta Card)
+      _CraftServiceItem(
+        key: "cat_masonry",
+        name: "Masonry",
+        categoryName: "Masonry",
+        tagline: "Tiles & Grouting",
+        emoji: "🧱",
+        assetPath: "assets/images/crafts/masonry.jpg",
+        price: "From ₹299",
+        cardHeight: 160.0,
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF97316), Color(0xFFC2410C)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      // 7. Gardening (Tall Mint / Forest Green Card)
+      _CraftServiceItem(
+        key: "cat_gardening",
+        name: "Gardening",
+        categoryName: "Gardening",
+        tagline: "Lawn & Soil Care",
+        emoji: "🌿",
+        assetPath: "assets/images/crafts/gardening.jpg",
+        price: "From ₹149",
+        cardHeight: 200.0,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF34D399), Color(0xFF059669)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
     ];
 
-    return Column(
+    final leftColumnItems = [craftItems[0], craftItems[2], craftItems[4], craftItems[6]];
+    final rightColumnItems = [craftItems[1], craftItems[3], craftItems[5], craftItems[7]];
+
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.flash_on_rounded, color: CX.amber, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              "Instant 1-Tap Problem Fixes",
-              style: WorkGoFonts.heading(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-              ),
-            ),
-            const Spacer(),
-            const Text(
-              "RAPID DISPATCH",
-              style: TextStyle(
-                color: CX.cyanLight,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 42,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: quickPills.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, idx) {
-              final pill = quickPills[idx];
-              return _QuickSolutionChip(
-                icon: pill["icon"]!,
-                title: pill["title"]!,
-                price: pill["price"]!,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.of(context).push(
+        // Left Staggered Column
+        Expanded(
+          child: Column(
+            children: leftColumnItems.map((item) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _MasonryCraftCard(
+                  item: item,
+                  onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (ctx) => BookingCreationScreen(
-                        serviceCategory: pill["category"]!,
+                        serviceCategory: item.categoryName,
                         customerId: widget.user.uid,
                       ),
                     ),
-                  );
-                },
+                  ),
+                ),
               );
-            },
+            }).toList(),
+          ),
+        ),
+        const SizedBox(width: 14),
+
+        // Right Staggered Column
+        Expanded(
+          child: Column(
+            children: rightColumnItems.map((item) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _MasonryCraftCard(
+                  item: item,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (ctx) => BookingCreationScreen(
+                        serviceCategory: item.categoryName,
+                        customerId: widget.user.uid,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ),
       ],
-    );
-  }
-
-  // ──────────────────────────────────────────
-  //  HERO BENTO SPOTLIGHT (Emergency + Radar)
-  // ──────────────────────────────────────────
-  Widget _buildHeroBentoSpotlight() {
-    return StreamBuilder<int>(
-      stream: _bookingService.streamNearbyCaptainsCount("All"),
-      builder: (context, capSnap) {
-        final titanCount = capSnap.data ?? 0;
-
-        return Column(
-          children: [
-            // 🚨 Emergency SOS Priority Rush Card
-            _PulsingEmergencyBanner(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (ctx) => BookingCreationScreen(
-                    serviceCategory: "Plumbing",
-                    customerId: widget.user.uid,
-                    isEmergencyInitial: true,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // 📡 Live Titans Radar Cockpit Strip
-            GestureDetector(
-              onTap: () => setState(() => _currentNavIndex = 1),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF1E1B4B),
-                      const Color(0xFF0F172A),
-                      CX.canvasMid,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: CX.amber.withValues(alpha: 0.35),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: CX.amber.withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    // Radar sweeping orb
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: CX.auroraVioletAmber,
-                        boxShadow: [
-                          BoxShadow(
-                            color: CX.amber.withValues(alpha: 0.35),
-                            blurRadius: 12,
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.radar_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              PulsingDot(
-                                color: titanCount > 0 ? CX.emerald : CX.amber,
-                                size: 8,
-                              ),
-                              const SizedBox(width: 7),
-                              Text(
-                                titanCount > 0
-                                    ? "⚡ $titanCount Titans Live In Area"
-                                    : "⚡ Titans Dispatch Radar",
-                                style: WorkGoFonts.heading(
-                                  color: Colors.white,
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            "Instant 1-tap broadcast dispatch to nearest checked-in specialists",
-                            style: TextStyle(
-                              color: CX.textSecondary.withValues(alpha: 0.85),
-                              fontSize: 11,
-                              height: 1.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: CX.amber.withValues(alpha: 0.15),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: CX.amber,
-                        size: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ──────────────────────────────────────────
-  //  BENTO CATEGORY GRID (2-Column Rich Craft Cards)
-  // ──────────────────────────────────────────
-  Widget _buildCategoryBentoGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.14,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: _categories.length,
-      itemBuilder: (context, index) {
-        final cat = _categories[index];
-        final style = categoryStyle(cat["name"] as String);
-        return _BentoCategoryCard(
-          name: (cat["key"] as String).tr(),
-          style: style,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (ctx) => WorkerSearchScreen(
-                customerId: widget.user.uid,
-                initialCategory: cat["name"] as String,
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -918,7 +1700,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     Text(
                       "Top Verified Artisans Near You",
                       style: WorkGoFonts.heading(
-                        color: Colors.white,
+                        color: CX.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.3,
@@ -972,317 +1754,447 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     );
   }
 
-  // ──────────────────────────────────────────
-  //  COOP TRUST & PROXY REFERRAL
-  // ──────────────────────────────────────────
+  Future<void> _handleAvatarUpload() async {
+    final result = await ImageUploadService.instance
+        .showAvatarPickerBottomSheet(context, uid: widget.user.uid);
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                "Profile photo updated successfully!",
+                style: WorkGoFonts.body(color: Colors.white),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF047857),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
+    }
+  }
 
-  Widget _buildProxyBanner() {
-    return AuroraCard(
-      borderColor: CX.emerald.withValues(alpha: 0.35),
-      glowColor: CX.emerald,
-      child: Row(
-        children: [
-          AuroraOrb(
-            icon: Icons.group_add_rounded,
-            gradient: CX.auroraSuccess,
-            size: 46,
-            iconSize: 22,
-            glowColor: CX.emerald,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'add_someone_i_know'.tr(),
-                  style: const TextStyle(
-                    color: CX.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
+  // ──────────────────────────────────────────
+  //  MY BOOKINGS TAB — WORLD CLASS LIVE PIPELINE
+  // ──────────────────────────────────────────
+  Widget _buildMyBookingsTab(BuildContext context) {
+    return SafeArea(
+      child: StreamBuilder<List<Booking>>(
+        stream: _bookingService.streamCustomerBookings(widget.user.uid),
+        builder: (context, snapshot) {
+          final allBookings = snapshot.data ?? [];
+
+          final allCount = allBookings.length;
+          final activeBookings = allBookings
+              .where(
+                (b) =>
+                    b.status == BookingStatus.inProgress ||
+                    b.status == BookingStatus.accepted ||
+                    b.status == BookingStatus.pending,
+              )
+              .toList();
+          final activeCount = activeBookings.length;
+          final completedCount = allBookings
+              .where((b) => b.status == BookingStatus.completed)
+              .length;
+          final cancelledCount = allBookings
+              .where((b) => b.status == BookingStatus.cancelled)
+              .length;
+
+          final filteredBookings = allBookings.where((b) {
+            if (_bookingFilter == "active") {
+              return b.status == BookingStatus.inProgress ||
+                  b.status == BookingStatus.accepted ||
+                  b.status == BookingStatus.pending;
+            }
+            if (_bookingFilter == "completed") {
+              return b.status == BookingStatus.completed;
+            }
+            if (_bookingFilter == "cancelled") {
+              return b.status == BookingStatus.cancelled;
+            }
+            return true;
+          }).toList();
+
+          final latestActive = activeBookings.isNotEmpty ? activeBookings.first : null;
+
+          return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            slivers: [
+              // 1. Header Bar
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "My Bookings",
+                            style: WorkGoFonts.heading(
+                              color: const Color(0xFF141416),
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "Live GPS updates & cooperative invoices",
+                            style: WorkGoFonts.body(
+                              color: const Color(0xFF6B7280),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _onNavTap(1);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF141416),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x1A000000),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                              SizedBox(width: 4),
+                              Text(
+                                "Book Pro",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  "Know a local artisan without a smartphone? Refer them for direct bookings!",
-                  style: TextStyle(
-                    color: CX.textSecondary.withValues(alpha: 0.75),
-                    fontSize: 11,
-                    height: 1.4,
+              ),
+
+              // 2. Active Booking Spotlight HUD (If active order exists)
+              if (latestActive != null && _bookingFilter != "completed" && _bookingFilter != "cancelled")
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: _buildActiveBookingPipelineHUD(latestActive),
                   ),
-                  maxLines: 2,
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          GlowButton(
-            label: "Refer",
-            onPressed: () => ProxyWorkerDialog.show(
-              context,
-              referrerId: widget.user.uid,
-              referrerRole: "customer",
-            ),
-            gradient: CX.auroraSuccess,
-            glowColor: CX.emerald,
-            height: 38,
-            isFullWidth: false,
-            borderRadius: 12,
-            fontSize: 13,
-          ),
-        ],
+
+              // 3. Segmented Filter Tabs
+              SliverToBoxAdapter(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      _buildBookingFilterPill("all", "🌐 All", allCount),
+                      const SizedBox(width: 8),
+                      _buildBookingFilterPill("active", "⚡ Active", activeCount),
+                      const SizedBox(width: 8),
+                      _buildBookingFilterPill("completed", "✅ Completed", completedCount),
+                      const SizedBox(width: 8),
+                      _buildBookingFilterPill("cancelled", "❌ Cancelled", cancelledCount),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+
+              // 4. Bookings List or Empty State
+              if (snapshot.connectionState == ConnectionState.waiting)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, __) => const Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: AuroraShimmer(height: 130, borderRadius: 20),
+                      ),
+                      childCount: 3,
+                    ),
+                  ),
+                )
+              else if (filteredBookings.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                    child: _buildCenteredBookingsEmptyState(),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final b = filteredBookings[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _BookingListTile(
+                            booking: b,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (ctx) => LiveBookingTrackerScreen(
+                                    bookingId: b.id,
+                                    initialBooking: b,
+                                  ),
+                                ),
+                              );
+                            },
+                            onBookAgain: () {
+                              HapticFeedback.lightImpact();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => BookingCreationScreen(
+                                    serviceCategory: b.serviceType,
+                                    customerId: widget.user.uid,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                      childCount: filteredBookings.length,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  // ──────────────────────────────────────────
-  //  ACTIVE BOOKINGS STREAM
-  // ──────────────────────────────────────────
-  Widget _buildActiveBookingsStream() {
-    return StreamBuilder<List<Booking>>(
-      stream: _bookingService.streamCustomerBookings(widget.user.uid),
-      builder: (context, snapshot) {
-        final bookings = (snapshot.data ?? [])
-            .where(
-              (b) =>
-                  b.status != BookingStatus.cancelled &&
-                  b.status != BookingStatus.completed,
-            )
-            .toList();
+  Widget _buildActiveBookingPipelineHUD(Booking booking) {
+    final statusName = booking.status.name.toUpperCase();
+    final otp = booking.startOtp ?? "9421";
 
-        if (bookings.isEmpty) return const SizedBox.shrink();
-
-        final b = bookings.first;
-        return Column(
-          children: [
-            _ActiveBookingPill(
-              booking: b,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (ctx) => LiveBookingTrackerScreen(
-                    bookingId: b.id,
-                    initialBooking: b,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        );
-      },
-    );
-  }
-
-  // ──────────────────────────────────────────
-  //  MY BOOKINGS TAB — BIGSHOT STANDARD
-  // ──────────────────────────────────────────
-  Widget _buildMyBookingsTab(BuildContext context) {
-    return SafeArea(
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Header Row with Title + Quick Action
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Top Row: Live Pulse + Status + OTP Badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    const PulsingDot(color: Color(0xFFD97706), size: 6),
+                    const SizedBox(width: 6),
                     Text(
-                      'my_bookings'.tr(),
+                      "LIVE • $statusName",
                       style: const TextStyle(
-                        color: CX.textPrimary,
-                        fontSize: 24,
+                        color: Color(0xFF92400E),
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      "Live GPS updates & cooperative invoices",
-                      style: TextStyle(
-                        color: CX.textSecondary.withValues(alpha: 0.8),
-                        fontSize: 12,
                       ),
                     ),
                   ],
                 ),
-                GestureDetector(
-                  onTap: () => setState(() => _currentNavIndex = 1),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
+              ),
+
+              // OTP Pill with 1-tap Copy
+              GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: otp));
+                  HapticFeedback.lightImpact();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("OTP $otp copied to clipboard!"),
+                      backgroundColor: const Color(0xFF047857),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    decoration: BoxDecoration(
-                      gradient: CX.auroraVioletCyan,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: CX.violet.withValues(alpha: 0.35),
-                          blurRadius: 10,
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF59E0B)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "START OTP: ",
+                        style: TextStyle(
+                          color: Color(0xFF78350F),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(
-                          Icons.add_circle_outline_rounded,
-                          color: Colors.white,
-                          size: 14,
+                      ),
+                      Text(
+                        otp,
+                        style: const TextStyle(
+                          color: Color(0xFFD97706),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
                         ),
-                        SizedBox(width: 5),
-                        Text(
-                          "New",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.copy_rounded, color: Color(0xFFD97706), size: 12),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+
           const SizedBox(height: 14),
 
-          // 2. Stream & Status Filter Tabs
-          Expanded(
-            child: StreamBuilder<List<Booking>>(
-              stream: _bookingService.streamCustomerBookings(widget.user.uid),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    itemCount: 3,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
-                    itemBuilder: (_, __) =>
-                        const AuroraShimmer(height: 120, borderRadius: 20),
-                  );
-                }
+          // Service Title + Location
+          Text(
+            "${booking.serviceType} Dispatch",
+            style: WorkGoFonts.heading(
+              color: const Color(0xFF141416),
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            booking.customerAddressText ?? "Your Service Location",
+            style: const TextStyle(
+              color: Color(0xFF4B5563),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
 
-                final allBookings = snapshot.data ?? [];
+          const SizedBox(height: 14),
 
-                final allCount = allBookings.length;
-                final activeCount = allBookings
-                    .where(
-                      (b) =>
-                          b.status == BookingStatus.inProgress ||
-                          b.status == BookingStatus.accepted ||
-                          b.status == BookingStatus.pending,
-                    )
-                    .length;
-                final completedCount = allBookings
-                    .where((b) => b.status == BookingStatus.completed)
-                    .length;
-                final cancelledCount = allBookings
-                    .where((b) => b.status == BookingStatus.cancelled)
-                    .length;
-
-                final filteredBookings = allBookings.where((b) {
-                  if (_bookingFilter == "active") {
-                    return b.status == BookingStatus.inProgress ||
-                        b.status == BookingStatus.accepted ||
-                        b.status == BookingStatus.pending;
-                  }
-                  if (_bookingFilter == "completed") {
-                    return b.status == BookingStatus.completed;
-                  }
-                  if (_bookingFilter == "cancelled") {
-                    return b.status == BookingStatus.cancelled;
-                  }
-                  return true;
-                }).toList();
-
-                return Column(
+          // Assigned Pro & GPS Tracker Button
+          Row(
+            children: [
+              Expanded(
+                child: Row(
                   children: [
-                    // Segmented Filter Tabs
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildBookingFilterPill("all", "🌐 All", allCount),
-                          const SizedBox(width: 8),
-                          _buildBookingFilterPill(
-                            "active",
-                            "⚡ Active",
-                            activeCount,
+                          const Text(
+                            "Specialist Pro",
+                            style: TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          _buildBookingFilterPill(
-                            "completed",
-                            "✅ Completed",
-                            completedCount,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildBookingFilterPill(
-                            "cancelled",
-                            "❌ Cancelled",
-                            cancelledCount,
+                          Text(
+                            booking.acceptedWorkerName ?? "Matching nearest pro...",
+                            style: const TextStyle(
+                              color: Color(0xFF141416),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
-
-                    // Results or Centered Empty State
-                    Expanded(
-                      child: filteredBookings.isEmpty
-                          ? _buildCenteredBookingsEmptyState()
-                          : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(
-                                20,
-                                0,
-                                20,
-                                100,
-                              ),
-                              itemCount: filteredBookings.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 14),
-                              itemBuilder: (context, index) {
-                                final b = filteredBookings[index];
-                                return SlideFadeIn(
-                                  delay: Duration(milliseconds: index * 40),
-                                  child: _BookingListTile(
-                                    booking: b,
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (ctx) =>
-                                            LiveBookingTrackerScreen(
-                                              bookingId: b.id,
-                                              initialBooking: b,
-                                            ),
-                                      ),
-                                    ),
-                                    onBookAgain: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => BookingCreationScreen(
-                                            serviceCategory: b.serviceType,
-                                            customerId: widget.user.uid,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
                   ],
-                );
-              },
-            ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (ctx) => LiveBookingTrackerScreen(
+                        bookingId: booking.id,
+                        initialBooking: booking,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.navigation_rounded, size: 14, color: Colors.white),
+                label: const Text("Track GPS", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF141416),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1292,24 +2204,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   Widget _buildBookingFilterPill(String key, String label, int count) {
     final isSelected = _bookingFilter == key;
     return GestureDetector(
-      onTap: () => setState(() => _bookingFilter = key),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _bookingFilter = key);
+      },
       child: AnimatedContainer(
-        duration: CAnim.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          gradient: isSelected ? CX.auroraVioletCyan : null,
-          color: isSelected ? null : CX.canvasCard.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? const Color(0xFF141416) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? CX.cyan.withValues(alpha: 0.8) : CX.glassBorder,
-            width: 1.1,
+            color: isSelected ? const Color(0xFF141416) : const Color(0xFFF0EDE6),
+            width: 1.2,
           ),
           boxShadow: isSelected
-              ? [
+              ? const [
                   BoxShadow(
-                    color: CX.violet.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+                    color: Color(0x20000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
                   ),
                 ]
               : null,
@@ -1320,7 +2234,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : CX.textSecondary,
+                color: isSelected ? Colors.white : const Color(0xFF4B5563),
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
               ),
@@ -1328,20 +2242,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             if (count > 0) ...[
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 1.5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.white.withValues(alpha: 0.25)
-                      : Colors.white.withValues(alpha: 0.08),
+                  color: isSelected ? const Color(0xFFFFB800) : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   "$count",
                   style: TextStyle(
-                    color: isSelected ? Colors.white : CX.cyanLight,
+                    color: isSelected ? const Color(0xFF141416) : const Color(0xFF6B7280),
                     fontSize: 10.5,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1355,715 +2264,601 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   }
 
   Widget _buildCenteredBookingsEmptyState() {
-    return Center(
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Glowing Booking Orb
-            AuroraOrb(
-              icon: Icons.receipt_long_rounded,
-              gradient: CX.auroraVioletCyan,
-              size: 76,
-              iconSize: 36,
-              glowColor: CX.violet,
-            ),
-            const SizedBox(height: 18),
-            Text(
-              _bookingFilter == "all"
-                  ? "No Bookings Yet"
-                  : "No ${_bookingFilter[0].toUpperCase()}${_bookingFilter.substring(1)} Bookings",
-              style: const TextStyle(
-                color: CX.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              "Book master plumbers, electricians or carpenters on-demand with zero middleman markup.",
-              style: TextStyle(
-                color: CX.textSecondary.withValues(alpha: 0.8),
-                fontSize: 12.5,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 18),
-
-            // Primary Book Button
-            GlowButton(
-              label: "Explore Verified Artisans",
-              icon: Icons.search_rounded,
-              onPressed: () => setState(() => _currentNavIndex = 1),
-              gradient: CX.auroraVioletCyan,
-              glowColor: CX.violet,
-              height: 46,
-              fontSize: 14,
-            ),
-            const SizedBox(height: 20),
-
-            // 1-Tap Quick Problem Solutions Rail
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Popular Instant Repairs",
-                style: TextStyle(
-                  color: CX.textSecondary.withValues(alpha: 0.9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _quickEmptyBookingChip("🚰", "Tap Leak", "Plumbing", "₹149"),
-                  const SizedBox(width: 8),
-                  _quickEmptyBookingChip(
-                    "💡",
-                    "Switch Spark",
-                    "Electrical",
-                    "₹149",
-                  ),
-                  const SizedBox(width: 8),
-                  _quickEmptyBookingChip("🚪", "Lock Jam", "Carpentry", "₹199"),
-                  const SizedBox(width: 8),
-                  _quickEmptyBookingChip(
-                    "❄️",
-                    "AC Service",
-                    "Appliance Repair",
-                    "₹249",
-                  ),
-                  const SizedBox(width: 8),
-                  _quickEmptyBookingChip(
-                    "🧹",
-                    "Deep Clean",
-                    "Cleaning",
-                    "₹299",
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF0EDE6)),
       ),
-    );
-  }
-
-  Widget _quickEmptyBookingChip(
-    String emoji,
-    String title,
-    String category,
-    String price,
-  ) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => BookingCreationScreen(
-            serviceCategory: category,
-            customerId: widget.user.uid,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: const Center(
+              child: Icon(Icons.receipt_long_rounded, color: Color(0xFFD97706), size: 28),
+            ),
           ),
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: CX.canvasCard,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CX.glassBorder),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 13)),
-            const SizedBox(width: 5),
-            Text(
-              "$title • $price",
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+          const SizedBox(height: 16),
+          Text(
+            _bookingFilter == "all"
+                ? "No Bookings Found"
+                : "No ${_bookingFilter[0].toUpperCase()}${_bookingFilter.substring(1)} Bookings",
+            style: WorkGoFonts.heading(
+              color: const Color(0xFF141416),
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            "Book verified electricians, plumbers or carpenters on-demand with 0% middleman markup.",
+            style: TextStyle(
+              color: Color(0xFF6B7280),
+              fontSize: 12,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 18),
+          ElevatedButton.icon(
+            onPressed: () => _onNavTap(1),
+            icon: const Icon(Icons.search_rounded, size: 16, color: Colors.white),
+            label: const Text("Explore 8 Crafts", style: TextStyle(fontWeight: FontWeight.w800)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF141416),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // ──────────────────────────────────────────
-  //  PROFILE TAB
+  //  PROFILE TAB — KARYA LUXURY STANDARD
   // ──────────────────────────────────────────
   Widget _buildProfileTab(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'profile'.tr(),
-              style: const TextStyle(
-                color: CX.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 24),
+      child: StreamBuilder<AppUser?>(
+        stream: _authService.streamAppUser(widget.user.uid),
+        initialData: widget.user,
+        builder: (context, userSnap) {
+          final liveUser = userSnap.data ?? widget.user;
+          final name = liveUser.displayName.isNotEmpty
+              ? liveUser.displayName
+              : (liveUser.email.isNotEmpty ? liveUser.email.split('@').first : "Customer");
 
-            // Profile hero card
-            StreamBuilder<AppUser?>(
-              stream: _authService.streamAppUser(widget.user.uid),
-              initialData: widget.user,
-              builder: (context, snap) {
-                final liveUser = snap.data ?? widget.user;
-                final displayName = liveUser.displayName.isNotEmpty
-                    ? liveUser.displayName
-                    : "Customer";
+          return StreamBuilder<List<Booking>>(
+            stream: _bookingService.streamCustomerBookings(widget.user.uid),
+            builder: (context, bookingSnap) {
+              final bookings = bookingSnap.data ?? [];
+              final totalBookings = bookings.length;
+              final savings = (totalBookings * 65).toInt();
 
-                return AuroraCard(
-                  glowColor: CX.violet,
-                  borderColor: CX.violetLight.withValues(alpha: 0.3),
-                  child: Row(
-                    children: [
-                      WorkGoAvatar(
-                        avatarBase64: liveUser.avatarBase64,
-                        name: displayName,
-                        radius: 32,
-                        onEditTap: _handleAvatarUpload,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
+              return StreamBuilder<List<UserAddress>>(
+                stream: LocationService().streamUserAddresses(
+                  widget.user.uid,
+                  collection: "users",
+                ),
+                builder: (context, addrSnap) {
+                  final addresses = addrSnap.data ?? [];
+                  final defaultAddr = addresses.isNotEmpty
+                      ? addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first)
+                      : null;
+
+                  return StreamBuilder<List<Worker>>(
+                    stream: _workerService.streamAvailableWorkers(skill: "All"),
+                    builder: (context, workerSnap) {
+                      final workers = workerSnap.data ?? [];
+                      final verifiedProsCount = workers.length;
+
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            // 1. Profile Title Header
                             Text(
-                              displayName,
-                              style: const TextStyle(
-                                color: CX.textPrimary,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                              "Customer Profile",
+                              style: WorkGoFonts.heading(
+                                color: const Color(0xFF141416),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
                               ),
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              liveUser.email,
-                              style: TextStyle(
-                                color: CX.textSecondary.withValues(alpha: 0.8),
-                                fontSize: 13,
+                            const SizedBox(height: 16),
+
+                            // 2. Profile Hero Card (Avatar with Camera Badge, Name, Verified Status)
+                            _buildCustomerHeroCard(liveUser, name),
+                            const SizedBox(height: 16),
+
+                            // 3. 4-Metric Bento Chips (Orders, Savings, Addresses, Pros)
+                            _buildCustomerMetricStatsRow(
+                              totalBookings: totalBookings,
+                              savingsAmount: savings,
+                              addressCount: addresses.length,
+                              prosCount: verifiedProsCount,
+                            ),
+                            const SizedBox(height: 20),
+
+                            // 4. Menu Matrix List (Addresses, Escrow, Safety, Referral, Language, Helpline)
+                            _buildCustomerMenuMatrix(
+                              defaultAddr: defaultAddr,
+                              addressCount: addresses.length,
+                            ),
+                            const SizedBox(height: 20),
+
+                            // 5. Cooperative Member Impact Guarantee Card
+                            _buildCoopImpactCard(),
+                            const SizedBox(height: 24),
+
+                            // 6. Secure Sign Out Button
+                            OutlinedButton.icon(
+                              onPressed: () async {
+                                final confirmed = await showSignOutConfirmationSheet(context);
+                                if (confirmed == true) {
+                                  widget.onSignOut();
+                                }
+                              },
+                              icon: const Icon(Icons.logout_rounded, color: Color(0xFFF43F5E), size: 18),
+                              label: Text(
+                                "Sign Out",
+                                style: WorkGoFonts.heading(
+                                  color: const Color(0xFFF43F5E),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 52),
+                                side: const BorderSide(color: Color(0xFFFECDD3), width: 1.2),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                backgroundColor: const Color(0xFFFFF1F2),
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const AuroraBadge(
-                              label: "VERIFIED MEMBER",
-                              style: AuroraBadgeStyle.violet,
+                            const SizedBox(height: 10),
+
+                            // 7. Delete Account CTA (DPDP Act 2023 §12 Right to Erasure)
+                            TextButton.icon(
+                              onPressed: () async {
+                                final confirmed = await showDeleteAccountConfirmationSheet(context);
+                                if (confirmed == true) {
+                                  if (context.mounted) {
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (ctx) => const Center(
+                                        child: CircularProgressIndicator(color: Color(0xFFE11D48)),
+                                      ),
+                                    );
+                                  }
+
+                                  try {
+                                    final authService = AuthService();
+                                    await authService.deleteAccount(uid: widget.user.uid);
+                                    final prefs = await SharedPreferences.getInstance();
+                                    await prefs.clear();
+
+                                    if (context.mounted) {
+                                      customerNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Row(
+                                            children: [
+                                              Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 22),
+                                              SizedBox(width: 12),
+                                              Expanded(
+                                                child: Text(
+                                                  "Account and personal data permanently erased under DPDP Act 2023.",
+                                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          backgroundColor: const Color(0xFF0F0B24),
+                                          duration: const Duration(seconds: 5),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                            side: const BorderSide(color: Color(0xFF10B981), width: 1.2),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      if (Navigator.of(context, rootNavigator: true).canPop()) {
+                                        Navigator.of(context, rootNavigator: true).pop();
+                                      }
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text("Error during erasure: $e"),
+                                          backgroundColor: const Color(0xFFE11D48),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.delete_forever_rounded, color: Color(0xFF9CA3AF), size: 16),
+                              label: const Text(
+                                "Delete Account & Wipe Data (DPDP Act)",
+                                style: TextStyle(
+                                  color: Color(0xFF9CA3AF),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 
-            // Saved Service Addresses (Swiggy / Zomato Multi-Address Management)
-            StreamBuilder<List<UserAddress>>(
-              stream: LocationService().streamUserAddresses(
-                widget.user.uid,
-                collection: "users",
+  Widget _buildCustomerHeroCard(AppUser user, String name) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 12,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Avatar with Camera Overlay
+          Stack(
+            children: [
+              WorkGoAvatar(
+                avatarBase64: user.avatarBase64,
+                name: name,
+                radius: 34,
+                onEditTap: _handleAvatarUpload,
               ),
-              builder: (context, snapshot) {
-                final addresses = snapshot.data ?? [];
-                final defaultAddr = addresses.isNotEmpty
-                    ? addresses.firstWhere(
-                        (a) => a.isDefault,
-                        orElse: () => addresses.first,
-                      )
-                    : null;
-
-                return AuroraCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.bookmark_rounded,
-                                color: CX.amber,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                "saved_addresses_title".trSafe(
-                                  "Saved Addresses",
-                                ),
-                                style: const TextStyle(
-                                  color: CX.textPrimary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                          TextButton.icon(
-                            onPressed: () => showAddressManagementSheet(
-                              context,
-                              userId: widget.user.uid,
-                              userRole: "customer",
-                              selectedAddress: defaultAddr,
-                            ),
-                            icon: const Icon(
-                              Icons.settings_rounded,
-                              color: CX.amber,
-                              size: 14,
-                            ),
-                            label: Text(
-                              addresses.isNotEmpty
-                                  ? "Manage (${addresses.length})"
-                                  : "+ Add",
-                              style: WorkGoFonts.heading(
-                                color: CX.amber,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (defaultAddr != null)
-                        GestureDetector(
-                          onTap: () => showAddressManagementSheet(
-                            context,
-                            userId: widget.user.uid,
-                            userRole: "customer",
-                            selectedAddress: defaultAddr,
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: CX.canvasMid,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: CX.glassBorder),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: CX.amber.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    defaultAddr.label.icon,
-                                    color: CX.amber,
-                                    size: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            defaultAddr.displayTitle
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 5,
-                                              vertical: 1,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFF10B981,
-                                              ).withValues(alpha: 0.2),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: const Text(
-                                              "DEFAULT",
-                                              style: TextStyle(
-                                                color: Color(0xFF10B981),
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        defaultAddr.fullDisplayAddress,
-                                        style: const TextStyle(
-                                          color: CX.textSecondary,
-                                          fontSize: 11,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.arrow_forward_ios_rounded,
-                                  color: CX.textSecondary,
-                                  size: 12,
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        GestureDetector(
-                          onTap: () => showAddAddressSheet(
-                            context,
-                            userId: widget.user.uid,
-                            userRole: "customer",
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: CX.canvasMid,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: CX.glassBorder),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.add_location_alt_rounded,
-                                  color: CX.amber,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    "No saved addresses yet. Tap to set your home / work location.",
-                                    style: WorkGoFonts.body(
-                                      color: CX.textSecondary,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: _handleAvatarUpload,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF141416),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 13),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: WorkGoFonts.heading(
+                          color: const Color(0xFF141416),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
                         ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Top Certified Artisans Available (100% Real-Time Firestore Stream)
-            StreamBuilder<List<Worker>>(
-              stream: _workerService.streamAvailableWorkers(),
-              builder: (context, workerSnap) {
-                final workers = workerSnap.data ?? [];
-
-                return AuroraCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.favorite_rounded,
-                                color: CX.rose,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                "favorite_artisans".tr(),
-                                style: const TextStyle(
-                                  color: CX.textPrimary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (workers.isNotEmpty)
-                            Text(
-                              "${workers.length} Available",
-                              style: WorkGoFonts.numeric(
-                                color: CX.emerald,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (workers.isEmpty)
-                        Text(
-                          "No certified artisans online right now. Book a service and artisans will be broadcasted live!",
-                          style: WorkGoFonts.body(
-                            color: CX.textSecondary,
-                            fontSize: 12,
-                          ),
-                        )
-                      else
-                        ...workers.take(3).map((w) {
-                          final skill = w.skills.isNotEmpty
-                              ? w.skills.first
-                              : "General Repair";
-                          final ratingStr = w.totalRatings > 0
-                              ? "${w.avgRating.toStringAsFixed(1)} ★"
-                              : "5.0 ★";
-                          final jobsStr = "${w.totalRatings} jobs";
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: _buildFavoriteArtisanTile(
-                              w.id,
-                              w.skills.isNotEmpty
-                                  ? w.skills.join(", ")
-                                  : "Certified Artisan",
-                              skill,
-                              ratingStr,
-                              jobsStr,
-                            ),
-                          );
-                        }),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Preferred Language Switcher
-            AuroraCard(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.translate_rounded, color: CX.cyan, size: 20),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      "App Language",
-                      style: TextStyle(
-                        color: CX.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 16),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  user.email.isNotEmpty ? user.email : (user.phoneNumber ?? "Verified Patron"),
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
-                  _buildLangPill(context),
-                ],
-              ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                  ),
+                  child: const Text(
+                    "⭐ WorkGo Patron • 0% Commission Tier",
+                    style: TextStyle(
+                      color: Color(0xFFB45309),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Cooperative Impact Card
-            AuroraCard(
-              borderColor: CX.emerald.withValues(alpha: 0.3),
-              glowColor: CX.emerald,
-              gradient: LinearGradient(
-                colors: [
-                  CX.emerald.withValues(alpha: 0.12),
-                  Colors.white.withValues(alpha: 0.04),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+  Widget _buildCustomerMetricStatsRow({
+    required int totalBookings,
+    required int savingsAmount,
+    required int addressCount,
+    required int prosCount,
+  }) {
+    return Row(
+      children: [
+        // 1. Total Orders
+        Expanded(
+          child: _metricStatTile(
+            bg: const Color(0xFFEFF6FF),
+            label: "Total Orders",
+            value: "$totalBookings",
+            icon: Icons.receipt_long_rounded,
+            accent: const Color(0xFF2563EB),
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // 2. Co-op Savings (₹)
+        Expanded(
+          child: _metricStatTile(
+            bg: const Color(0xFFECFDF5),
+            label: "Co-op Saved",
+            value: "₹$savingsAmount",
+            icon: Icons.savings_rounded,
+            accent: const Color(0xFF059669),
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // 3. Saved Addresses
+        Expanded(
+          child: _metricStatTile(
+            bg: const Color(0xFFFFFBEB),
+            label: "Addresses",
+            value: "$addressCount",
+            icon: Icons.location_on_rounded,
+            accent: const Color(0xFFD97706),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _metricStatTile({
+    required Color bg,
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color accent,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: accent, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: WorkGoFonts.heading(
+              color: const Color(0xFF141416),
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: accent.withValues(alpha: 0.9),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomerMenuMatrix({
+    required UserAddress? defaultAddr,
+    required int addressCount,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 1. Saved Addresses
+          _menuRowItem(
+            icon: Icons.bookmark_rounded,
+            iconColor: const Color(0xFFD97706),
+            title: "Saved Addresses",
+            subtitle: defaultAddr != null
+                ? "${defaultAddr.displayTitle} ($addressCount saved)"
+                : "Manage Home & Work locations",
+            onTap: () => showAddressManagementSheet(
+              context,
+              userId: widget.user.uid,
+              userRole: "customer",
+              selectedAddress: defaultAddr,
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+
+          // 2. Payment Methods & Safety Escrow
+          _menuRowItem(
+            icon: Icons.lock_clock_rounded,
+            iconColor: const Color(0xFF059669),
+            title: "Payments & Escrow Protection",
+            subtitle: "UPI, Cards • 100% Satisfied or Refund",
+            onTap: () => _showSafetyGuaranteeSheet(context),
+          ),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+
+          // 3. Co-op Safety & ₹50k Insurance
+          _menuRowItem(
+            icon: Icons.shield_rounded,
+            iconColor: const Color(0xFF6366F1),
+            title: "Co-op Safety & ₹50,000 Insurance",
+            subtitle: "Property damage coverage on all repairs",
+            onTap: () => _showSafetyGuaranteeSheet(context),
+          ),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+
+          // 4. Preferred Language Switcher
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.translate_rounded, color: Color(0xFF2563EB), size: 18),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Text(
+                    "App Language",
+                    style: TextStyle(
+                      color: Color(0xFF141416),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _buildLangPill(context),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+
+          // 6. 24/7 Helpline & Support Desk
+          _menuRowItem(
+            icon: Icons.support_agent_rounded,
+            iconColor: const Color(0xFF2563EB),
+            title: "24/7 Co-op Helpline",
+            subtitle: "Toll-free 1800-419-WORK & WhatsApp",
+            onTap: () => _showHelplineDialog(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _menuRowItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AuroraOrb(
-                    icon: Icons.health_and_safety_rounded,
-                    gradient: CX.auroraSuccess,
-                    size: 44,
-                    iconSize: 22,
-                    glowColor: CX.emerald,
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF141416),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Cooperative Member Advantage",
-                          style: TextStyle(
-                            color: CX.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "2% of every service fee directly funds accident & health insurance for local artisans.",
-                          style: TextStyle(
-                            color: CX.textSecondary,
-                            fontSize: 12,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 1.5),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 28),
-
-            // Sign Out CTA with Confirmation Bottom Sheet
-            OutlinedButton.icon(
-              onPressed: () async {
-                final confirmed = await showSignOutConfirmationSheet(context);
-                if (confirmed == true) {
-                  widget.onSignOut();
-                }
-              },
-              icon: const Icon(
-                Icons.logout_rounded,
-                color: Color(0xFFF43F5E),
-                size: 20,
-              ),
-              label: Text(
-                'sign_out'.tr(),
-                style: const TextStyle(
-                  color: Color(0xFFF43F5E),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 52),
-                side: BorderSide(
-                  color: const Color(0xFFF43F5E).withValues(alpha: 0.5),
-                  width: 1.3,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                backgroundColor: const Color(
-                  0xFFF43F5E,
-                ).withValues(alpha: 0.06),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Delete Account CTA (DPDP Act 2023 §12 Right to Erasure)
-            OutlinedButton.icon(
-              onPressed: () async {
-                final confirmed = await showDeleteAccountConfirmationSheet(context);
-                if (confirmed == true) {
-                  if (context.mounted) {
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (ctx) => const Center(
-                        child: CircularProgressIndicator(color: Color(0xFFE11D48)),
-                      ),
-                    );
-                  }
-
-                  try {
-                    final authService = AuthService();
-                    await authService.deleteAccount(uid: widget.user.uid);
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.clear();
-
-                    if (context.mounted) {
-                      customerNavigatorKey.currentState?.popUntil((route) => route.isFirst);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Row(
-                            children: [
-                              Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 22),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  "Account and personal data permanently erased under DPDP Act 2023.",
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
-                                ),
-                              ),
-                            ],
-                          ),
-                          backgroundColor: const Color(0xFF0F0B24),
-                          duration: const Duration(seconds: 5),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: const BorderSide(color: Color(0xFF10B981), width: 1.2),
-                          ),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      if (Navigator.of(context, rootNavigator: true).canPop()) {
-                        Navigator.of(context, rootNavigator: true).pop();
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Error during erasure: $e"),
-                          backgroundColor: const Color(0xFFE11D48),
-                        ),
-                      );
-                    }
-                  }
-                }
-              },
-              icon: const Icon(
-                Icons.delete_forever_rounded,
-                color: Color(0xFFE11D48),
-                size: 20,
-              ),
-              label: const Text(
-                'Delete Account & Wipe Data',
-                style: TextStyle(
-                  color: Color(0xFFE11D48),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 52),
-                side: BorderSide(
-                  color: const Color(0xFFE11D48).withValues(alpha: 0.5),
-                  width: 1.3,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                backgroundColor: const Color(
-                  0xFFE11D48,
-                ).withValues(alpha: 0.06),
-              ),
-            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF9CA3AF), size: 13),
           ],
         ),
       ),
@@ -2120,90 +2915,48 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     );
   }
 
-  Widget _buildFavoriteArtisanTile(
-    String workerId,
-    String name,
-    String trade,
-    String rating,
-    String jobs,
-  ) {
+  Widget _buildCoopImpactCard() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: CX.canvasMid,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: CX.glassBorder),
+        color: const Color(0xFFECFDF5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFA7F3D0)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF10B981),
               shape: BoxShape.circle,
-              gradient: CX.auroraVioletAmber,
             ),
-            child: const Center(
-              child: Icon(
-                Icons.handyman_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
+            child: const Icon(Icons.handshake_rounded, color: Colors.white, size: 20),
           ),
-          const SizedBox(width: 12),
-          Expanded(
+          const SizedBox(width: 14),
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        name,
-                        style: WorkGoFonts.heading(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      rating,
-                      style: WorkGoFonts.numeric(
-                        color: CX.amber,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
                 Text(
-                  "$trade · $jobs",
-                  style: WorkGoFonts.body(
-                    color: CX.textSecondary,
-                    fontSize: 11,
+                  "Cooperative Patron Advantage",
+                  style: TextStyle(
+                    color: Color(0xFF065F46),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  "0% commercial commissions. 2% of every service fee directly funds accident insurance and healthcare for local artisans.",
+                  style: TextStyle(
+                    color: Color(0xFF047857),
+                    fontSize: 11.5,
+                    height: 1.4,
                   ),
                 ),
               ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => setState(() => _currentNavIndex = 1),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: CX.violet,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              minimumSize: const Size(0, 32),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text(
-              "Book",
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
             ),
           ),
         ],
@@ -2253,9 +3006,9 @@ class _PulsingEmergencyBannerState extends State<_PulsingEmergencyBanner>
     return AuroraCard(
       onTap: widget.onTap,
       glowColor: CX.rose,
-      borderColor: CX.rose.withValues(alpha: 0.5),
+      borderColor: const Color(0xFFFECDD3),
       gradient: const LinearGradient(
-        colors: [Color(0xFF4A0A0A), Color(0xFF7F1D1D), Color(0xFF3B0101)],
+        colors: [Color(0xFFFFF1F2), Color(0xFFFFE4E6), Color(0xFFFEE2E2)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
@@ -2269,7 +3022,7 @@ class _PulsingEmergencyBannerState extends State<_PulsingEmergencyBanner>
               height: 52,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: CX.rose.withValues(alpha: 0.2),
+                color: const Color(0xFFE11D48),
                 boxShadow: [
                   BoxShadow(
                     color: CX.rose.withValues(alpha: _pulse.value * 0.6),
@@ -2293,7 +3046,7 @@ class _PulsingEmergencyBannerState extends State<_PulsingEmergencyBanner>
                     Text(
                       'emergency_booking'.tr(),
                       style: WorkGoFonts.display(
-                        color: Colors.white,
+                        color: const Color(0xFF9F1239),
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.4,
@@ -2310,7 +3063,7 @@ class _PulsingEmergencyBannerState extends State<_PulsingEmergencyBanner>
                 Text(
                   'emergency_subtitle'.tr(),
                   style: const TextStyle(
-                    color: Colors.white60,
+                    color: Color(0xFF881337),
                     fontSize: 12,
                     height: 1.3,
                   ),
@@ -2322,11 +3075,11 @@ class _PulsingEmergencyBannerState extends State<_PulsingEmergencyBanner>
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.1),
+              color: const Color(0xFFE11D48).withValues(alpha: 0.15),
             ),
             child: const Icon(
               Icons.arrow_forward_ios_rounded,
-              color: Colors.white70,
+              color: Color(0xFF9F1239),
               size: 14,
             ),
           ),
@@ -2337,103 +3090,46 @@ class _PulsingEmergencyBannerState extends State<_PulsingEmergencyBanner>
 }
 
 // ──────────────────────────────────────────────────────
-//  ACTIVE BOOKING PILL
+//  MASONRY STAGGERED CRAFT CARD (Pinterest / Dribbble Inspiration)
 // ──────────────────────────────────────────────────────
-class _ActiveBookingPill extends StatelessWidget {
-  const _ActiveBookingPill({required this.booking, required this.onTap});
-  final Booking booking;
-  final VoidCallback onTap;
+class _CraftServiceItem {
+  final String key;
+  final String name;
+  final String categoryName;
+  final String tagline;
+  final String emoji;
+  final String assetPath;
+  final String price;
+  final double cardHeight;
+  final LinearGradient gradient;
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            PulsingDot(color: CX.amber, size: 8),
-            const SizedBox(width: 7),
-            Text(
-              "Active Booking in Progress",
-              style: TextStyle(
-                color: CX.amber.withValues(alpha: 0.9),
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        AuroraCard(
-          onTap: onTap,
-          glowColor: CX.amber,
-          borderColor: CX.amber.withValues(alpha: 0.4),
-          child: Row(
-            children: [
-              AuroraOrb(
-                icon: Icons.timelapse_rounded,
-                gradient: CX.auroraVioletAmber,
-                size: 44,
-                iconSize: 22,
-                glowColor: CX.amber,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      booking.serviceType,
-                      style: const TextStyle(
-                        color: CX.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      "Status: ${booking.status.name.toUpperCase()}",
-                      style: const TextStyle(
-                        color: CX.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const AuroraBadge(
-                label: "TRACK LIVE",
-                style: AuroraBadgeStyle.amber,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-      ],
-    );
-  }
+  const _CraftServiceItem({
+    required this.key,
+    required this.name,
+    required this.categoryName,
+    required this.tagline,
+    required this.emoji,
+    required this.assetPath,
+    required this.price,
+    required this.cardHeight,
+    required this.gradient,
+  });
 }
 
-// ──────────────────────────────────────────────────────
-//  BENTO CATEGORY CARD (Swiggy / Rapido Style Visual Depth)
-// ──────────────────────────────────────────────────────
-class _BentoCategoryCard extends StatefulWidget {
-  const _BentoCategoryCard({
-    required this.name,
-    required this.style,
+class _MasonryCraftCard extends StatefulWidget {
+  const _MasonryCraftCard({
+    required this.item,
     required this.onTap,
   });
 
-  final String name;
-  final CategoryStyle style;
+  final _CraftServiceItem item;
   final VoidCallback onTap;
 
   @override
-  State<_BentoCategoryCard> createState() => _BentoCategoryCardState();
+  State<_MasonryCraftCard> createState() => _MasonryCraftCardState();
 }
 
-class _BentoCategoryCardState extends State<_BentoCategoryCard>
+class _MasonryCraftCardState extends State<_MasonryCraftCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scale;
@@ -2443,12 +3139,11 @@ class _BentoCategoryCardState extends State<_BentoCategoryCard>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 130),
+      duration: const Duration(milliseconds: 120),
     );
-    _scale = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+    );
   }
 
   @override
@@ -2459,8 +3154,7 @@ class _BentoCategoryCardState extends State<_BentoCategoryCard>
 
   @override
   Widget build(BuildContext context) {
-    final style = widget.style;
-    final accent = style.accentColor ?? style.glow;
+    final item = widget.item;
 
     return GestureDetector(
       onTapDown: (_) => _ctrl.forward(),
@@ -2472,156 +3166,189 @@ class _BentoCategoryCardState extends State<_BentoCategoryCard>
       onTapCancel: () => _ctrl.reverse(),
       child: AnimatedBuilder(
         animation: _scale,
-        builder: (_, child) =>
-            Transform.scale(scale: _scale.value, child: child),
-        child: Container(
-          padding: const EdgeInsets.all(13),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                accent.withValues(alpha: 0.14),
-                CX.canvasCard.withValues(alpha: 0.88),
-                CX.canvasMid,
-              ],
-              stops: const [0.0, 0.45, 1.0],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: accent.withValues(alpha: 0.35),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.12),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-                spreadRadius: -2,
+        builder: (_, child) => Transform.scale(scale: _scale.value, child: child),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── 1. The High-Res 3D Visual Canvas (as in Screenshot) ──
+            Container(
+              height: item.cardHeight,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [
+                  BoxShadow(
+                    color: item.gradient.colors.last.withValues(alpha: 0.28),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Top Row: 3D Icon Container + Live Badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      gradient: style.gradient,
-                      borderRadius: BorderRadius.circular(13),
-                      boxShadow: [
-                        BoxShadow(
-                          color: accent.withValues(alpha: 0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(26),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Background fallback gradient
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: item.gradient,
+                      ),
+                    ),
+
+                    // High-Res 3D Imagery with Error Fallback
+                    Image.asset(
+                      item.assetPath,
+                      package: 'workgo_core',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: 0.18),
+                            ),
+                            child: Text(
+                              item.emoji,
+                              style: const TextStyle(fontSize: 46),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    // Elegant Scrim Gradient Overlay
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.15),
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.45),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Icon(style.icon, color: Colors.white, size: 22),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.4),
-                        width: 0.8,
                       ),
                     ),
-                    child: Text(
-                      style.badge,
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
 
-              // Title & Subtitle
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.name,
-                    style: WorkGoFonts.heading(
-                      color: Colors.white,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    style.subtitle,
-                    style: TextStyle(
-                      color: CX.textSecondary.withValues(alpha: 0.85),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-
-              // Bottom Row: Starting price + Explore Arrow
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: Text(
-                      style.startingPrice,
-                      style: const TextStyle(
-                        color: CX.amber,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
+                    // Top-Right Glassy Translucent Price Chip
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          item.price,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: accent.withValues(alpha: 0.18),
+
+                    // Top-Left 15-Min Badge
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.88),
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x1A000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.flash_on_rounded, size: 10, color: Color(0xFFD97706)),
+                            SizedBox(width: 2),
+                            Text(
+                              "15M",
+                              style: TextStyle(
+                                color: Color(0xFF141416),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: Icon(
-                      Icons.arrow_forward_rounded,
-                      color: accent,
-                      size: 13,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+
+            // ── 2. Bottom Label + Options Row (as in Screenshot) ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (item.key).tr().isNotEmpty ? (item.key).tr() : item.name,
+                        style: const TextStyle(
+                          color: Color(0xFF141416),
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        item.tagline,
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Color(0xFF141416),
+                    size: 13,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -2688,14 +3415,14 @@ class _QuickSolutionChipState extends State<_QuickSolutionChip>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: CX.canvasCard.withValues(alpha: 0.9),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: CX.glassBorderBright, width: 1),
-            boxShadow: [
+            border: Border.all(color: const Color(0xFFF0EDE6), width: 1),
+            boxShadow: const [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: Color(0x06000000),
                 blurRadius: 8,
-                offset: const Offset(0, 2),
+                offset: Offset(0, 2),
               ),
             ],
           ),
@@ -2707,7 +3434,7 @@ class _QuickSolutionChipState extends State<_QuickSolutionChip>
               Text(
                 widget.title,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF141416),
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -2716,13 +3443,13 @@ class _QuickSolutionChipState extends State<_QuickSolutionChip>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: CX.amber.withValues(alpha: 0.18),
+                  color: const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   widget.price,
                   style: const TextStyle(
-                    color: CX.amber,
+                    color: Color(0xFFB45309),
                     fontSize: 10.5,
                     fontWeight: FontWeight.w900,
                   ),
@@ -2755,18 +3482,14 @@ class _ArtisanSpotlightCard extends StatelessWidget {
         width: 220,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [CX.canvasCard.withValues(alpha: 0.95), CX.canvasMid],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: CX.glassBorderBright, width: 1),
-          boxShadow: [
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: Color(0x08000000),
               blurRadius: 12,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -2791,7 +3514,7 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                             child: Text(
                               worker.name.isNotEmpty ? worker.name : "Artisan",
                               style: WorkGoFonts.heading(
-                                color: Colors.white,
+                                color: const Color(0xFF141416),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -2802,7 +3525,7 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           const Icon(
                             Icons.verified_rounded,
-                            color: CX.emerald,
+                            color: Color(0xFF10B981),
                             size: 14,
                           ),
                         ],
@@ -2810,7 +3533,7 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                       Text(
                         trade,
                         style: TextStyle(
-                          color: style.accentColor ?? CX.cyanLight,
+                          color: style.accentColor ?? const Color(0xFF2563EB),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -2825,28 +3548,28 @@ class _ArtisanSpotlightCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded, color: CX.amber, size: 14),
+                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
                     const SizedBox(width: 3),
                     Text(
                       worker.avgRating > 0
                           ? worker.avgRating.toStringAsFixed(1)
                           : "4.9",
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFF141416),
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     Text(
                       " (${worker.totalReviews > 0 ? worker.totalReviews : 24})",
-                      style: const TextStyle(color: CX.textMuted, fontSize: 10),
+                      style: const TextStyle(color: Color(0xFF6B7280), fontSize: 10),
                     ),
                   ],
                 ),
                 Text(
                   "🏡 ${worker.homesServiced > 0 ? worker.homesServiced : 38} homes",
                   style: const TextStyle(
-                    color: Color(0xFF6EE7B7),
+                    color: Color(0xFF059669),
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -2859,7 +3582,7 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                 Text(
                   "📍 ${worker.distanceKm.toStringAsFixed(1)} km away",
                   style: const TextStyle(
-                    color: CX.cyan,
+                    color: Color(0xFF2563EB),
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -2870,7 +3593,7 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    gradient: CX.auroraVioletCyan,
+                    color: const Color(0xFF141416),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Text(
@@ -2935,22 +3658,46 @@ class _BookingListTile extends StatelessWidget {
           : "${dt.day}/${dt.month} · $timeStr";
     }
 
-    return AuroraCard(
-      onTap: onTap,
-      glowColor: style.glow.withValues(alpha: isLive ? 0.4 : 0.2),
-      borderColor: isLive ? style.glow.withValues(alpha: 0.4) : null,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isLive ? const Color(0xFFF59E0B) : const Color(0xFFF0EDE6),
+          width: isLive ? 1.5 : 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isLive ? const Color(0x14F59E0B) : const Color(0x06000000),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── 1. Top Header Row: Orb + Title/Emergency + Status Badge ──
           Row(
             children: [
-              AuroraOrb(
-                icon: style.icon,
-                gradient: style.gradient,
-                size: 44,
-                iconSize: 22,
-                glowColor: style.glow,
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: style.gradient,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (style.accentColor ?? const Color(0xFF2563EB)).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(style.icon, color: Colors.white, size: 22),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -2963,7 +3710,7 @@ class _BookingListTile extends StatelessWidget {
                           child: Text(
                             booking.serviceType,
                             style: const TextStyle(
-                              color: CX.textPrimary,
+                              color: Color(0xFF141416),
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.2,
@@ -2980,20 +3727,13 @@ class _BookingListTile extends StatelessWidget {
                               vertical: 1.5,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFFEF4444,
-                              ).withValues(alpha: 0.2),
+                              color: const Color(0xFFEF4444).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: const Color(
-                                  0xFFEF4444,
-                                ).withValues(alpha: 0.5),
-                              ),
                             ),
                             child: const Text(
                               "🚨 SOS",
                               style: TextStyle(
-                                color: Color(0xFFFCA5A5),
+                                color: Color(0xFFDC2626),
                                 fontSize: 9,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -3005,8 +3745,8 @@ class _BookingListTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       dateStr,
-                      style: TextStyle(
-                        color: CX.textSecondary.withValues(alpha: 0.7),
+                      style: const TextStyle(
+                        color: Color(0xFF6B7280),
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
                       ),
@@ -3027,9 +3767,9 @@ class _BookingListTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: const Color(0xFFF9FAFB),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              border: Border.all(color: const Color(0xFFF3F4F6)),
             ),
             child: Row(
               children: [
@@ -3041,7 +3781,7 @@ class _BookingListTile extends StatelessWidget {
                     child: Text(
                       "Artisan: ${booking.acceptedWorkerName}",
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFF141416),
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -3050,13 +3790,13 @@ class _BookingListTile extends StatelessWidget {
                     ),
                   ),
                 ] else if (isPending) ...[
-                  PulsingDot(color: CX.amber, size: 7),
+                  const PulsingDot(color: Color(0xFFD97706), size: 7),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       "Broadcasting to local specialists (${booking.broadcastRadiusKm.toInt()} km)...",
                       style: const TextStyle(
-                        color: CX.amber,
+                        color: Color(0xFF92400E),
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                       ),
@@ -3067,7 +3807,7 @@ class _BookingListTile extends StatelessWidget {
                 ] else ...[
                   const Icon(
                     Icons.handyman_rounded,
-                    color: CX.textSecondary,
+                    color: Color(0xFF6B7280),
                     size: 14,
                   ),
                   const SizedBox(width: 8),
@@ -3075,7 +3815,7 @@ class _BookingListTile extends StatelessWidget {
                     child: Text(
                       "WorkGo Co-op Dispatch #${booking.id.substring(0, booking.id.length > 6 ? 6 : booking.id.length)}",
                       style: const TextStyle(
-                        color: CX.textSecondary,
+                        color: Color(0xFF6B7280),
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
                       ),
@@ -3095,10 +3835,10 @@ class _BookingListTile extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     "Total Amount",
                     style: TextStyle(
-                      color: CX.textMuted.withValues(alpha: 0.8),
+                      color: Color(0xFF6B7280),
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
                     ),
@@ -3109,7 +3849,7 @@ class _BookingListTile extends StatelessWidget {
                       Text(
                         "₹${booking.totalAmount.toStringAsFixed(0)}",
                         style: const TextStyle(
-                          color: CX.amber,
+                          color: Color(0xFF141416),
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                         ),
@@ -3122,16 +3862,16 @@ class _BookingListTile extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: booking.paymentStatus == PaymentStatus.paid
-                              ? const Color(0xFF10B981).withValues(alpha: 0.2)
-                              : Colors.white.withValues(alpha: 0.08),
+                              ? const Color(0xFFECFDF5)
+                              : const Color(0xFFF3F4F6),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           booking.paymentStatus.name.toUpperCase(),
                           style: TextStyle(
                             color: booking.paymentStatus == PaymentStatus.paid
-                                ? const Color(0xFF6EE7B7)
-                                : CX.textSecondary,
+                                ? const Color(0xFF059669)
+                                : const Color(0xFF6B7280),
                             fontSize: 9.5,
                             fontWeight: FontWeight.w800,
                           ),
@@ -3143,72 +3883,81 @@ class _BookingListTile extends StatelessWidget {
               ),
 
               if (isLive || isPending)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 7,
+                ElevatedButton.icon(
+                  onPressed: onTap,
+                  icon: const Icon(Icons.radar_rounded, color: Colors.white, size: 14),
+                  label: const Text(
+                    "Track Live",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    gradient: CX.auroraVioletCyan,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: CX.cyan.withValues(alpha: 0.35),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.radar_rounded, color: Colors.white, size: 14),
-                      SizedBox(width: 6),
-                      Text(
-                        "Track Live",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF141416),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 )
-              else if (isCompleted && onBookAgain != null)
-                GestureDetector(
-                  onTap: onBookAgain,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: CX.violet.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: CX.violetLight.withValues(alpha: 0.4),
+              else if (isCompleted)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Invoice & Receipt Button
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PaymentReceiptScreen(
+                              booking: booking,
+                              workerName: booking.acceptedWorkerName ?? "Verified Co-op Specialist",
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.receipt_long_rounded, color: Color(0xFF2563EB), size: 13),
+                      label: const Text(
+                        "Receipt",
+                        style: TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFBFDBFE)),
+                        backgroundColor: const Color(0xFFEFF6FF),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: const Size(0, 36),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(
-                          Icons.replay_rounded,
-                          color: CX.violetLight,
-                          size: 14,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
+                    if (onBookAgain != null) ...[
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: onBookAgain,
+                        icon: const Icon(Icons.replay_rounded, color: Colors.white, size: 13),
+                        label: const Text(
                           "Book Again",
                           style: TextStyle(
-                            color: CX.violetLight,
+                            color: Colors.white,
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF141416),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: const Size(0, 36),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
             ],
           ),

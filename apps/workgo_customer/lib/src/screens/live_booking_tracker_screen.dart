@@ -745,30 +745,30 @@ class _ArtisanCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0D0A1C),
+        backgroundColor: CX.canvasCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: CX.rose)),
         title: Row(
           children: [
             const Icon(Icons.shield_outlined, color: CX.rose, size: 22),
             const SizedBox(width: 8),
-            Text("report_artisan_title".tr(), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+            Text("report_artisan_title".tr(), style: const TextStyle(color: CX.textPrimary, fontSize: 16, fontWeight: FontWeight.w900)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("report_artisan_desc".tr(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            Text("report_artisan_desc".tr(), style: const TextStyle(color: CX.textSecondary, fontSize: 12)),
             const SizedBox(height: 12),
             TextField(
               controller: reasonCtrl,
               maxLines: 3,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: const TextStyle(color: CX.textPrimary, fontSize: 13),
               decoration: InputDecoration(
                 hintText: "Describe the safety concern or misconduct...",
-                hintStyle: const TextStyle(color: Colors.white30),
+                hintStyle: TextStyle(color: CX.textMuted.withValues(alpha: 0.8)),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
+                fillColor: CX.canvasMid,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
@@ -777,7 +777,7 @@ class _ArtisanCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Cancel", style: TextStyle(color: Colors.white60)),
+            child: const Text("Cancel", style: TextStyle(color: CX.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -993,7 +993,7 @@ class _CompletedWorkProvenanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B0818),
+        color: CX.canvasCard,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
@@ -1027,7 +1027,7 @@ class _CompletedWorkProvenanceCard extends StatelessWidget {
                   const Text(
                     "Work Provenance Authenticated",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: CX.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1043,7 +1043,7 @@ class _CompletedWorkProvenanceCard extends StatelessWidget {
           const SizedBox(height: 12),
           const Text(
             "The artisan captured photographic proof of completed work using the WorkGo in-app hardware camera. Cryptographic C2PA provenance verifies this capture is unaltered and bound to the artisan's verified identity.",
-            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+            style: TextStyle(color: CX.textSecondary, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 12),
           Container(
@@ -1086,7 +1086,7 @@ class _StartServiceOtpBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0A24),
+        color: CX.canvasCard,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: CX.amber.withValues(alpha: 0.5), width: 1.5),
         boxShadow: [
@@ -1126,7 +1126,7 @@ class _StartServiceOtpBanner extends StatelessWidget {
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.copy_rounded, color: Colors.white70, size: 18),
+                icon: const Icon(Icons.copy_rounded, color: CX.amberDark, size: 18),
                 tooltip: "Copy OTP",
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: otp));
@@ -1153,7 +1153,7 @@ class _StartServiceOtpBanner extends StatelessWidget {
                 width: 48,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B143A),
+                  color: CX.canvasMid,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: CX.amber, width: 2.0),
                   boxShadow: [
@@ -1168,7 +1168,7 @@ class _StartServiceOtpBanner extends StatelessWidget {
                   child: Text(
                     d,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: CX.textPrimary,
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1,
@@ -1183,7 +1183,7 @@ class _StartServiceOtpBanner extends StatelessWidget {
           const Center(
             child: Text(
               "Share this 4-digit code with your artisan upon arrival to begin work.",
-              style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.3),
+              style: TextStyle(color: CX.textSecondary, fontSize: 12, height: 1.3),
               textAlign: TextAlign.center,
             ),
           ),

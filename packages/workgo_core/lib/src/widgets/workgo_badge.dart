@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../theme/spacing.dart';
 import 'safe_text.dart';
 
@@ -22,39 +22,39 @@ class WorkGoBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bgColor, borderColor, textColor) = switch (type) {
       BadgeType.success => (
-        const Color(0xFF22C55E).withValues(alpha: 0.15),
-        const Color(0xFF22C55E).withValues(alpha: 0.4),
-        const Color(0xFF4ADE80),
+        const Color(0xFFD1FAE5),          // soft green tint
+        const Color(0xFF6EE7B7),
+        const Color(0xFF065F46),          // dark green text — legible on light
       ),
       BadgeType.warning => (
-        const Color(0xFFF59E0B).withValues(alpha: 0.15),
-        const Color(0xFFF59E0B).withValues(alpha: 0.4),
-        const Color(0xFFFBBF24),
+        const Color(0xFFFEF3C7),          // soft amber tint
+        const Color(0xFFFCD34D),
+        const Color(0xFF92400E),          // dark amber text
       ),
       BadgeType.error => (
-        const Color(0xFFEF4444).withValues(alpha: 0.15),
-        const Color(0xFFEF4444).withValues(alpha: 0.4),
-        const Color(0xFFF87171),
+        const Color(0xFFFEE2E2),          // soft red tint
+        const Color(0xFFFCA5A5),
+        const Color(0xFF991B1B),          // dark red text
       ),
       BadgeType.info => (
-        const Color(0xFF38BDF8).withValues(alpha: 0.15),
-        const Color(0xFF38BDF8).withValues(alpha: 0.4),
-        const Color(0xFF38BDF8),
+        const Color(0xFFDBEAFE),          // soft blue tint
+        const Color(0xFF93C5FD),
+        const Color(0xFF1E40AF),          // dark blue text
       ),
       BadgeType.neutral => (
-        Colors.white.withValues(alpha: 0.08),
-        Colors.white.withValues(alpha: 0.18),
-        const Color(0xFFCBD5E1),
+        const Color(0xFFF3F0EA),          // warm gray tint
+        const Color(0xFFE0D8C8),
+        const Color(0xFF6B6B6B),          // medium gray text
       ),
       BadgeType.emergency => (
-        const Color(0xFFDC2626).withValues(alpha: 0.25),
-        const Color(0xFFDC2626).withValues(alpha: 0.6),
-        const Color(0xFFFFA4A4),
+        const Color(0xFFFEE2E2),
+        const Color(0xFFFCA5A5),
+        const Color(0xFF7F1D1D),
       ),
       BadgeType.accent => (
-        const Color(0xFFFBBF24).withValues(alpha: 0.15),
-        const Color(0xFFFBBF24).withValues(alpha: 0.4),
-        const Color(0xFFFBBF24),
+        const Color(0xFFFFF3D6),          // soft yellow tint
+        const Color(0xFFFFCD4A),
+        const Color(0xFF92400E),          // dark amber text — readable
       ),
     };
 

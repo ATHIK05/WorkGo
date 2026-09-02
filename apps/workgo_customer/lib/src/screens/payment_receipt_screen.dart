@@ -45,7 +45,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
     final coopDividend = totalAmount * 0.02;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0C20),
+      backgroundColor: WorkGoColors.surfaceLight,
       appBar: AppBar(
         title: SafeText(_isPaid ? 'invoice_receipt'.tr() : 'pay_now'.tr()),
         backgroundColor: Colors.transparent,
@@ -109,12 +109,12 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               SafeText(
                 "Cost Breakdown",
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: WorkGoColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const Divider(color: Colors.white12, height: 24),
+              const Divider(color: Color(0xFFF0EDE6), height: 24),
               _buildCostRow('service_fee'.tr(), "₹${baseAmount.toStringAsFixed(0)}"),
               if (widget.booking.isEmergency) ...[
                 const SizedBox(height: 8),
@@ -122,7 +122,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               ],
               const SizedBox(height: 8),
               _buildCostRow("Platform / GST (5%)", "₹${(totalAmount * 0.05).toStringAsFixed(0)}"),
-              const Divider(color: Colors.white12, height: 24),
+              const Divider(color: Color(0xFFF0EDE6), height: 24),
               _buildCostRow(
                 'total_amount'.tr(),
                 "₹${totalAmount.toStringAsFixed(0)}",
@@ -154,7 +154,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
         SafeText(
           'payment_method'.tr(),
           style: const TextStyle(
-            color: Colors.white,
+            color: WorkGoColors.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w800,
           ),
@@ -227,7 +227,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                 SafeText(
                   title,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: WorkGoColors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -242,7 +242,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               ],
             ),
           ),
-          Container(width: 22, height: 22, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: isSelected ? color : Colors.white24, width: 2), color: isSelected ? color : Colors.transparent), child: isSelected ? const Icon(Icons.check, size: 14, color: Color(0xFF1C1B2E)) : null),
+          Container(width: 22, height: 22, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: isSelected ? color : const Color(0xFFE5E0D8), width: 2), color: isSelected ? color : Colors.transparent), child: isSelected ? const Icon(Icons.check, size: 14, color: Color(0xFF1C1B2E)) : null),
         ],
       ),
     );
@@ -257,7 +257,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
           style: TextStyle(
             color: isHighlight
                 ? const Color(0xFFF87171)
-                : (isBold ? Colors.white : WorkGoColors.textSecondary),
+                : (isBold ? WorkGoColors.textPrimary : WorkGoColors.textSecondary),
             fontSize: isBold ? 15 : 13,
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
           ),
@@ -267,7 +267,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
           style: TextStyle(
             color: isHighlight
                 ? const Color(0xFFF87171)
-                : (isBold ? WorkGoColors.accent : Colors.white),
+                : (isBold ? WorkGoColors.accent : WorkGoColors.textPrimary),
             fontSize: isBold ? 16 : 14,
             fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
           ),
@@ -301,7 +301,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               SafeText(
                 'payment_successful'.tr(),
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: WorkGoColors.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                 ),
@@ -330,7 +330,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                   const SafeText(
                     "WorkGo Official Tax Invoice",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: WorkGoColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
@@ -338,7 +338,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                   WorkGoBadge(label: "PAID", type: BadgeType.success),
                 ],
               ),
-              const Divider(color: Colors.white12, height: 24),
+              const Divider(color: Color(0xFFF0EDE6), height: 24),
               _buildCostRow("Service Category", widget.booking.serviceType),
               const SizedBox(height: 6),
               _buildCostRow("Assigned Artisan", widget.workerName),
@@ -346,7 +346,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               _buildCostRow("Payment Mode", _selectedMethod.toUpperCase()),
               const SizedBox(height: 6),
               _buildCostRow("Transaction ID", "TXN-${DateTime.now().millisecondsSinceEpoch}"),
-              const Divider(color: Colors.white12, height: 24),
+              const Divider(color: Color(0xFFF0EDE6), height: 24),
               _buildCostRow("Amount Paid", "₹${totalAmount.toStringAsFixed(0)}", isBold: true),
               const SizedBox(height: 8),
               Container(

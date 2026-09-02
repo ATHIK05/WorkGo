@@ -46,13 +46,17 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
               final searchField = Container(
                 width: isWide ? 320 : double.infinity,
                 height: 42,
-                decoration: AX.glassBox(radius: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9F6EE),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AX.divider),
+                ),
                 child: TextField(
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: const TextStyle(color: AX.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "Search ID, trade, customer...",
-                    hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Colors.white38, size: 18),
+                    hintStyle: const TextStyle(color: AX.textMuted, fontSize: 12),
+                    prefixIcon: const Icon(Icons.search_rounded, color: AX.textSecondary, size: 18),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -109,7 +113,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: AX.cyan),
+                    child: CircularProgressIndicator(color: AX.emerald),
                   );
                 }
 
@@ -146,8 +150,8 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: AX.cyan.withValues(alpha: 0.1)),
-                            child: const Icon(Icons.receipt_long_rounded, color: AX.cyan, size: 36),
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFFFF3D6)),
+                            child: const Icon(Icons.receipt_long_rounded, color: AX.emeraldDark, size: 36),
                           ),
                           const SizedBox(height: 16),
                           Text("No Matching Bookings Found", style: AX.display(fontSize: 16)),
@@ -179,22 +183,20 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
     final isSelected = _filterStatus == value;
     return GestureDetector(
       onTap: () => setState(() => _filterStatus = value),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AX.cyan.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+          color: isSelected ? AX.emerald : const Color(0xFFF3F0EA),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AX.cyan : Colors.white12,
-            width: 1.2,
-          ),
+          border: isSelected ? null : Border.all(color: AX.divider, width: 1),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white60,
+            color: isSelected ? const Color(0xFF1A1A1A) : AX.textSecondary,
             fontSize: 12,
-            fontWeight: FontWeight.bold,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
       ),
@@ -204,24 +206,25 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
   Widget _buildEmergencyToggle() {
     return GestureDetector(
       onTap: () => setState(() => _onlyEmergency = !_onlyEmergency),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: _onlyEmergency ? AX.rose.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.05),
+          color: _onlyEmergency ? const Color(0xFFFEE2E2) : const Color(0xFFF3F0EA),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _onlyEmergency ? AX.rose : Colors.white12,
+            color: _onlyEmergency ? const Color(0xFFFCA5A5) : AX.divider,
             width: 1.2,
           ),
         ),
         child: Row(
           children: [
-            Icon(Icons.bolt_rounded, color: _onlyEmergency ? AX.rose : Colors.white60, size: 16),
+            Icon(Icons.bolt_rounded, color: _onlyEmergency ? const Color(0xFF991B1B) : AX.textSecondary, size: 16),
             const SizedBox(width: 6),
             Text(
               "Emergency Only",
               style: TextStyle(
-                color: _onlyEmergency ? AX.roseLight : Colors.white60,
+                color: _onlyEmergency ? const Color(0xFF991B1B) : AX.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -233,12 +236,12 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
   }
 
   Widget _buildBookingCard(BuildContext context, Booking b) {
-    final statusColor = switch (b.status) {
-      BookingStatus.completed => AX.emerald,
-      BookingStatus.inProgress => AX.amber,
-      BookingStatus.accepted => AX.cyan,
-      BookingStatus.cancelled => AX.rose,
-      _ => Colors.white60,
+    final (statusColor, statusBg) = switch (b.status) {
+      BookingStatus.completed => (const Color(0xFF065F46), const Color(0xFFD1FAE5)),
+      BookingStatus.inProgress => (const Color(0xFF92400E), const Color(0xFFFEF3C7)),
+      BookingStatus.accepted => (const Color(0xFF1E40AF), const Color(0xFFDBEAFE)),
+      BookingStatus.cancelled => (const Color(0xFF991B1B), const Color(0xFFFEE2E2)),
+      _ => (AX.textSecondary, const Color(0xFFF3F0EA)),
     };
 
     return InkWell(
@@ -246,19 +249,22 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.all(18),
-        decoration: AX.glassBox(radius: 18, borderColor: b.isEmergency ? AX.rose.withValues(alpha: 0.3) : null),
+        decoration: AX.glassBox(
+          radius: 18,
+          borderColor: b.isEmergency ? const Color(0xFFFCA5A5) : null,
+        ),
         child: Row(
           children: [
             // Trade Icon
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: (b.isEmergency ? AX.rose : AX.cyan).withValues(alpha: 0.15),
+                color: b.isEmergency ? const Color(0xFFFEE2E2) : const Color(0xFFFFF3D6),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 b.isEmergency ? Icons.bolt_rounded : Icons.handyman_rounded,
-                color: b.isEmergency ? AX.rose : AX.cyan,
+                color: b.isEmergency ? const Color(0xFF991B1B) : AX.emeraldDark,
                 size: 24,
               ),
             ),
@@ -273,16 +279,16 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                     children: [
                       Text(b.serviceType, style: AX.display(fontSize: 15)),
                       const SizedBox(width: 10),
-                      Text("ID: #${b.id.toUpperCase()}", style: AX.mono(fontSize: 11, color: Colors.white38)),
+                      Text("ID: #${b.id.substring(0, b.id.length.clamp(0, 8)).toUpperCase()}", style: AX.mono(fontSize: 11, color: AX.textMuted)),
                       if (b.isEmergency) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AX.rose.withValues(alpha: 0.2),
+                            color: const Color(0xFFFEE2E2),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text("EMERGENCY (+₹150)", style: AX.mono(fontSize: 9, color: AX.rose)),
+                          child: const Text("EMERGENCY (+₹150)", style: TextStyle(fontFamily: "SpaceGrotesk", fontSize: 9, color: Color(0xFF991B1B), fontWeight: FontWeight.bold)),
                         ),
                       ],
                       if (b.startOtp != null) ...[
@@ -290,10 +296,10 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AX.amber.withValues(alpha: 0.2),
+                            color: const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text("OTP: ${b.startOtp}", style: AX.mono(fontSize: 9, color: AX.amber)),
+                          child: Text("OTP: ${b.startOtp}", style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 9, color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ],
@@ -301,23 +307,23 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_rounded, color: Colors.white38, size: 14),
+                      const Icon(Icons.location_on_rounded, color: AX.textMuted, size: 14),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          b.customerAddressText ?? "1148 E Main St, Thanjavur",
-                          style: AX.body(fontSize: 12, color: Colors.white70),
+                          b.customerAddressText ?? "Thanjavur, Tamil Nadu",
+                          style: AX.body(fontSize: 12, color: AX.textSecondary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (b.acceptedWorkerName != null) ...[
                         const SizedBox(width: 12),
-                        const Icon(Icons.person_rounded, color: AX.emerald, size: 14),
+                        const Icon(Icons.person_rounded, color: Color(0xFF065F46), size: 14),
                         const SizedBox(width: 4),
                         Text(
                           "Artisan: ${b.acceptedWorkerName}",
-                          style: AX.body(fontSize: 12, color: AX.emeraldLight, fontWeight: FontWeight.bold),
+                          style: AX.body(fontSize: 12, color: const Color(0xFF065F46), fontWeight: FontWeight.bold),
                         ),
                       ],
                     ],
@@ -331,14 +337,13 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text("₹${b.amount.toStringAsFixed(0)}", style: AX.display(fontSize: 18, color: Colors.white)),
+                Text("₹${b.amount.toStringAsFixed(0)}", style: AX.display(fontSize: 18, color: AX.textPrimary)),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.18),
+                    color: statusBg,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor, width: 1),
                   ),
                   child: Text(
                     b.status.name.toUpperCase(),
@@ -348,7 +353,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
               ],
             ),
             const SizedBox(width: 12),
-            const Icon(Icons.chevron_right_rounded, color: Colors.white38),
+            const Icon(Icons.chevron_right_rounded, color: AX.textMuted),
           ],
         ),
       ),
@@ -365,7 +370,13 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
         decoration: BoxDecoration(
           color: AX.bgSurface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: AX.cyan.withValues(alpha: 0.4), width: 1.5)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x18000000),
+              blurRadius: 24,
+              offset: Offset(0, -4),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -375,7 +386,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
               child: Container(
                 width: 48,
                 height: 4,
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(color: AX.divider, borderRadius: BorderRadius.circular(2)),
               ),
             ),
             const SizedBox(height: 20),
@@ -386,25 +397,25 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("Dispatch Telemetry Dossier", style: AX.display(fontSize: 18)),
-                    Text("Booking #${b.id.toUpperCase()}", style: AX.mono(fontSize: 12, color: AX.cyan)),
+                    Text("Booking #${b.id.substring(0, b.id.length.clamp(0, 8)).toUpperCase()}", style: AX.mono(fontSize: 12, color: AX.emeraldDark)),
                   ],
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AX.emerald.withValues(alpha: 0.2),
+                    color: const Color(0xFFFFF3D6),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AX.emerald),
+                    border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
                   ),
-                  child: Text("₹${b.amount.toStringAsFixed(0)} TOTAL", style: AX.mono(fontSize: 13, color: Colors.white)),
+                  child: Text("₹${b.amount.toStringAsFixed(0)} TOTAL", style: AX.mono(fontSize: 13, color: AX.textPrimary)),
                 ),
               ],
             ),
-            const Divider(color: Colors.white10, height: 28),
+            const Divider(color: AX.divider, height: 28),
 
             _buildDetailRow("Trade Service", b.serviceType),
             _buildDetailRow("Customer ID", b.customerId),
-            _buildDetailRow("Destination Address", b.customerAddressText ?? "1148 E Main St, Thanjavur"),
+            _buildDetailRow("Destination Address", b.customerAddressText ?? "Thanjavur, Tamil Nadu"),
             _buildDetailRow("Start Verification OTP", b.startOtp ?? "8492"),
             _buildDetailRow("Assigned Artisan", b.acceptedWorkerName ?? "Awaiting Pickup"),
             _buildDetailRow("Status", b.status.name.toUpperCase()),
@@ -414,10 +425,11 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
             ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AX.cyanDark,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 46),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: AX.emerald,
+                foregroundColor: const Color(0xFF1A1A1A),
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                elevation: 0,
               ),
               child: const Text("Close Telemetry Dossier", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
@@ -433,8 +445,8 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AX.body(fontSize: 13, color: Colors.white60)),
-          Text(value, style: AX.heading(fontSize: 13, color: Colors.white)),
+          Text(label, style: AX.body(fontSize: 13, color: AX.textSecondary)),
+          Text(value, style: AX.heading(fontSize: 13, color: AX.textPrimary)),
         ],
       ),
     );

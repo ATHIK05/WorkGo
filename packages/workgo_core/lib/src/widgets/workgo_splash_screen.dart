@@ -30,6 +30,7 @@ class WorkGoSplashScreen extends StatefulWidget {
   const WorkGoSplashScreen({
     super.key,
     this.nextScreen,
+    this.onFinish,
     this.totalDuration = const Duration(milliseconds: 3600),
     this.appName = 'WorkGo',
     this.tagline = 'Book your service in minutes',
@@ -38,6 +39,7 @@ class WorkGoSplashScreen extends StatefulWidget {
   /// Screen to navigate to automatically once the splash finishes.
   /// If null, the splash just plays and stays on its final frame.
   final Widget? nextScreen;
+  final VoidCallback? onFinish;
 
   final Duration totalDuration;
   final String appName;
@@ -132,20 +134,23 @@ class _WorkGoSplashScreenState extends State<WorkGoSplashScreen>
 
     _mainController.forward();
 
-    if (widget.nextScreen != null) {
+    if (widget.nextScreen != null || widget.onFinish != null) {
       _mainController.addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           Future.delayed(const Duration(milliseconds: 450), () {
             if (!mounted) return;
-            Navigator.of(context).pushReplacement(
-              PageRouteBuilder(
-                transitionDuration: const Duration(milliseconds: 650),
-                pageBuilder: (_, anim, __) => FadeTransition(
-                  opacity: anim,
-                  child: widget.nextScreen,
+            widget.onFinish?.call();
+            if (widget.nextScreen != null) {
+              Navigator.of(context).pushReplacement(
+                PageRouteBuilder(
+                  transitionDuration: const Duration(milliseconds: 650),
+                  pageBuilder: (_, anim, __) => FadeTransition(
+                    opacity: anim,
+                    child: widget.nextScreen,
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           });
         }
       });

@@ -41,7 +41,7 @@ class WorkGoAdminApp extends StatelessWidget {
       locale: context.locale,
       theme: WorkGoTheme.light(),
       darkTheme: WorkGoTheme.dark(),
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.light,
       home: WorkGoSplashScreen(
         totalDuration: const Duration(milliseconds: 2400),
         appName: "WorkGo Console",

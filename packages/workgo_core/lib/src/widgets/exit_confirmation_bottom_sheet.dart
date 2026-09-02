@@ -36,18 +36,17 @@ class _ExitSheetContent extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0B24),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: WorkGoColors.primaryLight.withValues(alpha: 0.35),
-          width: 1.5,
+          color: const Color(0xFFF0EDE6),
+          width: 1.2,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: WorkGoColors.primary.withValues(alpha: 0.4),
-            blurRadius: 32,
-            spreadRadius: -4,
-            offset: const Offset(0, -6),
+            color: Color(0x18000000),
+            blurRadius: 28,
+            offset: Offset(0, -4),
           ),
         ],
       ),
@@ -59,7 +58,7 @@ class _ExitSheetContent extends StatelessWidget {
             width: 44,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: const Color(0xFFE5E0D8),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -74,9 +73,9 @@ class _ExitSheetContent extends StatelessWidget {
               gradient: WorkGoColors.solarGoldGradient,
               boxShadow: [
                 BoxShadow(
-                  color: WorkGoColors.accent.withValues(alpha: 0.45),
-                  blurRadius: 20,
-                  spreadRadius: -2,
+                  color: WorkGoColors.accent.withValues(alpha: 0.35),
+                  blurRadius: 18,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -84,7 +83,7 @@ class _ExitSheetContent extends StatelessWidget {
               child: Icon(
                 Icons.exit_to_app_rounded,
                 color: Color(0xFF1E1035),
-                size: 32,
+                size: 30,
               ),
             ),
           ),
@@ -96,7 +95,7 @@ class _ExitSheetContent extends StatelessWidget {
             style: WorkGoFonts.display(
               color: WorkGoColors.textPrimary,
               fontSize: 20,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
             ),
             textAlign: TextAlign.center,
           ),
@@ -117,7 +116,7 @@ class _ExitSheetContent extends StatelessWidget {
           // Action Buttons
           Row(
             children: [
-              // Stay Button (Primary Violet)
+              // Stay Button (Primary Amber)
               Expanded(
                 child: WorkGoButton(
                   label: displayStay,
@@ -128,7 +127,7 @@ class _ExitSheetContent extends StatelessWidget {
               ),
               const SizedBox(width: 12),
 
-              // Exit Button (Outlined Danger / Solar Yellow border)
+              // Exit Button (Outlined)
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
@@ -136,10 +135,10 @@ class _ExitSheetContent extends StatelessWidget {
                     SystemNavigator.pop();
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: WorkGoColors.accent,
-                    side: BorderSide(
-                      color: WorkGoColors.accent.withValues(alpha: 0.7),
-                      width: 1.4,
+                    foregroundColor: WorkGoColors.textPrimary,
+                    side: const BorderSide(
+                      color: Color(0xFFE5E0D8),
+                      width: 1.2,
                     ),
                     minimumSize: const Size(0, 48),
                     shape: RoundedRectangleBorder(
@@ -149,9 +148,9 @@ class _ExitSheetContent extends StatelessWidget {
                   child: Text(
                     displayConfirm,
                     style: WorkGoFonts.heading(
-                      color: WorkGoColors.accent,
+                      color: WorkGoColors.textSecondary,
                       fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

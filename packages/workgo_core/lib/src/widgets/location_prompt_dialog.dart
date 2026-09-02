@@ -141,15 +141,15 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F0B24),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.2),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border(top: BorderSide(color: Color(0xFFF0EDE6), width: 1.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.7),
-            blurRadius: 30,
-            offset: const Offset(0, -10),
+            color: Color(0x18000000),
+            blurRadius: 28,
+            offset: Offset(0, -4),
           ),
         ],
       ),
@@ -161,7 +161,7 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
             width: 48,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
+              color: const Color(0xFFE5E0D8),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -179,7 +179,7 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
                     height: 90 + (_radarCtrl.value * 24),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.25 * (1 - _radarCtrl.value)),
+                      color: const Color(0xFFFFB800).withValues(alpha: 0.25 * (1 - _radarCtrl.value)),
                     ),
                   ),
                   Container(
@@ -188,21 +188,21 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
+                        colors: [Color(0xFFFFB800), Color(0xFFF59E0B)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.5),
-                          blurRadius: 20,
-                          spreadRadius: 2,
+                          color: const Color(0xFFFFB800).withValues(alpha: 0.35),
+                          blurRadius: 18,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: const Icon(
                       Icons.location_on_rounded,
-                      color: Colors.white,
+                      color: Color(0xFF1E1035),
                       size: 38,
                     ),
                   ),
@@ -217,10 +217,10 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
             isWorker
                 ? "set_base_location_title".trSafe("Set Your Operating Base")
                 : "set_service_location_title".trSafe("Set Your Service Location"),
-            style: GoogleFonts.outfit(
-              color: Colors.white,
+            style: GoogleFonts.plusJakartaSans(
+              color: const Color(0xFF1A1A1A),
               fontSize: 20,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               letterSpacing: -0.3,
             ),
             textAlign: TextAlign.center,
@@ -231,7 +231,7 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
                 ? "worker_location_desc".trSafe("WorkGo uses your location to dispatch nearby repair requests and calculate distance fares transparently.")
                 : "customer_location_desc".trSafe("Allow location access to discover certified cooperative artisans near your doorstep and calculate transparent fares."),
             style: GoogleFonts.plusJakartaSans(
-              color: const Color(0xFF94A3B8),
+              color: const Color(0xFF6B6B6B),
               fontSize: 13,
               height: 1.5,
             ),
@@ -244,9 +244,9 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
             onPressed: _isLoading ? null : _detectGpsLocation,
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 54),
-              backgroundColor: const Color(0xFFF59E0B),
+              backgroundColor: const Color(0xFFFFB800),
               foregroundColor: const Color(0xFF1E1035),
-              elevation: 4,
+              elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
             child: _isLoading
@@ -277,13 +277,13 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
             onPressed: _isLoading ? null : _enterManually,
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 50),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+              side: const BorderSide(color: Color(0xFFE5E0D8), width: 1.2),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
             child: Text(
               "enter_address_manually_btn".trSafe("Enter Address Manually"),
               style: const TextStyle(
-                color: Colors.white70,
+                color: Color(0xFF1A1A1A),
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -296,8 +296,8 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
             onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
             child: Text(
               "skip_for_now".trSafe("Skip for now"),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+              style: const TextStyle(
+                color: Color(0xFF9CA3AF),
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),

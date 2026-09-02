@@ -286,7 +286,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                 Text(
                   "$_secondsRemaining s",
                   style: WorkGoFonts.numeric(
-                    color: Colors.white,
+                    color: CX.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -312,7 +312,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               Text(
                 "Need Captain Faster? Boost Fare",
                 style: WorkGoFonts.heading(
-                  color: Colors.white,
+                  color: CX.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                 ),
@@ -387,7 +387,7 @@ class _CaptainAcceptedCelebration extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0B24),
+        color: CX.canvasCard,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: CX.emerald, width: 1.8),
         boxShadow: [
@@ -424,7 +424,7 @@ class _CaptainAcceptedCelebration extends StatelessWidget {
           Text(
             "⚡ Captain Assigned!",
             style: WorkGoFonts.display(
-              color: Colors.white,
+              color: CX.textPrimary,
               fontSize: 22,
               fontWeight: FontWeight.w900,
             ),

@@ -81,12 +81,12 @@ class WorkGoAvatar extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: gradient ?? WorkGoColors.violetGoldGradient,
-            border: border ?? Border.all(color: Colors.white.withValues(alpha: 0.9), width: 2),
+            gradient: gradient ?? WorkGoColors.solarGoldGradient, // amber ring
+            border: border ?? Border.all(color: Colors.white, width: 2.5),
             boxShadow: [
               BoxShadow(
-                color: (glowColor ?? WorkGoColors.primaryLight).withValues(alpha: 0.4),
-                blurRadius: 16,
+                color: (glowColor ?? WorkGoColors.primary).withValues(alpha: 0.25),
+                blurRadius: 14,
                 spreadRadius: -2,
               ),
             ],
@@ -104,17 +104,17 @@ class WorkGoAvatar extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: WorkGoColors.solarGoldGradient,
-                  border: Border.all(color: const Color(0xFF0F0B24), width: 2.2),
+                  border: Border.all(color: Colors.white, width: 2.2),
                   boxShadow: [
                     BoxShadow(
-                      color: WorkGoColors.accent.withValues(alpha: 0.5),
+                      color: WorkGoColors.accent.withValues(alpha: 0.30),
                       blurRadius: 8,
                     ),
                   ],
                 ),
                 child: const Icon(
                   Icons.camera_alt_rounded,
-                  color: Color(0xFF1E1035),
+                  color: Color(0xFF1A1A1A), // dark icon on yellow
                   size: 14,
                 ),
               ),

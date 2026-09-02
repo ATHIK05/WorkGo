@@ -419,12 +419,12 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: KaryaColors.backgroundDark,
+      backgroundColor: KX.canvas,
       appBar: AppBar(
         title: SafeText(
           "verification_hub_title".tr(),
           style: const TextStyle(
-            color: Colors.white,
+            color: KX.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
@@ -432,13 +432,13 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: KX.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: Colors.white70),
-            color: const Color(0xFF1F1635),
+            icon: const Icon(Icons.more_vert_rounded, color: KX.textSecondary),
+            color: KX.canvasCard,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (val) async {
               if (val == "reset_step2") {
@@ -454,9 +454,9 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 value: "reset_step2",
                 child: Row(
                   children: [
-                    Icon(Icons.replay_rounded, color: KaryaColors.brandYellow, size: 18),
+                    Icon(Icons.replay_rounded, color: KX.gold, size: 18),
                     SizedBox(width: 8),
-                    Text("Re-do Aadhaar eKYC (Step 2)", style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                    Text("Re-do Aadhaar eKYC (Step 2)", style: TextStyle(color: KX.textPrimary, fontSize: 12.5)),
                   ],
                 ),
               ),
@@ -466,7 +466,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   children: [
                     Icon(Icons.restart_alt_rounded, color: Color(0xFFEF4444), size: 18),
                     SizedBox(width: 8),
-                    Text("Restart Verification (Step 1)", style: TextStyle(color: Colors.white, fontSize: 12.5)),
+                    Text("Restart Verification (Step 1)", style: TextStyle(color: KX.textPrimary, fontSize: 12.5)),
                   ],
                 ),
               ),
@@ -491,7 +491,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   SafeText(
                     "verification_hub_subtitle".tr(),
                     style: const TextStyle(
-                      color: Colors.white70,
+                      color: KX.textSecondary,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -543,9 +543,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: KaryaColors.surfaceCard,
+        color: KX.canvasCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: const Color(0xFFF0EDE6)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -562,7 +569,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                       Expanded(
                         child: Container(
                           height: 2,
-                          color: isCompleted ? const Color(0xFF10B981) : Colors.white12,
+                          color: isCompleted ? const Color(0xFF10B981) : const Color(0xFFE5E0D8),
                         ),
                       ),
                     Container(
@@ -574,7 +581,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                             ? const Color(0xFF10B981)
                             : isCurrent
                                 ? KaryaColors.brandYellow
-                                : Colors.white12,
+                                : const Color(0xFFF0EDE6),
                       ),
                       child: Center(
                         child: isCompleted
@@ -584,7 +591,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: isCurrent ? Colors.black : Colors.white54,
+                                  color: isCurrent ? Colors.black : const Color(0xFF6B6B6B),
                                 ),
                               ),
                       ),
@@ -593,7 +600,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                       Expanded(
                         child: Container(
                           height: 2,
-                          color: index < activeStep ? const Color(0xFF10B981) : Colors.white12,
+                          color: index < activeStep ? const Color(0xFF10B981) : const Color(0xFFE5E0D8),
                         ),
                       ),
                   ],
@@ -603,12 +610,12 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   steps[index],
                   style: TextStyle(
                     fontSize: 10,
-                    fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w500,
+                    fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w600,
                     color: isCompleted
                         ? const Color(0xFF10B981)
                         : isCurrent
-                            ? KaryaColors.brandYellow
-                            : Colors.white38,
+                            ? const Color(0xFFB45309)
+                            : const Color(0xFF9CA3AF),
                   ),
                 ),
               ],
@@ -621,18 +628,24 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
 
   // ── 2. DPDP 2023 Consent Card ───────────────────────────────────────────────
   Widget _buildConsentCard(VerificationStage stage) {
-    // isDone when worker has advanced past the signup stage to Aadhaar or beyond
     final isDone = stage.index >= VerificationStage.aadhaarOfflineEkyc.index;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: KaryaColors.surfaceCard,
+        color: KX.canvasCard,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDone ? const Color(0xFF10B981).withAlpha(120) : KaryaColors.brandYellow.withAlpha(100),
+          color: isDone ? const Color(0xFF10B981).withAlpha(120) : const Color(0xFFF0EDE6),
           width: 1.5,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,12 +655,12 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isDone ? const Color(0xFF10B981).withAlpha(30) : KaryaColors.brandYellow.withAlpha(30),
+                  color: isDone ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   isDone ? Icons.verified_user_rounded : Icons.shield_rounded,
-                  color: isDone ? const Color(0xFF10B981) : KaryaColors.brandYellow,
+                  color: isDone ? const Color(0xFF065F46) : const Color(0xFF92400E),
                   size: 24,
                 ),
               ),
@@ -658,13 +671,13 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   children: [
                     SafeText(
                       "dpdp_consent_title".tr(),
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     SafeText(
                       isDone ? "Consent Accepted & Timestamped ✓" : "Step 1 of 4",
                       style: TextStyle(
-                        color: isDone ? const Color(0xFF10B981) : KaryaColors.brandYellow,
+                        color: isDone ? const Color(0xFF10B981) : const Color(0xFFB45309),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -678,7 +691,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
 
           SafeText(
             "dpdp_consent_desc".tr(),
-            style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+            style: const TextStyle(color: KX.textSecondary, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 12),
 
@@ -702,7 +715,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     onTap: () => setState(() => _consentAgreed = !_consentAgreed),
                     child: SafeText(
                       "dpdp_consent_checkbox".tr(),
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -736,12 +749,12 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.white54, size: 16),
+          Icon(icon, color: const Color(0xFF6B6B6B), size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: SafeText(
               text,
-              style: const TextStyle(color: Colors.white60, fontSize: 11.5, height: 1.3),
+              style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.35),
             ),
           ),
         ],
@@ -759,16 +772,23 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: KaryaColors.surfaceCard,
+        color: KX.canvasCard,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDone
               ? const Color(0xFF10B981).withAlpha(120)
               : isCurrent
-                  ? KaryaColors.brandYellow.withAlpha(120)
-                  : Colors.white10,
+                  ? KX.gold.withAlpha(120)
+                  : const Color(0xFFF0EDE6),
           width: 1.5,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -779,19 +799,19 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isDone
-                      ? const Color(0xFF10B981).withAlpha(30)
+                      ? const Color(0xFFD1FAE5)
                       : isCurrent
-                          ? KaryaColors.brandYellow.withAlpha(30)
-                          : Colors.white10,
+                          ? const Color(0xFFFEF3C7)
+                          : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.fingerprint_rounded,
                   color: isDone
-                      ? const Color(0xFF10B981)
+                      ? const Color(0xFF065F46)
                       : isCurrent
-                          ? KaryaColors.brandYellow
-                          : Colors.white38,
+                          ? const Color(0xFF92400E)
+                          : const Color(0xFF9CA3AF),
                   size: 24,
                 ),
               ),
@@ -802,7 +822,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   children: [
                     SafeText(
                       "aadhaar_xml_title".tr(),
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     SafeText(
@@ -815,8 +835,8 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                         color: isDone
                             ? const Color(0xFF10B981)
                             : isCurrent
-                                ? KaryaColors.brandYellow
-                                : Colors.white38,
+                                ? const Color(0xFFB45309)
+                                : const Color(0xFF6B6B6B),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -828,7 +848,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 TextButton.icon(
                   onPressed: () => setState(() => _editingAadhaar = !_editingAadhaar),
                   style: TextButton.styleFrom(
-                    foregroundColor: KaryaColors.brandYellow,
+                    foregroundColor: const Color(0xFFB45309),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
                   icon: Icon(_editingAadhaar ? Icons.close_rounded : Icons.edit_rounded, size: 14),
@@ -847,41 +867,41 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF1F1635),
+                color: const Color(0xFFFFFBEB),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: KaryaColors.brandYellow.withAlpha(60)),
+                border: Border.all(color: const Color(0xFFFDE68A)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.help_outline_rounded, color: KaryaColors.brandYellow, size: 18),
+                      const Icon(Icons.help_outline_rounded, color: Color(0xFFB45309), size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: SafeText(
                           "aadhaar_guide_title".tr(),
-                          style: const TextStyle(color: KaryaColors.brandYellow, fontSize: 13, fontWeight: FontWeight.w900),
+                          style: const TextStyle(color: Color(0xFF92400E), fontSize: 13, fontWeight: FontWeight.w900),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  SafeText("aadhaar_guide_step1".tr(), style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
+                  SafeText("aadhaar_guide_step1".tr(), style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.4)),
                   const SizedBox(height: 4),
-                  SafeText("aadhaar_guide_step2".tr(), style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
+                  SafeText("aadhaar_guide_step2".tr(), style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.4)),
                   const SizedBox(height: 4),
-                  SafeText("aadhaar_guide_step3".tr(), style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
+                  SafeText("aadhaar_guide_step3".tr(), style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.4)),
                   const SizedBox(height: 4),
-                  SafeText("aadhaar_guide_step4".tr(), style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
+                  SafeText("aadhaar_guide_step4".tr(), style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.4)),
                   const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: _openUidaiPortal,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: KaryaColors.brandYellow,
-                        side: const BorderSide(color: KaryaColors.brandYellow),
+                        foregroundColor: const Color(0xFF92400E),
+                        side: const BorderSide(color: Color(0xFFF59E0B)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         padding: const EdgeInsets.symmetric(vertical: 10),
                       ),
@@ -906,14 +926,14 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: _aadhaarTabIndex == 0 ? KaryaColors.brandYellow : Colors.white10,
+                        color: _aadhaarTabIndex == 0 ? KaryaColors.brandYellow : const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Center(
                         child: Text(
                           "upload_zip_tab".tr(),
                           style: TextStyle(
-                            color: _aadhaarTabIndex == 0 ? Colors.black : Colors.white,
+                            color: _aadhaarTabIndex == 0 ? Colors.black : const Color(0xFF4B5563),
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -929,14 +949,14 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: _aadhaarTabIndex == 1 ? KaryaColors.brandYellow : Colors.white10,
+                        color: _aadhaarTabIndex == 1 ? KaryaColors.brandYellow : const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Center(
                         child: Text(
                           "upload_photo_tab".tr(),
                           style: TextStyle(
-                            color: _aadhaarTabIndex == 1 ? Colors.black : Colors.white,
+                            color: _aadhaarTabIndex == 1 ? Colors.black : const Color(0xFF4B5563),
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -954,16 +974,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               controller: _shareCodeCtrl,
               keyboardType: TextInputType.number,
               maxLength: 4,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 3),
+              style: const TextStyle(color: KX.textPrimary, fontWeight: FontWeight.bold, letterSpacing: 3),
               decoration: InputDecoration(
                 labelText: "share_code_label".tr(),
                 hintText: "share_code_hint".tr(),
-                labelStyle: const TextStyle(color: Colors.white70),
+                labelStyle: const TextStyle(color: KX.textSecondary),
                 counterText: "",
                 filled: true,
-                fillColor: Colors.black26,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white24)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: KaryaColors.brandYellow, width: 2)),
+                fillColor: const Color(0xFFF9F6EE),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFF0EDE6))),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: KX.gold, width: 2)),
               ),
             ),
             const SizedBox(height: 12),
@@ -975,7 +995,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withAlpha(20),
+                    color: const Color(0xFFD1FAE5),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: const Color(0xFF10B981)),
                   ),
@@ -987,7 +1007,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                           color: const Color(0xFF10B981).withAlpha(40),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.folder_zip_rounded, color: Color(0xFF10B981), size: 28),
+                        child: const Icon(Icons.folder_zip_rounded, color: Color(0xFF065F46), size: 28),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -996,20 +1016,20 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                           children: [
                             Text(
                               _selectedAadhaarFileName!,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                              style: const TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.bold, fontSize: 13),
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
                             Text(
                               "${_selectedAadhaarFileSize ?? 'UIDAI Zip'} · Ready for verification",
-                              style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600),
+                              style: const TextStyle(color: Color(0xFF047857), fontSize: 11, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
                       ),
                       TextButton(
                         onPressed: _pickAadhaarFile,
-                        child: const Text("Change", style: TextStyle(color: KaryaColors.brandYellow, fontWeight: FontWeight.bold)),
+                        child: const Text("Change", style: TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -1041,12 +1061,13 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     child: ElevatedButton.icon(
                       onPressed: () => _pickAadhaarImage(ImageSource.gallery),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white12,
-                        foregroundColor: Colors.white,
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        foregroundColor: const Color(0xFF1A1A1A),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
                       ),
-                      icon: const Icon(Icons.photo_library_rounded),
+                      icon: const Icon(Icons.photo_library_rounded, color: Color(0xFF4B5563)),
                       label: Text(_selectedAadhaarFileName ?? "upload_aadhaar_file".tr(), overflow: TextOverflow.ellipsis),
                     ),
                   ),
@@ -1116,16 +1137,23 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: KaryaColors.surfaceCard,
+        color: KX.canvasCard,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDone
               ? const Color(0xFF10B981).withAlpha(120)
               : isCurrent
-                  ? KaryaColors.brandYellow.withAlpha(120)
-                  : Colors.white10,
+                  ? KX.gold.withAlpha(120)
+                  : const Color(0xFFF0EDE6),
           width: 1.5,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1136,19 +1164,19 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isDone
-                      ? const Color(0xFF10B981).withAlpha(30)
+                      ? const Color(0xFFD1FAE5)
                       : isCurrent
-                          ? KaryaColors.brandYellow.withAlpha(30)
-                          : Colors.white10,
+                          ? const Color(0xFFFEF3C7)
+                          : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.face_retouching_natural_rounded,
                   color: isDone
-                      ? const Color(0xFF10B981)
+                      ? const Color(0xFF065F46)
                       : isCurrent
-                          ? KaryaColors.brandYellow
-                          : Colors.white38,
+                          ? const Color(0xFF92400E)
+                          : const Color(0xFF9CA3AF),
                   size: 24,
                 ),
               ),
@@ -1159,7 +1187,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   children: [
                     SafeText(
                       "multi_angle_liveness_title".tr(),
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     SafeText(
@@ -1172,8 +1200,8 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                         color: isDone
                             ? const Color(0xFF10B981)
                             : isCurrent
-                                ? KaryaColors.brandYellow
-                                : Colors.white38,
+                                ? const Color(0xFFB45309)
+                                : const Color(0xFF6B6B6B),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1185,7 +1213,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 TextButton.icon(
                   onPressed: _start3DMultiAngleCamera,
                   style: TextButton.styleFrom(
-                    foregroundColor: KaryaColors.brandYellow,
+                    foregroundColor: const Color(0xFFB45309),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
                   icon: const Icon(Icons.refresh_rounded, size: 14),
@@ -1198,7 +1226,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
             const SizedBox(height: 14),
             SafeText(
               "multi_angle_liveness_desc".tr(),
-              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+              style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.4),
             ),
             const SizedBox(height: 14),
 
@@ -1219,8 +1247,8 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     child: OutlinedButton.icon(
                       onPressed: _start3DMultiAngleCamera,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white24),
+                        foregroundColor: const Color(0xFF1A1A1A),
+                        side: const BorderSide(color: Color(0xFFD1D5DB)),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -1289,7 +1317,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
         const SizedBox(height: 4),
         SafeText(
           title,
-          style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Color(0xFF047857), fontSize: 11, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -1303,16 +1331,23 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: KaryaColors.surfaceCard,
+        color: KX.canvasCard,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDone
               ? const Color(0xFF10B981).withAlpha(120)
               : isCurrent
-                  ? KaryaColors.brandYellow.withAlpha(120)
-                  : Colors.white10,
+                  ? KX.gold.withAlpha(120)
+                  : const Color(0xFFF0EDE6),
           width: 1.5,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1323,19 +1358,19 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isDone
-                      ? const Color(0xFF10B981).withAlpha(30)
+                      ? const Color(0xFFD1FAE5)
                       : isCurrent
-                          ? KaryaColors.brandYellow.withAlpha(30)
-                          : Colors.white10,
+                          ? const Color(0xFFFEF3C7)
+                          : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.local_police_rounded,
                   color: isDone
-                      ? const Color(0xFF10B981)
+                      ? const Color(0xFF065F46)
                       : isCurrent
-                          ? KaryaColors.brandYellow
-                          : Colors.white38,
+                          ? const Color(0xFF92400E)
+                          : const Color(0xFF9CA3AF),
                   size: 24,
                 ),
               ),
@@ -1346,7 +1381,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   children: [
                     SafeText(
                       "pcc_upload_title".tr(),
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     SafeText(
@@ -1359,8 +1394,8 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                         color: isDone
                             ? const Color(0xFF10B981)
                             : isCurrent
-                                ? KaryaColors.brandYellow
-                                : Colors.white38,
+                                ? const Color(0xFFB45309)
+                                : const Color(0xFF6B6B6B),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1375,7 +1410,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
             const SizedBox(height: 14),
             SafeText(
               "pcc_upload_desc".tr(),
-              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+              style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.4),
             ),
             const SizedBox(height: 14),
 
@@ -1385,12 +1420,13 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   child: ElevatedButton.icon(
                     onPressed: _pickPccFile,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white12,
-                      foregroundColor: Colors.white,
+                      backgroundColor: const Color(0xFFF3F4F6),
+                      foregroundColor: const Color(0xFF1A1A1A),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
                     ),
-                    icon: const Icon(Icons.upload_file_rounded),
+                    icon: const Icon(Icons.upload_file_rounded, color: Color(0xFF4B5563)),
                     label: Text(_selectedPccFileName ?? "upload_pcc_btn".tr(), overflow: TextOverflow.ellipsis),
                   ),
                 ),
@@ -1411,18 +1447,18 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withAlpha(20),
+                  color: const Color(0xFFD1FAE5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFF10B981)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.description_rounded, color: Color(0xFF10B981), size: 24),
+                    const Icon(Icons.description_rounded, color: Color(0xFF065F46), size: 24),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         "${_selectedPccFileName!} (${_selectedPccFileSize ?? 'Document'})",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                        style: const TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.w600, fontSize: 12),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

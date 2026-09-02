@@ -49,12 +49,16 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: AX.glassBox(radius: 10, borderColor: AX.cyan.withValues(alpha: 0.4)),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3D6),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
+                          ),
                           child: Row(
                             children: [
-                              const Icon(Icons.auto_graph_rounded, color: AX.cyan, size: 16),
+                              const Icon(Icons.auto_graph_rounded, color: AX.emeraldDark, size: 16),
                               const SizedBox(width: 6),
-                              Text("ML AGGREGATION v2", style: AX.mono(fontSize: 11, color: AX.cyan)),
+                              Text("ML AGGREGATION v2", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
                             ],
                           ),
                         ),
@@ -66,18 +70,18 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E1B4B).withValues(alpha: 0.6),
+                        color: const Color(0xFFEEF2FF),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.4)),
+                        border: Border.all(color: const Color(0xFFC7D2FE)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.info_outline_rounded, color: Color(0xFF818CF8), size: 22),
+                          const Icon(Icons.info_outline_rounded, color: Color(0xFF4F46E5), size: 22),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'demand_disclaimer'.tr(),
-                              style: const TextStyle(color: Color(0xFFC7D2FE), fontSize: 12, fontWeight: FontWeight.w600),
+                              style: const TextStyle(color: Color(0xFF3730A3), fontSize: 12, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -114,7 +118,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                             value: "₹${avgTicket.toStringAsFixed(0)}",
                             subtitle: "₹${settledGross.toStringAsFixed(0)} realized",
                             icon: Icons.currency_rupee_rounded,
-                            color: AX.cyan,
+                            color: const Color(0xFF1D4ED8),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -122,7 +126,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                           child: _buildMetricPill(
                             title: "Supply Density",
                             value: "${workers.length}",
-                            subtitle: "Active Titans",
+                            subtitle: "Active Artisans",
                             icon: Icons.groups_rounded,
                             color: AX.amber,
                           ),
@@ -152,11 +156,11 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AX.amber.withValues(alpha: 0.15),
+                                  color: const Color(0xFFFFF3D6),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: AX.amber, width: 1),
+                                  border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
                                 ),
-                                child: Text("Real-Time Telemetry", style: AX.mono(fontSize: 10, color: AX.amberLight)),
+                                child: Text("Real-Time Telemetry", style: AX.mono(fontSize: 10, color: AX.emeraldDark)),
                               ),
                             ],
                           ),
@@ -204,20 +208,20 @@ class SmartDemandInsightsScreen extends StatelessWidget {
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: AX.glowBox(glowColor: color, radius: 16, blurRadius: 14, opacity: 0.12),
+      decoration: AX.glowBox(glowColor: color, radius: 16, blurRadius: 14, opacity: 0.08),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: AX.body(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white70)),
+              Text(title, style: AX.body(fontSize: 11, fontWeight: FontWeight.bold, color: AX.textSecondary)),
               Icon(icon, color: color, size: 16),
             ],
           ),
           const SizedBox(height: 8),
-          Text(value, style: AX.display(fontSize: 22, color: Colors.white)),
-          Text(subtitle, style: AX.mono(fontSize: 9, color: Colors.white38)),
+          Text(value, style: AX.display(fontSize: 22, color: AX.textPrimary)),
+          Text(subtitle, style: AX.mono(fontSize: 9, color: AX.textMuted)),
         ],
       ),
     );
@@ -239,7 +243,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (v) => FlLine(color: Colors.white10, strokeWidth: 1),
+          getDrawingHorizontalLine: (v) => const FlLine(color: Color(0xFFF0EDE6), strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -250,7 +254,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
               getTitlesWidget: (val, _) {
                 final idx = val.toInt();
                 if (idx >= 0 && idx < days.length) {
-                  return Text(days[idx], style: AX.mono(fontSize: 10, color: Colors.white60));
+                  return Text(days[idx], style: AX.mono(fontSize: 10, color: AX.textSecondary));
                 }
                 return const SizedBox.shrink();
               },
@@ -260,7 +264,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 28,
-              getTitlesWidget: (val, _) => Text("${val.toInt()}", style: AX.mono(fontSize: 9, color: Colors.white38)),
+              getTitlesWidget: (val, _) => Text("${val.toInt()}", style: AX.mono(fontSize: 9, color: AX.textMuted)),
             ),
           ),
         ),
@@ -275,11 +279,19 @@ class SmartDemandInsightsScreen extends StatelessWidget {
             isCurved: true,
             color: AX.emerald,
             barWidth: 3,
-            dotData: const FlDotData(show: true),
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                radius: 4,
+                color: AX.emerald,
+                strokeWidth: 2,
+                strokeColor: Colors.white,
+              ),
+            ),
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
-                colors: [AX.emerald.withValues(alpha: 0.35), AX.emerald.withValues(alpha: 0.0)],
+                colors: [AX.emerald.withValues(alpha: 0.20), AX.emerald.withValues(alpha: 0.0)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -292,7 +304,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
 
   Widget _buildCategoryBreakdown(List<Booking> bookings) {
     final categories = ["Plumbing", "Electrical", "Carpentry", "Painting", "AC Repair"];
-    final colors = [AX.cyan, AX.amber, const Color(0xFFF97316), AX.rose, AX.violet];
+    final colors = [const Color(0xFF1D4ED8), AX.amber, const Color(0xFFF97316), AX.rose, const Color(0xFF7C3AED)];
 
     return Column(
       children: categories.asMap().entries.map((entry) {
@@ -320,7 +332,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
                   value: ratio,
-                  backgroundColor: Colors.white10,
+                  backgroundColor: const Color(0xFFF0EDE6),
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                   minHeight: 7,
                 ),

@@ -27,8 +27,15 @@ void main() async {
 
 final GlobalKey<NavigatorState> customerNavigatorKey = GlobalKey<NavigatorState>();
 
-class WorkGoCustomerApp extends StatelessWidget {
+class WorkGoCustomerApp extends StatefulWidget {
   const WorkGoCustomerApp({super.key});
+
+  @override
+  State<WorkGoCustomerApp> createState() => _WorkGoCustomerAppState();
+}
+
+class _WorkGoCustomerAppState extends State<WorkGoCustomerApp> {
+  bool _hasSeenSplash = false;
 
   @override
   Widget build(BuildContext context) {
@@ -41,11 +48,20 @@ class WorkGoCustomerApp extends StatelessWidget {
       locale: context.locale,
       theme: WorkGoTheme.light(),
       darkTheme: WorkGoTheme.dark(),
-      themeMode: ThemeMode.dark,
-      home: WorkGoSplashScreen(
-        totalDuration: const Duration(milliseconds: 3200),
-        nextScreen: const CustomerRootScreen(),
-      ),
+      themeMode: ThemeMode.light,
+      home: _hasSeenSplash
+          ? const CustomerRootScreen()
+          : WorkGoSplashScreen(
+              totalDuration: const Duration(milliseconds: 2800),
+              onFinish: () {
+                if (mounted) {
+                  setState(() {
+                    _hasSeenSplash = true;
+                  });
+                }
+              },
+              nextScreen: const CustomerRootScreen(),
+            ),
     );
   }
 }
@@ -66,7 +82,15 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
       stream: _authService.authStateChanges,
       builder: (context, authSnapshot) {
         if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const WorkGoSplashScreen();
+          return const Scaffold(
+            backgroundColor: Color(0xFF0F0E17),
+            body: Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFFFB800),
+                strokeWidth: 2.5,
+              ),
+            ),
+          );
         }
 
         final firebaseUser = authSnapshot.data;
@@ -84,7 +108,15 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
           builder: (context, userSnapshot) {
             if (userSnapshot.connectionState == ConnectionState.waiting &&
                 !userSnapshot.hasData) {
-              return const WorkGoSplashScreen();
+              return const Scaffold(
+                backgroundColor: Color(0xFF0F0E17),
+                body: Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFFFB800),
+                    strokeWidth: 2.5,
+                  ),
+                ),
+              );
             }
 
             final appUser = userSnapshot.data ??

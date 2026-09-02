@@ -2,59 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:workgo_core/workgo_core.dart';
 
 // ─────────────────────────────────────────────
-//  AURORA COLOR TOKENS
+//  AURORA COLOR TOKENS — Light + Yellow Edition
 // ─────────────────────────────────────────────
 class CX {
   CX._();
 
-  // Canvas
-  static const Color canvas = Color(0xFF070614);
-  static const Color canvasCard = Color(0xFF100D26);
-  static const Color canvasMid = Color(0xFF0D0A1E);
+  // Canvas — warm off-white light surfaces
+  static const Color canvas = Color(0xFFFFFBF2);     // App background
+  static const Color canvasCard = Color(0xFFFFFFFF); // Card surface
+  static const Color canvasMid = Color(0xFFFFF8EE);  // Mid surface
+  static const Color canvasElevated = Color(0xFFFFF3D6); // Accent tint surface
+  static const Color dividerLight = Color(0xFFF0EDE6);   // Subtle divider
 
-  // Aurora primaries
-  static const Color violet = Color(0xFF7C3AED);
-  static const Color violetLight = Color(0xFFA78BFA);
-  static const Color cyan = Color(0xFF06B6D4);
-  static const Color cyanLight = Color(0xFF67E8F9);
-  static const Color amber = Color(0xFFFBBF24);
+  // Primary accent — confident amber yellow
+  static const Color violet = Color(0xFFFFB800);      // Remapped: amber as primary
+  static const Color violetLight = Color(0xFFFFCD4A); // Lighter amber
+  static const Color cyan = Color(0xFF3B82F6);         // Secondary: blue for info
+  static const Color cyanLight = Color(0xFF93C5FD);
+  static const Color amber = Color(0xFFF59E0B);        // Warning / warm orange
   static const Color amberDark = Color(0xFFD97706);
-  static const Color emerald = Color(0xFF10B981);
-  static const Color rose = Color(0xFFF43F5E);
-  static const Color indigo = Color(0xFF4F46E5);
+  static const Color emerald = Color(0xFF10B981);      // Success green
+  static const Color rose = Color(0xFFEF4444);         // Danger / emergency
+  static const Color indigo = Color(0xFF6366F1);       // Tertiary accent
 
-  // Glass surfaces
-  static Color glass(double opacity) => Colors.white.withValues(alpha: opacity);
-  static Color glassCard = Colors.white.withValues(alpha: 0.06);
-  static Color glassBorder = Colors.white.withValues(alpha: 0.13);
-  static Color glassBorderBright = Colors.white.withValues(alpha: 0.22);
+  // Tint fills
+  static const Color accentTint = Color(0xFFFFF3D6);  // Soft yellow tint
+  static const Color accentTint2 = Color(0xFFFFE3C2); // Soft peach/orange tint
+  static const Color darkCard = Color(0xFF1C1C1E);    // Dark hero card
 
-  // Text
-  static const Color textPrimary = Color(0xFFF1F5F9);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color textMuted = Color(0xFF475569);
+  // Glass / surface helpers (light-aware)
+  static Color glass(double opacity) => Colors.black.withValues(alpha: opacity * 0.04);
+  static Color glassCard = const Color(0xFFFFF3D6).withValues(alpha: 0.6);
+  static Color glassBorder = const Color(0xFFFFB800).withValues(alpha: 0.20);
+  static Color glassBorderBright = const Color(0xFFFFB800).withValues(alpha: 0.40);
+
+  // Text — dark on warm white
+  static const Color textPrimary = Color(0xFF1A1A1A);    // Near-black headers
+  static const Color textSecondary = Color(0xFF6B6B6B);  // Medium gray body
+  static const Color textMuted = Color(0xFFB0B0B0);      // Disabled / captions
 
   // Semantic
-  static const Color success = Color(0xFF22C55E);
+  static const Color success = Color(0xFF10B981);
   static const Color error = Color(0xFFEF4444);
   static const Color warning = Color(0xFFF59E0B);
   static const Color info = Color(0xFF3B82F6);
 
-  // Gradients
+  // Gradients — amber/yellow family
   static const LinearGradient auroraVioletCyan = LinearGradient(
-    colors: [Color(0xFF7C3AED), Color(0xFF06B6D4)],
+    colors: [Color(0xFFFFB800), Color(0xFFFFCD4A)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient auroraVioletAmber = LinearGradient(
-    colors: [Color(0xFF6D28D9), Color(0xFFFBBF24)],
+    colors: [Color(0xFFE8A500), Color(0xFFFFB800)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient auroraFull = LinearGradient(
-    colors: [Color(0xFF7C3AED), Color(0xFF06B6D4), Color(0xFFFBBF24)],
+    colors: [Color(0xFFE8A500), Color(0xFFFFB800), Color(0xFFFFCD4A)],
     stops: [0.0, 0.55, 1.0],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -67,13 +74,13 @@ class CX {
   );
 
   static const LinearGradient auroraSuccess = LinearGradient(
-    colors: [Color(0xFF064E3B), Color(0xFF10B981)],
+    colors: [Color(0xFF065F46), Color(0xFF10B981)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient auroraCanvas = LinearGradient(
-    colors: [Color(0xFF07061a), Color(0xFF0D0924), Color(0xFF0A0716)],
+    colors: [Color(0xFFFFFBF2), Color(0xFFFFF8E8), Color(0xFFFFFBF2)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -120,36 +127,42 @@ class AuroraCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBorder = borderColor ?? CX.glassBorder;
     final glow = glowColor;
 
     Widget content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        gradient: gradient ??
-            LinearGradient(
-              colors: [
-                Colors.white.withValues(alpha: 0.07),
-                Colors.white.withValues(alpha: 0.03),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        // Light card: white surface with warm shadow
+        gradient: gradient,
+        color: gradient == null ? CX.canvasCard : null,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: effectiveBorder, width: 1.2),
+        border: borderColor != null
+            ? Border.all(color: borderColor!, width: 1.2)
+            : Border.all(color: const Color(0xFFF0EDE6), width: 1), // warm divider
         boxShadow: glow != null
             ? [
                 BoxShadow(
-                  color: glow.withValues(alpha: 0.2),
-                  blurRadius: 24,
+                  color: const Color(0x0D000000),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+                BoxShadow(
+                  color: glow.withValues(alpha: 0.14),
+                  blurRadius: 20,
                   spreadRadius: -4,
                 ),
               ]
             : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
+                const BoxShadow(
+                  color: Color(0x0E000000), // rgba(0,0,0,0.055)
+                  blurRadius: 16,
+                  offset: Offset(0, 4),
+                ),
+                const BoxShadow(
+                  color: Color(0x10FFB800), // warm amber tint
                   blurRadius: 20,
-                  offset: const Offset(0, 6),
+                  spreadRadius: -3,
+                  offset: Offset(0, 5),
                 ),
               ],
       ),
@@ -269,7 +282,11 @@ class _GlowButtonState extends State<GlowButton> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final glow = widget.glowColor ?? CX.violet;
+    // Default gradient = amber yellow — premium warm CTA
+    final effectiveGradient = widget.gradient == CX.auroraVioletCyan
+        ? CX.auroraVioletCyan  // keep as-is (already remapped to amber)
+        : widget.gradient;
+    final glow = widget.glowColor ?? CX.amber;
     return AnimatedBuilder(
       animation: _scale,
       builder: (_, child) => Transform.scale(scale: _scale.value, child: child),
@@ -285,14 +302,14 @@ class _GlowButtonState extends State<GlowButton> with SingleTickerProviderStateM
           width: widget.isFullWidth ? double.infinity : null,
           padding: widget.isFullWidth ? null : const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            gradient: widget.gradient,
-            borderRadius: BorderRadius.circular(widget.borderRadius),
+            gradient: effectiveGradient,
+            borderRadius: BorderRadius.circular(widget.borderRadius == 16.0 ? 999 : widget.borderRadius),
             boxShadow: [
               BoxShadow(
-                color: glow.withValues(alpha: 0.45),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-                spreadRadius: -4,
+                color: glow.withValues(alpha: 0.28),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+                spreadRadius: -3,
               ),
             ],
           ),
@@ -303,20 +320,20 @@ class _GlowButtonState extends State<GlowButton> with SingleTickerProviderStateM
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: Color(0xFF1A1A1A), // dark on yellow
                     ),
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.icon != null) ...[
-                        Icon(widget.icon, color: Colors.white, size: 18),
+                        Icon(widget.icon, color: const Color(0xFF1A1A1A), size: 18),
                         const SizedBox(width: 8),
                       ],
                       Text(
                         widget.label,
                         style: WorkGoFonts.heading(
-                          color: Colors.white,
+                          color: const Color(0xFF1A1A1A), // dark text on yellow
                           fontSize: widget.fontSize,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.2,
@@ -441,22 +458,23 @@ class AuroraBadge extends StatelessWidget {
   final AuroraBadgeStyle style;
   final double fontSize;
 
+  // Light-theme badge colors — legible dark text on tinted backgrounds
   Color get _bg => switch (style) {
-        AuroraBadgeStyle.violet => CX.violet.withValues(alpha: 0.25),
-        AuroraBadgeStyle.cyan => CX.cyan.withValues(alpha: 0.2),
-        AuroraBadgeStyle.amber => CX.amber.withValues(alpha: 0.2),
-        AuroraBadgeStyle.emerald => CX.emerald.withValues(alpha: 0.2),
-        AuroraBadgeStyle.rose => CX.rose.withValues(alpha: 0.2),
-        AuroraBadgeStyle.info => CX.info.withValues(alpha: 0.2),
+        AuroraBadgeStyle.violet => const Color(0xFFFFF3D6),  // soft yellow
+        AuroraBadgeStyle.cyan => const Color(0xFFDBEAFE),    // soft blue
+        AuroraBadgeStyle.amber => const Color(0xFFFEF3C7),   // soft amber
+        AuroraBadgeStyle.emerald => const Color(0xFFD1FAE5), // soft green
+        AuroraBadgeStyle.rose => const Color(0xFFFEE2E2),    // soft red
+        AuroraBadgeStyle.info => const Color(0xFFDBEAFE),    // soft blue
       };
 
   Color get _fg => switch (style) {
-        AuroraBadgeStyle.violet => CX.violetLight,
-        AuroraBadgeStyle.cyan => CX.cyanLight,
-        AuroraBadgeStyle.amber => CX.amber,
-        AuroraBadgeStyle.emerald => CX.emerald,
-        AuroraBadgeStyle.rose => CX.rose,
-        AuroraBadgeStyle.info => CX.info,
+        AuroraBadgeStyle.violet => const Color(0xFF92400E),  // dark amber text
+        AuroraBadgeStyle.cyan => const Color(0xFF1E40AF),    // dark blue text
+        AuroraBadgeStyle.amber => const Color(0xFF92400E),   // dark amber text
+        AuroraBadgeStyle.emerald => const Color(0xFF065F46), // dark green text
+        AuroraBadgeStyle.rose => const Color(0xFF991B1B),    // dark red text
+        AuroraBadgeStyle.info => const Color(0xFF1E40AF),    // dark blue text
       };
 
   @override
@@ -525,9 +543,9 @@ class _AuroraShimmerState extends State<AuroraShimmer> with SingleTickerProvider
               begin: Alignment(_anim.value - 1, 0),
               end: Alignment(_anim.value, 0),
               colors: [
-                Colors.white.withValues(alpha: 0.04),
-                Colors.white.withValues(alpha: 0.12),
-                Colors.white.withValues(alpha: 0.04),
+                const Color(0xFFFFF3D6),  // #FFF3D6 — warm yellow tint base
+                const Color(0xFFFFF8E8),  // shimmer highlight
+                const Color(0xFFFFF3D6),
               ],
             ),
           ),
@@ -559,7 +577,7 @@ class AuroraScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CX.canvas,
+      backgroundColor: CX.canvas,  // #FFFBF2 warm off-white
       extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       appBar: appBar,
@@ -567,21 +585,21 @@ class AuroraScaffold extends StatelessWidget {
       floatingActionButton: floatingActionButton,
       body: Stack(
         children: [
-          // Static aurora nebula background
+          // Warm ambient blobs — subtle warm yellow/peach tints instead of neon
           Positioned(
-            top: -120,
-            left: -80,
-            child: _AuroraBlob(color: CX.violet.withValues(alpha: 0.18), size: 320),
-          ),
-          Positioned(
-            top: 180,
-            right: -100,
-            child: _AuroraBlob(color: CX.cyan.withValues(alpha: 0.12), size: 260),
-          ),
-          Positioned(
-            bottom: 100,
+            top: -80,
             left: -60,
-            child: _AuroraBlob(color: CX.indigo.withValues(alpha: 0.14), size: 200),
+            child: _AuroraBlob(color: const Color(0xFFFFB800).withValues(alpha: 0.06), size: 280),
+          ),
+          Positioned(
+            top: 200,
+            right: -80,
+            child: _AuroraBlob(color: const Color(0xFFF59E0B).withValues(alpha: 0.05), size: 220),
+          ),
+          Positioned(
+            bottom: 80,
+            left: -40,
+            child: _AuroraBlob(color: const Color(0xFFFFE3C2).withValues(alpha: 0.10), size: 180),
           ),
           body,
         ],
@@ -628,16 +646,17 @@ class AuroraAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.transparent,
+      backgroundColor: CX.canvasCard, // white surface AppBar
       elevation: 0,
+      scrolledUnderElevation: 0,
       leading: leading,
       title: Text(
         title,
         style: WorkGoFonts.display(
           color: CX.textPrimary,
           fontSize: 20,
-          fontWeight: FontWeight.w900,
-          letterSpacing: -0.6,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.4,
         ),
       ),
       actions: actions,
@@ -800,9 +819,9 @@ class _AnimatedCounterState extends State<AnimatedCounter> with SingleTickerProv
         '${widget.prefix}${_anim.value.toStringAsFixed(0)}',
         style: widget.style ??
             WorkGoFonts.numeric(
-              color: CX.amber,
+              color: CX.textPrimary, // dark text on light background
               fontSize: 24,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               letterSpacing: -0.8,
             ),
       ),
@@ -952,8 +971,12 @@ final Map<String, CategoryStyle> categoryStyleMap = {
 CategoryStyle categoryStyle(String name) =>
     categoryStyleMap[name] ??
     const CategoryStyle(
-      gradient: CX.auroraVioletCyan,
-      glow: CX.violet,
+      gradient: LinearGradient(
+        colors: [Color(0xFFE8A500), Color(0xFFFFB800)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      glow: Color(0xFFFFB800),
       icon: Icons.handyman_rounded,
       subtitle: "Verified Co-op Service",
       startingPrice: "From ₹149",

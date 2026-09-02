@@ -1,6 +1,5 @@
-﻿import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import '../../theme/colors.dart';
 import '../../theme/spacing.dart';
 import '../safe_text.dart';
 import 'auth_text_field.dart';
@@ -77,23 +76,24 @@ class _SignInFormState extends State<SignInForm> {
           SafeText(
             'welcome_back'.tr(),
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
+              color: Color(0xFF141416),
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.6,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           SafeText(
             'sign_in'.tr(),
-            style: TextStyle(
-              color: WorkGoColors.textSecondary.withValues(alpha: 0.7),
+            style: const TextStyle(
+              color: Color(0xFF64748B),
               fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: WorkGoSpacing.lg),
+          const SizedBox(height: WorkGoSpacing.xl),
 
           // Email Field
           AuthTextField(
@@ -129,37 +129,33 @@ class _SignInFormState extends State<SignInForm> {
             child: TextButton(
               onPressed: widget.isLoading ? null : widget.onForgotPassword,
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: SafeText(
                 'forgot_password'.tr(),
                 style: const TextStyle(
-                  color: WorkGoColors.accent,
+                  color: Color(0xFF2563EB),
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
           ),
           const SizedBox(height: WorkGoSpacing.lg),
 
-          // Submit Button
+          // Submit Button (Sleek Dark Pill Button)
           Container(
             height: 52,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [WorkGoColors.accent, WorkGoColors.accentDark],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF141416),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: WorkGoColors.accentDark.withValues(alpha: 0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -167,7 +163,7 @@ class _SignInFormState extends State<SignInForm> {
               color: Colors.transparent,
               child: InkWell(
                 onTap: widget.isLoading ? null : _submit,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(24),
                 child: Center(
                   child: widget.isLoading
                       ? const SizedBox(
@@ -175,9 +171,7 @@ class _SignInFormState extends State<SignInForm> {
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFF1C1B2E),
-                            ),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : Row(
@@ -186,8 +180,8 @@ class _SignInFormState extends State<SignInForm> {
                             SafeText(
                               'continue_btn'.tr(),
                               style: const TextStyle(
-                                color: Color(0xFF1C1B2E),
-                                fontSize: 16,
+                                color: Colors.white,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.3,
                               ),
@@ -197,7 +191,7 @@ class _SignInFormState extends State<SignInForm> {
                             const Icon(
                               Icons.arrow_forward_rounded,
                               size: 18,
-                              color: Color(0xFF1C1B2E),
+                              color: Colors.white,
                             ),
                           ],
                         ),
@@ -213,9 +207,10 @@ class _SignInFormState extends State<SignInForm> {
             children: [
               SafeText(
                 'no_account'.tr(),
-                style: TextStyle(
-                  color: WorkGoColors.textSecondary.withValues(alpha: 0.8),
-                  fontSize: 14,
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(width: 4),
@@ -226,11 +221,11 @@ class _SignInFormState extends State<SignInForm> {
                   child: SafeText(
                     'sign_up'.tr(),
                     style: const TextStyle(
-                      color: WorkGoColors.accent,
-                      fontSize: 14,
+                      color: Color(0xFF141416),
+                      fontSize: 13.5,
                       fontWeight: FontWeight.w800,
                       decoration: TextDecoration.underline,
-                      decorationColor: WorkGoColors.accent,
+                      decorationColor: Color(0xFF141416),
                     ),
                   ),
                 ),

@@ -1,8 +1,8 @@
-﻿import "package:flutter/material.dart";
+import "package:flutter/material.dart";
 import "../theme/colors.dart";
 import "../theme/spacing.dart";
 
-/// A shimmer/skeleton loading placeholder.
+/// A shimmer/skeleton loading placeholder — warm yellow tint, not dark gray.
 /// Use on every list or data screen while data is loading.
 class SkeletonLoader extends StatefulWidget {
   const SkeletonLoader({
@@ -32,7 +32,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _animation = Tween(begin: 0.4, end: 1.0).animate(
+    _animation = Tween(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
@@ -47,14 +47,24 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _animation,
-      builder: (_, __) => Opacity(
-        opacity: _animation.value,
-        child: Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            color: WorkGoColors.dividerDark,
-            borderRadius: BorderRadius.circular(widget.borderRadius),
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              WorkGoColors.accentTint,                              // #FFF3D6 soft yellow
+              Color.lerp(
+                WorkGoColors.accentTint,
+                WorkGoColors.dividerLight,
+                _animation.value,
+              )!,
+              WorkGoColors.accentTint,
+            ],
+            stops: [0.0, 0.5, 1.0],
           ),
         ),
       ),

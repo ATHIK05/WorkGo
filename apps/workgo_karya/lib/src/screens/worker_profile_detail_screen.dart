@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -132,106 +131,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
   }
 
   void _showReferPeerDialog() {
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    String selectedTrade = widget.worker.skills.isNotEmpty ? widget.worker.skills.first : "Plumbing";
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF130E2A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: Color(0xFFA855F7), width: 1.2),
-        ),
-        title: Text(
-          "Refer a Fellow Artisan",
-          style: WorkGoFonts.heading(
-            color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Add a peer into your cooperative second-line dispatch network.",
-              style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 12),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: nameCtrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: "Peer's Full Name",
-                labelStyle: const TextStyle(color: KX.textSecondary),
-                filled: true,
-                fillColor: const Color(0xFF1C1536),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: "Phone Number",
-                labelStyle: const TextStyle(color: KX.textSecondary),
-                filled: true,
-                fillColor: const Color(0xFF1C1536),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text("Cancel", style: TextStyle(color: KX.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameCtrl.text.isNotEmpty && phoneCtrl.text.isNotEmpty) {
-                await _workerService.referProxyWorker(
-                  name: nameCtrl.text.trim(),
-                  phoneForCalling: phoneCtrl.text.trim(),
-                  primarySkill: selectedTrade,
-                  experienceYears: 2,
-                  referrerId: widget.worker.id,
-                  referrerRole: "worker",
-                );
-                // Increment worker's referral stats
-                final updated = widget.worker.copyWith(
-                  referralCount: widget.worker.referralCount + 1,
-                  referralEarnings: widget.worker.referralEarnings + 100.0,
-                );
-                await _workerService.upsertWorkerProfile(updated);
-                if (ctx.mounted) {
-                  Navigator.of(ctx).pop();
-                }
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text("Peer artisan registered in your second-line network!"),
-                      backgroundColor: KX.emerald,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: KX.violetNeon,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text("Add to Network"),
-          ),
-        ],
-      ),
-    );
+    HapticFeedback.lightImpact();
+    showPeerReferralNetworkSheet(context, worker: widget.worker);
   }
 
   @override
@@ -245,62 +146,113 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         final worker = snapshot.data ?? widget.worker;
         final isOnline = worker.availabilityStatus == AvailabilityStatus.online;
 
-        return KaryaScaffold(
-          appBar: KaryaAppBar(
-            title: "profile_matrix_title".trSafe("Artisan Profile & Matrix"),
-            subtitle: "profile_matrix_subtitle".trSafe("Schedule, work hours, coverage and referral network"),
+        return Scaffold(
+          backgroundColor: KX.canvas,
+          appBar: AppBar(
+            backgroundColor: KX.canvas,
+            elevation: 0,
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFF0EDE6)),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: KX.textPrimary),
+              ),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+            centerTitle: true,
+            title: Text(
+              "Profile",
+              style: WorkGoFonts.heading(
+                color: KX.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFF0EDE6)),
+                  ),
+                  child: const Icon(Icons.settings_outlined, size: 18, color: KX.textPrimary),
+                ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (ctx) => WorkerProfileSetupScreen(
+                      worker: worker,
+                      onProfileUpdated: () => setState(() {}),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 90),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Artisan Avatar & Live Shift Card
+                  // Artisan Profile Card (Avatar, Name, Subtitle, Actions)
                   _buildArtisanHero(name, worker, isOnline),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
-                  // Metric Stats Bar (Hours Worked, Jobs, Rating, Referrals)
+                  // 3 Metric Bento Chips (Mint Green, Sky Blue, Pastel Amber)
                   _buildMetricStatsRow(worker),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  // Working Hours & Shift Management
-                  _buildWorkingHoursCard(worker),
-                  const SizedBox(height: 16),
-
-                  // Operating Base & Multi-Hub Locations
-                  _buildOperatingBasesCard(worker),
-                  const SizedBox(height: 16),
-
-                  // Coverage Area & Trade Skills
-                  _buildCoverageAndTradesCard(worker),
-                  const SizedBox(height: 16),
-
-                  // Referral Network & Second-Line Dispatch
-                  _buildReferralNetworkCard(worker),
-                  const SizedBox(height: 16),
-
-                  // KYC & Welfare Links
-                  _buildQuickNavigationLinks(worker),
+                  // Menu Matrix List Cards
+                  _buildMenuMatrix(worker),
                   const SizedBox(height: 24),
 
-                  // Secure Sign Out CTA (With confirmation bottom sheet)
+                  // Titan Dispatch Bar
+                  _buildTitanControlCard(worker),
+                  const SizedBox(height: 24),
+
+                  // Secure Sign Out CTA
                   OutlinedButton.icon(
                     onPressed: _handleSignOut,
-                    icon: const Icon(Icons.logout_rounded, color: Color(0xFFF43F5E), size: 20),
+                    icon: const Icon(Icons.logout_rounded, color: Color(0xFFF43F5E), size: 18),
                     label: Text(
                       "sign_out".trSafe("Sign Out"),
                       style: WorkGoFonts.heading(
                         color: const Color(0xFFF43F5E),
                         fontSize: 14,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      side: BorderSide(color: const Color(0xFFF43F5E).withValues(alpha: 0.5), width: 1.3),
+                      minimumSize: const Size(0, 50),
+                      side: const BorderSide(color: Color(0xFFFECDD3), width: 1.2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      backgroundColor: const Color(0xFFF43F5E).withValues(alpha: 0.06),
+                      backgroundColor: const Color(0xFFFFF1F2),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Delete Account Action
+                  TextButton.icon(
+                    onPressed: _handleDeleteAccount,
+                    icon: const Icon(Icons.delete_forever_rounded, color: Color(0xFF9CA3AF), size: 16),
+                    label: const Text(
+                      "Delete Account & Wipe Data (DPDP Act)",
+                      style: TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -313,98 +265,143 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
   }
 
   Widget _buildArtisanHero(String name, Worker worker, bool isOnline) {
-    final isTitan = worker.isTitan;
-    final isPassion = worker.engagementMode == "passion" || worker.engagementMode == "hobby";
-
     return StreamBuilder<AppUser?>(
       stream: _authService.streamAppUser(widget.user.uid),
       initialData: widget.user,
       builder: (context, snap) {
         final liveUser = snap.data ?? widget.user;
         final avatar = liveUser.avatarBase64;
+        final baseStation = worker.baseAddress?.formattedAddress ??
+            worker.baseArea ??
+            (worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : "Base Station Unset");
 
-        return KaryaCard(
-          gradient: KX.auroraVioletNeon,
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              WorkGoAvatar(
-                avatarBase64: avatar,
-                name: name,
-                radius: 30,
-                onEditTap: _handleAvatarUpload,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            name,
-                            style: WorkGoFonts.display(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isTitan) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: KX.gold,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              "titan_badge".trSafe("⚡ TITAN"),
-                              style: const TextStyle(
-                                color: Color(0xFF1E1035),
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      liveUser.email,
-                      style: WorkGoFonts.body(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 11.5,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: isTitan ? const Color(0xFF10B981) : const Color(0xFF64748B),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isTitan
-                            ? (isPassion ? "live_passion_titan".trSafe("⚡ LIVE PASSION TITAN") : "live_on_dispatch".trSafe("⚡ LIVE ON DISPATCH"))
-                            : "offline_ready_checkin".trSafe("OFFLINE · READY TO CHECK IN"),
-                        style: WorkGoFonts.badge(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
+        return Column(
+          children: [
+            // Center Avatar
+            Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE5E0D8), width: 2),
+                  ),
+                  child: WorkGoAvatar(
+                    avatarBase64: avatar,
+                    name: name,
+                    radius: 46,
+                    onEditTap: _handleAvatarUpload,
+                  ),
                 ),
+                GestureDetector(
+                  onTap: _handleAvatarUpload,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF141416),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Name
+            Text(
+              name,
+              style: WorkGoFonts.display(
+                color: KX.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
               ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+
+            // Location
+            Text(
+              baseStation,
+              style: WorkGoFonts.body(
+                color: KX.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 14),
+
+            // 2 Circular Action Buttons (Edit Profile & Share Referral)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCircularAction(
+                  icon: Icons.edit_rounded,
+                  label: "Edit",
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (ctx) => WorkerProfileSetupScreen(
+                        worker: worker,
+                        onProfileUpdated: () => setState(() {}),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                _buildCircularAction(
+                  icon: Icons.person_add_alt_1_rounded,
+                  label: "Refer",
+                  onTap: _showReferPeerDialog,
+                ),
+              ],
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Widget _buildCircularAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: KX.textPrimary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: WorkGoFonts.heading(
+                color: KX.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -414,37 +411,41 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
       builder: (context, snapshot) {
         final jobs = snapshot.data ?? [];
         final completedJobs = jobs.where((b) => b.status == BookingStatus.completed).toList();
-        final actualHours = worker.totalHoursWorked > 0
-            ? worker.totalHoursWorked
-            : (completedJobs.length * 2.0);
-        final totalJobsCount = completedJobs.isNotEmpty ? completedJobs.length : worker.totalRatings;
+        final totalJobsCount = completedJobs.isNotEmpty ? completedJobs.length : worker.homesServiced;
+        final expYears = worker.experienceYears > 0 ? "${worker.experienceYears} Yrs" : "New";
+        final ratingVal = worker.avgRating > 0 ? "${worker.avgRating.toStringAsFixed(1)} ★" : "5.0 ★";
 
         return Row(
           children: [
+            // Mint Green Card (Experience)
             Expanded(
-              child: _buildMetricTile(
-                title: "hours_worked".trSafe("Hours Worked"),
-                value: "${actualHours.toStringAsFixed(1)}h",
-                icon: Icons.timer_rounded,
-                color: KX.gold,
+              child: _buildBentoStatCard(
+                title: "Experience",
+                value: expYears,
+                bgColor: const Color(0xFFD1FAE5),
+                textColor: const Color(0xFF065F46),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
+
+            // Sky Blue Card (Jobs Done)
             Expanded(
-              child: _buildMetricTile(
-                title: "completed_jobs_stat".trSafe("Completed Jobs"),
-                value: "$totalJobsCount",
-                icon: Icons.check_circle_rounded,
-                color: KX.emerald,
+              child: _buildBentoStatCard(
+                title: "Jobs Done",
+                value: "$totalJobsCount Done",
+                bgColor: const Color(0xFFD6EBFF),
+                textColor: const Color(0xFF1E3A8A),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
+
+            // Pastel Amber Card (Rating)
             Expanded(
-              child: _buildMetricTile(
-                title: "rating_stat".trSafe("Rating"),
-                value: worker.totalRatings > 0 ? "${worker.avgRating.toStringAsFixed(1)} ★" : "5.0 ★",
-                icon: Icons.star_rounded,
-                color: KX.amber,
+              child: _buildBentoStatCard(
+                title: "Co-op Rating",
+                value: ratingVal,
+                bgColor: const Color(0xFFFFDE9C),
+                textColor: const Color(0xFF92400E),
               ),
             ),
           ],
@@ -453,32 +454,36 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     );
   }
 
-  Widget _buildMetricTile({
+  Widget _buildBentoStatCard({
     required String title,
     required String value,
-    required IconData icon,
-    required Color color,
+    required Color bgColor,
+    required Color textColor,
   }) {
-    return KaryaCard(
+    return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: WorkGoFonts.numeric(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 2),
           Text(
             title,
-            style: WorkGoFonts.body(
-              color: KX.textSecondary,
-              fontSize: 10,
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.75),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
             ),
             textAlign: TextAlign.center,
           ),
@@ -487,261 +492,236 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     );
   }
 
-  Widget _buildWorkingHoursCard(Worker worker) {
-    final isPassion = worker.engagementMode == "passion" || worker.engagementMode == "hobby";
-    final isCheckedIn = worker.isTitan;
+  Widget _buildMenuMatrix(Worker worker) {
+    final area = worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : (worker.baseArea ?? "Erode Central");
+    final skillsStr = worker.skills.isNotEmpty ? worker.skills.take(2).join(', ') : "General Trades";
+    final isKycApproved = worker.verificationStatus == VerificationStatus.approved;
 
-    return KaryaCard(
-      borderColor: isCheckedIn ? KX.gold.withValues(alpha: 0.6) : null,
-      glowColor: isCheckedIn ? KX.gold : null,
-      padding: const EdgeInsets.all(16),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.flash_on_rounded, color: KX.gold, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                "titan_hub_title".trSafe("Titan & Work Engagement Hub"),
-                style: WorkGoFonts.heading(
-                  color: Colors.white,
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => _showEngagementModeDialog(worker),
-                child: Text("engagement_mode_btn".trSafe("Mode"), style: const TextStyle(color: KX.gold, fontWeight: FontWeight.w800)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Live Titan Check-In / Check-Out Action Bar
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              gradient: isCheckedIn ? KX.luminaVioletGold : null,
-              color: isCheckedIn ? null : KX.canvasElevated,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isCheckedIn ? KX.gold : Colors.white.withValues(alpha: 0.1),
-                width: 1.2,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        KPulsingDot(
-                          color: isCheckedIn ? const Color(0xFF10B981) : KX.textMuted,
-                          size: 9,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isCheckedIn ? "titan_checked_in".trSafe("TITAN CHECKED IN") : "titan_offline".trSafe("TITAN OFFLINE"),
-                          style: WorkGoFonts.heading(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => _toggleTitanCheckIn(worker),
-                      icon: Icon(
-                        isCheckedIn ? Icons.power_settings_new_rounded : Icons.flash_on_rounded,
-                        size: 16,
-                        color: isCheckedIn ? Colors.white : const Color(0xFF1E1035),
-                      ),
-                      label: Text(
-                        isCheckedIn ? "check_out_btn".trSafe("Check Out") : "check_in_btn".trSafe("Check In"),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: isCheckedIn ? Colors.white : const Color(0xFF1E1035),
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isCheckedIn ? const Color(0xFFE11D48) : KX.gold,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isCheckedIn
-                      ? "titan_live_radar_desc".trSafe("⚡ Live on customer radar! Receiving broadcast dispatches for your registered trades.")
-                      : "titan_offline_desc".trSafe("🌙 Checked out. Tap 'Check In' to go live and receive job requests instantly."),
-                  style: WorkGoFonts.body(
-                    color: isCheckedIn ? Colors.white.withValues(alpha: 0.9) : KX.textSecondary,
-                    fontSize: 11.5,
-                  ),
-                ),
-              ],
+          _buildMenuItem(
+            icon: Icons.location_on_rounded,
+            title: "Operating Base Station",
+            subtitle: "$area · ${worker.serviceRadiusKm.toInt()} km Radius",
+            onTap: () => showAddressManagementSheet(
+              context,
+              userId: worker.id,
+              userRole: "worker",
             ),
           ),
-          const SizedBox(height: 12),
-
-          // Current Engagement Mode Strip
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: KX.canvasElevated,
-              borderRadius: BorderRadius.circular(14),
+          const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
+          _buildMenuItem(
+            icon: Icons.construction_rounded,
+            title: "Trade Skills & Rates",
+            subtitle: "$skillsStr · ₹${worker.baseRate.toInt()} Base",
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (ctx) => WorkerProfileSetupScreen(
+                  worker: worker,
+                  onProfileUpdated: () => setState(() {}),
+                ),
+              ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  isPassion ? Icons.auto_awesome_rounded : Icons.schedule_rounded,
-                  color: KX.violetNeon,
-                  size: 20,
+          ),
+          const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
+          _buildMenuItem(
+            icon: Icons.verified_user_rounded,
+            title: "eKYC & Certification",
+            subtitle: isKycApproved ? "Co-op Verified ✓" : "Verification Pending",
+            badgeColor: isKycApproved ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
+            badgeTextColor: isKycApproved ? const Color(0xFF065F46) : const Color(0xFF92400E),
+            badgeText: isKycApproved ? "VERIFIED" : "PENDING",
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (ctx) => DocumentUploadScreen(
+                  workerId: worker.id,
+                  initialVerificationStatus: worker.verificationStatus,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isPassion ? "passion_hobby_mode_title".trSafe("Passion & Hobby Mode") : "scheduled_shift_title".trSafe("Scheduled Shift Window"),
-                        style: WorkGoFonts.heading(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        isPassion
-                            ? "passion_hobby_mode_desc".trSafe("Flexible on-demand check-in (no rigid hours quota)")
-                            : "scheduled_shift_desc".trSafe("${worker.workingHoursStart} — ${worker.workingHoursEnd} (Configured shift)", [worker.workingHoursStart, worker.workingHoursEnd]),
-                        style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (ctx) => WorkerProfileSetupScreen(
-                        worker: worker,
-                        onProfileUpdated: () => setState(() {}),
-                      ),
-                    ),
-                  ),
-                  child: Text("edit_hours".trSafe("Edit Hours"), style: const TextStyle(color: KX.gold, fontSize: 11)),
-                ),
-              ],
+              ),
             ),
+          ),
+          const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
+          _buildMenuItem(
+            icon: Icons.health_and_safety_rounded,
+            title: "₹2 Lakh Welfare Shield",
+            subtitle: worker.insuranceStatus ? "PMSBY / PMJJBY Active" : "Co-op Welfare Cover",
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (ctx) => WorkerWelfareScreen(worker: worker)),
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
+          _buildMenuItem(
+            icon: Icons.groups_rounded,
+            title: "Peer Referral Network",
+            subtitle: "2% Bonus · ${worker.referralCount} Referred",
+            onTap: _showReferPeerDialog,
+          ),
+          const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
+          _buildMenuItem(
+            icon: Icons.explore_rounded,
+            title: "Interactive App Tour",
+            subtitle: "Explore features & operational tools",
+            onTap: () {
+              HapticFeedback.lightImpact();
+              KaryaHomeScreen.launchLiveSpotlightTour(context);
+            },
           ),
         ],
       ),
     );
   }
 
-  void _showEngagementModeDialog(Worker worker) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF130E2A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    String? badgeText,
+    Color? badgeColor,
+    Color? badgeTextColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
           children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9F6EE),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: const Color(0xFF141416), size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: WorkGoFonts.heading(
+                          color: KX.textPrimary,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (badgeText != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: badgeColor ?? const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            badgeText,
+                            style: TextStyle(
+                              color: badgeTextColor ?? const Color(0xFF065F46),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: WorkGoFonts.body(
+                      color: KX.textSecondary,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 18),
-            Text(
-              "select_engagement_mode".trSafe("Select Engagement Style"),
-              style: WorkGoFonts.display(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              "engagement_dialog_subtitle".trSafe("Choose how you prefer to participate in the cooperative network."),
-              style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 12),
-            ),
-            const SizedBox(height: 18),
-            _buildModeOption(
-              ctx,
-              title: "passion_dialog_title".trSafe("🌟 Passion & Hobby Artisan"),
-              subtitle: "passion_dialog_desc".trSafe("Work whenever you feel like it. Check in with 1-tap when entering the app to go live as a Titan. Perfect for DIY crafters and part-time enthusiasts."),
-              isSelected: worker.engagementMode == "passion" || worker.engagementMode == "hobby",
-              onTap: () async {
-                await _workerService.updateEngagementMode(worker.id, "passion");
-                if (ctx.mounted) Navigator.of(ctx).pop();
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildModeOption(
-              ctx,
-              title: "scheduled_dialog_title".trSafe("⏱️ Scheduled Shift Artisan"),
-              subtitle: "scheduled_dialog_desc".trSafe("Follow a fixed daily working window (${worker.workingHoursStart} — ${worker.workingHoursEnd}) for full-time dispatch routine."),
-              isSelected: worker.engagementMode == "scheduled",
-              onTap: () async {
-                await _workerService.updateEngagementMode(worker.id, "scheduled");
-                if (ctx.mounted) Navigator.of(ctx).pop();
-              },
-            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF9CA3AF), size: 12),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildModeOption(
-    BuildContext ctx, {
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: KX.canvasElevated,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? KX.gold : Colors.white.withValues(alpha: 0.1),
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
+  Widget _buildTitanControlCard(Worker worker) {
+    final isCheckedIn = worker.isTitan;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: WorkGoFonts.heading(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5, height: 1.4)),
+                  Text(
+                    isCheckedIn ? "Titan Dispatch Active" : "Titan Standby",
+                    style: WorkGoFonts.heading(
+                      color: KX.textPrimary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    isCheckedIn ? "Receiving live broadcasts" : "Offline · Tap to go live",
+                    style: WorkGoFonts.body(
+                      color: KX.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
+            ],
+          ),
+          ElevatedButton(
+            onPressed: () => _toggleTitanCheckIn(worker),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isCheckedIn ? const Color(0xFFF43F5E) : const Color(0xFF141416),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
-            if (isSelected)
-              const Icon(Icons.check_circle_rounded, color: KX.gold, size: 20),
-          ],
-        ),
+            child: Text(
+              isCheckedIn ? "Check Out" : "Go Live",
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -783,38 +763,12 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
 
     if (isCurrentlyCheckedIn) {
       if (!mounted) return;
-      // Artisan is checking out! Slide up the Motivational Bottom Sheet!
       final confirmedCheckOut = await showCheckOutMotivationSheet(
         context,
         worker: worker,
       );
 
       if (confirmedCheckOut != true) {
-        // Worker clicked "Keep Working & Earn More"!
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.flash_on_rounded, color: KX.gold, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      "stay_online_toast".trSafe("Awesome! You're live on customer radar. Dispatches incoming! ⚡"),
-                      style: WorkGoFonts.body(color: Colors.white, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: const Color(0xFF1E1035),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: KX.gold.withValues(alpha: 0.6), width: 1.2),
-              ),
-            ),
-          );
-        }
         return;
       }
     }
@@ -834,11 +788,19 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          decoration: const BoxDecoration(
-            color: Color(0xFF0F0B1E),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: Color(0xFFF59E0B), width: 1.5)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x18000000),
+                blurRadius: 28,
+                offset: Offset(0, -4),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -846,10 +808,10 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             children: [
               Center(
                 child: Container(
-                  width: 40,
+                  width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: const Color(0xFFE5E0D8),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -859,58 +821,28 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                    color: const Color(0xFFFFF3D6),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                    border: Border.all(color: const Color(0xFFFFB800), width: 1.5),
                   ),
-                  child: const Icon(Icons.lock_rounded, color: Color(0xFFF59E0B), size: 36),
+                  child: const Icon(Icons.lock_rounded, color: Color(0xFFB45309), size: 32),
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 "Identity Verification Required",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
+                style: WorkGoFonts.display(
+                  color: KX.textPrimary,
                   fontSize: 18,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                "To protect artisan earnings, guarantee direct wage payouts, and maintain cooperative trust, you must complete identity verification before going live on customer radar.",
+              Text(
+                "To guarantee transparent wage payouts and cooperative trust, complete your eKYC before going live on customer radar.",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF191233),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.verified_user_rounded, color: KX.gold, size: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Instant Co-op Badging",
-                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            "Status: ${worker.verificationStage.name.toUpperCase()} (Pending Review)",
-                            style: const TextStyle(color: KX.gold, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -923,10 +855,11 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF59E0B),
+                  backgroundColor: const Color(0xFFFFB800),
                   foregroundColor: const Color(0xFF1E1035),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -940,7 +873,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               const SizedBox(height: 10),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text("I'll do it later", style: TextStyle(color: Colors.white54)),
+                child: const Text("I'll do it later", style: TextStyle(color: Color(0xFF9CA3AF))),
               ),
             ],
           ),
@@ -948,382 +881,5 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
       },
     );
   }
-
-  Widget _buildOperatingBasesCard(Worker worker) {
-    return StreamBuilder<List<UserAddress>>(
-      stream: LocationService().streamUserAddresses(worker.id, collection: "workers"),
-      builder: (context, snapshot) {
-        final addresses = snapshot.data ?? [];
-        final defaultBase = addresses.isNotEmpty
-            ? addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first)
-            : worker.baseAddress;
-
-        return KeyedSubtree(
-          key: widget.profileHubKey,
-          child: KaryaCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.pin_drop_rounded, color: KX.gold, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        "operating_bases_title".trSafe("Operating Bases & Hubs"),
-                        style: WorkGoFonts.heading(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () => showAddressManagementSheet(
-                      context,
-                      userId: worker.id,
-                      userRole: "worker",
-                      selectedAddress: defaultBase,
-                    ),
-                    icon: const Icon(Icons.settings_rounded, color: KX.gold, size: 14),
-                    label: Text(
-                      addresses.isNotEmpty ? "Manage (${addresses.length})" : "+ Add",
-                      style: WorkGoFonts.heading(color: KX.gold, fontSize: 12, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              if (defaultBase != null)
-                GestureDetector(
-                  onTap: () => showAddressManagementSheet(
-                    context,
-                    userId: worker.id,
-                    userRole: "worker",
-                    selectedAddress: defaultBase,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: KX.canvasElevated,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: KX.gold.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(defaultBase.label.icon, color: KX.gold, size: 18),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    defaultBase.displayTitle.toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Text(
-                                      "PRIMARY BASE",
-                                      style: TextStyle(color: Color(0xFF10B981), fontSize: 8, fontWeight: FontWeight.w900),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                defaultBase.fullDisplayAddress,
-                                style: const TextStyle(color: KX.textSecondary, fontSize: 11),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.arrow_forward_ios_rounded, color: KX.textSecondary, size: 12),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                GestureDetector(
-                  onTap: () => showAddAddressSheet(context, userId: worker.id, userRole: "worker"),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: KX.canvasElevated,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.add_location_alt_rounded, color: KX.gold, size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            "No operating base set. Tap to detect GPS or set your workshop address.",
-                            style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
 }
 
-  Widget _buildCoverageAndTradesCard(Worker worker) {
-    final area = worker.preferredAreas.isNotEmpty ? worker.preferredAreas.join(', ') : "active_coverage_zone".trSafe("Active Coverage Zone");
-
-    return KaryaCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.radar_rounded, color: KX.violetNeon, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                "coverage_trades_title".trSafe("Coverage & Trade Skills"),
-                style: WorkGoFonts.heading(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            "primary_base_area".trSafe("Primary Base Area: $area (${worker.serviceRadiusKm.toInt()} km radius)", [area, worker.serviceRadiusKm.toInt().toString()]),
-            style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 12),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: worker.skills.map((skill) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: KX.canvasElevated,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: KX.violetNeon.withValues(alpha: 0.4)),
-                ),
-                child: Text(
-                  skill.toLocalizedTrade(),
-                  style: WorkGoFonts.heading(
-                    color: KX.gold,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReferralNetworkCard(Worker worker) {
-    final referralCount = worker.referralCount;
-    final earnings = worker.referralEarnings;
-
-    return KaryaCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.people_alt_rounded, color: KX.gold, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                "second_line_referral_title".trSafe("Second-Line Referral Network"),
-                style: WorkGoFonts.heading(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "second_line_referral_desc".trSafe("If you are unavailable for a job, you can forward it to your referred peers and earn cooperative credits."),
-            style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5, height: 1.4),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: KX.canvasElevated,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
-                    Text("members_referred".trSafe("Referred Peers"), style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11)),
-                    const SizedBox(height: 2),
-                    Text(
-                      "$referralCount",
-                      style: WorkGoFonts.numeric(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
-                Container(width: 1, height: 28, color: Colors.white.withValues(alpha: 0.15)),
-                Column(
-                  children: [
-                    Text("referral_earnings".trSafe("Network Bonus"), style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11)),
-                    const SizedBox(height: 2),
-                    Text(
-                      "₹${earnings.toInt()}",
-                      style: WorkGoFonts.numeric(color: KX.gold, fontSize: 15, fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          WorkGoButton(
-            label: "refer_peer_btn".trSafe("Refer Another Artisan"),
-            icon: Icons.person_add_alt_1_rounded,
-            onPressed: _showReferPeerDialog,
-            height: 44,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickNavigationLinks(Worker worker) {
-    return KeyedSubtree(
-      key: widget.profileKycKey,
-      child: Column(
-        children: [
-          _buildNavTile(
-            title: "App Tour & Feature Guide",
-            subtitle: "Interactive guide for all 7 features & operational tools",
-            icon: Icons.explore_rounded,
-            iconColor: const Color(0xFF8B5CF6),
-            onTap: () {
-              HapticFeedback.lightImpact();
-              KaryaHomeScreen.launchLiveSpotlightTour(context);
-            },
-          ),
-          const SizedBox(height: 10),
-          _buildNavTile(
-            title: "upload_kyc".tr(),
-            subtitle: worker.verificationStatus == VerificationStatus.approved ? "KYC Approved & Active" : "Pending Review",
-            icon: Icons.verified_user_rounded,
-            iconColor: KX.emerald,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (ctx) => DocumentUploadScreen(
-                  workerId: worker.id,
-                  initialVerificationStatus: worker.verificationStatus,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          _buildNavTile(
-            title: "welfare_status".tr(),
-            subtitle: "Cooperative Insurance & Welfare Fund",
-            icon: Icons.shield_rounded,
-            iconColor: KX.gold,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (ctx) => WorkerWelfareScreen(worker: worker)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          _buildNavTile(
-            title: "sign_out".tr(),
-            subtitle: "Sign out of your active session",
-            icon: Icons.logout_rounded,
-            iconColor: const Color(0xFFFB7185),
-            onTap: _handleSignOut,
-          ),
-          const SizedBox(height: 10),
-          _buildNavTile(
-            title: "Delete Account & Wipe Records",
-            subtitle: "DPDP Act 2023 · Permanently purge all data & biometrics",
-            icon: Icons.delete_forever_rounded,
-            iconColor: const Color(0xFFE11D48),
-            onTap: _handleDeleteAccount,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: KaryaCard(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: WorkGoFonts.heading(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                  Text(subtitle, style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11)),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: KX.textSecondary, size: 14),
-          ],
-        ),
-      ),
-    );
-  }
-}

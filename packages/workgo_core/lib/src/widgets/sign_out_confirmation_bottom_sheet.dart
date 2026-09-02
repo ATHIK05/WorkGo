@@ -36,18 +36,17 @@ class _SignOutSheetContent extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0B24),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: WorkGoColors.error.withValues(alpha: 0.4),
-          width: 1.5,
+          color: const Color(0xFFF0EDE6),
+          width: 1.2,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: WorkGoColors.error.withValues(alpha: 0.3),
-            blurRadius: 32,
-            spreadRadius: -4,
-            offset: const Offset(0, -6),
+            color: Color(0x18000000),
+            blurRadius: 28,
+            offset: Offset(0, -4),
           ),
         ],
       ),
@@ -59,7 +58,7 @@ class _SignOutSheetContent extends StatelessWidget {
             width: 44,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: const Color(0xFFE5E0D8),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -72,15 +71,15 @@ class _SignOutSheetContent extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(
-                colors: [Color(0xFF881337), Color(0xFFF43F5E)],
+                colors: [Color(0xFFF43F5E), Color(0xFFE11D48)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: WorkGoColors.error.withValues(alpha: 0.45),
-                  blurRadius: 20,
-                  spreadRadius: -2,
+                  color: const Color(0xFFF43F5E).withValues(alpha: 0.35),
+                  blurRadius: 18,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -88,7 +87,7 @@ class _SignOutSheetContent extends StatelessWidget {
               child: Icon(
                 Icons.logout_rounded,
                 color: Colors.white,
-                size: 30,
+                size: 28,
               ),
             ),
           ),
@@ -100,7 +99,7 @@ class _SignOutSheetContent extends StatelessWidget {
             style: WorkGoFonts.display(
               color: WorkGoColors.textPrimary,
               fontSize: 20,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
             ),
             textAlign: TextAlign.center,
           ),
@@ -126,9 +125,9 @@ class _SignOutSheetContent extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(false),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.2),
+                    foregroundColor: WorkGoColors.textPrimary,
+                    side: const BorderSide(
+                      color: Color(0xFFE5E0D8),
                       width: 1.2,
                     ),
                     shape: RoundedRectangleBorder(
@@ -139,7 +138,7 @@ class _SignOutSheetContent extends StatelessWidget {
                   child: Text(
                     displayCancel,
                     style: WorkGoFonts.heading(
-                      color: Colors.white,
+                      color: WorkGoColors.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),

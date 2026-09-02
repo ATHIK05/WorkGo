@@ -380,7 +380,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                           Text(
                             "urgency_boost".tr(),
                             style: WorkGoFonts.heading(
-                              color: Colors.white,
+                              color: CX.textPrimary,
                               fontSize: 13.5,
                               fontWeight: FontWeight.w800,
                             ),
@@ -584,9 +584,9 @@ class _ServiceHeroCard extends StatelessWidget {
                     Text(
                       worker!.avgRating > 0 ? worker!.avgRating.toStringAsFixed(1) : "4.9",
                       style: WorkGoFonts.numeric(
-                        color: Colors.white,
+                        color: CX.textPrimary,
                         fontSize: 12,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(width: 3),

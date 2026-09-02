@@ -39,13 +39,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         decoration: BoxDecoration(
           color: AX.bgSurface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(
-            top: BorderSide(color: AX.rose.withValues(alpha: 0.5), width: 1.5),
-          ),
           boxShadow: [
             BoxShadow(
-              color: AX.rose.withValues(alpha: 0.15),
-              blurRadius: 24,
+              color: const Color(0x14000000),
+              blurRadius: 28,
               offset: const Offset(0, -4),
             ),
           ],
@@ -55,10 +52,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           children: [
             Center(
               child: Container(
-                width: 44,
+                width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: AX.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -68,9 +65,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AX.rose.withValues(alpha: 0.15),
+                color: AX.rose.withValues(alpha: 0.10),
               ),
-              child: const Icon(Icons.power_settings_new_rounded, color: AX.rose, size: 32),
+              child: Icon(Icons.power_settings_new_rounded, color: AX.rose, size: 30),
             ),
             const SizedBox(height: 16),
             Text(
@@ -81,7 +78,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             const SizedBox(height: 8),
             Text(
               "You are currently connected to the live cooperative cluster telemetry stream. Are you sure you want to disconnect and exit?",
-              style: AX.body(fontSize: 12, color: Colors.white70),
+              style: AX.body(fontSize: 13),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -91,11 +88,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(ctx).pop(false),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
+                      side: BorderSide(color: AX.divider, width: 1.5),
+                      foregroundColor: AX.textPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                     ),
-                    child: const Text("Stay Connected", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text("Stay Connected", style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -106,9 +104,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       backgroundColor: AX.rose,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                      elevation: 0,
                     ),
-                    child: const Text("Exit Console", style: TextStyle(fontWeight: FontWeight.w900)),
+                    child: const Text("Exit Console", style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -134,7 +133,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: AX.bgCosmic,
+        backgroundColor: AX.bgCosmic, // now warm off-white #FFFBF2
         body: Row(
           children: [
             // ── Desktop / Tablet Persistent Glass Sidebar ───────────────────
@@ -177,13 +176,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // ───────────────────────────────────────────────────────────────────────────
   Widget _buildTopAppBar(BuildContext context, {required bool isDesktop}) {
     return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      height: 68,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       decoration: BoxDecoration(
-        color: AX.bgSurface.withValues(alpha: 0.9),
+        color: AX.bgSurface,
         border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          bottom: BorderSide(color: AX.divider, width: 1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x08000000),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -192,20 +198,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [AX.emerald, AX.cyan],
-                  ),
+                  color: AX.emerald,
                   boxShadow: [
                     BoxShadow(
-                      color: AX.emerald.withValues(alpha: 0.4),
+                      color: AX.emerald.withValues(alpha: 0.30),
                       blurRadius: 12,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
-                child: const Icon(Icons.hub_rounded, color: Colors.white, size: 20),
+                child: const Icon(Icons.hub_rounded, color: Color(0xFF1A1A1A), size: 20),
               ),
               const SizedBox(width: 14),
               Column(
@@ -214,22 +219,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 children: [
                   Text(
                     "WorkGo Cooperative Governance",
-                    style: AX.display(fontSize: 16, fontWeight: FontWeight.w900),
+                    style: AX.display(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                   Row(
                     children: [
                       Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AX.emerald,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 5),
                       Text(
-                        "TN FEDERATION · LIVE CLUSTER CONNECTED",
-                        style: AX.mono(fontSize: 10, color: AX.emeraldLight),
+                        "TN Federation · Live Cluster Connected",
+                        style: AX.mono(fontSize: 10, color: AX.emeraldDark),
                       ),
                     ],
                   ),
@@ -243,8 +248,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               // Language Selector Chips
               Container(
-                padding: const EdgeInsets.all(4),
-                decoration: AX.glassBox(radius: 12),
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F0EA),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Row(
                   children: [
                     _buildLangBtn("EN", const Locale("en")),
@@ -253,34 +261,38 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
 
               // Admin User Pill
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: AX.glassBox(radius: 20, borderColor: AX.emerald.withValues(alpha: 0.3)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AX.emerald.withValues(alpha: 0.25)),
+                ),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 13,
-                      backgroundColor: AX.emeraldDark,
-                      child: Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 15),
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: AX.emerald,
+                      child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF1A1A1A), size: 14),
                     ),
                     if (isDesktop) ...[
                       const SizedBox(width: 8),
                       Text(
                         widget.user.email,
-                        style: AX.body(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: AX.body(fontSize: 12, fontWeight: FontWeight.w600, color: AX.textPrimary),
                       ),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
 
-              // Sign Out Action Button
+              // Sign Out
               IconButton(
-                icon: const Icon(Icons.logout_rounded, color: AX.rose, size: 20),
+                icon: Icon(Icons.logout_rounded, color: AX.rose, size: 20),
                 tooltip: "Sign Out",
                 onPressed: widget.onSignOut,
               ),
@@ -295,19 +307,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final isSelected = context.locale.languageCode == locale.languageCode;
     return GestureDetector(
       onTap: () => context.setLocale(locale),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected ? AX.emerald.withValues(alpha: 0.25) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: isSelected ? Border.all(color: AX.emerald, width: 1) : null,
+          color: isSelected ? AX.emerald : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white60,
+            color: isSelected ? const Color(0xFF1A1A1A) : AX.textSecondary,
             fontSize: 11,
-            fontWeight: FontWeight.bold,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
       ),
@@ -319,17 +332,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // ───────────────────────────────────────────────────────────────────────────
   Widget _buildDesktopSidebar({required bool isCompact}) {
     return Container(
-      width: isCompact ? 80 : 250,
+      width: isCompact ? 76 : 248,
       decoration: BoxDecoration(
         color: AX.bgSurface,
         border: Border(
-          right: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          right: BorderSide(color: AX.divider, width: 1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x08000000),
+            blurRadius: 8,
+            offset: const Offset(2, 0),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          const SizedBox(height: 20),
-          // Sidebar Logo / Emblem
+          const SizedBox(height: 24),
+          // Logo
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -338,18 +358,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: const LinearGradient(colors: [AX.violet, AX.cyan]),
+                    borderRadius: BorderRadius.circular(14),
+                    color: AX.emerald,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AX.emerald.withValues(alpha: 0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.shield_rounded, color: Colors.white, size: 22),
+                  child: const Icon(Icons.shield_rounded, color: Color(0xFF1A1A1A), size: 20),
                 ),
                 if (!isCompact) ...[
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("WorkGo", style: AX.display(fontSize: 18, color: Colors.white)),
-                      Text("COOP ADMIN", style: AX.mono(fontSize: 9, color: AX.cyan)),
+                      Text("WorkGo", style: AX.display(fontSize: 18, fontWeight: FontWeight.w800)),
+                      Text("COOP ADMIN", style: AX.mono(fontSize: 9, color: AX.emeraldDark)),
                     ],
                   ),
                 ],
@@ -373,23 +400,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
 
-          // Quick System Version Chip
+          // System chip
           if (!isCompact)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: AX.glassBox(radius: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AX.emerald.withValues(alpha: 0.25)),
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.lock_clock_rounded, color: AX.emerald, size: 16),
+                    Icon(Icons.lock_clock_rounded, color: AX.emeraldDark, size: 15),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("C2PA KMS Signer Active", style: AX.mono(fontSize: 10, color: Colors.white70)),
-                          Text("Gov Stack v2.4 (2026)", style: AX.mono(fontSize: 9, color: Colors.white38)),
+                          Text("C2PA KMS Signer Active", style: AX.mono(fontSize: 10, color: AX.textPrimary)),
+                          Text("Gov Stack v2.4 (2026)", style: AX.mono(fontSize: 9, color: AX.textSecondary)),
                         ],
                       ),
                     ),
@@ -406,39 +437,40 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildNavItem(int index, IconData icon, String label, bool isCompact, {Color? badgeColor}) {
     final isSelected = _currentNavIndex == index;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 4),
       child: InkWell(
         onTap: () => setState(() => _currentNavIndex = index),
         borderRadius: BorderRadius.circular(14),
-        child: Container(
+        splashColor: AX.emerald.withValues(alpha: 0.10),
+        highlightColor: AX.emerald.withValues(alpha: 0.06),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           padding: EdgeInsets.symmetric(
-            horizontal: isCompact ? 12 : 16,
-            vertical: 12,
+            horizontal: isCompact ? 12 : 14,
+            vertical: 11,
           ),
           decoration: BoxDecoration(
-            color: isSelected ? AX.emerald.withValues(alpha: 0.15) : Colors.transparent,
+            color: isSelected ? AX.emerald : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
-            border: isSelected
-                ? Border.all(color: AX.emerald.withValues(alpha: 0.6), width: 1.2)
-                : null,
           ),
           child: Row(
             mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
               Icon(
                 icon,
-                color: isSelected ? AX.emeraldLight : Colors.white60,
+                color: isSelected ? const Color(0xFF1A1A1A) : AX.textMuted,
                 size: 20,
               ),
               if (!isCompact) ...[
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     label,
                     style: AX.heading(
                       fontSize: 13,
-                      color: isSelected ? Colors.white : Colors.white70,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                      color: isSelected ? const Color(0xFF1A1A1A) : AX.textSecondary,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                 ),
@@ -457,28 +489,75 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildMobileBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AX.bgSurface,
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _currentNavIndex > 4 ? 0 : _currentNavIndex,
-        onTap: (index) => setState(() => _currentNavIndex = index),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AX.emerald,
-        unselectedItemColor: Colors.white54,
-        selectedFontSize: 11,
-        unselectedFontSize: 10,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: "Overview"),
-          BottomNavigationBarItem(icon: const Icon(Icons.verified_user_rounded), label: 'pending_approvals'.tr()),
-          BottomNavigationBarItem(icon: const Icon(Icons.receipt_long_rounded), label: 'bookings_overview'.tr()),
-          BottomNavigationBarItem(icon: const Icon(Icons.insights_rounded), label: "Demand"),
-          BottomNavigationBarItem(icon: const Icon(Icons.health_and_safety_rounded), label: "Welfare"),
-        ],
+    final currentIdx = _currentNavIndex > 4 ? 0 : _currentNavIndex;
+    final navItems = [
+      (Icons.dashboard_rounded, 'pending_approvals'.tr() != 'pending_approvals' ? "Overview" : "Overview"),
+      (Icons.verified_user_rounded, 'pending_approvals'.tr()),
+      (Icons.receipt_long_rounded, 'bookings_overview'.tr()),
+      (Icons.insights_rounded, "Demand"),
+      (Icons.health_and_safety_rounded, "Welfare"),
+    ];
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Container(
+          height: 64,
+          decoration: BoxDecoration(
+            color: AX.bgSurface,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0x18000000),
+                blurRadius: 24,
+                spreadRadius: -2,
+                offset: const Offset(0, -4),
+              ),
+              BoxShadow(
+                color: AX.emerald.withValues(alpha: 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: navItems.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final (icon, label) = entry.value;
+              final isActive = currentIdx == idx;
+              return GestureDetector(
+                onTap: () => setState(() => _currentNavIndex = idx),
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeInOut,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isActive ? AX.emerald : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon,
+                        size: 21,
+                        color: isActive ? const Color(0xFF1A1A1A) : AX.textMuted,
+                      ),
+                      if (isActive) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          label,
+                          style: AX.heading(fontSize: 12, color: const Color(0xFF1A1A1A)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
@@ -642,9 +721,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
-      child: Container(
+      splashColor: color.withValues(alpha: 0.08),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.all(16),
-        decoration: AX.glowBox(glowColor: color, radius: 18, blurRadius: 16, opacity: 0.12),
+        decoration: AX.glowBox(glowColor: color, radius: 18, blurRadius: 16, opacity: 0.08),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -652,19 +733,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title, style: AX.body(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.bold)),
+                Flexible(
+                  child: Text(title,
+                    style: AX.body(fontSize: 12, color: AX.textSecondary, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: color, size: 16),
                 ),
               ],
             ),
-            Text(value, style: AX.display(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w900)),
-            Text(subtitle, style: AX.mono(fontSize: 9, color: Colors.white38)),
+            Text(value,
+              style: AX.display(fontSize: 22, fontWeight: FontWeight.w800, color: AX.textPrimary),
+            ),
+            Text(subtitle, style: AX.mono(fontSize: 9, color: AX.textMuted)),
           ],
         ),
       ),
@@ -694,22 +783,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Live Booking & Dispatch Velocity", style: AX.display(fontSize: 16)),
-                  const SizedBox(height: 2),
-                  Text("Real-time incoming requests aggregated across cooperative clusters", style: AX.body(fontSize: 11)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Live Booking & Dispatch Velocity", style: AX.display(fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text("Real-time requests across cooperative clusters", style: AX.body(fontSize: 11)),
+                  ],
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AX.emerald.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AX.emerald, width: 1),
+                  color: const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AX.emerald.withValues(alpha: 0.30)),
                 ),
-                child: Text("${bookings.length} Total Dispatches", style: AX.mono(fontSize: 11, color: AX.emeraldLight)),
+                child: Text("${bookings.length} Dispatches", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
               ),
             ],
           ),
@@ -721,7 +812,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  getDrawingHorizontalLine: (val) => FlLine(color: Colors.white10, strokeWidth: 1),
+                  getDrawingHorizontalLine: (val) => FlLine(color: const Color(0xFFF0EDE6), strokeWidth: 1),
                 ),
                 titlesData: FlTitlesData(
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -732,7 +823,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       getTitlesWidget: (val, _) {
                         final idx = val.toInt();
                         if (idx >= 0 && idx < days.length) {
-                          return Text(days[idx], style: AX.mono(fontSize: 10, color: Colors.white60));
+                          return Text(days[idx], style: AX.mono(fontSize: 10, color: AX.textSecondary));
                         }
                         return const SizedBox.shrink();
                       },
@@ -741,8 +832,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 28,
-                      getTitlesWidget: (val, _) => Text("${val.toInt()}", style: AX.mono(fontSize: 9, color: Colors.white38)),
+                      reservedSize: 32,
+                      getTitlesWidget: (val, _) => Text("${val.toInt()}", style: AX.mono(fontSize: 9, color: AX.textMuted)),
                     ),
                   ),
                 ),
@@ -755,13 +846,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    color: AX.cyan,
+                    color: AX.emerald, // amber yellow line
                     barWidth: 3,
-                    dotData: const FlDotData(show: true),
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                        radius: 4,
+                        color: AX.emerald,
+                        strokeWidth: 2,
+                        strokeColor: Colors.white,
+                      ),
+                    ),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
-                        colors: [AX.cyan.withValues(alpha: 0.3), AX.cyan.withValues(alpha: 0.0)],
+                        colors: [AX.emerald.withValues(alpha: 0.18), AX.emerald.withValues(alpha: 0.0)],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -802,25 +901,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             final double ratio = workers.isNotEmpty ? (count / workers.length).clamp(0.05, 1.0) : 0.2;
 
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(trade, style: AX.heading(fontSize: 12)),
-                      Text("$count Artisans (${(ratio * 100).toStringAsFixed(0)}%)", style: AX.mono(fontSize: 11, color: color)),
+                      Text(trade, style: AX.heading(fontSize: 13)),
+                      Text("$count (${(ratio * 100).toStringAsFixed(0)}%)",
+                        style: AX.mono(fontSize: 11, color: color)),
                     ],
                   ),
                   const SizedBox(height: 6),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
                       value: ratio,
-                      backgroundColor: Colors.white10,
+                      backgroundColor: const Color(0xFFF0EDE6),
                       valueColor: AlwaysStoppedAnimation<Color>(color),
-                      minHeight: 6,
+                      minHeight: 8,
                     ),
                   ),
                 ],
@@ -848,17 +948,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: AX.emerald.withValues(alpha: 0.2)),
-                    child: const Icon(Icons.stream_rounded, color: AX.emerald, size: 16),
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AX.emerald.withValues(alpha: 0.12),
+                    ),
+                    child: Icon(Icons.stream_rounded, color: AX.emeraldDark, size: 16),
                   ),
                   const SizedBox(width: 10),
                   Text("Live Dispatch Ticker", style: AX.display(fontSize: 16)),
                 ],
               ),
               TextButton.icon(
-                icon: const Icon(Icons.arrow_forward_rounded, color: AX.cyan, size: 16),
-                label: Text("View All (${bookings.length})", style: AX.heading(fontSize: 12, color: AX.cyan)),
+                icon: Icon(Icons.arrow_forward_rounded, color: AX.emeraldDark, size: 16),
+                label: Text("View All (${bookings.length})",
+                  style: AX.heading(fontSize: 12, color: AX.emeraldDark)),
                 onPressed: () => setState(() => _currentNavIndex = 2),
               ),
             ],
@@ -871,10 +975,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               alignment: Alignment.center,
               child: Column(
                 children: [
-                  const Icon(Icons.receipt_long_rounded, color: Colors.white24, size: 36),
-                  const SizedBox(height: 8),
-                  Text("No Active Bookings in Cluster", style: AX.heading(fontSize: 14, color: Colors.white70)),
-                  Text("New customer broadcasts will automatically populate here in real-time.", style: AX.body(fontSize: 12)),
+                  Icon(Icons.receipt_long_rounded, color: AX.textMuted, size: 36),
+                  const SizedBox(height: 10),
+                  Text("No Active Bookings", style: AX.heading(fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text("Customer broadcasts will populate here in real-time.", style: AX.body(fontSize: 12)),
                 ],
               ),
             )
@@ -883,20 +988,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: bookings.take(6).length,
-              separatorBuilder: (_, __) => const Divider(color: Colors.white10, height: 16),
+              separatorBuilder: (_, __) => Divider(color: AX.divider, height: 20),
               itemBuilder: (context, index) {
                 final b = bookings[index];
+                final statusColor = b.status == BookingStatus.completed
+                    ? const Color(0xFF065F46)
+                    : (b.status == BookingStatus.inProgress
+                        ? const Color(0xFF92400E)
+                        : AX.cyan);
+                final statusBg = b.status == BookingStatus.completed
+                    ? const Color(0xFFD1FAE5)
+                    : (b.status == BookingStatus.inProgress
+                        ? const Color(0xFFFEF3C7)
+                        : const Color(0xFFDBEAFE));
                 return Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(10),
+                        color: b.isEmergency
+                            ? const Color(0xFFFEE2E2)
+                            : const Color(0xFFFFF3D6),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         b.isEmergency ? Icons.bolt_rounded : Icons.handyman_rounded,
-                        color: b.isEmergency ? AX.rose : AX.cyan,
+                        color: b.isEmergency ? AX.rose : AX.emeraldDark,
                         size: 18,
                       ),
                     ),
@@ -909,41 +1026,42 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             children: [
                               Text(b.serviceType, style: AX.heading(fontSize: 13)),
                               const SizedBox(width: 8),
-                              Text("ID: #${b.id.toUpperCase()}", style: AX.mono(fontSize: 10, color: Colors.white38)),
+                              Text("#${b.id.substring(0, b.id.length.clamp(0, 6)).toUpperCase()}",
+                                style: AX.mono(fontSize: 10, color: AX.textMuted)),
                               if (b.isEmergency) ...[
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: AX.rose.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
-                                  child: Text("EMERGENCY", style: AX.mono(fontSize: 9, color: AX.rose)),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEE2E2),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text("Emergency", style: AX.mono(fontSize: 9, color: const Color(0xFF991B1B))),
                                 ),
                               ],
                             ],
                           ),
-                          Text(b.customerAddressText ?? "1148 E Main St, Thanjavur", style: AX.body(fontSize: 11, color: Colors.white60)),
+                          const SizedBox(height: 2),
+                          Text(b.customerAddressText ?? "Thanjavur, Tamil Nadu",
+                            style: AX.body(fontSize: 11, color: AX.textSecondary)),
                         ],
                       ),
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text("₹${b.amount.toStringAsFixed(0)}", style: AX.display(fontSize: 15, color: Colors.white)),
+                        Text("₹${b.amount.toStringAsFixed(0)}",
+                          style: AX.display(fontSize: 15, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 3),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: b.status == BookingStatus.completed
-                                ? AX.emerald.withValues(alpha: 0.2)
-                                : (b.status == BookingStatus.inProgress ? AX.amber.withValues(alpha: 0.2) : AX.cyan.withValues(alpha: 0.2)),
-                            borderRadius: BorderRadius.circular(6),
+                            color: statusBg,
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            b.status.name.toUpperCase(),
-                            style: AX.mono(
-                              fontSize: 9,
-                              color: b.status == BookingStatus.completed
-                                  ? AX.emeraldLight
-                                  : (b.status == BookingStatus.inProgress ? AX.amber : AX.cyanLight),
-                            ),
+                            b.status.name,
+                            style: AX.mono(fontSize: 9, color: statusColor),
                           ),
                         ),
                       ],

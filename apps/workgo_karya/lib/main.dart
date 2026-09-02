@@ -42,7 +42,7 @@ class WorkGoKaryaApp extends StatelessWidget {
       locale: context.locale,
       theme: WorkGoTheme.light(),
       darkTheme: WorkGoTheme.dark(),
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.light,
       home: WorkGoSplashScreen(
         totalDuration: const Duration(milliseconds: 3200),
         appName: 'WorkGo Karya',

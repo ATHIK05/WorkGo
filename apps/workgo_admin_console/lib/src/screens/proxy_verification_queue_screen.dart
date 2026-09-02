@@ -29,12 +29,16 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: AX.glassBox(radius: 12, borderColor: AX.violet.withValues(alpha: 0.4)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.phone_in_talk_rounded, color: AX.violetLight, size: 16),
+                    const Icon(Icons.phone_in_talk_rounded, color: AX.emeraldDark, size: 16),
                     const SizedBox(width: 6),
-                    Text("CALL-TO-BOOK BRIDGE", style: AX.mono(fontSize: 11, color: AX.violetLight)),
+                    Text("CALL-TO-BOOK BRIDGE", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
                   ],
                 ),
               ),
@@ -48,7 +52,7 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
               stream: workerService.streamPendingWorkers(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: AX.violet));
+                  return const Center(child: CircularProgressIndicator(color: AX.emerald));
                 }
 
                 final proxyWorkers = (snapshot.data ?? [])
@@ -65,8 +69,8 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: AX.violet.withValues(alpha: 0.15)),
-                            child: const Icon(Icons.phone_in_talk_rounded, color: AX.violetLight, size: 36),
+                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFFFF3D6)),
+                            child: const Icon(Icons.phone_in_talk_rounded, color: AX.emeraldDark, size: 36),
                           ),
                           const SizedBox(height: 16),
                           Text("No Proxy Verifications Pending", style: AX.display(fontSize: 16)),
@@ -97,7 +101,7 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
   Widget _buildProxyCard(BuildContext context, Worker pw, WorkerService workerService) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: AX.glassBox(radius: 18, borderColor: AX.violet.withValues(alpha: 0.3)),
+      decoration: AX.glassBox(radius: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -110,32 +114,32 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(10),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AX.violetDark,
+                      color: Color(0xFFFFF3D6),
                     ),
-                    child: const Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 20),
+                    child: const Icon(Icons.phone_in_talk_rounded, color: AX.emeraldDark, size: 20),
                   ),
                   const SizedBox(width: 14),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(pw.name.isNotEmpty ? pw.name : "Proxy Artisan #${pw.id.substring(0, 6).toUpperCase()}", style: AX.display(fontSize: 16)),
-                      Text("Calling Phone: ${pw.phoneForCalling ?? '+91 (Co-op Proxy Phone)'}", style: AX.mono(fontSize: 12, color: AX.emeraldLight)),
+                      Text("Calling Phone: ${pw.phoneForCalling ?? '+91 (Co-op Proxy Phone)'}", style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 12, color: Color(0xFF065F46), fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: AX.violet.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-                child: Text("PHONE VERIFICATION QUEUE", style: AX.mono(fontSize: 10, color: AX.violetLight)),
+                decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
+                child: const Text("PHONE VERIFICATION QUEUE", style: TextStyle(fontFamily: "SpaceGrotesk", fontSize: 10, color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const Divider(color: Colors.white10, height: 24),
+          const Divider(color: AX.divider, height: 24),
 
           Text(
             "Primary Skill: ${pw.skills.isNotEmpty ? pw.skills.join(', ') : 'General Maintenance'} • ${pw.experienceYears} Years Experience",
-            style: AX.body(fontSize: 12, color: Colors.white70),
+            style: AX.body(fontSize: 12, color: AX.textSecondary),
           ),
           const SizedBox(height: 16),
 
@@ -143,18 +147,18 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.call_rounded, color: AX.cyan, size: 18),
-                  label: const Text("Initiate Verification Call", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.call_rounded, color: Color(0xFF1D4ED8), size: 18),
+                  label: const Text("Initiate Verification Call", style: TextStyle(color: AX.textPrimary, fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AX.cyan, width: 1.2),
+                    side: const BorderSide(color: AX.divider, width: 1.5),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                   ),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text("Calling ${pw.phoneForCalling ?? pw.name}... Connecting through cooperative voice bridge."),
-                        backgroundColor: AX.cyanDark,
+                        backgroundColor: const Color(0xFF1D4ED8),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -164,13 +168,14 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                  label: const Text("Approve & Activate Worker", style: TextStyle(fontWeight: FontWeight.w900)),
+                  icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF1A1A1A), size: 18),
+                  label: const Text("Approve & Activate Worker", style: TextStyle(fontWeight: FontWeight.w800)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AX.emeraldDark,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AX.emerald,
+                    foregroundColor: const Color(0xFF1A1A1A),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    elevation: 0,
                   ),
                   onPressed: () async {
                     await workerService.approveWorker(pw.id);
@@ -178,7 +183,7 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text("Proxy artisan successfully verified and activated for Call-to-Book!"),
-                          backgroundColor: AX.emerald,
+                          backgroundColor: Color(0xFF10B981),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );

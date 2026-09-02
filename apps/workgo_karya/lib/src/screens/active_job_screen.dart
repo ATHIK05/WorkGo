@@ -84,10 +84,10 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
               20,
               MediaQuery.of(context).viewInsets.bottom + 24,
             ),
-            decoration: const BoxDecoration(
-              color: Color(0xFF0D0A1C),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border(top: BorderSide(color: Color(0xFFFBBF24), width: 1.5)),
+            decoration: BoxDecoration(
+              color: KX.canvasCard,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(color: KX.gold, width: 1.5),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -122,7 +122,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                           Text(
                             "Enter Customer Start OTP",
                             style: WorkGoFonts.display(
-                              color: Colors.white,
+                              color: KX.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                             ),
@@ -256,9 +256,9 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
       width: 52,
       height: 56,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: KX.canvasMid,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.4), width: 1.5),
+        border: Border.all(color: KX.gold.withValues(alpha: 0.5), width: 1.5),
       ),
       child: Center(
         child: TextField(
@@ -267,7 +267,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
           maxLength: 1,
-          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+          style: const TextStyle(color: KX.textPrimary, fontSize: 24, fontWeight: FontWeight.w900),
           decoration: const InputDecoration(
             counterText: "",
             border: InputBorder.none,
@@ -286,11 +286,12 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
           return Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF0D0A1C),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border(
-                top: BorderSide(color: Color(0xFF00E5FF), width: 1.5),
+            decoration: BoxDecoration(
+              color: KX.canvasCard,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(
+                color: const Color(0xFF00E5FF),
+                width: 1.5,
               ),
             ),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -327,7 +328,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                           Text(
                             "In-App Work Verification",
                             style: WorkGoFonts.display(
-                              color: Colors.white,
+                              color: KX.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                             ),
@@ -491,7 +492,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0B0818),
+                          color: KX.canvasCard,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.5)),
                         ),
@@ -513,7 +514,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                                   Text(
                                     "C2PA Content Credential Sealed",
                                     style: WorkGoFonts.display(
-                                      color: Colors.white,
+                                      color: KX.textPrimary,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w900,
                                     ),
@@ -844,7 +845,7 @@ class _PayoutLedgerCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Gross Fee", style: TextStyle(color: KX.textSecondary, fontSize: 12)),
-              Text("₹${gross.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 12)),
+              Text("₹${gross.toStringAsFixed(0)}", style: const TextStyle(color: KX.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 6),

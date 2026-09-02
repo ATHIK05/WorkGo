@@ -1,8 +1,6 @@
-﻿import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../models/app_user.dart';
-import '../../theme/colors.dart';
-import '../../theme/spacing.dart';
 import '../safe_text.dart';
 
 class AuthRoleBadge extends StatelessWidget {
@@ -17,21 +15,24 @@ class AuthRoleBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, defaultKey, color) = switch (role) {
+    final (icon, defaultKey, color, bgColor) = switch (role) {
       UserRole.customer => (
         Icons.person_rounded,
         'customer_role',
-        WorkGoColors.accent,
+        const Color(0xFF4F46E5),
+        const Color(0xFFEEF2FF),
       ),
       UserRole.worker => (
         Icons.handyman_rounded,
         'worker_role',
-        const Color(0xFF38BDF8), // Cyan/Sky blue for worker
+        const Color(0xFF0284C7),
+        const Color(0xFFF0F9FF),
       ),
       UserRole.admin => (
         Icons.admin_panel_settings_rounded,
         'admin_role',
-        const Color(0xFF34D399), // Emerald for admin
+        const Color(0xFF059669),
+        const Color(0xFFECFDF5),
       ),
     };
 
@@ -39,36 +40,29 @@ class AuthRoleBadge extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: WorkGoSpacing.md,
-        vertical: WorkGoSpacing.xs + 2,
+        horizontal: 14,
+        vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(WorkGoSpacing.xl),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: color.withValues(alpha: 0.4),
-          width: 1.2,
+          color: color.withValues(alpha: 0.25),
+          width: 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.2),
-            blurRadius: 12,
-            spreadRadius: 0,
-          ),
-        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: WorkGoSpacing.xs + 2),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
           SafeText(
             label.toUpperCase(),
             style: TextStyle(
               color: color,
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: FontWeight.w800,
-              letterSpacing: 1.1,
+              letterSpacing: 0.8,
             ),
             enableAutoShrink: true,
           ),

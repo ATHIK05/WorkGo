@@ -60,12 +60,16 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: AX.glassBox(radius: 12, borderColor: AX.emerald.withValues(alpha: 0.4)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3D6),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
+                        ),
                         child: Row(
                           children: [
-                            const Icon(Icons.verified_rounded, color: AX.emerald, size: 16),
+                            const Icon(Icons.verified_rounded, color: AX.emeraldDark, size: 16),
                             const SizedBox(width: 6),
-                            Text("GOV CORPUS v2.4", style: AX.mono(fontSize: 11, color: AX.emeraldLight)),
+                            Text("GOV CORPUS v2.4", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
                           ],
                         ),
                       ),
@@ -82,7 +86,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                           value: "₹${welfareCorpus >= 1000 ? '${(welfareCorpus / 1000).toStringAsFixed(2)}k' : welfareCorpus.toStringAsFixed(0)}",
                           subtitle: "2% of ₹${realizedGrossVolume.toStringAsFixed(0)} settled volume",
                           icon: Icons.account_balance_wallet_rounded,
-                          color: AX.emerald,
+                          color: const Color(0xFF065F46),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -92,7 +96,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                           value: "$insuredCount / ${workers.length}",
                           subtitle: "${coverageRate.toStringAsFixed(0)}% membership coverage",
                           icon: Icons.health_and_safety_rounded,
-                          color: AX.violet,
+                          color: const Color(0xFF7C3AED),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -102,7 +106,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                           value: "PMJJBY + PMSBY",
                           subtitle: "₹2L Life + ₹2L Accident Cover",
                           icon: Icons.security_rounded,
-                          color: AX.cyan,
+                          color: const Color(0xFF1D4ED8),
                         ),
                       ),
                     ],
@@ -118,16 +122,24 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                         width: 280,
                         height: 38,
                         child: TextField(
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          style: const TextStyle(color: AX.textPrimary, fontSize: 12),
                           decoration: InputDecoration(
                             hintText: "Search artisan name or trade...",
-                            hintStyle: const TextStyle(color: Colors.white38, fontSize: 11),
-                            prefixIcon: const Icon(Icons.search_rounded, color: Colors.white38, size: 16),
+                            hintStyle: const TextStyle(color: AX.textMuted, fontSize: 11),
+                            prefixIcon: const Icon(Icons.search_rounded, color: AX.textSecondary, size: 16),
                             filled: true,
-                            fillColor: AX.bgCard,
+                            fillColor: const Color(0xFFF9F6EE),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Colors.white12),
+                              borderSide: const BorderSide(color: AX.divider),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: AX.divider),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: AX.emerald, width: 1.5),
                             ),
                             contentPadding: const EdgeInsets.symmetric(vertical: 6),
                           ),
@@ -148,7 +160,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.people_outline_rounded, color: Colors.white24, size: 36),
+                                  const Icon(Icons.people_outline_rounded, color: AX.textMuted, size: 36),
                                   const SizedBox(height: 12),
                                   Text("No Workers Found", style: AX.display(fontSize: 15)),
                                   Text("Artisans who register on the WorkGo network will appear here.", style: AX.body(fontSize: 12)),
@@ -183,20 +195,20 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
   }) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: AX.glowBox(glowColor: color, radius: 16, blurRadius: 16, opacity: 0.12),
+      decoration: AX.glowBox(glowColor: color, radius: 16, blurRadius: 16, opacity: 0.08),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: AX.body(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70)),
+              Text(title, style: AX.body(fontSize: 12, fontWeight: FontWeight.bold, color: AX.textSecondary)),
               Icon(icon, color: color, size: 18),
             ],
           ),
           const SizedBox(height: 8),
-          Text(value, style: AX.display(fontSize: 22, color: Colors.white)),
-          Text(subtitle, style: AX.mono(fontSize: 10, color: Colors.white38)),
+          Text(value, style: AX.display(fontSize: 22, color: AX.textPrimary)),
+          Text(subtitle, style: AX.mono(fontSize: 10, color: AX.textMuted)),
         ],
       ),
     );
@@ -211,10 +223,10 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
           // Avatar
           CircleAvatar(
             radius: 20,
-            backgroundColor: w.insuranceStatus ? AX.emeraldDark : Colors.white10,
+            backgroundColor: w.insuranceStatus ? const Color(0xFFD1FAE5) : const Color(0xFFF3F0EA),
             child: Icon(
               w.insuranceStatus ? Icons.health_and_safety_rounded : Icons.person_rounded,
-              color: w.insuranceStatus ? Colors.white : Colors.white60,
+              color: w.insuranceStatus ? const Color(0xFF065F46) : AX.textSecondary,
               size: 20,
             ),
           ),
@@ -227,15 +239,15 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
               children: [
                 Row(
                   children: [
-                    Text(w.name.isNotEmpty ? w.name : "Artisan #${w.id.substring(0, 6).toUpperCase()}", style: AX.heading(fontSize: 14)),
+                    Text(w.name.isNotEmpty ? w.name : "Artisan #${w.id.substring(0, w.id.length.clamp(0, 6)).toUpperCase()}", style: AX.heading(fontSize: 14)),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AX.cyan.withValues(alpha: 0.15),
+                        color: const Color(0xFFDBEAFE),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(w.skills.join(", "), style: AX.mono(fontSize: 10, color: AX.cyanLight)),
+                      child: Text(w.skills.join(", "), style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 10, color: Color(0xFF1E40AF), fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
@@ -244,7 +256,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                   w.insuranceStatus
                       ? "Enrolled: PMJJBY + PMSBY Plan (₹436/yr auto-debited from welfare fund)"
                       : "Micro-insurance inactive · Tap toggle to enroll from cooperative corpus",
-                  style: AX.body(fontSize: 11, color: w.insuranceStatus ? AX.emeraldLight : Colors.white38),
+                  style: AX.body(fontSize: 11, color: w.insuranceStatus ? const Color(0xFF065F46) : AX.textMuted),
                 ),
               ],
             ),
@@ -256,8 +268,8 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
             value: w.insuranceStatus,
             activeThumbColor: AX.emerald,
             activeTrackColor: AX.emerald.withValues(alpha: 0.4),
-            inactiveThumbColor: Colors.white38,
-            inactiveTrackColor: Colors.white10,
+            inactiveThumbColor: AX.textMuted,
+            inactiveTrackColor: const Color(0xFFF0EDE6),
             onChanged: (val) async {
               await _workerService.toggleInsurance(w.id, val);
               if (mounted) setState(() {});

@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +11,6 @@ import 'auth_role_badge.dart';
 import 'forgot_password_form.dart';
 import 'sign_in_form.dart';
 import 'sign_up_form.dart';
-import '../workgo_splash_screen.dart';
 
 enum AuthMode { signIn, signUp, forgotPassword }
 
@@ -245,83 +243,65 @@ class _AuthShellState extends State<AuthShell>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: WorkGoBrandColors.bgBottom,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── 1. Atmospheric Deep Mesh Background ─────────────────────────────
+          // ── 1. Subtle Editorial Light Background ──────────────────────────
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [WorkGoBrandColors.bgTop, WorkGoBrandColors.bgBottom],
+                  colors: [
+                    Color(0xFFF8FAFC),
+                    Color(0xFFF1F5F9),
+                    Color(0xFFEDE8E1),
+                  ],
                 ),
               ),
             ),
           ),
 
-          // ── 2. Soft Ambient Radial Glows (No hard solid shapes) ─────────────
-          AnimatedBuilder(
-            animation: _bgAnimationController,
-            builder: (context, _) {
-              final t = _bgAnimationController.value * 2 * math.pi;
-              final glow = 0.6 + 0.3 * math.sin(t);
-              return Stack(
-                children: [
-                  Align(
-                    alignment: const Alignment(0, -0.65),
-                    child: Container(
-                      width: size.width * 1.1,
-                      height: size.width * 1.1,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            WorkGoBrandColors.violetCore.withValues(alpha: 0.24 * glow),
-                            WorkGoBrandColors.violetDeep.withValues(alpha: 0.08 * glow),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.48, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Align(
-                    alignment: const Alignment(0.7, 0.6),
-                    child: Container(
-                      width: size.width * 0.7,
-                      height: size.width * 0.7,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            WorkGoBrandColors.yellow.withValues(alpha: 0.05 * glow),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-
-          // ── 3. Ambient Floating Particle Field ──────────────────────────────
-          CustomPaint(
-            painter: WorkGoParticlePainter(
-              loopValue: _bgAnimationController.value,
-              revealValue: 1.0,
+          // ── 2. Soft Warm Ambient Radial Accents ───────────────────────────
+          Positioned(
+            top: -100,
+            right: -60,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFEF3C7).withValues(alpha: 0.6),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
             ),
-            size: Size.infinite,
+          ),
+          Positioned(
+            bottom: -80,
+            left: -60,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFDBEAFE).withValues(alpha: 0.5),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
           ),
 
-          // ── 4. Main Auth Content Layer ──────────────────────────────────────
+          // ── 3. Main Auth Content Layer ──────────────────────────────────────
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -336,7 +316,11 @@ class _AuthShellState extends State<AuthShell>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _buildTopHeader(context),
-                      const SizedBox(height: WorkGoSpacing.xl),
+                      const SizedBox(height: 20),
+
+                      // Editorial Headline (Image 2 style)
+                      _buildEditorialHero(),
+                      const SizedBox(height: 22),
 
                       if (_errorMessage != null) ...[
                         _buildErrorBanner(),
@@ -353,18 +337,18 @@ class _AuthShellState extends State<AuthShell>
                             child: child,
                           );
                         },
-                        child: _buildGlassCard(context),
+                        child: _buildLuxuryAuthCard(context),
                       ),
 
-                      const SizedBox(height: WorkGoSpacing.xl),
+                      const SizedBox(height: 24),
 
-                      SafeText(
+                      const SafeText(
                         'WorkGo • 100% Direct Payout to Certified Artisans',
                         style: TextStyle(
-                          color: WorkGoBrandColors.textSecondary.withValues(alpha: 0.45),
-                          fontSize: 11,
+                          color: Color(0xFF94A3B8),
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ],
@@ -378,6 +362,34 @@ class _AuthShellState extends State<AuthShell>
     );
   }
 
+  Widget _buildEditorialHero() {
+    return Column(
+      children: [
+        const SafeText(
+          "Services Without Limits",
+          style: TextStyle(
+            color: Color(0xFF141416),
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.8,
+            height: 1.15,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        SafeText(
+          "Connect with verified local craftsmen • 0% commission co-op",
+          style: TextStyle(
+            color: const Color(0xFF64748B).withValues(alpha: 0.9),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
   Widget _buildTopHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -386,7 +398,17 @@ class _AuthShellState extends State<AuthShell>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const WorkGoMark(size: 38),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141416),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Icon(Icons.handyman_rounded, color: Colors.white, size: 20),
+                ),
+              ),
               const SizedBox(width: 12),
               Flexible(
                 child: Column(
@@ -396,18 +418,18 @@ class _AuthShellState extends State<AuthShell>
                     const SafeText(
                       'WorkGo',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
+                        color: Color(0xFF141416),
+                        fontSize: 20,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
                       ),
                     ),
                     SafeText(
                       'app_name'.tr(),
-                      style: TextStyle(
-                        color: WorkGoBrandColors.textSecondary.withValues(alpha: 0.75),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -428,16 +450,16 @@ class _AuthShellState extends State<AuthShell>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF1B1633).withValues(alpha: 0.8),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.14),
+          color: const Color(0xFFE2E8F0),
           width: 1.0,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 10,
+            color: Color(0x08000000),
+            blurRadius: 8,
           ),
         ],
       ),
@@ -468,25 +490,13 @@ class _AuthShellState extends State<AuthShell>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          gradient: active
-              ? const LinearGradient(
-                  colors: [WorkGoBrandColors.yellowSoft, WorkGoBrandColors.yellow],
-                )
-              : null,
+          color: active ? const Color(0xFF141416) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: WorkGoBrandColors.yellow.withValues(alpha: 0.35),
-                    blurRadius: 8,
-                  ),
-                ]
-              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: active ? const Color(0xFF120B22) : WorkGoBrandColors.textSecondary,
+            color: active ? Colors.white : const Color(0xFF64748B),
             fontSize: 11.5,
             fontWeight: active ? FontWeight.w900 : FontWeight.w600,
           ),
@@ -499,10 +509,10 @@ class _AuthShellState extends State<AuthShell>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: WorkGoColors.error.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFFFF1F2),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: WorkGoColors.error.withValues(alpha: 0.5),
+          color: const Color(0xFFFECDD3),
           width: 1.2,
         ),
       ),
@@ -510,7 +520,7 @@ class _AuthShellState extends State<AuthShell>
         children: [
           const Icon(
             Icons.error_outline_rounded,
-            color: WorkGoColors.error,
+            color: Color(0xFFE11D48),
             size: 20,
           ),
           const SizedBox(width: 10),
@@ -518,7 +528,7 @@ class _AuthShellState extends State<AuthShell>
             child: Text(
               _errorMessage!,
               style: const TextStyle(
-                color: Color(0xFFFCA5A5),
+                color: Color(0xFFBE123C),
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -529,96 +539,90 @@ class _AuthShellState extends State<AuthShell>
     );
   }
 
-  Widget _buildGlassCard(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          padding: const EdgeInsets.all(WorkGoSpacing.xl),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1B1633).withValues(alpha: 0.65),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.16),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 32,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AuthRoleBadge(
-                role: widget.role,
-                customLabel: widget.customRoleLabel,
-              ),
-              const SizedBox(height: WorkGoSpacing.lg),
-
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.04, 0.0),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
-                    ),
-                  );
-                },
-                child: switch (_mode) {
-                  AuthMode.signIn => SignInForm(
-                      key: const ValueKey('signInForm'),
-                      isLoading: _isLoading,
-                      onSignIn: _handleSignIn,
-                      onSwitchToSignUp: () {
-                        setState(() {
-                          _mode = AuthMode.signUp;
-                          _errorMessage = null;
-                        });
-                      },
-                      onForgotPassword: () {
-                        setState(() {
-                          _mode = AuthMode.forgotPassword;
-                          _errorMessage = null;
-                        });
-                      },
-                    ),
-                  AuthMode.signUp => SignUpForm(
-                      key: const ValueKey('signUpForm'),
-                      isLoading: _isLoading,
-                      onSignUp: _handleSignUp,
-                      onSwitchToSignIn: () {
-                        setState(() {
-                          _mode = AuthMode.signIn;
-                          _errorMessage = null;
-                        });
-                      },
-                    ),
-                  AuthMode.forgotPassword => ForgotPasswordForm(
-                      key: const ValueKey('forgotPasswordForm'),
-                      isLoading: _isLoading,
-                      onResetPassword: _handleResetPassword,
-                      onBackToSignIn: () {
-                        setState(() {
-                          _mode = AuthMode.signIn;
-                          _errorMessage = null;
-                        });
-                      },
-                    ),
-                },
-              ),
-            ],
-          ),
+  Widget _buildLuxuryAuthCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: const Color(0xFFF0EDE6),
+          width: 1.2,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 24,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AuthRoleBadge(
+            role: widget.role,
+            customLabel: widget.customRoleLabel,
+          ),
+          const SizedBox(height: WorkGoSpacing.lg),
+
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.04, 0.0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              );
+            },
+            child: switch (_mode) {
+              AuthMode.signIn => SignInForm(
+                  key: const ValueKey('signInForm'),
+                  isLoading: _isLoading,
+                  onSignIn: _handleSignIn,
+                  onSwitchToSignUp: () {
+                    setState(() {
+                      _mode = AuthMode.signUp;
+                      _errorMessage = null;
+                    });
+                  },
+                  onForgotPassword: () {
+                    setState(() {
+                      _mode = AuthMode.forgotPassword;
+                      _errorMessage = null;
+                    });
+                  },
+                ),
+              AuthMode.signUp => SignUpForm(
+                  key: const ValueKey('signUpForm'),
+                  isLoading: _isLoading,
+                  onSignUp: _handleSignUp,
+                  onSwitchToSignIn: () {
+                    setState(() {
+                      _mode = AuthMode.signIn;
+                      _errorMessage = null;
+                    });
+                  },
+                ),
+              AuthMode.forgotPassword => ForgotPasswordForm(
+                  key: const ValueKey('forgotPasswordForm'),
+                  isLoading: _isLoading,
+                  onResetPassword: _handleResetPassword,
+                  onBackToSignIn: () {
+                    setState(() {
+                      _mode = AuthMode.signIn;
+                      _errorMessage = null;
+                    });
+                  },
+                ),
+            },
+          ),
+        ],
       ),
     );
   }
