@@ -28,9 +28,13 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
   late AnimationController _headerCtrl;
   late Animation<double> _headerScale;
 
+  double? _myLat;
+  double? _myLng;
+
   @override
   void initState() {
     super.initState();
+    _initDeviceLocation();
     _headerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -39,6 +43,18 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
       parent: _headerCtrl,
       curve: Curves.elasticOut,
     );
+  }
+
+  void _initDeviceLocation() async {
+    try {
+      final coords = await LocationService.instance.getCurrentCoordinates();
+      if (mounted) {
+        setState(() {
+          _myLat = coords["latitude"];
+          _myLng = coords["longitude"];
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -84,8 +100,11 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                       // Real-time GPS from Firestore (updated by artisan via BookingService.updateWorkerLiveLocation)
                       partnerLatitude: booking.workerLatitude,
                       partnerLongitude: booking.workerLongitude,
-                      pickupLatitude: booking.customerLatitude,
-                      pickupLongitude: booking.customerLongitude,
+                      pickupLatitude: booking.customerLatitude ?? _myLat,
+                      pickupLongitude: booking.customerLongitude ?? _myLng,
+                      // Customer's live device location (Rapido pulsing blue dot)
+                      myLocationLatitude: _myLat,
+                      myLocationLongitude: _myLng,
                     ),
                   ),
                   const SizedBox(height: 16),

@@ -398,7 +398,23 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     final nextStatus = isCurrentlyOnline
         ? AvailabilityStatus.offline
         : AvailabilityStatus.online;
-    await _workerService.updateAvailability(worker.id, nextStatus);
+
+    double? lat;
+    double? lng;
+    if (nextStatus == AvailabilityStatus.online) {
+      try {
+        final coords = await LocationService.instance.getCurrentCoordinates();
+        lat = coords["latitude"];
+        lng = coords["longitude"];
+      } catch (_) {}
+    }
+
+    await _workerService.updateAvailability(
+      worker.id,
+      nextStatus,
+      latitude: lat,
+      longitude: lng,
+    );
     await _workerService.checkInTitan(worker.id, nextStatus == AvailabilityStatus.online);
   }
 

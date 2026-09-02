@@ -63,11 +63,33 @@ class WorkerService {
   }
 
   /// Worker updates availability toggle (Online / Offline / Busy).
-  Future<void> updateAvailability(String workerId, AvailabilityStatus status) async {
-    await _db.collection("workers").doc(workerId).update({
+  Future<void> updateAvailability(
+    String workerId,
+    AvailabilityStatus status, {
+    double? latitude,
+    double? longitude,
+  }) async {
+    final Map<String, dynamic> updateData = {
       "availabilityStatus": status.name,
       "isCheckedIn": status == AvailabilityStatus.online,
       if (status == AvailabilityStatus.online) "checkedInAt": FieldValue.serverTimestamp(),
+    };
+    if (latitude != null && longitude != null) {
+      updateData["latitude"] = latitude;
+      updateData["longitude"] = longitude;
+      updateData["location"] = GeoPoint(latitude, longitude);
+      updateData["lastLocationUpdate"] = FieldValue.serverTimestamp();
+    }
+    await _db.collection("workers").doc(workerId).update(updateData);
+  }
+
+  /// Update worker's live GPS coordinates in Firestore.
+  Future<void> updateWorkerLocation(String workerId, double latitude, double longitude) async {
+    await _db.collection("workers").doc(workerId).update({
+      "latitude": latitude,
+      "longitude": longitude,
+      "location": GeoPoint(latitude, longitude),
+      "lastLocationUpdate": FieldValue.serverTimestamp(),
     });
   }
 

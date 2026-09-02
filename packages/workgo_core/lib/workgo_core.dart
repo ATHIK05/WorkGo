@@ -70,3 +70,4 @@ export "src/services/session_manager.dart";
 // API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";
 export "package:url_launcher/url_launcher.dart";
+export "package:latlong2/latlong.dart";

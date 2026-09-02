@@ -405,12 +405,36 @@ class Worker {
         : null;
 
     final addrList = (d["addresses"] as List<dynamic>?)
-            ?.map((a) => UserAddress.fromMap(Map<String, dynamic>.from(a as Map)))
+            ?.map((a) => a is Map ? UserAddress.fromMap(Map<String, dynamic>.from(a)) : null)
+            .whereType<UserAddress>()
             .toList() ??
         const [];
-    final baseAddr = d["baseAddress"] != null
-        ? UserAddress.fromMap(Map<String, dynamic>.from(d["baseAddress"] as Map))
-        : null;
+
+    UserAddress? baseAddr;
+    if (d["baseAddress"] != null && d["baseAddress"] is Map) {
+      baseAddr = UserAddress.fromMap(Map<String, dynamic>.from(d["baseAddress"] as Map));
+    } else if (d["currentAddress"] != null && d["currentAddress"] is Map) {
+      baseAddr = UserAddress.fromMap(Map<String, dynamic>.from(d["currentAddress"] as Map));
+    }
+
+    final geoPoint = d["location"] is GeoPoint ? d["location"] as GeoPoint : null;
+    double? lat = (d["latitude"] as num?)?.toDouble() ??
+        (d["lat"] as num?)?.toDouble() ??
+        geoPoint?.latitude ??
+        baseAddr?.latitude ??
+        (addrList.isNotEmpty ? addrList.first.latitude : null);
+    double? lng = (d["longitude"] as num?)?.toDouble() ??
+        (d["lng"] as num?)?.toDouble() ??
+        geoPoint?.longitude ??
+        baseAddr?.longitude ??
+        (addrList.isNotEmpty ? addrList.first.longitude : null);
+
+    // Fallback: If location indicates Perundurai / MBA Block, resolve to campus coordinates
+    final combinedAddressText = "${d["baseAddress"]} ${d["currentAddress"]} ${d["baseArea"]} ${d["serviceLocation"]} ${d["primaryArea"]} ${baseAddr?.formattedAddress ?? ''}".toLowerCase();
+    if (lat == null && (combinedAddressText.contains("perundurai") || combinedAddressText.contains("mba") || combinedAddressText.contains("kongu"))) {
+      lat = 11.2743;
+      lng = 77.5866;
+    }
 
     return Worker(
       id: doc.id,
@@ -430,7 +454,7 @@ class Worker {
       totalRatings: totalRatings,
       totalReviews: totalReviews,
       homesServiced: homesServiced,
-      location: d["location"],
+      location: geoPoint ?? (lat != null && lng != null ? GeoPoint(lat, lng) : null),
       serviceRadiusKm: (d["serviceRadiusKm"] ?? 5.0).toDouble(),
       distanceKm: (d["distanceKm"] ?? 2.4).toDouble(),
       baseRate: (d["baseRate"] ?? 149.0).toDouble(),
@@ -455,9 +479,9 @@ class Worker {
       passionBio: d["passionBio"],
       addresses: addrList,
       baseAddress: baseAddr,
-      latitude: (d["latitude"] as num?)?.toDouble() ?? baseAddr?.latitude,
-      longitude: (d["longitude"] as num?)?.toDouble() ?? baseAddr?.longitude,
-      baseArea: d["baseArea"] ?? baseAddr?.shortSummary,
+      latitude: lat,
+      longitude: lng,
+      baseArea: d["baseArea"] ?? baseAddr?.shortSummary ?? (d["baseAddress"] is String ? d["baseAddress"] as String : null),
     );
   }
 

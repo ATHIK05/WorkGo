@@ -30,10 +30,13 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   int _secondsRemaining = 45;
   Timer? _countdownTimer;
   bool _hasNavigated = false;
+  double? _myLat;
+  double? _myLng;
 
   @override
   void initState() {
     super.initState();
+    _initDeviceLocation();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -43,6 +46,18 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
         });
       }
     });
+  }
+
+  void _initDeviceLocation() async {
+    try {
+      final coords = await LocationService.instance.getCurrentCoordinates();
+      if (mounted) {
+        setState(() {
+          _myLat = coords["latitude"];
+          _myLng = coords["longitude"];
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -133,59 +148,71 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Real OSM map with nearby worker markers replacing the illustrated radar
-                  LiveMapView(
-                    serviceCategory: widget.serviceCategory,
-                    mode: MapMode.broadcastScanning,
-                    pickupAddress: address,
-                    height: 280,
-                    // Real pickup coords (customer location saved at booking creation)
-                    pickupLatitude: booking?.customerLatitude,
-                    pickupLongitude: booking?.customerLongitude,
-                  ),
-                  const SizedBox(height: 20),
+                  // Real OSM map with nearby online worker markers and live My Location point
+                  StreamBuilder<List<Worker>>(
+                    stream: _bookingService.streamNearbyOnlineWorkers(widget.serviceCategory),
+                    builder: (context, workersSnap) {
+                      final onlineWorkers = workersSnap.data ?? [];
+                      final coords = onlineWorkers
+                          .where((w) => w.latitude != null && w.longitude != null)
+                          .map((w) => LatLng(w.latitude!, w.longitude!))
+                          .toList();
 
-                  // Broadcasting Status Text
-                  StreamBuilder<int>(
-                    stream: _bookingService
-                        .streamNearbyCaptainsCount(widget.serviceCategory),
-                    builder: (context, capSnap) {
-                      final count = capSnap.data ?? 0;
-                      final countText = count > 0
-                          ? "⚡ $count verified artisans roaming nearby"
-                          : "Broadcasting live to nearest artisans";
                       return Column(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          LiveMapView(
+                            serviceCategory: widget.serviceCategory,
+                            mode: MapMode.broadcastScanning,
+                            pickupAddress: address,
+                            height: 280,
+                            // Real pickup coords (customer location saved at booking creation or current GPS)
+                            pickupLatitude: booking?.customerLatitude ?? _myLat,
+                            pickupLongitude: booking?.customerLongitude ?? _myLng,
+                            // Customer's live device location (Rapido pulsing blue dot)
+                            myLocationLatitude: _myLat,
+                            myLocationLongitude: _myLng,
+                            nearbyWorkers: onlineWorkers,
+                            nearbyWorkerLocations: coords,
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Broadcasting Status Text
+                          Column(
                             children: [
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: CX.emerald,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: CX.emerald,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    onlineWorkers.isNotEmpty
+                                        ? "⚡ ${onlineWorkers.length} active ${widget.serviceCategory} artisan${onlineWorkers.length > 1 ? 's' : ''} online nearby"
+                                        : "⚡ Broadcasting live to nearest artisans",
+                                    style: WorkGoFonts.heading(
+                                      color: CX.emerald,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(height: 6),
                               Text(
-                                countText,
-                                style: WorkGoFonts.heading(
-                                  color: CX.emerald,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
+                                "Scanning 10 km live radius around ${address.split(',').first.trim()} for available ${widget.serviceCategory} Captains...",
+                                style: WorkGoFonts.body(
+                                  color: CX.textSecondary,
+                                  fontSize: 12.5,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Scanning 10 km live radius in Thanjavur / Chennai for available ${widget.serviceCategory} Captains...",
-                            style: WorkGoFonts.body(
-                              color: CX.textSecondary,
-                              fontSize: 12.5,
-                            ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
                       );

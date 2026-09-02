@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking.dart';
+import '../models/worker.dart';
 
 class BookingService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -97,6 +98,33 @@ class BookingService {
           }).length;
           return matching;
         });
+  }
+
+  /// Stream actual live online workers matching trade for map display.
+  Stream<List<Worker>> streamNearbyOnlineWorkers(String serviceType) {
+    return _db.collection("workers").snapshots().map((snap) {
+      final list = <Worker>[];
+      for (final doc in snap.docs) {
+        try {
+          final data = doc.data();
+          final skills = List<String>.from(data["skills"] ?? []);
+          final isOnline = data["availabilityStatus"] == "online" ||
+              data["isCheckedIn"] == true ||
+              data["availabilityStatus"] == null;
+          final isNotRejected = data["verificationStatus"] != "rejected";
+          final isVisible = data["visibilityStatus"] != "hidden" &&
+              data["visibilityStatus"] != "suspended";
+          final matchesSkill = serviceType.isEmpty ||
+              serviceType == "All" ||
+              skills.contains(serviceType);
+
+          if (isOnline && isNotRejected && isVisible && matchesSkill) {
+            list.add(Worker.fromFirestore(doc));
+          }
+        } catch (_) {}
+      }
+      return list;
+    });
   }
 
   // ── Worker Streams & Operations ────────────────────────────────────────────

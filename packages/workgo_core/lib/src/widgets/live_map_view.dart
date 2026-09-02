@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../models/worker.dart';
 import 'interactive_rapido_map.dart' show MapMode;
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -33,6 +34,10 @@ class LiveMapView extends StatefulWidget {
     this.pickupLatitude,
     this.pickupLongitude,
     this.nearbyWorkerLocations,
+    this.nearbyWorkers,
+    // Customer's own real-time device GPS for "My Location" blue dot
+    this.myLocationLatitude,
+    this.myLocationLongitude,
   });
 
   // ── Shared interface (identical to InteractiveRapidoMap) ──────────────────
@@ -52,6 +57,11 @@ class LiveMapView extends StatefulWidget {
   final double? pickupLatitude;
   final double? pickupLongitude;
   final List<LatLng>? nearbyWorkerLocations;
+  final List<Worker>? nearbyWorkers;
+
+  // ── Customer's own device location for Rapido-style blue dot ─────────────
+  final double? myLocationLatitude;
+  final double? myLocationLongitude;
 
   @override
   State<LiveMapView> createState() => _LiveMapViewState();
@@ -61,10 +71,11 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
   late MapController _mapController;
   late AnimationController _pulseCtrl;
   late AnimationController _radarCtrl;
+  late AnimationController _myLocationCtrl;
 
-  // Defaults: Erode / Tamil Nadu coordinates when no live GPS yet
-  static const LatLng _defaultPickup = LatLng(11.3410, 77.7172);
-  static const LatLng _defaultPartner = LatLng(11.3310, 77.7050);
+  // Defaults: Perundurai / Tamil Nadu coordinates when no live GPS yet
+  static const LatLng _defaultPickup = LatLng(11.2743, 77.5866); // MBA Block, Perundurai
+  static const LatLng _defaultPartner = LatLng(11.2680, 77.5750);
 
   @override
   void initState() {
@@ -78,6 +89,10 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
       vsync: this,
       duration: const Duration(milliseconds: 2400),
     )..repeat();
+    _myLocationCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
   }
 
   @override
@@ -89,6 +104,12 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     if (partnerChanged && _hasRealCoords) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitBounds());
     }
+
+    final workersChanged = oldWidget.nearbyWorkers != widget.nearbyWorkers ||
+        oldWidget.nearbyWorkerLocations != widget.nearbyWorkerLocations;
+    if (workersChanged && widget.mode == MapMode.broadcastScanning) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _fitBroadcastBounds());
+    }
   }
 
   @override
@@ -96,6 +117,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     _mapController.dispose();
     _pulseCtrl.dispose();
     _radarCtrl.dispose();
+    _myLocationCtrl.dispose();
     super.dispose();
   }
 
@@ -105,6 +127,9 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
       widget.pickupLatitude != null &&
       widget.pickupLongitude != null;
 
+  bool get _hasMyLocation =>
+      widget.myLocationLatitude != null && widget.myLocationLongitude != null;
+
   LatLng get _partnerLatLng => _hasRealCoords
       ? LatLng(widget.partnerLatitude!, widget.partnerLongitude!)
       : _estimatedPartnerFromProgress;
@@ -113,6 +138,10 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
       (widget.pickupLatitude != null && widget.pickupLongitude != null)
           ? LatLng(widget.pickupLatitude!, widget.pickupLongitude!)
           : _defaultPickup;
+
+  LatLng? get _myLocationLatLng => _hasMyLocation
+      ? LatLng(widget.myLocationLatitude!, widget.myLocationLongitude!)
+      : null;
 
   /// When no real GPS: estimate partner position from workerProgress (0.0–1.0)
   LatLng get _estimatedPartnerFromProgress {
@@ -127,34 +156,65 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
   void _fitBounds() {
     if (!mounted) return;
     try {
-      final bounds = LatLngBounds.fromPoints([_partnerLatLng, _pickupLatLng]);
+      final allPoints = <LatLng>[_partnerLatLng, _pickupLatLng];
+      if (_myLocationLatLng != null) allPoints.add(_myLocationLatLng!);
+      final bounds = LatLngBounds.fromPoints(allPoints);
       _mapController.fitCamera(
         CameraFit.bounds(
           bounds: bounds,
-          padding: const EdgeInsets.fromLTRB(60, 80, 60, 80),
+          padding: const EdgeInsets.fromLTRB(60, 90, 60, 90),
         ),
       );
+    } catch (_) {}
+  }
+
+  void _fitBroadcastBounds() {
+    if (!mounted) return;
+    try {
+      final points = <LatLng>[_pickupLatLng];
+      if (_myLocationLatLng != null) points.add(_myLocationLatLng!);
+      if (widget.nearbyWorkers != null) {
+        for (final w in widget.nearbyWorkers!) {
+          if (w.latitude != null && w.longitude != null) {
+            points.add(LatLng(w.latitude!, w.longitude!));
+          }
+        }
+      }
+      if (widget.nearbyWorkerLocations != null) {
+        points.addAll(widget.nearbyWorkerLocations!);
+      }
+      if (points.length > 1) {
+        final bounds = LatLngBounds.fromPoints(points);
+        _mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: bounds,
+            padding: const EdgeInsets.fromLTRB(50, 80, 50, 80),
+          ),
+        );
+      } else {
+        _mapController.move(_pickupLatLng, 14.0);
+      }
     } catch (_) {}
   }
 
   (Color, Color, IconData, String) _getTradeAsset(String category) {
     final cat = category.toLowerCase();
     if (cat.contains('plumb')) {
-      return (const Color(0xFF0284C7), const Color(0xFF0369A1), Icons.plumbing_rounded, 'Plumbing Unit');
+      return (const Color(0xFF0284C7), const Color(0xFF0369A1), Icons.plumbing_rounded, 'Plumbing');
     }
     if (cat.contains('electr')) {
-      return (const Color(0xFFD97706), const Color(0xFFB45309), Icons.bolt_rounded, 'Volt Service Bike');
+      return (const Color(0xFFD97706), const Color(0xFFB45309), Icons.bolt_rounded, 'Electrician');
     }
     if (cat.contains('carpent')) {
-      return (const Color(0xFFEA580C), const Color(0xFFC2410C), Icons.carpenter_rounded, 'Woodcraft Mobile');
+      return (const Color(0xFFEA580C), const Color(0xFFC2410C), Icons.carpenter_rounded, 'Carpentry');
     }
     if (cat.contains('paint')) {
-      return (const Color(0xFFE11D48), const Color(0xFFBE123C), Icons.format_paint_rounded, 'Color Express');
+      return (const Color(0xFFE11D48), const Color(0xFFBE123C), Icons.format_paint_rounded, 'Painting');
     }
     if (cat.contains('ac') || cat.contains('appliance') || cat.contains('cool')) {
-      return (const Color(0xFF0284C7), const Color(0xFF0369A1), Icons.ac_unit_rounded, 'Cooling Tech Express');
+      return (const Color(0xFF0284C7), const Color(0xFF0369A1), Icons.ac_unit_rounded, 'Cooling');
     }
-    return (const Color(0xFF059669), const Color(0xFF047857), Icons.handyman_rounded, 'Co-op Rapid Cruiser');
+    return (const Color(0xFF059669), const Color(0xFF047857), Icons.handyman_rounded, 'Handyman');
   }
 
   @override
@@ -182,13 +242,39 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         child: Stack(
           children: [
             // ── Real OSM Map Tiles ──────────────────────────────────────────
-            _buildRealMap(tradeColor, tradeDarkColor, tradeIcon, tradeVehicleLabel),
+            _buildRealMap(tradeColor, tradeDarkColor, tradeIcon),
 
             // ── Top Address Pill ────────────────────────────────────────────
             _buildAddressPill(tradeColor, tradeDarkColor),
 
             // ── Bottom Status HUD ───────────────────────────────────────────
             _buildBottomHud(tradeColor, tradeVehicleLabel),
+
+            // ── My Location FAB (recenter button) ───────────────────────────
+            if (_hasMyLocation)
+              Positioned(
+                bottom: 56,
+                right: 12,
+                child: GestureDetector(
+                  onTap: _fitBounds,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.14),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.my_location_rounded, size: 20, color: Color(0xFF2563EB)),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -199,7 +285,6 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     Color tradeColor,
     Color tradeDarkColor,
     IconData tradeIcon,
-    String tradeVehicleLabel,
   ) {
     final isRoute = widget.mode == MapMode.routeNavigation;
     final partner = _partnerLatLng;
@@ -213,24 +298,31 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
       mapController: _mapController,
       options: MapOptions(
         initialCenter: LatLng(centerLat, centerLng),
-        initialZoom: 14.0,
-        onMapReady: () => WidgetsBinding.instance.addPostFrameCallback((_) => _fitBounds()),
+        initialZoom: isRoute ? 14.0 : 13.0,
+        onMapReady: () {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (isRoute) {
+              _fitBounds();
+            } else {
+              _fitBroadcastBounds();
+            }
+          });
+        },
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
         ),
       ),
       children: [
-        // ── Tile Layer (OpenStreetMap Standard — light, clean, Rapido-style) ──
+        // ── Tile Layer (OSM Standard — warm, slightly desaturated Rapido feel) ──
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'in.workgo.cooperative',
           maxZoom: 19,
           tileBuilder: (context, tileWidget, tile) => ColorFiltered(
-            // Slight desaturation + brightness for softer Rapido aesthetic
             colorFilter: ColorFilter.matrix([
-              0.95, 0.05, 0.00, 0, 8,
-              0.00, 0.95, 0.05, 0, 8,
-              0.00, 0.00, 1.00, 0, 5,
+              0.96, 0.04, 0.00, 0, 5,
+              0.00, 0.96, 0.04, 0, 5,
+              0.00, 0.00, 1.00, 0, 3,
               0.00, 0.00, 0.00, 1, 0,
             ]),
             child: tileWidget,
@@ -241,54 +333,81 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
           // ── Route Polyline (partner → pickup) ──────────────────────────────
           PolylineLayer(
             polylines: [
-              // Travelled section (blue) — from partner backwards to estimated 30% start
+              // Shadow glow beneath route
               Polyline(
-                points: _buildTravelledSegment(partner, pickup),
-                strokeWidth: 5.0,
-                color: const Color(0xFF2563EB),
+                points: [partner, pickup],
+                strokeWidth: 11.0,
+                color: tradeColor.withOpacity(0.18),
                 strokeCap: StrokeCap.round,
                 strokeJoin: StrokeJoin.round,
               ),
-              // Remaining section (orange/yellow) — from partner forward to pickup
+              // Travelled section (grey-blue) — behind partner
+              Polyline(
+                points: _buildTravelledSegment(partner, pickup),
+                strokeWidth: 5.0,
+                color: const Color(0xFF94A3B8),
+                strokeCap: StrokeCap.round,
+                strokeJoin: StrokeJoin.round,
+              ),
+              // Remaining route — trade color
               Polyline(
                 points: [partner, pickup],
-                strokeWidth: 5.0,
-                gradientColors: [tradeColor, const Color(0xFFFBBF24)],
+                strokeWidth: 5.5,
+                gradientColors: [tradeColor, tradeColor.withOpacity(0.7)],
+                strokeCap: StrokeCap.round,
+                strokeJoin: StrokeJoin.round,
+              ),
+              // Inner white guidance line on top of route
+              Polyline(
+                points: [partner, pickup],
+                strokeWidth: 2.0,
+                color: Colors.white.withOpacity(0.85),
                 strokeCap: StrokeCap.round,
                 strokeJoin: StrokeJoin.round,
               ),
             ],
           ),
         ] else ...[
-          // ── Broadcast mode: 10 km radius circle ──────────────────────────
+          // ── Broadcast mode: concentric radius rings (animated) ────────────
           AnimatedBuilder(
             animation: _radarCtrl,
             builder: (context, _) {
+              final pulse = _radarCtrl.value;
               return CircleLayer(
                 circles: [
+                  // Expanding animated ring
                   CircleMarker(
                     point: pickup,
-                    radius: 3500, // ~3.5 km visual ring (scales with zoom)
+                    radius: (2000 + pulse * 8500).clamp(2000, 10500),
                     useRadiusInMeter: true,
-                    color: tradeColor.withOpacity(0.06),
-                    borderColor: tradeColor.withOpacity(0.25),
+                    color: tradeColor.withOpacity((1.0 - pulse) * 0.04),
+                    borderColor: tradeColor.withOpacity((1.0 - pulse) * 0.30),
                     borderStrokeWidth: 1.5,
+                  ),
+                  // Static rings: 3.5km / 7km / 10km
+                  CircleMarker(
+                    point: pickup,
+                    radius: 3500,
+                    useRadiusInMeter: true,
+                    color: tradeColor.withOpacity(0.05),
+                    borderColor: tradeColor.withOpacity(0.20),
+                    borderStrokeWidth: 1.2,
                   ),
                   CircleMarker(
                     point: pickup,
                     radius: 7000,
                     useRadiusInMeter: true,
-                    color: tradeColor.withOpacity(0.04),
-                    borderColor: tradeColor.withOpacity(0.15),
-                    borderStrokeWidth: 1.2,
+                    color: tradeColor.withOpacity(0.03),
+                    borderColor: tradeColor.withOpacity(0.12),
+                    borderStrokeWidth: 1.0,
                   ),
                   CircleMarker(
                     point: pickup,
-                    radius: 10500,
+                    radius: 10000,
                     useRadiusInMeter: true,
                     color: Colors.transparent,
-                    borderColor: tradeColor.withOpacity(0.10),
-                    borderStrokeWidth: 1.0,
+                    borderColor: tradeColor.withOpacity(0.08),
+                    borderStrokeWidth: 0.8,
                   ),
                 ],
               );
@@ -296,39 +415,62 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
           ),
         ],
 
-        // ── Markers ─────────────────────────────────────────────────────────
+        // ── All Markers ─────────────────────────────────────────────────────
         MarkerLayer(
+          rotate: false,
           markers: [
-            // Pickup / Customer Home Marker
+            // ── My Location — Rapido-style pulsing blue GPS dot ──────────────
+            if (_myLocationLatLng != null)
+              Marker(
+                point: _myLocationLatLng!,
+                width: 72,
+                height: 72,
+                child: _buildMyLocationDot(),
+              ),
+
+            // ── Pickup / Customer Home Marker ─────────────────────────────────
             Marker(
               point: pickup,
               width: 56,
-              height: 68,
+              height: 72,
               alignment: Alignment.topCenter,
               child: _buildPickupMarker(isRoute),
             ),
 
-            // Partner / Artisan Marker (only in route navigation mode)
+            // ── Partner / Artisan Live Marker (navigation mode only) ──────────
             if (isRoute)
               Marker(
                 point: partner,
-                width: 64,
-                height: 80,
+                width: 68,
+                height: 88,
                 alignment: Alignment.topCenter,
                 child: _buildPartnerMarker(tradeColor, tradeDarkColor, tradeIcon),
               ),
 
-            // Nearby workers in broadcast mode
-            if (!isRoute && widget.nearbyWorkerLocations != null)
-              ...widget.nearbyWorkerLocations!.map((loc) => Marker(
-                    point: loc,
-                    width: 36,
-                    height: 36,
-                    child: _buildNearbyWorkerDot(tradeColor),
-                  )),
+            // ── Real online workers from Firestore (broadcast mode) ───────────
+            if (!isRoute && widget.nearbyWorkers != null && widget.nearbyWorkers!.isNotEmpty)
+              for (int i = 0; i < widget.nearbyWorkers!.length; i++)
+                _buildRealWorkerMarker(widget.nearbyWorkers![i], i, tradeColor, tradeIcon, pickup),
 
-            // Simulated nearby workers in broadcast mode (when no real coords)
-            if (!isRoute && (widget.nearbyWorkerLocations == null || widget.nearbyWorkerLocations!.isEmpty))
+            // ── Real coordinates fallback (if nearbyWorkers is null) ──────────
+            if (!isRoute &&
+                (widget.nearbyWorkers == null || widget.nearbyWorkers!.isEmpty) &&
+                widget.nearbyWorkerLocations != null)
+              for (int i = 0; i < widget.nearbyWorkerLocations!.length; i++)
+                Marker(
+                  point: widget.nearbyWorkerLocations![i],
+                  width: 44,
+                  height: 44,
+                  child: _buildNearbyWorkerDot(
+                    i == 0 ? tradeColor : _altColor(i),
+                    tradeIcon,
+                  ),
+                ),
+
+            // ── Simulated workers fallback (when no Firestore workers exist) ──
+            if (!isRoute &&
+                (widget.nearbyWorkers == null || widget.nearbyWorkers!.isEmpty) &&
+                (widget.nearbyWorkerLocations == null || widget.nearbyWorkerLocations!.isEmpty))
               ..._simulatedNearbyWorkers(pickup, tradeColor, tradeIcon),
           ],
         ),
@@ -336,85 +478,221 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     );
   }
 
-  /// Build a rough "already-travelled" arc that starts behind the partner
+  /// Marker for a real online artisan from Firestore
+  Marker _buildRealWorkerMarker(
+    Worker worker,
+    int index,
+    Color defaultColor,
+    IconData defaultIcon,
+    LatLng centerFallback,
+  ) {
+    // If worker coordinates exist, use them.
+    // If worker is at MBA Block / Perundurai or has null coordinates, offset slightly around Perundurai center
+    final lat = worker.latitude ?? (centerFallback.latitude + (index == 0 ? 0.0035 : -0.0040 * index));
+    final lng = worker.longitude ?? (centerFallback.longitude + (index == 0 ? 0.0040 : 0.0035 * index));
+    final pt = LatLng(lat, lng);
+
+    final (color, _, icon, _) = _getTradeAsset(
+      worker.skills.isNotEmpty ? worker.skills.first : widget.serviceCategory,
+    );
+
+    return Marker(
+      point: pt,
+      width: 80,
+      height: 64,
+      alignment: Alignment.topCenter,
+      child: _buildNearbyWorkerDot(
+        color,
+        icon,
+        name: worker.name,
+      ),
+    );
+  }
+
+  /// Build the already-travelled segment behind the partner marker
   List<LatLng> _buildTravelledSegment(LatLng partner, LatLng pickup) {
-    // Simulate the already-travelled portion as a slight offset path
-    final dLat = (pickup.latitude - partner.latitude) * 0.3;
-    final dLng = (pickup.longitude - partner.longitude) * 0.3;
+    final dLat = (pickup.latitude - partner.latitude) * 0.35;
+    final dLng = (pickup.longitude - partner.longitude) * 0.35;
     final pastPoint = LatLng(partner.latitude - dLat, partner.longitude - dLng);
     return [pastPoint, partner];
   }
 
-  /// Simulated nearby workers for broadcast mode (when no Firestore data)
+  /// Simulated nearby workers for broadcast fallback (no Firestore data yet)
   List<Marker> _simulatedNearbyWorkers(LatLng center, Color color, IconData icon) {
+    // Offsets calibrated around Perundurai / MBA Block area
     const offsets = [
-      (0.012, 0.018),
-      (-0.020, 0.008),
-      (0.005, -0.022),
-      (-0.015, -0.012),
+      (0.010, 0.015),
+      (-0.018, 0.006),
+      (0.004, -0.020),
+      (-0.012, -0.010),
+      (0.022, -0.005),
     ];
     return List.generate(offsets.length, (i) {
       final pt = LatLng(center.latitude + offsets[i].$1, center.longitude + offsets[i].$2);
       return Marker(
         point: pt,
-        width: 34,
-        height: 34,
-        child: _buildNearbyWorkerDot(i == 0 ? color : _altColor(i)),
+        width: 40,
+        height: 40,
+        child: _buildNearbyWorkerDot(i == 0 ? color : _altColor(i), icon),
       );
     });
   }
 
   Color _altColor(int i) {
-    const colors = [Color(0xFF10B981), Color(0xFFFBBF24), Color(0xFF6366F1), Color(0xFFEC4899)];
+    const colors = [
+      Color(0xFF10B981),
+      Color(0xFFFBBF24),
+      Color(0xFF6366F1),
+      Color(0xFFEC4899),
+      Color(0xFFEA580C),
+    ];
     return colors[i % colors.length];
   }
 
-  Widget _buildPickupMarker(bool showYouBadge) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (showYouBadge) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE11D48),
-              borderRadius: BorderRadius.circular(6),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFE11D48).withOpacity(0.4),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+  // ── Marker Builders ──────────────────────────────────────────────────────
+
+  /// Rapido-style pulsing blue "My Location" dot with accuracy halo and heading
+  Widget _buildMyLocationDot() {
+    return AnimatedBuilder(
+      animation: _myLocationCtrl,
+      builder: (context, _) {
+        final pulse = _myLocationCtrl.value;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E40AF),
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2563EB).withOpacity(0.4),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'YOU ARE HERE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 7.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Expanding ripple
+                Container(
+                  width: 30 + pulse * 22,
+                  height: 30 + pulse * 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF2563EB).withOpacity((1.0 - pulse) * 0.28),
+                  ),
+                ),
+                // Accuracy boundary
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF3B82F6).withOpacity(0.18),
+                    border: Border.all(
+                      color: const Color(0xFF2563EB).withOpacity(0.4),
+                      width: 1.2,
+                    ),
+                  ),
+                ),
+                // Solid core
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF1D4ED8),
+                    border: Border.all(color: Colors.white, width: 2.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1D4ED8).withOpacity(0.6),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.navigation_rounded,
+                      size: 8,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ],
             ),
-            child: const Text(
-              'YOU',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 9,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPickupMarker(bool isNavigation) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Label bubble
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: isNavigation ? const Color(0xFFE11D48) : const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: [
+              BoxShadow(
+                color: (isNavigation ? const Color(0xFFE11D48) : const Color(0xFF0F172A))
+                    .withOpacity(0.4),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
+            ],
+          ),
+          child: Text(
+            isNavigation ? 'YOUR HOME' : 'PICKUP SPOT',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
             ),
           ),
-          const SizedBox(height: 3),
-        ],
+        ),
+        const SizedBox(height: 3),
+        // Pin icon
         Container(
-          width: showYouBadge ? 38 : 44,
-          height: showYouBadge ? 38 : 44,
+          width: 38,
+          height: 38,
           decoration: BoxDecoration(
-            color: const Color(0xFFE11D48),
+            color: isNavigation ? const Color(0xFFE11D48) : const Color(0xFF0F172A),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2.5),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFE11D48).withOpacity(0.5),
-                blurRadius: 12,
+                color: (isNavigation ? const Color(0xFFE11D48) : const Color(0xFF0F172A))
+                    .withOpacity(0.45),
+                blurRadius: 14,
                 spreadRadius: 2,
               ),
             ],
           ),
-          child: const Icon(Icons.home_rounded, color: Colors.white, size: 20),
+          child: Icon(
+            isNavigation ? Icons.home_rounded : Icons.location_on_rounded,
+            color: Colors.white,
+            size: 19,
+          ),
         ),
       ],
     );
@@ -428,34 +706,13 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Artisan name chip
             Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [tradeColor, tradeDarkColor],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: tradeColor.withOpacity(glow * 0.6),
-                    blurRadius: 16 + glow * 8,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Icon(tradeIcon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(height: 3),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: tradeColor.withOpacity(0.3)),
+                border: Border.all(color: tradeColor.withOpacity(0.35), width: 1),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.10),
@@ -472,32 +729,125 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                   fontWeight: FontWeight.w800,
                 ),
                 maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
+            const SizedBox(height: 3),
+            // Trade icon circle with pulsing glow
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [tradeColor, tradeDarkColor],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: tradeColor.withOpacity(glow * 0.65),
+                    blurRadius: 14 + glow * 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Icon(tradeIcon, color: Colors.white, size: 26),
+            ),
+            // Direction arrow pointing to pickup
+            const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 18),
           ],
         );
       },
     );
   }
 
-  Widget _buildNearbyWorkerDot(Color color) {
+  Widget _buildNearbyWorkerDot(Color color, IconData icon, {String? name}) {
     return AnimatedBuilder(
       animation: _pulseCtrl,
       builder: (context, _) {
-        return Container(
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.4 + _pulseCtrl.value * 0.3),
-                blurRadius: 8 + _pulseCtrl.value * 4,
-                spreadRadius: 1,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (name != null && name.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: color.withOpacity(0.5), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 5.5,
+                      height: 5.5,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 58),
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 2),
             ],
-          ),
-          child: const Icon(Icons.directions_bike_rounded, color: Colors.white, size: 16),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Outer pulse ring
+                Container(
+                  width: 34 + _pulseCtrl.value * 5,
+                  height: 34 + _pulseCtrl.value * 5,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color.withOpacity((1 - _pulseCtrl.value) * 0.22),
+                  ),
+                ),
+                // Solid dot
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.45),
+                        blurRadius: 7,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 14),
+                ),
+              ],
+            ),
+          ],
         );
       },
     );
@@ -510,6 +860,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
       left: 12,
       right: 12,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Container(
@@ -543,7 +894,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          'PICKUP ADDRESS',
+                          'PICKUP',
                           style: TextStyle(
                             color: Color(0xFF94A3B8),
                             fontSize: 9,
@@ -564,8 +915,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                       ],
                     ),
                   ),
-                  // Edit pencil icon (Rapido-style)
-                  Icon(Icons.edit_rounded, size: 14, color: Colors.grey.shade400),
+                  Icon(Icons.edit_rounded, size: 13, color: Colors.grey.shade400),
                 ],
               ),
             ),
@@ -575,7 +925,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
           if (isRoute) ...[
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [tradeColor, tradeDarkColor],
@@ -621,12 +971,13 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
 
   Widget _buildBottomHud(Color tradeColor, String tradeVehicleLabel) {
     final isRoute = widget.mode == MapMode.routeNavigation;
+    final statusColor = isRoute ? const Color(0xFF10B981) : tradeColor;
     return Positioned(
       bottom: 10,
       left: 12,
       right: 12,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.97),
           borderRadius: BorderRadius.circular(12),
@@ -642,52 +993,58 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                AnimatedBuilder(
-                  animation: _pulseCtrl,
-                  builder: (context, _) => Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isRoute ? const Color(0xFF10B981) : tradeColor,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isRoute ? const Color(0xFF10B981) : tradeColor)
-                              .withOpacity(0.4 + _pulseCtrl.value * 0.4),
-                          blurRadius: 6 + _pulseCtrl.value * 4,
-                          spreadRadius: 1,
-                        ),
-                      ],
+            // Pulsing dot + status text — wrapped in Expanded to prevent overflow
+            Expanded(
+              child: Row(
+                children: [
+                  AnimatedBuilder(
+                    animation: _pulseCtrl,
+                    builder: (context, _) => Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: statusColor,
+                        boxShadow: [
+                          BoxShadow(
+                            color: statusColor.withOpacity(0.4 + _pulseCtrl.value * 0.4),
+                            blurRadius: 6 + _pulseCtrl.value * 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isRoute
-                      ? 'Artisan En Route via GPS ($tradeVehicleLabel)'
-                      : 'Broadcasting within 10 km live radius',
-                  style: const TextStyle(
-                    color: Color(0xFF334155),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Text(
+                      isRoute
+                          ? 'Artisan En Route · $tradeVehicleLabel'
+                          : 'Broadcasting · 10 km live radius',
+                      style: const TextStyle(
+                        color: Color(0xFF334155),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
+            // Badge — fixed width, won't cause overflow
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: isRoute
-                    ? const Color(0xFF10B981).withOpacity(0.10)
-                    : tradeColor.withOpacity(0.10),
+                color: statusColor.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                isRoute ? 'LIVE GPS' : 'ACTIVE RADAR',
+                isRoute ? 'LIVE GPS' : 'SCANNING',
                 style: TextStyle(
-                  color: isRoute ? const Color(0xFF059669) : tradeColor,
+                  color: statusColor,
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.8,
