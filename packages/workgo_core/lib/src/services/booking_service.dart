@@ -8,13 +8,24 @@ class BookingService {
 
   // ── Customer Streams & Operations ──────────────────────────────────────────
 
-  /// Stream all bookings for a specific customer.
+  /// Stream all bookings for a specific customer, excluding soft-deleted ones.
   Stream<List<Booking>> streamCustomerBookings(String customerId) {
     return _db
         .collection("bookings")
         .where("customerId", isEqualTo: customerId)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Booking.fromFirestore(d)).toList());
+        .map((snap) => snap.docs
+            .map((d) => Booking.fromFirestore(d))
+            .where((b) => b.deletedByCustomer != true)
+            .toList());
+  }
+
+  /// Soft-delete booking from customer view only (record remains permanently intact for admins).
+  Future<void> hideBookingForCustomer(String bookingId) async {
+    await _db.collection("bookings").doc(bookingId).update({
+      "deletedByCustomer": true,
+      "deletedByCustomerAt": FieldValue.serverTimestamp(),
+    });
   }
 
   /// Stream a single active booking in real-time.
@@ -34,6 +45,9 @@ class BookingService {
     bool isEmergency = false,
     DateTime? scheduledAt,
     String? workerId,
+    String? acceptedWorkerName,
+    double? workerLatitude,
+    double? workerLongitude,
     String organizationId = "coop_tn_01",
     GeoPoint? location,
     double broadcastRadiusKm = 10.0,
@@ -50,6 +64,9 @@ class BookingService {
       id: docRef.id,
       customerId: customerId,
       workerId: workerId,
+      acceptedWorkerName: acceptedWorkerName,
+      workerLatitude: workerLatitude,
+      workerLongitude: workerLongitude,
       organizationId: organizationId,
       serviceType: serviceType,
       isEmergency: isEmergency,
@@ -81,7 +98,9 @@ class BookingService {
     });
   }
 
-  /// Stream live active Captains count matching the service trade in 100% real-time.
+  /// Stream live active Artisans count matching the service trade in 100% real-time.
+  Stream<int> streamNearbyArtisansCount(String serviceType) => streamNearbyCaptainsCount(serviceType);
+
   Stream<int> streamNearbyCaptainsCount(String serviceType) {
     return _db
         .collection("workers")

@@ -101,56 +101,133 @@ class AadhaarOfflineParser {
         final code = shareCode.trim();
         Archive? archive;
 
-        // Try decoding with password
-        try {
-          archive = ZipDecoder().decodeBytes(rawBytes, password: code.isNotEmpty ? code : null);
-        } catch (e) {
-          // If decoding failed with password, try without password
+        // 1. Try decoding with share code password
+        if (code.isNotEmpty) {
+          try {
+            archive = ZipDecoder().decodeBytes(rawBytes, password: code);
+          } catch (_) {}
+        }
+
+        // 2. Fallback to decoding without password (if unencrypted or empty share code)
+        if (archive == null || archive.isEmpty) {
           try {
             archive = ZipDecoder().decodeBytes(rawBytes);
-          } catch (_) {
-            return DecryptedAadhaarData.failure(
-              "Incorrect 4-digit Share Code ('$code') or encrypted archive could not be unlocked. ($e)",
-            );
-          }
+          } catch (_) {}
         }
 
-        if (archive.isEmpty) {
-          return DecryptedAadhaarData.failure("The decrypted ZIP archive contains no files.");
+        if (archive == null || archive.isEmpty) {
+          return DecryptedAadhaarData.failure(
+            "Incorrect 4-digit Share Code ('$code') or encrypted archive could not be unlocked.",
+          );
         }
 
-        // Find the XML file inside the archive
-        ArchiveFile? xmlEntry;
+        // Search for the Aadhaar XML document across all entries in the ZIP.
+        // UIDAI XML files typically:
+        // - End with .xml (e.g. offlineaadhaar20260901065022174.xml)
+        // - Contain tags: <OfflinePaperlessKyc, <UidData, <Poi, or <?xml
+        String? foundXmlString;
+
+        // Pass 1: Prioritize non-empty .xml files containing UIDAI XML tags
         for (final entry in archive) {
-          if (entry.isFile && (entry.name.toLowerCase().endsWith('.xml') || !entry.name.contains('.'))) {
-            xmlEntry = entry;
-            break;
+          if (!entry.isFile) continue;
+          final nameLower = entry.name.toLowerCase();
+          if (nameLower.contains('__macosx') || nameLower.startsWith('._') || nameLower.contains('/._')) {
+            continue;
+          }
+
+          if (nameLower.endsWith('.xml')) {
+            try {
+              final content = entry.content;
+              if (content is List<int> && content.isNotEmpty) {
+                final decoded = utf8.decode(content, allowMalformed: true);
+                if (decoded.trim().isNotEmpty && _isAadhaarXml(decoded)) {
+                  foundXmlString = decoded;
+                  break;
+                }
+              }
+            } catch (_) {}
           }
         }
 
-        if (xmlEntry == null) {
-          // Fallback to first non-directory file
+        // Pass 2: Any non-empty file containing UIDAI XML tags (even if not named .xml)
+        if (foundXmlString == null) {
           for (final entry in archive) {
-            if (entry.isFile) {
-              xmlEntry = entry;
-              break;
+            if (!entry.isFile) continue;
+            final nameLower = entry.name.toLowerCase();
+            if (nameLower.contains('__macosx') || nameLower.startsWith('._') || nameLower.contains('/._')) {
+              continue;
+            }
+
+            try {
+              final content = entry.content;
+              if (content is List<int> && content.isNotEmpty) {
+                final decoded = utf8.decode(content, allowMalformed: true);
+                if (decoded.trim().isNotEmpty && _isAadhaarXml(decoded)) {
+                  foundXmlString = decoded;
+                  break;
+                }
+              }
+            } catch (_) {}
+          }
+        }
+
+        // Pass 3: Any non-empty .xml file
+        if (foundXmlString == null) {
+          for (final entry in archive) {
+            if (!entry.isFile) continue;
+            final nameLower = entry.name.toLowerCase();
+            if (nameLower.contains('__macosx') || nameLower.startsWith('._') || nameLower.contains('/._')) {
+              continue;
+            }
+
+            if (nameLower.endsWith('.xml')) {
+              try {
+                final content = entry.content;
+                if (content is List<int> && content.isNotEmpty) {
+                  final decoded = utf8.decode(content, allowMalformed: true);
+                  if (decoded.trim().isNotEmpty) {
+                    foundXmlString = decoded;
+                    break;
+                  }
+                }
+              } catch (_) {}
             }
           }
         }
 
-        if (xmlEntry == null) {
-          return DecryptedAadhaarData.failure("No valid Aadhaar XML file found inside the ZIP archive.");
+        // Pass 4: Fallback to any non-empty file starting with '<'
+        if (foundXmlString == null) {
+          for (final entry in archive) {
+            if (!entry.isFile) continue;
+            final nameLower = entry.name.toLowerCase();
+            if (nameLower.contains('__macosx') || nameLower.startsWith('._') || nameLower.contains('/._')) {
+              continue;
+            }
+
+            try {
+              final content = entry.content;
+              if (content is List<int> && content.isNotEmpty) {
+                final decoded = utf8.decode(content, allowMalformed: true);
+                if (decoded.trim().startsWith('<')) {
+                  foundXmlString = decoded;
+                  break;
+                }
+              }
+            } catch (_) {}
+          }
         }
 
-        final contentBytes = xmlEntry.content as List<int>;
-        xmlString = utf8.decode(contentBytes, allowMalformed: true);
+        if (foundXmlString == null || foundXmlString.trim().isEmpty) {
+          return DecryptedAadhaarData.failure(
+            "No valid Aadhaar XML file found inside the ZIP archive. Check if the 4-digit Share Code ('$code') is correct.",
+          );
+        }
+
+        xmlString = foundXmlString;
       } else {
         // Not a zip — check if plain text XML
         final rawText = utf8.decode(rawBytes, allowMalformed: true);
-        if (rawText.contains('<OfflinePaperlessKyc') ||
-            rawText.contains('<UidData') ||
-            rawText.contains('<?xml') ||
-            rawText.contains('<Poi')) {
+        if (_isAadhaarXml(rawText)) {
           xmlString = rawText;
         } else {
           return DecryptedAadhaarData.failure(
@@ -163,6 +240,14 @@ class AadhaarOfflineParser {
     } catch (e, stack) {
       return DecryptedAadhaarData.failure("Failed to decrypt Aadhaar data: $e\n$stack");
     }
+  }
+
+  /// Checks if string content contains typical UIDAI XML signatures.
+  static bool _isAadhaarXml(String str) {
+    return str.contains('<OfflinePaperlessKyc') ||
+        str.contains('<UidData') ||
+        str.contains('<Poi') ||
+        (str.contains('<?xml') && str.contains('<'));
   }
 
   /// Parses raw UIDAI Offline Paperless e-KYC XML string into [DecryptedAadhaarData].

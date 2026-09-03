@@ -13,17 +13,41 @@ class WorkerService {
   // ── Worker Discovery & Streams ─────────────────────────────────────────────
 
   /// Stream active workers matching [skill] in 100% real-time from Firestore.
-  /// Strictly filters for server-verified cooperative artisans with public visibility status.
-  Stream<List<Worker>> streamAvailableWorkers({String? skill}) {
+  Stream<List<Worker>> streamAvailableWorkers({String? skill, bool onlineOnly = false}) {
     return _db.collection("workers").snapshots().map((snap) {
-      return snap.docs
-          .map((d) => Worker.fromFirestore(d))
-          .where((w) =>
-              (w.visibilityStatus == VisibilityStatus.public ||
-               (w.verificationStatus == VerificationStatus.approved && w.visibilityStatus != VisibilityStatus.suspended && w.visibilityStatus != VisibilityStatus.hidden)) &&
-              w.verificationStatus == VerificationStatus.approved &&
-              (skill == null || skill.isEmpty || skill == "All" || w.skills.contains(skill)))
-          .toList();
+      final list = <Worker>[];
+      for (final doc in snap.docs) {
+        try {
+          final w = Worker.fromFirestore(doc);
+          if (w.visibilityStatus == VisibilityStatus.suspended ||
+              w.visibilityStatus == VisibilityStatus.hidden ||
+              w.verificationStatus == VerificationStatus.rejected) {
+            continue;
+          }
+          if (onlineOnly && !w.isOnlineOrCheckedIn) {
+            continue;
+          }
+          if (skill != null && skill.isNotEmpty && skill != "All") {
+            final target = skill.toLowerCase().trim();
+            final hasMatch = w.skills.any((s) {
+              final lower = s.toLowerCase().trim();
+              return lower == target ||
+                  lower.contains(target) ||
+                  target.contains(lower) ||
+                  (target.contains("plumb") && lower.contains("plumb")) ||
+                  (target.contains("electr") && lower.contains("electr")) ||
+                  (target.contains("carpent") && lower.contains("carpent")) ||
+                  (target.contains("paint") && lower.contains("paint")) ||
+                  (target.contains("clean") && lower.contains("clean")) ||
+                  (target.contains("repair") && lower.contains("repair")) ||
+                  (target.contains("appliance") && (lower.contains("appliance") || lower.contains("repair")));
+            });
+            if (!hasMatch) continue;
+          }
+          list.add(w);
+        } catch (_) {}
+      }
+      return list;
     });
   }
 
@@ -215,6 +239,18 @@ class WorkerService {
     };
 
     await _db.collection("workers").doc(workerId).update(updates);
+  }
+
+  /// Update the worker's Aadhaar Share Code in Firestore.
+  Future<void> updateAadhaarShareCode({
+    required String workerId,
+    required String shareCode,
+  }) async {
+    await _db.collection("workers").doc(workerId).set({
+      "verificationDetails": {
+        "aadhaarShareCode": shareCode,
+      },
+    }, SetOptions(merge: true));
   }
 
   /// 3. Record Real On-Device 3D Multi-Angle Liveness Pass (Center, Left, Right)

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
+import 'live_booking_tracker_screen.dart';
 import 'rapido_live_broadcast_screen.dart';
 
 class BookingCreationScreen extends StatefulWidget {
@@ -54,14 +55,69 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
 
   Future<void> _loadUserDefaultAddress() async {
     try {
+      // 1. Try user's saved addresses subcollection (UserAddress)
+      final addrSnap = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.customerId)
+          .collection("addresses")
+          .orderBy("createdAt", descending: true)
+          .get();
+
+      if (addrSnap.docs.isNotEmpty && mounted) {
+        final list = addrSnap.docs.map((d) => UserAddress.fromMap(d.data())).toList();
+        final defaultAddr = list.firstWhere((a) => a.isDefault, orElse: () => list.first);
+        setState(() {
+          _selectedAddress = defaultAddr;
+          _addressController.text = defaultAddr.fullDisplayAddress;
+        });
+        return;
+      }
+
+      // 2. Try user doc fields (currentAddressObj or string)
       final doc = await FirebaseFirestore.instance.collection("users").doc(widget.customerId).get();
       final data = doc.data() ?? {};
-      final currentAddrMap = data["currentAddress"] as Map<String, dynamic>?;
-      if (currentAddrMap != null && mounted) {
-        final addr = UserAddress.fromMap(currentAddrMap);
+      final currentAddrObj = data["currentAddressObj"] as Map<String, dynamic>?;
+      if (currentAddrObj != null && mounted) {
+        final addr = UserAddress.fromMap(currentAddrObj);
         setState(() {
           _selectedAddress = addr;
           _addressController.text = addr.fullDisplayAddress;
+        });
+        return;
+      }
+
+      final currentAddressStr = data["currentAddress"] as String?;
+      final lat = (data["latitude"] as num?)?.toDouble() ?? 0.0;
+      final lng = (data["longitude"] as num?)?.toDouble() ?? 0.0;
+      if (currentAddressStr != null && currentAddressStr.isNotEmpty && mounted) {
+        setState(() {
+          _selectedAddress = UserAddress(
+            id: "current",
+            formattedAddress: currentAddressStr,
+            latitude: lat,
+            longitude: lng,
+            createdAt: DateTime.now(),
+          );
+          _addressController.text = currentAddressStr;
+        });
+        return;
+      }
+
+      // 3. Fallback to real hardware GPS coordinates directly from device
+      final coords = await LocationService.instance.getCurrentCoordinates();
+      final hardwareLat = (coords["latitude"] as num?)?.toDouble() ?? 0.0;
+      final hardwareLng = (coords["longitude"] as num?)?.toDouble() ?? 0.0;
+      final addrName = coords["address"]?.toString() ?? "Current Location";
+      if (mounted && hardwareLat > 1.0) {
+        setState(() {
+          _selectedAddress = UserAddress(
+            id: "gps",
+            formattedAddress: addrName,
+            latitude: hardwareLat,
+            longitude: hardwareLng,
+            createdAt: DateTime.now(),
+          );
+          _addressController.text = addrName;
         });
       }
     } catch (_) {}
@@ -91,9 +147,12 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     setState(() => _isSubmitting = true);
     try {
       final worker = widget.worker;
+      final custLatInit = _selectedAddress?.latitude;
+      final custLngInit = _selectedAddress?.longitude;
+      final realDist = worker?.calculateDistanceKm(custLatInit, custLngInit) ?? 1.2;
       final fare = CooperativePricingEngine.instance.calculateFare(
         category: widget.serviceCategory,
-        distanceKm: worker?.distanceKm ?? 2.4,
+        distanceKm: realDist,
         experienceYears: worker?.experienceYears ?? 3,
         isEmergency: _isEmergency,
         urgencyTip: _urgencyTip,
@@ -106,34 +165,84 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       final bookingService = BookingService();
       final assignedWorkerId =
           widget.targetWorkerId ?? widget.worker?.id;
-      final addressText = _addressController.text.trim().isNotEmpty
-          ? _addressController.text.trim()
-          : (_selectedAddress?.fullDisplayAddress ?? "1148 E Main St, Thanjavur");
+      String addressText = _addressController.text.trim();
+      double custLat = _selectedAddress?.latitude ?? 0.0;
+      double custLng = _selectedAddress?.longitude ?? 0.0;
+
+      if (addressText.isEmpty) {
+        addressText = _selectedAddress?.fullDisplayAddress ?? "";
+      }
+
+      // If coordinates are missing (<= 1.0), read live device hardware GPS first
+      if (custLat <= 1.0 || custLng <= 1.0) {
+        try {
+          final coords = await LocationService.instance.getCurrentCoordinates();
+          if (coords["latitude"] != null && coords["latitude"]! > 1.0) {
+            custLat = (coords["latitude"] as num).toDouble();
+            custLng = (coords["longitude"] as num).toDouble();
+            if (addressText.isEmpty || addressText.toLowerCase().contains("mumbai")) {
+              addressText = coords["address"]?.toString() ?? "Current Location";
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Only if still missing coordinates and user typed a custom address, forward geocode
+      if ((custLat <= 1.0 || custLng <= 1.0) &&
+          addressText.isNotEmpty &&
+          !addressText.toLowerCase().contains("mumbai")) {
+        try {
+          final geo = await LocationService.instance.forwardGeocode(addressText);
+          if (geo != null && geo["latitude"] != null && geo["latitude"]! > 1.0) {
+            custLat = geo["latitude"]!;
+            custLng = geo["longitude"]!;
+          }
+        } catch (_) {}
+      }
+
+      if (addressText.isEmpty) {
+        addressText = "Current Location";
+      }
 
       final bookingId = await bookingService.createBooking(
         customerId: widget.customerId,
         serviceType: widget.serviceCategory,
         workerId: assignedWorkerId,
+        acceptedWorkerName: worker?.name,
+        workerLatitude: worker?.latitude,
+        workerLongitude: worker?.longitude,
         amount: totalAmount - _urgencyTip,
         urgencyBonus: _urgencyTip,
         isEmergency: _isEmergency,
         scheduledAt: DateTime.now().add(Duration(days: _selectedDayIndex)),
         customerAddressText: addressText,
-        customerLatitude: _selectedAddress?.latitude ?? 10.7870,
-        customerLongitude: _selectedAddress?.longitude ?? 79.1378,
+        customerLatitude: custLat,
+        customerLongitude: custLng,
       );
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (ctx) => RapidoLiveBroadcastScreen(
-              bookingId: bookingId,
-              serviceCategory: widget.serviceCategory,
-              initialAmount: totalAmount,
-              pickupAddress: addressText,
+        if (assignedWorkerId != null && assignedWorkerId.isNotEmpty) {
+          // Direct 1-to-1 Artisan Dispatch (Bypasses public 45s broadcast)
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (ctx) => LiveBookingTrackerScreen(
+                bookingId: bookingId,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Open broadcast dispatch to all nearby trade artisans
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (ctx) => RapidoLiveBroadcastScreen(
+                bookingId: bookingId,
+                serviceCategory: widget.serviceCategory,
+                initialAmount: totalAmount,
+                pickupAddress: addressText,
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -156,9 +265,12 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
   @override
   Widget build(BuildContext context) {
     final worker = widget.worker;
+    final custLat = _selectedAddress?.latitude;
+    final custLng = _selectedAddress?.longitude;
+    final realDist = worker?.calculateDistanceKm(custLat, custLng) ?? 1.2;
     final fare = CooperativePricingEngine.instance.calculateFare(
       category: widget.serviceCategory,
-      distanceKm: worker?.distanceKm ?? 2.4,
+      distanceKm: realDist,
       experienceYears: worker?.experienceYears ?? 3,
       isEmergency: _isEmergency,
       urgencyTip: _urgencyTip,
@@ -184,6 +296,8 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                   worker: widget.worker,
                   hasWorker: widget.targetWorkerId != null ||
                       widget.worker != null,
+                  custLat: custLat,
+                  custLng: custLng,
                 ),
               ),
               const SizedBox(height: 16),
@@ -389,7 +503,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Add a tip to incentivize nearby Captains to accept your request within minutes",
+                        "Add a tip to incentivize nearby Artisans to accept your request within minutes",
                         style: WorkGoFonts.body(color: CX.textSecondary, fontSize: 11.5),
                       ),
                       const SizedBox(height: 12),
@@ -498,18 +612,21 @@ class _ServiceHeroCard extends StatelessWidget {
     required this.style,
     required this.hasWorker,
     this.worker,
+    this.custLat,
+    this.custLng,
   });
 
   final String categoryName;
   final CategoryStyle style;
   final bool hasWorker;
   final Worker? worker;
+  final double? custLat;
+  final double? custLng;
 
   @override
   Widget build(BuildContext context) {
     final displayName = worker != null && worker!.name.isNotEmpty ? worker!.name : null;
     final totalReviews = worker != null && worker!.totalReviews > 0 ? worker!.totalReviews : (worker?.totalRatings ?? 0);
-    final homesCount = worker != null && worker!.homesServiced > 0 ? worker!.homesServiced : ((worker?.totalRatings ?? 0) * 2 + 10);
 
     return AuroraCard(
       glowColor: style.glow,
@@ -526,13 +643,21 @@ class _ServiceHeroCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              AuroraOrb(
-                icon: style.icon,
-                gradient: style.gradient,
-                size: 56,
-                iconSize: 28,
-                glowColor: style.glow,
-              ),
+              if (worker != null) ...[
+                WorkGoAvatar(
+                  name: displayName ?? "Artisan",
+                  avatarBase64: worker!.avatarBase64,
+                  radius: 28,
+                ),
+              ] else ...[
+                AuroraOrb(
+                  icon: style.icon,
+                  gradient: style.gradient,
+                  size: 56,
+                  iconSize: 28,
+                  glowColor: style.glow,
+                ),
+              ],
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -582,26 +707,32 @@ class _ServiceHeroCard extends StatelessWidget {
                     const Icon(Icons.star_rounded, color: CX.amber, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      worker!.avgRating > 0 ? worker!.avgRating.toStringAsFixed(1) : "4.9",
+                      worker!.avgRating > 0
+                          ? worker!.avgRating.toStringAsFixed(1)
+                          : (worker!.totalRatings > 0 ? "5.0" : "New"),
                       style: WorkGoFonts.numeric(
                         color: CX.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(width: 3),
-                    Text(
-                      "($totalReviews)",
-                      style: WorkGoFonts.body(color: CX.textMuted, fontSize: 11),
-                    ),
+                    if (totalReviews > 0) ...[
+                      const SizedBox(width: 3),
+                      Text(
+                        "($totalReviews)",
+                        style: WorkGoFonts.body(color: CX.textMuted, fontSize: 11),
+                      ),
+                    ],
                   ],
                 ),
                 Text(
-                  "🏡 $homesCount homes",
+                  worker!.homesServiced > 0
+                      ? "🏡 ${worker!.homesServiced} homes"
+                      : (worker!.totalRatings > 0 ? "🏡 ${worker!.totalRatings} jobs" : "🌟 Verified Pro"),
                   style: WorkGoFonts.body(color: const Color(0xFF6EE7B7), fontSize: 11.5, fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  "📍 ${worker!.distanceKm.toStringAsFixed(1)} km",
+                  "📍 ${worker!.formattedDistanceString(custLat, custLng)}",
                   style: WorkGoFonts.body(color: CX.cyan, fontSize: 11.5, fontWeight: FontWeight.w700),
                 ),
               ],

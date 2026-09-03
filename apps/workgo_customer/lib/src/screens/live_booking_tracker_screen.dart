@@ -86,32 +86,66 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                 children: [
                   // Live Real-Time Map with Moving Artisan Vehicle (OSM tiles)
                   SlideFadeIn(
-                    child: LiveMapView(
-                      serviceCategory: booking.serviceType,
-                      mode: MapMode.routeNavigation,
-                      artisanName: booking.acceptedWorkerName ?? "Artisan Partner",
-                      pickupAddress: booking.customerAddressText ?? "1148 E Main St, Thanjavur",
-                      workerProgress: booking.status == BookingStatus.accepted
-                          ? 0.55
-                          : (booking.status == BookingStatus.inProgress ? 1.0 : 0.1),
-                      etaMinutes: booking.status == BookingStatus.accepted ? 4 : 0,
-                      distanceKm: booking.status == BookingStatus.accepted ? 1.4 : 0.0,
-                      height: 260,
-                      // Real-time GPS from Firestore (updated by artisan via BookingService.updateWorkerLiveLocation)
-                      partnerLatitude: booking.workerLatitude,
-                      partnerLongitude: booking.workerLongitude,
-                      pickupLatitude: booking.customerLatitude ?? _myLat,
-                      pickupLongitude: booking.customerLongitude ?? _myLng,
-                      // Customer's live device location (Rapido pulsing blue dot)
-                      myLocationLatitude: _myLat,
-                      myLocationLongitude: _myLng,
+                    child: StreamBuilder<Worker?>(
+                      stream: booking.workerId != null
+                          ? _workerService.streamWorker(booking.workerId!)
+                          : Stream.value(null),
+                      builder: (context, workerSnap) {
+                        final liveWorker = workerSnap.data;
+                        final effectiveWorkerLat =
+                            booking.workerLatitude ?? liveWorker?.latitude;
+                        final effectiveWorkerLng =
+                            booking.workerLongitude ?? liveWorker?.longitude;
+                        final effectiveWorkerName =
+                            booking.acceptedWorkerName?.isNotEmpty == true
+                                ? booking.acceptedWorkerName!
+                                : (liveWorker?.name.isNotEmpty == true
+                                    ? liveWorker!.name
+                                    : booking.serviceType);
+
+                        String trackerAddress = booking.customerAddressText ?? "Your Service Location";
+                        if (trackerAddress.toLowerCase().contains("mumbai") ||
+                            trackerAddress.toLowerCase().contains("bombay") ||
+                            trackerAddress.trim().isEmpty) {
+                          trackerAddress = "Current Live Location";
+                        }
+
+                        return LiveMapView(
+                          serviceCategory: booking.serviceType,
+                          mode: MapMode.routeNavigation,
+                          artisanName: effectiveWorkerName,
+                          pickupAddress: trackerAddress,
+                          workerProgress: booking.status == BookingStatus.accepted
+                              ? 0.55
+                              : (booking.status == BookingStatus.inProgress ? 1.0 : 0.1),
+                          etaMinutes: 0,
+                          distanceKm: 0.0,
+                          height: 380,
+                          // Real-time GPS from Firestore (updated live by artisan in background)
+                          partnerLatitude: effectiveWorkerLat,
+                          partnerLongitude: effectiveWorkerLng,
+                          pickupLatitude: (_myLat != null && _myLat! > 1.0)
+                              ? _myLat
+                              : ((booking.customerLatitude != null && booking.customerLatitude! > 1.0)
+                                  ? booking.customerLatitude!
+                                  : null),
+                          pickupLongitude: (_myLng != null && _myLng! > 1.0)
+                              ? _myLng
+                              : ((booking.customerLongitude != null && booking.customerLongitude! > 1.0)
+                                  ? booking.customerLongitude!
+                                  : null),
+                          // Customer's live device location (Rapido pulsing blue dot)
+                          myLocationLatitude: _myLat,
+                          myLocationLongitude: _myLng,
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Start Service OTP Banner (Rapido-Style Physical Arrival Gate)
+                  // Start Service OTP Banner (Rapido-Style Physical Arrival Gate - Only when Accepted / In Progress)
                   if (booking.status == BookingStatus.accepted ||
-                      booking.status == BookingStatus.pending) ...[
+                      booking.status == BookingStatus.inProgress) ...[
                     SlideFadeIn(
                       delay: const Duration(milliseconds: 20),
                       child: _StartServiceOtpBanner(
@@ -647,27 +681,27 @@ class _ArtisanCard extends StatelessWidget {
         final worker = snapshot.data;
         final artisanName = (booking.acceptedWorkerName?.isNotEmpty == true)
             ? booking.acceptedWorkerName!
-            : (worker?.isProxy == true
-                ? "Artisan Partner (Proxy)"
-                : "Certified Co-op Artisan");
+            : (worker?.name.isNotEmpty == true
+                ? worker!.name
+                : (worker?.isProxy == true
+                    ? "Artisan Partner (Proxy)"
+                    : "Certified Co-op Artisan"));
         final phone = worker?.phoneForCalling;
         final style = worker?.skills.isNotEmpty == true
             ? categoryStyle(worker!.skills.first)
-            : categoryStyle("Plumbing");
+            : categoryStyle(booking.serviceType);
 
         return AuroraCard(
-          glowColor: CX.emerald,
-          borderColor: CX.emerald.withValues(alpha: 0.3),
+          glowColor: style.glow,
+          borderColor: style.glow.withValues(alpha: 0.3),
           child: Row(
             children: [
               Stack(
                 children: [
-                  AuroraOrb(
-                    icon: Icons.handyman_rounded,
-                    gradient: style.gradient,
-                    size: 54,
-                    iconSize: 26,
-                    glowColor: style.glow,
+                  WorkGoAvatar(
+                    name: artisanName,
+                    avatarBase64: worker?.avatarBase64,
+                    radius: 27,
                   ),
                   Positioned(
                     bottom: 0,
@@ -704,10 +738,24 @@ class _ArtisanCard extends StatelessWidget {
                           style: AuroraBadgeStyle.emerald,
                         ),
                         const SizedBox(width: 8),
-                        AuroraStarRow(
-                          rating: worker?.avgRating ?? 5.0,
-                          starSize: 13,
-                        ),
+                        if (worker != null && worker.avgRating > 0) ...[
+                          AuroraStarRow(
+                            rating: worker.avgRating,
+                            starSize: 13,
+                          ),
+                          if (worker.totalReviews > 0) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              "(${worker.totalReviews})",
+                              style: WorkGoFonts.body(color: CX.textMuted, fontSize: 11),
+                            ),
+                          ],
+                        ] else ...[
+                          const AuroraBadge(
+                            label: "CO-OP PRO",
+                            style: AuroraBadgeStyle.cyan,
+                          ),
+                        ],
                       ],
                     ),
                   ],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -75,11 +76,26 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     });
   }
 
+  void _startLiveLocationBroadcasting(String workerId) {
+    LocationService.instance.startRealtimeBroadcast(
+      onLocationUpdate: (lat, lng) async {
+        if (lat != 0.0 && lng != 0.0) {
+          await _workerService.updateWorkerLocation(workerId, lat, lng);
+        }
+      },
+    );
+  }
+
+  void _stopLiveLocationBroadcasting() {
+    LocationService.instance.stopRealtimeBroadcast();
+  }
+
   @override
   void dispose() {
     if (KaryaHomeScreen._activeState == this) {
       KaryaHomeScreen._activeState = null;
     }
+    _stopLiveLocationBroadcasting();
     _radarCtrl.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -407,6 +423,24 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         lat = coords["latitude"];
         lng = coords["longitude"];
       } catch (_) {}
+
+      // If hardware GPS fix is pending, dynamically forward geocode the worker's base address via OpenStreetMap
+      if (lat == null) {
+        final baseText = "${worker.baseArea ?? ''} ${worker.baseAddress?.formattedAddress ?? ''}".trim();
+        if (baseText.isNotEmpty) {
+          try {
+            final geo = await LocationService.instance.forwardGeocode(baseText);
+            if (geo != null) {
+              lat = geo["latitude"];
+              lng = geo["longitude"];
+            }
+          } catch (_) {}
+        }
+      }
+
+      _startLiveLocationBroadcasting(worker.id);
+    } else {
+      _stopLiveLocationBroadcasting();
     }
 
     await _workerService.updateAvailability(

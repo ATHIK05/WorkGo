@@ -27,6 +27,7 @@ class Booking {
   final String? customerAddressText;
   final double? customerLatitude;
   final double? customerLongitude;
+  final bool deletedByCustomer;
 
   Booking({
     required this.id,
@@ -52,6 +53,7 @@ class Booking {
     this.customerAddressText,
     this.customerLatitude,
     this.customerLongitude,
+    this.deletedByCustomer = false,
   });
 
   double get totalAmount => amount + urgencyBonus;
@@ -88,6 +90,7 @@ class Booking {
       customerAddressText: d["customerAddressText"],
       customerLatitude: (d["customerLatitude"] as num?)?.toDouble(),
       customerLongitude: (d["customerLongitude"] as num?)?.toDouble(),
+      deletedByCustomer: d["deletedByCustomer"] ?? d["hiddenForCustomer"] ?? false,
     );
   }
 
@@ -108,6 +111,7 @@ class Booking {
     "referredByWorkerId": referredByWorkerId,
     "acceptedWorkerName": acceptedWorkerName,
     "invoiceId": invoiceId,
+    "deletedByCustomer": deletedByCustomer,
     "startOtp": startOtp,
     "workerLatitude": workerLatitude,
     "workerLongitude": workerLongitude,

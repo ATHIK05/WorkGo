@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,15 +24,17 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
     with TickerProviderStateMixin {
   final WorkerService _workerService = WorkerService();
   late String _selectedCategory;
-  double _radiusKm = 10.0;
+  double _radiusKm = -1.0; // -1.0 = All Distances
   final _searchController = TextEditingController();
   late AnimationController _searchFocusCtrl;
   bool _searchFocused = false;
   final FocusNode _searchFocus = FocusNode();
 
-  bool _onlineOnly = false;
   String _sortBy = "nearest"; // "nearest", "rating", "fare"
+  String _statusFilter = "all"; // "all", "checked_in", "checked_out"
   bool _dismissedFloatingBanner = false;
+  double? _customerLat;
+  double? _customerLng;
 
   final List<({String key, String emoji, String title, Color color, LinearGradient gradient})> _categories = [
     (key: "All", emoji: "🌐", title: "All Trades", color: CX.cyan, gradient: CX.auroraVioletCyan),
@@ -58,6 +61,60 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
         _searchFocusCtrl.reverse();
       }
     });
+    _loadCustomerLocation();
+  }
+
+  Future<void> _loadCustomerLocation() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.customerId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data() ?? {};
+        final currAddr = data["currentAddress"];
+        final lat = (data["latitude"] as num?)?.toDouble() ??
+            (currAddr is Map ? (currAddr["latitude"] as num?)?.toDouble() : null);
+        final lng = (data["longitude"] as num?)?.toDouble() ??
+            (currAddr is Map ? (currAddr["longitude"] as num?)?.toDouble() : null);
+        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+          setState(() {
+            _customerLat = lat;
+            _customerLng = lng;
+          });
+          return;
+        }
+      }
+
+      final addrSnap = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.customerId)
+          .collection("addresses")
+          .limit(1)
+          .get();
+      if (addrSnap.docs.isNotEmpty) {
+        final d = addrSnap.docs.first.data();
+        final lat = (d["latitude"] as num?)?.toDouble();
+        final lng = (d["longitude"] as num?)?.toDouble();
+        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+          setState(() {
+            _customerLat = lat;
+            _customerLng = lng;
+          });
+          return;
+        }
+      }
+
+      final coords = await LocationService.instance.getCurrentCoordinates();
+      final hardwareLat = (coords["latitude"] as num?)?.toDouble();
+      final hardwareLng = (coords["longitude"] as num?)?.toDouble();
+      if (hardwareLat != null && hardwareLng != null && hardwareLat > 1.0 && mounted) {
+        setState(() {
+          _customerLat = hardwareLat;
+          _customerLng = hardwareLng;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -193,7 +250,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   //  MODERN ANDROID SEARCH BAR (EXACT TEMPLATE IMPLEMENTATION)
   // ──────────────────────────────────────────
   Widget _buildLuxurySearchBar() {
-    final hasActiveFilter = _onlineOnly || _sortBy != "nearest" || _radiusKm != 10.0;
+    final hasActiveFilter = _sortBy != "nearest" || _radiusKm != 10.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -318,58 +375,17 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   //  QUICK FILTERS & SORT STRIP (HORIZONTAL SCROLL)
   // ──────────────────────────────────────────
   Widget _buildQuickFiltersStrip() {
-    final radiusOptions = [5.0, 10.0, 25.0, 50.0];
+    final radiusOptions = [-1.0, 10.0, 25.0, 50.0];
 
     return ListView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
-        // Live Online Toggle Pill
-        GestureDetector(
-          onTap: () => setState(() => _onlineOnly = !_onlineOnly),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _onlineOnly ? const Color(0xFFECFDF5) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: _onlineOnly ? const Color(0xFF10B981) : const Color(0xFFE2E8F0),
-                width: 1.1,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x04000000),
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _onlineOnly ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  "Live Online",
-                  style: TextStyle(
-                    color: _onlineOnly ? const Color(0xFF065F46) : const Color(0xFF475569),
-                    fontSize: 11.5,
-                    fontWeight: _onlineOnly ? FontWeight.w800 : FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
+        // Status Filter Chips
+        _buildStatusChip("all", "All Artisans"),
+        _buildStatusChip("checked_in", "🟢 Checked In"),
+        _buildStatusChip("checked_out", "⚪ Checked Out"),
+        const SizedBox(width: 4),
 
         // Radius Chips
         ...radiusOptions.map((r) {
@@ -400,7 +416,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
               ),
               child: Center(
                 child: Text(
-                  "${r.toInt()} km",
+                  r <= 0 ? "All Distance" : "${r.toInt()} km",
                   style: TextStyle(
                     color: isSelected ? Colors.white : const Color(0xFF475569),
                     fontSize: 11.5,
@@ -417,6 +433,50 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
         _buildSortChip("rating", "★ Top Rated"),
         _buildSortChip("fare", "💰 Best Value"),
       ],
+    );
+  }
+
+  Widget _buildStatusChip(String filterKey, String label) {
+    final isSelected = _statusFilter == filterKey;
+    final isOnlineTab = filterKey == "checked_in";
+    return GestureDetector(
+      onTap: () => setState(() => _statusFilter = filterKey),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isOnlineTab ? const Color(0xFF065F46) : const Color(0xFF141416))
+              : (isOnlineTab ? const Color(0xFFECFDF5) : Colors.white),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? (isOnlineTab ? const Color(0xFF065F46) : const Color(0xFF141416))
+                : (isOnlineTab ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0)),
+            width: 1.1,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x04000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected
+                  ? Colors.white
+                  : (isOnlineTab ? const Color(0xFF065F46) : const Color(0xFF475569)),
+              fontSize: 11.5,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -536,6 +596,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
     return StreamBuilder<List<Worker>>(
       stream: _workerService.streamAvailableWorkers(
         skill: _selectedCategory == "All" ? null : _selectedCategory,
+        onlineOnly: false,
       ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -589,9 +650,11 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
           );
         }
 
-        var workers = snapshot.data ?? [];
+        var workers = (snapshot.data ?? [])
+            .map((w) => w.withCalculatedDistance(_customerLat, _customerLng))
+            .toList();
 
-        // Search text filtering
+        // 1. Search text filtering
         final query = _searchController.text.trim().toLowerCase();
         if (query.isNotEmpty) {
           workers = workers.where((w) {
@@ -602,27 +665,36 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
           }).toList();
         }
 
-        // Radius filtering
-        workers = workers.where((w) {
-          final effectiveDist = w.distanceKm > 0 ? w.distanceKm : 1.0;
-          return effectiveDist <= _radiusKm + 2;
-        }).toList();
-
-        // Online filter
-        if (_onlineOnly) {
-          workers = workers
-              .where((w) => w.availabilityStatus == AvailabilityStatus.online)
-              .toList();
+        // 2. Check-In Status Filtering (All, Checked In, Checked Out)
+        if (_statusFilter == "checked_in") {
+          workers = workers.where((w) => w.isOnlineOrCheckedIn).toList();
+        } else if (_statusFilter == "checked_out") {
+          workers = workers.where((w) => !w.isOnlineOrCheckedIn).toList();
         }
 
-        // Sorting
+        // 3. Radius filtering with real geodesic distance
+        if (_radiusKm > 0) {
+          final withinRadius = workers.where((w) {
+            return w.distanceKm <= _radiusKm + 2.0;
+          }).toList();
+          if (withinRadius.isNotEmpty) {
+            workers = withinRadius;
+          }
+        }
+
+        // 4. Sorting
         if (_sortBy == "rating") {
           workers.sort((a, b) => b.avgRating.compareTo(a.avgRating));
         } else if (_sortBy == "fare") {
           workers.sort((a, b) => a.baseRate.compareTo(b.baseRate));
         } else {
-          // Nearest
-          workers.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
+          // Nearest: Online/Checked-in artisans prioritized, then closest distance
+          workers.sort((a, b) {
+            if (a.isOnlineOrCheckedIn != b.isOnlineOrCheckedIn) {
+              return a.isOnlineOrCheckedIn ? -1 : 1;
+            }
+            return a.distanceKm.compareTo(b.distanceKm);
+          });
         }
 
         // ── Empty State Experience (Perfect Center Alignment) ──────
@@ -682,6 +754,8 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                           worker: workers[index],
                           selectedCategory: _selectedCategory,
                           customerId: widget.customerId,
+                          customerLat: _customerLat,
+                          customerLng: _customerLng,
                         ),
                       );
                     },
@@ -1155,11 +1229,15 @@ class _WorkerCard extends StatelessWidget {
     required this.worker,
     required this.selectedCategory,
     required this.customerId,
+    this.customerLat,
+    this.customerLng,
   });
 
   final Worker worker;
   final String selectedCategory;
   final String customerId;
+  final double? customerLat;
+  final double? customerLng;
 
   void _showFareBreakdownSheet(BuildContext context, FareBreakdown fare) {
     showModalBottomSheet(
@@ -1337,7 +1415,7 @@ class _WorkerCard extends StatelessWidget {
                         serviceCategory: fare.category,
                         customerId: customerId,
                         targetWorkerId: worker.id,
-                        worker: worker,
+                        worker: worker.withCalculatedDistance(customerLat, customerLng),
                       ),
                     ),
                   );
@@ -1429,12 +1507,13 @@ class _WorkerCard extends StatelessWidget {
         ? worker.skills.first
         : (selectedCategory != "All" ? selectedCategory : "Plumbing");
 
-    final isOnline = worker.availabilityStatus == AvailabilityStatus.online;
+    final isCheckedIn = worker.isOnlineOrCheckedIn;
 
-    // Calculate Dynamic Fare using Cooperative Pricing Engine (Rapido-style)
+    // Calculate Dynamic Fare using Cooperative Pricing Engine with REAL-TIME distance
+    final realDist = worker.calculateDistanceKm(customerLat, customerLng);
     final fare = CooperativePricingEngine.instance.calculateFare(
       category: tradeCategory,
-      distanceKm: worker.distanceKm > 0 ? worker.distanceKm : 1.2,
+      distanceKm: realDist,
       experienceYears: worker.experienceYears,
       customBaseRate: worker.baseRate,
       customPerKmRate: worker.perKmRate,
@@ -1454,7 +1533,7 @@ class _WorkerCard extends StatelessWidget {
 
     final homesDisplay = worker.homesServiced > 0
         ? "${worker.homesServiced} homes"
-        : (worker.totalRatings > 0 ? "${worker.totalRatings} jobs" : "New Member");
+        : (worker.totalRatings > 0 ? "${worker.totalRatings} jobs" : "Verified Pro");
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1482,7 +1561,7 @@ class _WorkerCard extends StatelessWidget {
                 children: [
                   WorkGoAvatar(
                     name: displayName,
-                    avatarBase64: worker.verificationDetails?.selfieBase64,
+                    avatarBase64: worker.avatarBase64,
                     radius: 26,
                   ),
                   Positioned(
@@ -1499,7 +1578,7 @@ class _WorkerCard extends StatelessWidget {
                         height: 8,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isOnline ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                          color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
                         ),
                       ),
                     ),
@@ -1536,16 +1615,64 @@ class _WorkerCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      "${worker.skills.join(', ')} • ${worker.experienceYears} yrs exp (${worker.experienceYears >= 5 ? 'Master' : 'Senior'})",
-                      style: const TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isCheckedIn ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isCheckedIn ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1),
+                              width: 0.9,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6.5,
+                                height: 6.5,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                  boxShadow: isCheckedIn
+                                      ? [
+                                          BoxShadow(
+                                            color: const Color(0xFF10B981).withValues(alpha: 0.5),
+                                            blurRadius: 3,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(width: 4.5),
+                              Text(
+                                isCheckedIn ? "Checked In" : "Checked Out",
+                                style: TextStyle(
+                                  color: isCheckedIn ? const Color(0xFF065F46) : const Color(0xFF475569),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            "${worker.skills.join(', ')} • ${worker.experienceYears} yrs exp",
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1629,9 +1756,7 @@ class _WorkerCard extends StatelessWidget {
                     const Icon(Icons.location_on_rounded, color: Color(0xFF2563EB), size: 13),
                     const SizedBox(width: 4),
                     Text(
-                      worker.distanceKm > 0
-                          ? "${worker.distanceKm.toStringAsFixed(1)} km away"
-                          : "1.2 km away",
+                      worker.formattedDistanceString(customerLat, customerLng),
                       style: const TextStyle(
                         color: Color(0xFF2563EB),
                         fontSize: 11,
@@ -1738,9 +1863,9 @@ class _WorkerCard extends StatelessWidget {
                     ),
                   );
                 },
-                icon: const Text(
-                  "Book Pro",
-                  style: TextStyle(
+                icon: Text(
+                  isCheckedIn ? "Book Live" : "Book Artisan",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -1755,7 +1880,7 @@ class _WorkerCard extends StatelessWidget {
                   child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF141416),
+                  backgroundColor: isCheckedIn ? const Color(0xFF141416) : const Color(0xFF334155),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   minimumSize: const Size(0, 42),

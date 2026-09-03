@@ -16,6 +16,11 @@ import 'interactive_rapido_map.dart' show MapMode;
 // streamed via BookingService.streamBooking() — no new data source.
 // ──────────────────────────────────────────────────────────────────────────────
 
+enum MapLayerType {
+  street,
+  satellite,
+}
+
 class LiveMapView extends StatefulWidget {
   const LiveMapView({
     super.key,
@@ -25,8 +30,8 @@ class LiveMapView extends StatefulWidget {
     this.etaMinutes = 4,
     this.distanceKm = 1.6,
     this.workerProgress = 0.0,
-    this.pickupAddress = "1148 E Main St, Thanjavur",
-    this.height = 260,
+    this.pickupAddress = "Current Location",
+    this.height = 380,
     this.onTap,
     // Real GPS bindings — optional (falls back to illustrated if null)
     this.partnerLatitude,
@@ -72,10 +77,39 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
   late AnimationController _pulseCtrl;
   late AnimationController _radarCtrl;
   late AnimationController _myLocationCtrl;
+  bool _hasUserInteracted = false;
+  MapLayerType _currentLayer = MapLayerType.street;
 
   // Defaults: Perundurai / Tamil Nadu coordinates when no live GPS yet
   static const LatLng _defaultPickup = LatLng(11.2743, 77.5866); // MBA Block, Perundurai
   static const LatLng _defaultPartner = LatLng(11.2680, 77.5750);
+
+  bool get _isAtSameSpot {
+    if (widget.mode != MapMode.routeNavigation) return false;
+    final p1 = _partnerLatLng;
+    final p2 = _customerLatLng;
+    return const Distance().as(LengthUnit.Meter, p1, p2) < 200;
+  }
+
+  double get _computedDistanceKm {
+    if (_isAtSameSpot) return 0.0;
+    if (_hasRealCoords && (_hasMyLocation || widget.pickupLatitude != null)) {
+      final p1 = _partnerLatLng;
+      final p2 = _customerLatLng;
+      final km = const Distance().as(LengthUnit.Kilometer, p1, p2);
+      if (km >= 0.0 && km < 100.0) return km;
+    }
+    if (widget.distanceKm > 0.0) return widget.distanceKm;
+    return 1.4;
+  }
+
+  int get _computedEtaMinutes {
+    if (_isAtSameSpot) return 0;
+    final km = _computedDistanceKm;
+    if (km <= 0.04) return 0;
+    if (widget.etaMinutes > 0 && !_hasRealCoords) return widget.etaMinutes;
+    return ((km * 2.5) + 1.0).round().clamp(1, 45);
+  }
 
   @override
   void initState() {
@@ -98,16 +132,16 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
   @override
   void didUpdateWidget(LiveMapView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // When partner location updates, smoothly re-fit camera
+    // When partner location updates, smoothly re-fit camera if user hasn't manually panned
     final partnerChanged = oldWidget.partnerLatitude != widget.partnerLatitude ||
         oldWidget.partnerLongitude != widget.partnerLongitude;
-    if (partnerChanged && _hasRealCoords) {
+    if (partnerChanged && _hasRealCoords && !_hasUserInteracted) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitBounds());
     }
 
     final workersChanged = oldWidget.nearbyWorkers != widget.nearbyWorkers ||
         oldWidget.nearbyWorkerLocations != widget.nearbyWorkerLocations;
-    if (workersChanged && widget.mode == MapMode.broadcastScanning) {
+    if (workersChanged && widget.mode == MapMode.broadcastScanning && !_hasUserInteracted) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitBroadcastBounds());
     }
   }
@@ -124,64 +158,107 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
   bool get _hasRealCoords =>
       widget.partnerLatitude != null &&
       widget.partnerLongitude != null &&
-      widget.pickupLatitude != null &&
-      widget.pickupLongitude != null;
+      widget.partnerLatitude! > 1.0 &&
+      widget.partnerLongitude! > 1.0;
 
   bool get _hasMyLocation =>
-      widget.myLocationLatitude != null && widget.myLocationLongitude != null;
+      widget.myLocationLatitude != null &&
+      widget.myLocationLongitude != null &&
+      widget.myLocationLatitude! > 1.0 &&
+      widget.myLocationLongitude! > 1.0;
 
   LatLng get _partnerLatLng => _hasRealCoords
       ? LatLng(widget.partnerLatitude!, widget.partnerLongitude!)
       : _estimatedPartnerFromProgress;
 
-  LatLng get _pickupLatLng =>
-      (widget.pickupLatitude != null && widget.pickupLongitude != null)
-          ? LatLng(widget.pickupLatitude!, widget.pickupLongitude!)
-          : _defaultPickup;
+  LatLng get _customerLatLng {
+    // 1. Customer's live hardware GPS (highest priority - guarantees local Perundurai / current phone location)
+    if (_hasMyLocation) {
+      return LatLng(widget.myLocationLatitude!, widget.myLocationLongitude!);
+    }
 
-  LatLng? get _myLocationLatLng => _hasMyLocation
-      ? LatLng(widget.myLocationLatitude!, widget.myLocationLongitude!)
-      : null;
+    // 2. Explicit pickup coordinate provided and valid (greater than 1.0)
+    if (widget.pickupLatitude != null &&
+        widget.pickupLongitude != null &&
+        widget.pickupLatitude! > 1.0 &&
+        widget.pickupLongitude! > 1.0) {
+      return LatLng(widget.pickupLatitude!, widget.pickupLongitude!);
+    }
+
+    // 3. Partner location fallback (same local neighborhood)
+    if (_hasRealCoords) {
+      return LatLng(widget.partnerLatitude!, widget.partnerLongitude!);
+    }
+
+    return _defaultPickup;
+  }
 
   /// When no real GPS: estimate partner position from workerProgress (0.0–1.0)
   LatLng get _estimatedPartnerFromProgress {
     final t = widget.workerProgress.clamp(0.0, 1.0);
-    final lat = _defaultPickup.latitude +
+    final lat = _customerLatLng.latitude +
         (_defaultPartner.latitude - _defaultPickup.latitude) * (1.0 - t);
-    final lng = _defaultPickup.longitude +
+    final lng = _customerLatLng.longitude +
         (_defaultPartner.longitude - _defaultPickup.longitude) * (1.0 - t);
     return LatLng(lat, lng);
   }
 
-  void _fitBounds() {
+  void _fitBounds({bool force = false}) {
     if (!mounted) return;
+    if (_hasUserInteracted && !force) return;
     try {
-      final allPoints = <LatLng>[_partnerLatLng, _pickupLatLng];
-      if (_myLocationLatLng != null) allPoints.add(_myLocationLatLng!);
+      final p1 = _partnerLatLng;
+      final p2 = _customerLatLng;
+      final meters = const Distance().as(LengthUnit.Meter, p1, p2);
+
+      if (meters < 200) {
+        // Both are at the same spot! Center smoothly at a comfortable street-level zoom (15.2)
+        final center = LatLng(
+          (p1.latitude + p2.latitude) / 2,
+          (p1.longitude + p2.longitude) / 2,
+        );
+        _mapController.move(center, 15.2);
+        return;
+      }
+
+      final allPoints = <LatLng>[p1, p2];
       final bounds = LatLngBounds.fromPoints(allPoints);
       _mapController.fitCamera(
         CameraFit.bounds(
           bounds: bounds,
           padding: const EdgeInsets.fromLTRB(60, 90, 60, 90),
+          maxZoom: 15.8,
         ),
       );
     } catch (_) {}
   }
 
-  void _fitBroadcastBounds() {
+  void _fitBroadcastBounds({bool force = false}) {
     if (!mounted) return;
+    if (_hasUserInteracted && !force) return;
     try {
-      final points = <LatLng>[_pickupLatLng];
-      if (_myLocationLatLng != null) points.add(_myLocationLatLng!);
+      final points = <LatLng>[_customerLatLng];
       if (widget.nearbyWorkers != null) {
         for (final w in widget.nearbyWorkers!) {
-          if (w.latitude != null && w.longitude != null) {
-            points.add(LatLng(w.latitude!, w.longitude!));
+          if (w.latitude != null && w.longitude != null && w.latitude! > 1.0) {
+            final pt = LatLng(w.latitude!, w.longitude!);
+            final d = const Distance().as(LengthUnit.Kilometer, _customerLatLng, pt);
+            // ONLY include workers within 25km of the customer! Remote workers won't distort bounds.
+            if (d <= 25.0) {
+              points.add(pt);
+            }
           }
         }
       }
       if (widget.nearbyWorkerLocations != null) {
-        points.addAll(widget.nearbyWorkerLocations!);
+        for (final loc in widget.nearbyWorkerLocations!) {
+          if (loc.latitude > 1.0) {
+            final d = const Distance().as(LengthUnit.Kilometer, _customerLatLng, loc);
+            if (d <= 25.0) {
+              points.add(loc);
+            }
+          }
+        }
       }
       if (points.length > 1) {
         final bounds = LatLngBounds.fromPoints(points);
@@ -192,7 +269,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
           ),
         );
       } else {
-        _mapController.move(_pickupLatLng, 14.0);
+        _mapController.move(_customerLatLng, 14.5);
       }
     } catch (_) {}
   }
@@ -200,21 +277,27 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
   (Color, Color, IconData, String) _getTradeAsset(String category) {
     final cat = category.toLowerCase();
     if (cat.contains('plumb')) {
-      return (const Color(0xFF0284C7), const Color(0xFF0369A1), Icons.plumbing_rounded, 'Plumbing');
+      return (const Color(0xFF0284C7), const Color(0xFF0369A1), Icons.plumbing_rounded, 'Plumber');
     }
     if (cat.contains('electr')) {
       return (const Color(0xFFD97706), const Color(0xFFB45309), Icons.bolt_rounded, 'Electrician');
     }
     if (cat.contains('carpent')) {
-      return (const Color(0xFFEA580C), const Color(0xFFC2410C), Icons.carpenter_rounded, 'Carpentry');
+      return (const Color(0xFFEA580C), const Color(0xFFC2410C), Icons.carpenter_rounded, 'Carpenter');
     }
     if (cat.contains('paint')) {
-      return (const Color(0xFFE11D48), const Color(0xFFBE123C), Icons.format_paint_rounded, 'Painting');
+      return (const Color(0xFFE11D48), const Color(0xFFBE123C), Icons.format_paint_rounded, 'Painter');
     }
-    if (cat.contains('ac') || cat.contains('appliance') || cat.contains('cool')) {
-      return (const Color(0xFF0284C7), const Color(0xFF0369A1), Icons.ac_unit_rounded, 'Cooling');
+    if (cat.contains('ac') || cat.contains('cool')) {
+      return (const Color(0xFF06B6D4), const Color(0xFF0891B2), Icons.ac_unit_rounded, 'AC Specialist');
     }
-    return (const Color(0xFF059669), const Color(0xFF047857), Icons.handyman_rounded, 'Handyman');
+    if (cat.contains('repair') || cat.contains('appliance') || cat.contains('mechanic')) {
+      return (const Color(0xFF7C3AED), const Color(0xFF6D28D9), Icons.build_circle_rounded, 'Repair Pro');
+    }
+    if (cat.contains('clean')) {
+      return (const Color(0xFF059669), const Color(0xFF047857), Icons.cleaning_services_rounded, 'Cleaning Pro');
+    }
+    return (const Color(0xFF2563EB), const Color(0xFF1D4ED8), Icons.handyman_rounded, 'Specialist');
   }
 
   @override
@@ -241,40 +324,222 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         ),
         child: Stack(
           children: [
-            // ── Real OSM Map Tiles ──────────────────────────────────────────
-            _buildRealMap(tradeColor, tradeDarkColor, tradeIcon),
+            // ── Real Map Tiles (Layer Selectable) ──────────────────────────
+            _buildRealMap(tradeColor, tradeDarkColor, tradeIcon, tradeVehicleLabel),
 
             // ── Top Address Pill ────────────────────────────────────────────
             _buildAddressPill(tradeColor, tradeDarkColor),
 
-            // ── Bottom Status HUD ───────────────────────────────────────────
-            _buildBottomHud(tradeColor, tradeVehicleLabel),
-
-            // ── My Location FAB (recenter button) ───────────────────────────
-            if (_hasMyLocation)
+            // ── Live On-Site Arrived Floating Alert (when both are close at same spot) ──
+            if (_isAtSameSpot)
               Positioned(
-                bottom: 56,
+                top: 70,
+                left: 12,
                 right: 12,
-                child: GestureDetector(
-                  onTap: _fitBounds,
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.14),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF065F46), Color(0xFF047857)],
                     ),
-                    child: const Icon(Icons.my_location_rounded, size: 20, color: Color(0xFF2563EB)),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF34D399), width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text(
+                              "PRO AT YOUR LOCATION",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            Text(
+                              "Specialist & you are at the exact same spot",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          "ON-SITE",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+
+            // ── Bottom Status HUD ───────────────────────────────────────────
+            _buildBottomHud(tradeColor, tradeVehicleLabel),
+
+            // ── Floating Zoom & Recenter Controls (Rapido Style) ────────────
+            Positioned(
+              bottom: 56,
+              right: 12,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Map Layer Switcher Button (Street <-> Satellite)
+                  GestureDetector(
+                    onTap: _showLayerSelectionSheet,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.14),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _currentLayer == MapLayerType.satellite
+                            ? Icons.satellite_alt_rounded
+                            : Icons.layers_rounded,
+                        size: 20,
+                        color: _currentLayer == MapLayerType.satellite
+                            ? const Color(0xFF059669)
+                            : const Color(0xFF4F46E5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Zoom In (+) Button
+                  GestureDetector(
+                    onTap: () {
+                      _hasUserInteracted = true;
+                      final currentZoom = _mapController.camera.zoom;
+                      _mapController.move(
+                        _mapController.camera.center,
+                        (currentZoom + 1.0).clamp(3.0, 19.0),
+                      );
+                    },
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.add_rounded, size: 20, color: Color(0xFF1E293B)),
+                    ),
+                  ),
+                  // Divider
+                  Container(width: 36, height: 1, color: Colors.grey.shade200),
+                  // Zoom Out (-) Button
+                  GestureDetector(
+                    onTap: () {
+                      _hasUserInteracted = true;
+                      final currentZoom = _mapController.camera.zoom;
+                      _mapController.move(
+                        _mapController.camera.center,
+                        (currentZoom - 1.0).clamp(3.0, 19.0),
+                      );
+                    },
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.remove_rounded, size: 20, color: Color(0xFF1E293B)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Recenter GPS Button
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _hasUserInteracted = false);
+                      if (widget.mode == MapMode.routeNavigation) {
+                        _fitBounds(force: true);
+                      } else {
+                        _fitBroadcastBounds(force: true);
+                      }
+                    },
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.14),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.my_location_rounded, size: 20, color: Color(0xFF2563EB)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -285,90 +550,101 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     Color tradeColor,
     Color tradeDarkColor,
     IconData tradeIcon,
+    String tradeVehicleLabel,
   ) {
     final isRoute = widget.mode == MapMode.routeNavigation;
     final partner = _partnerLatLng;
-    final pickup = _pickupLatLng;
+    final customer = _customerLatLng;
 
-    // Initial center: midpoint between partner and pickup
-    final centerLat = (partner.latitude + pickup.latitude) / 2;
-    final centerLng = (partner.longitude + pickup.longitude) / 2;
+    // When both are at the exact same spot (< 200m), offset partner marker slightly (~20m)
+    // so both the customer's pulsing blue dot and artisan's vehicle marker are visible side-by-side
+    final displayPartner = _isAtSameSpot
+        ? LatLng(partner.latitude + 0.00018, partner.longitude + 0.00018)
+        : partner;
+
+    // Initial center
+    final centerLat = isRoute ? (displayPartner.latitude + customer.latitude) / 2 : customer.latitude;
+    final centerLng = isRoute ? (displayPartner.longitude + customer.longitude) / 2 : customer.longitude;
+    final initialZoom = isRoute ? (_isAtSameSpot ? 15.2 : 14.5) : 14.0;
 
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
         initialCenter: LatLng(centerLat, centerLng),
-        initialZoom: isRoute ? 14.0 : 13.0,
+        initialZoom: initialZoom,
+        onPositionChanged: (position, hasGesture) {
+          if (hasGesture) {
+            _hasUserInteracted = true;
+          }
+        },
         onMapReady: () {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (isRoute) {
-              _fitBounds();
+              _fitBounds(force: true);
             } else {
-              _fitBroadcastBounds();
+              _fitBroadcastBounds(force: true);
             }
           });
         },
         interactionOptions: const InteractionOptions(
-          flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+          flags: InteractiveFlag.all,
+          enableMultiFingerGestureRace: true,
         ),
       ),
       children: [
-        // ── Tile Layer (OSM Standard — warm, slightly desaturated Rapido feel) ──
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'in.workgo.cooperative',
-          maxZoom: 19,
-          tileBuilder: (context, tileWidget, tile) => ColorFiltered(
-            colorFilter: ColorFilter.matrix([
-              0.96, 0.04, 0.00, 0, 5,
-              0.00, 0.96, 0.04, 0, 5,
-              0.00, 0.00, 1.00, 0, 3,
-              0.00, 0.00, 0.00, 1, 0,
-            ]),
-            child: tileWidget,
-          ),
-        ),
+        // ── Dynamic Tile Layer (Selectable: Street, Satellite) ───────────────
+        _buildTileLayer(),
 
         if (isRoute) ...[
-          // ── Route Polyline (partner → pickup) ──────────────────────────────
+          // ── Route Polyline (partner → customer) ─────────────────────────────
           PolylineLayer(
             polylines: [
-              // Shadow glow beneath route
-              Polyline(
-                points: [partner, pickup],
-                strokeWidth: 11.0,
-                color: tradeColor.withOpacity(0.18),
-                strokeCap: StrokeCap.round,
-                strokeJoin: StrokeJoin.round,
-              ),
-              // Travelled section (grey-blue) — behind partner
-              Polyline(
-                points: _buildTravelledSegment(partner, pickup),
-                strokeWidth: 5.0,
-                color: const Color(0xFF94A3B8),
-                strokeCap: StrokeCap.round,
-                strokeJoin: StrokeJoin.round,
-              ),
-              // Remaining route — trade color
-              Polyline(
-                points: [partner, pickup],
-                strokeWidth: 5.5,
-                gradientColors: [tradeColor, tradeColor.withOpacity(0.7)],
-                strokeCap: StrokeCap.round,
-                strokeJoin: StrokeJoin.round,
-              ),
-              // Inner white guidance line on top of route
-              Polyline(
-                points: [partner, pickup],
-                strokeWidth: 2.0,
-                color: Colors.white.withOpacity(0.85),
-                strokeCap: StrokeCap.round,
-                strokeJoin: StrokeJoin.round,
-              ),
+              // When at the same spot, render a glowing emerald arrival tether between them
+              if (_isAtSameSpot)
+                Polyline(
+                  points: [displayPartner, customer],
+                  strokeWidth: 4.0,
+                  color: const Color(0xFF10B981),
+                  strokeCap: StrokeCap.round,
+                )
+              else ...[
+                // Shadow glow beneath route
+                Polyline(
+                  points: [partner, customer],
+                  strokeWidth: 11.0,
+                  color: tradeColor.withOpacity(0.18),
+                  strokeCap: StrokeCap.round,
+                  strokeJoin: StrokeJoin.round,
+                ),
+                // Travelled section (grey-blue) — behind partner
+                Polyline(
+                  points: _buildTravelledSegment(partner, customer),
+                  strokeWidth: 5.0,
+                  color: const Color(0xFF94A3B8),
+                  strokeCap: StrokeCap.round,
+                  strokeJoin: StrokeJoin.round,
+                ),
+                // Remaining route — trade color
+                Polyline(
+                  points: [partner, customer],
+                  strokeWidth: 5.5,
+                  gradientColors: [tradeColor, tradeColor.withOpacity(0.7)],
+                  strokeCap: StrokeCap.round,
+                  strokeJoin: StrokeJoin.round,
+                ),
+                // Inner white guidance line on top of route
+                Polyline(
+                  points: [partner, customer],
+                  strokeWidth: 2.0,
+                  color: Colors.white.withOpacity(0.85),
+                  strokeCap: StrokeCap.round,
+                  strokeJoin: StrokeJoin.round,
+                ),
+              ],
             ],
           ),
         ] else ...[
-          // ── Broadcast mode: concentric radius rings (animated) ────────────
+          // ── Broadcast mode: concentric radius rings (animated around customer) ──
           AnimatedBuilder(
             animation: _radarCtrl,
             builder: (context, _) {
@@ -377,7 +653,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                 circles: [
                   // Expanding animated ring
                   CircleMarker(
-                    point: pickup,
+                    point: customer,
                     radius: (2000 + pulse * 8500).clamp(2000, 10500),
                     useRadiusInMeter: true,
                     color: tradeColor.withOpacity((1.0 - pulse) * 0.04),
@@ -386,27 +662,27 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                   ),
                   // Static rings: 3.5km / 7km / 10km
                   CircleMarker(
-                    point: pickup,
+                    point: customer,
                     radius: 3500,
                     useRadiusInMeter: true,
                     color: tradeColor.withOpacity(0.05),
                     borderColor: tradeColor.withOpacity(0.20),
-                    borderStrokeWidth: 1.2,
-                  ),
-                  CircleMarker(
-                    point: pickup,
-                    radius: 7000,
-                    useRadiusInMeter: true,
-                    color: tradeColor.withOpacity(0.03),
-                    borderColor: tradeColor.withOpacity(0.12),
                     borderStrokeWidth: 1.0,
                   ),
                   CircleMarker(
-                    point: pickup,
+                    point: customer,
+                    radius: 7000,
+                    useRadiusInMeter: true,
+                    color: tradeColor.withOpacity(0.03),
+                    borderColor: tradeColor.withOpacity(0.14),
+                    borderStrokeWidth: 1.0,
+                  ),
+                  CircleMarker(
+                    point: customer,
                     radius: 10000,
                     useRadiusInMeter: true,
-                    color: Colors.transparent,
-                    borderColor: tradeColor.withOpacity(0.08),
+                    color: tradeColor.withOpacity(0.015),
+                    borderColor: tradeColor.withOpacity(0.09),
                     borderStrokeWidth: 0.8,
                   ),
                 ],
@@ -419,40 +695,31 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         MarkerLayer(
           rotate: false,
           markers: [
-            // ── My Location — Rapido-style pulsing blue GPS dot ──────────────
-            if (_myLocationLatLng != null)
-              Marker(
-                point: _myLocationLatLng!,
-                width: 72,
-                height: 72,
-                child: _buildMyLocationDot(),
-              ),
-
-            // ── Pickup / Customer Home Marker ─────────────────────────────────
+            // ── Customer Live Location Marker (Rapido pulsing blue GPS dot) ──
             Marker(
-              point: pickup,
-              width: 56,
+              point: customer,
+              width: 72,
               height: 72,
-              alignment: Alignment.topCenter,
-              child: _buildPickupMarker(isRoute),
+              child: _buildMyLocationDot(),
             ),
 
             // ── Partner / Artisan Live Marker (navigation mode only) ──────────
             if (isRoute)
               Marker(
-                point: partner,
-                width: 68,
-                height: 88,
+                point: displayPartner,
+                width: 90,
+                height: 90,
                 alignment: Alignment.topCenter,
-                child: _buildPartnerMarker(tradeColor, tradeDarkColor, tradeIcon),
+                child: _buildPartnerMarker(tradeColor, tradeDarkColor, tradeIcon, tradeVehicleLabel),
               ),
 
             // ── Real online workers from Firestore (broadcast mode) ───────────
             if (!isRoute && widget.nearbyWorkers != null && widget.nearbyWorkers!.isNotEmpty)
               for (int i = 0; i < widget.nearbyWorkers!.length; i++)
-                _buildRealWorkerMarker(widget.nearbyWorkers![i], i, tradeColor, tradeIcon, pickup),
+                if (widget.nearbyWorkers![i].latitude != null && widget.nearbyWorkers![i].longitude != null)
+                  _buildRealWorkerMarker(widget.nearbyWorkers![i], i, tradeColor, tradeIcon),
 
-            // ── Real coordinates fallback (if nearbyWorkers is null) ──────────
+            // ── Real coordinates fallback (if nearbyWorkerLocations provided) ──
             if (!isRoute &&
                 (widget.nearbyWorkers == null || widget.nearbyWorkers!.isEmpty) &&
                 widget.nearbyWorkerLocations != null)
@@ -466,32 +733,20 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                     tradeIcon,
                   ),
                 ),
-
-            // ── Simulated workers fallback (when no Firestore workers exist) ──
-            if (!isRoute &&
-                (widget.nearbyWorkers == null || widget.nearbyWorkers!.isEmpty) &&
-                (widget.nearbyWorkerLocations == null || widget.nearbyWorkerLocations!.isEmpty))
-              ..._simulatedNearbyWorkers(pickup, tradeColor, tradeIcon),
           ],
         ),
       ],
     );
   }
 
-  /// Marker for a real online artisan from Firestore
+  /// Marker for a real online artisan from Firestore with exact GPS coordinates
   Marker _buildRealWorkerMarker(
     Worker worker,
     int index,
     Color defaultColor,
     IconData defaultIcon,
-    LatLng centerFallback,
   ) {
-    // If worker coordinates exist, use them.
-    // If worker is at MBA Block / Perundurai or has null coordinates, offset slightly around Perundurai center
-    final lat = worker.latitude ?? (centerFallback.latitude + (index == 0 ? 0.0035 : -0.0040 * index));
-    final lng = worker.longitude ?? (centerFallback.longitude + (index == 0 ? 0.0040 : 0.0035 * index));
-    final pt = LatLng(lat, lng);
-
+    final pt = LatLng(worker.latitude!, worker.longitude!);
     final (color, _, icon, _) = _getTradeAsset(
       worker.skills.isNotEmpty ? worker.skills.first : widget.serviceCategory,
     );
@@ -515,27 +770,6 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     final dLng = (pickup.longitude - partner.longitude) * 0.35;
     final pastPoint = LatLng(partner.latitude - dLat, partner.longitude - dLng);
     return [pastPoint, partner];
-  }
-
-  /// Simulated nearby workers for broadcast fallback (no Firestore data yet)
-  List<Marker> _simulatedNearbyWorkers(LatLng center, Color color, IconData icon) {
-    // Offsets calibrated around Perundurai / MBA Block area
-    const offsets = [
-      (0.010, 0.015),
-      (-0.018, 0.006),
-      (0.004, -0.020),
-      (-0.012, -0.010),
-      (0.022, -0.005),
-    ];
-    return List.generate(offsets.length, (i) {
-      final pt = LatLng(center.latitude + offsets[i].$1, center.longitude + offsets[i].$2);
-      return Marker(
-        point: pt,
-        width: 40,
-        height: 40,
-        child: _buildNearbyWorkerDot(i == 0 ? color : _altColor(i), icon),
-      );
-    });
   }
 
   Color _altColor(int i) {
@@ -641,95 +875,60 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildPickupMarker(bool isNavigation) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Label bubble
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: isNavigation ? const Color(0xFFE11D48) : const Color(0xFF0F172A),
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: [
-              BoxShadow(
-                color: (isNavigation ? const Color(0xFFE11D48) : const Color(0xFF0F172A))
-                    .withOpacity(0.4),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Text(
-            isNavigation ? 'YOUR HOME' : 'PICKUP SPOT',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-        const SizedBox(height: 3),
-        // Pin icon
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: isNavigation ? const Color(0xFFE11D48) : const Color(0xFF0F172A),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.5),
-            boxShadow: [
-              BoxShadow(
-                color: (isNavigation ? const Color(0xFFE11D48) : const Color(0xFF0F172A))
-                    .withOpacity(0.45),
-                blurRadius: 14,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: Icon(
-            isNavigation ? Icons.home_rounded : Icons.location_on_rounded,
-            color: Colors.white,
-            size: 19,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPartnerMarker(Color tradeColor, Color tradeDarkColor, IconData tradeIcon) {
+  Widget _buildPartnerMarker(Color tradeColor, Color tradeDarkColor, IconData tradeIcon, String tradeLabel) {
     return AnimatedBuilder(
       animation: _pulseCtrl,
       builder: (context, _) {
         final glow = 0.5 + _pulseCtrl.value * 0.5;
+
+        // Clean name to prevent awkward "Artisan Plumber" text
+        String cleanName = (widget.artisanName ?? "").trim();
+        cleanName = cleanName.replaceAll(RegExp(r'^Artisan\s+', caseSensitive: false), '').trim();
+        if (cleanName.isEmpty ||
+            cleanName.toLowerCase() == 'partner' ||
+            cleanName.toLowerCase() == 'artisan partner' ||
+            cleanName.toLowerCase() == 'verified artisan') {
+          cleanName = tradeLabel;
+        }
+
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Artisan name chip
+            // Rapido / Uber Style Sleek Artisan Pill
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: tradeColor.withOpacity(0.35), width: 1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: tradeColor.withOpacity(0.4), width: 1.2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.10),
-                    blurRadius: 6,
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Text(
-                widget.artisanName ?? 'Artisan Partner',
-                style: TextStyle(
-                  color: tradeDarkColor,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(tradeIcon, size: 11, color: tradeDarkColor),
+                  const SizedBox(width: 4),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 82),
+                    child: Text(
+                      cleanName,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 3),
@@ -855,6 +1054,13 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
 
   Widget _buildAddressPill(Color tradeColor, Color tradeDarkColor) {
     final isRoute = widget.mode == MapMode.routeNavigation;
+    String displayAddress = widget.pickupAddress.trim();
+    if (displayAddress.toLowerCase().contains('mumbai') ||
+        displayAddress.toLowerCase().contains('bombay') ||
+        displayAddress.isEmpty) {
+      displayAddress = 'Current Live Location';
+    }
+
     return Positioned(
       top: 12,
       left: 12,
@@ -883,7 +1089,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                     padding: const EdgeInsets.all(6),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0xFFE11D48),
+                      color: Color(0xFF2563EB),
                     ),
                     child: const Icon(Icons.my_location_rounded, color: Colors.white, size: 11),
                   ),
@@ -894,7 +1100,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          'PICKUP',
+                          'YOUR LOCATION',
                           style: TextStyle(
                             color: Color(0xFF94A3B8),
                             fontSize: 9,
@@ -903,7 +1109,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                           ),
                         ),
                         Text(
-                          widget.pickupAddress,
+                          displayAddress,
                           style: const TextStyle(
                             color: Color(0xFF0F172A),
                             fontSize: 12,
@@ -928,14 +1134,16 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [tradeColor, tradeDarkColor],
+                  colors: _isAtSameSpot
+                      ? [const Color(0xFF059669), const Color(0xFF047857)]
+                      : [tradeColor, tradeDarkColor],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: tradeColor.withOpacity(0.35),
+                    color: (_isAtSameSpot ? const Color(0xFF059669) : tradeColor).withOpacity(0.35),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -945,15 +1153,15 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${widget.etaMinutes} MIN',
+                    _isAtSameSpot ? 'ARRIVED' : '$_computedEtaMinutes MIN',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   Text(
-                    '${widget.distanceKm} km',
+                    _isAtSameSpot ? 'On Site' : '${_computedDistanceKm.toStringAsFixed(1)} km',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 10,
@@ -971,7 +1179,18 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
 
   Widget _buildBottomHud(Color tradeColor, String tradeVehicleLabel) {
     final isRoute = widget.mode == MapMode.routeNavigation;
-    final statusColor = isRoute ? const Color(0xFF10B981) : tradeColor;
+    final statusColor = _isAtSameSpot
+        ? const Color(0xFF059669)
+        : (isRoute ? const Color(0xFF10B981) : tradeColor);
+    final statusText = _isAtSameSpot
+        ? 'Specialist Arrived · At Your Doorstep'
+        : (isRoute
+            ? 'Artisan En Route · $tradeVehicleLabel'
+            : 'Broadcasting · 10 km live radius');
+    final badgeText = _isAtSameSpot
+        ? 'ON SITE'
+        : (isRoute ? 'LIVE GPS' : 'SCANNING');
+
     return Positioned(
       bottom: 10,
       left: 12,
@@ -1018,9 +1237,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                   const SizedBox(width: 7),
                   Flexible(
                     child: Text(
-                      isRoute
-                          ? 'Artisan En Route · $tradeVehicleLabel'
-                          : 'Broadcasting · 10 km live radius',
+                      statusText,
                       style: const TextStyle(
                         color: Color(0xFF334155),
                         fontSize: 11,
@@ -1038,11 +1255,11 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.10),
+                color: statusColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                isRoute ? 'LIVE GPS' : 'SCANNING',
+                badgeText,
                 style: TextStyle(
                   color: statusColor,
                   fontSize: 10,
@@ -1052,6 +1269,190 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ── Map Layer Switcher Implementation ──────────────────────────────────────
+
+  Widget _buildTileLayer() {
+    switch (_currentLayer) {
+      case MapLayerType.satellite:
+        return TileLayer(
+          urlTemplate:
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          userAgentPackageName: 'in.workgo.cooperative',
+          maxZoom: 18,
+        );
+      case MapLayerType.street:
+        return TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'in.workgo.cooperative',
+          maxZoom: 19,
+          tileBuilder: (context, tileWidget, tile) => ColorFiltered(
+            colorFilter: const ColorFilter.matrix([
+              0.98, 0.02, 0.00, 0, 4,
+              0.00, 0.98, 0.02, 0, 4,
+              0.00, 0.00, 1.00, 0, 2,
+              0.00, 0.00, 0.00, 1, 0,
+            ]),
+            child: tileWidget,
+          ),
+        );
+    }
+  }
+
+  void _showLayerSelectionSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 26),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 20,
+                offset: Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: const [
+                  Icon(Icons.layers_rounded, color: Color(0xFF4F46E5), size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    "Map View & Layers",
+                    style: TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _buildLayerOptionCard(
+                    layer: MapLayerType.street,
+                    title: "Street View",
+                    subtitle: "Crisp roads & navigation",
+                    icon: Icons.map_rounded,
+                    color: const Color(0xFF0284C7),
+                  ),
+                  const SizedBox(width: 12),
+                  _buildLayerOptionCard(
+                    layer: MapLayerType.satellite,
+                    title: "Satellite View",
+                    subtitle: "Real aerial imagery",
+                    icon: Icons.satellite_alt_rounded,
+                    color: const Color(0xFF059669),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLayerOptionCard({
+    required MapLayerType layer,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    final isSelected = _currentLayer == layer;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() => _currentLayer = layer);
+          Navigator.pop(context);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.08) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected ? color : Colors.grey.shade200,
+              width: isSelected ? 2.0 : 1.0,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: isSelected ? color : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, size: 17, color: isSelected ? Colors.white : color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: const Color(0xFF0F172A),
+                        fontSize: 11.5,
+                        fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Icon(Icons.check_circle_rounded, size: 15, color: color),
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
@@ -27,8 +26,6 @@ class RapidoLiveBroadcastScreen extends StatefulWidget {
 class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
     with TickerProviderStateMixin {
   final BookingService _bookingService = BookingService();
-  int _secondsRemaining = 45;
-  Timer? _countdownTimer;
   bool _hasNavigated = false;
   double? _myLat;
   double? _myLng;
@@ -37,15 +34,6 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   void initState() {
     super.initState();
     _initDeviceLocation();
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          if (_secondsRemaining > 0) {
-            _secondsRemaining--;
-          }
-        });
-      }
-    });
   }
 
   void _initDeviceLocation() async {
@@ -60,12 +48,6 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
     } catch (_) {}
   }
 
-  @override
-  void dispose() {
-    _countdownTimer?.cancel();
-    super.dispose();
-  }
-
   void _raiseFare(double extraBonus) async {
     HapticFeedback.heavyImpact();
     await _bookingService.raiseUrgencyBonus(widget.bookingId, extraBonus);
@@ -76,7 +58,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
             children: [
               const Icon(Icons.bolt_rounded, color: CX.amber, size: 20),
               const SizedBox(width: 8),
-              Text("Fare boosted by +₹${extraBonus.toInt()}! Captains alerted."),
+              Text("Fare boosted by +₹${extraBonus.toInt()}! Nearby Artisans alerted."),
             ],
           ),
           backgroundColor: const Color(0xFF1E1035),
@@ -87,10 +69,9 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
     }
   }
 
-  void _onCaptainAccepted(Booking booking) {
+  void _onArtisanAccepted(Booking booking) {
     if (_hasNavigated) return;
     _hasNavigated = true;
-    _countdownTimer?.cancel();
 
     // Play alert sound & haptics
     SystemSound.play(SystemSoundType.alert);
@@ -101,7 +82,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
       isDismissible: false,
       enableDrag: false,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _CaptainAcceptedCelebration(
+      builder: (ctx) => _ArtisanAcceptedCelebration(
         booking: booking,
         onContinue: () {
           Navigator.of(ctx).pop();
@@ -130,17 +111,30 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
             booking.status == BookingStatus.accepted &&
             !_hasNavigated) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _onCaptainAccepted(booking);
+            _onArtisanAccepted(booking);
           });
         }
 
         final currentTotal = booking?.totalAmount ?? widget.initialAmount;
         final currentBonus = booking?.urgencyBonus ?? 0.0;
-        final address = booking?.customerAddressText ?? widget.pickupAddress;
+        String address = booking?.customerAddressText ?? widget.pickupAddress;
+        if (address.toLowerCase().contains("mumbai") ||
+            address.toLowerCase().contains("bombay") ||
+            address.trim().isEmpty) {
+          address = "Current Live Location";
+        }
+        final custLat = booking?.customerLatitude;
+        final custLng = booking?.customerLongitude;
+        final effectivePickupLat = (_myLat != null && _myLat! > 1.0)
+            ? _myLat
+            : ((custLat != null && custLat > 1.0) ? custLat : null);
+        final effectivePickupLng = (_myLng != null && _myLng! > 1.0)
+            ? _myLng
+            : ((custLng != null && custLng > 1.0) ? custLng : null);
 
         return AuroraScaffold(
           appBar: AuroraAppBar(
-            title: "Broadcasting Dispatch (${widget.serviceCategory})",
+            title: "Finding Nearby ${widget.serviceCategory} Artisan",
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -164,10 +158,10 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                             serviceCategory: widget.serviceCategory,
                             mode: MapMode.broadcastScanning,
                             pickupAddress: address,
-                            height: 280,
+                            height: 360,
                             // Real pickup coords (customer location saved at booking creation or current GPS)
-                            pickupLatitude: booking?.customerLatitude ?? _myLat,
-                            pickupLongitude: booking?.customerLongitude ?? _myLng,
+                            pickupLatitude: effectivePickupLat,
+                            pickupLongitude: effectivePickupLng,
                             // Customer's live device location (Rapido pulsing blue dot)
                             myLocationLatitude: _myLat,
                             myLocationLongitude: _myLng,
@@ -205,12 +199,24 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                "Scanning 10 km live radius around ${address.split(',').first.trim()} for available ${widget.serviceCategory} Captains...",
+                                "Scanning 10 km live radius around ${address.split(',').first.trim()} for verified ${widget.serviceCategory} Artisans...",
                                 style: WorkGoFonts.body(
                                   color: CX.textSecondary,
                                   fontSize: 12.5,
                                 ),
                                 textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 10),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: const SizedBox(
+                                  width: 140,
+                                  height: 3,
+                                  child: LinearProgressIndicator(
+                                    backgroundColor: Color(0x1FFFFFFF),
+                                    valueColor: AlwaysStoppedAnimation<Color>(CX.emerald),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -258,67 +264,104 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
 
   Widget _buildFareSummaryCard(double currentTotal, double currentBonus) {
     return AuroraCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                "Dispatch Fare",
-                style: WorkGoFonts.body(color: CX.textSecondary, fontSize: 12),
-              ),
-              const SizedBox(height: 2),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "₹${currentTotal.toStringAsFixed(0)}",
-                    style: WorkGoFonts.numeric(
-                      color: CX.amber,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
+                    "Artisan Service Fare",
+                    style: WorkGoFonts.body(
+                      color: CX.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (currentBonus > 0) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: CX.emerald.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        "+₹${currentBonus.toInt()} BOOST",
-                        style: WorkGoFonts.badge(
-                          color: CX.emerald,
-                          fontSize: 9.5,
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        "₹${currentTotal.toStringAsFixed(0)}",
+                        style: WorkGoFonts.numeric(
+                          color: CX.amber,
+                          fontSize: 26,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
+                      if (currentBonus > 0) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: CX.emerald.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            "+₹${currentBonus.toInt()} TIP INCLUDED",
+                            style: WorkGoFonts.badge(
+                              color: CX.emerald,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: CX.emerald.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: CX.emerald.withValues(alpha: 0.35)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified_user_rounded, color: CX.emerald, size: 14),
+                    const SizedBox(width: 5),
+                    Text(
+                      "0% Commission",
+                      style: WorkGoFonts.badge(
+                        color: CX.emerald,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
               color: CX.canvasMid,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: CX.glassBorder),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
-                const Icon(Icons.timer_outlined, color: CX.violetLight, size: 16),
+                const Icon(Icons.shield_outlined, color: CX.cyan, size: 14),
                 const SizedBox(width: 6),
-                Text(
-                  "$_secondsRemaining s",
-                  style: WorkGoFonts.numeric(
-                    color: CX.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
+                Expanded(
+                  child: Text(
+                    "Direct to Artisan • Transparent Transit & Base Allowance",
+                    style: WorkGoFonts.body(
+                      color: CX.textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -340,7 +383,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               const Icon(Icons.bolt_rounded, color: CX.amber, size: 20),
               const SizedBox(width: 8),
               Text(
-                "Need Captain Faster? Boost Fare",
+                "Need an Artisan Faster? Boost Fare",
                 style: WorkGoFonts.heading(
                   color: CX.textPrimary,
                   fontSize: 14,
@@ -351,7 +394,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            "Raise your fare tip like Rapido to incentivize immediate pickup by nearby artisans.",
+            "Add an optional urgency tip to incentivize immediate acceptance by nearby trade artisans.",
             style: WorkGoFonts.body(color: CX.textSecondary, fontSize: 11.5),
           ),
           const SizedBox(height: 14),
@@ -398,10 +441,10 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
 }
 
 // ──────────────────────────────────────────────────────────────
-//  CAPTAIN ACCEPTED CELEBRATION MODAL
+//  ARTISAN ACCEPTED CELEBRATION MODAL
 // ──────────────────────────────────────────────────────────────
-class _CaptainAcceptedCelebration extends StatelessWidget {
-  const _CaptainAcceptedCelebration({
+class _ArtisanAcceptedCelebration extends StatelessWidget {
+  const _ArtisanAcceptedCelebration({
     required this.booking,
     required this.onContinue,
   });
@@ -411,7 +454,7 @@ class _CaptainAcceptedCelebration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final captainName = booking.acceptedWorkerName ?? "Certified Artisan";
+    final artisanName = booking.acceptedWorkerName ?? "Certified Artisan";
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -452,7 +495,7 @@ class _CaptainAcceptedCelebration extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            "⚡ Captain Assigned!",
+            "⚡ Artisan Assigned!",
             style: WorkGoFonts.display(
               color: CX.textPrimary,
               fontSize: 22,
@@ -461,7 +504,7 @@ class _CaptainAcceptedCelebration extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            "Artisan $captainName has accepted your request and is en route.",
+            "Artisan $artisanName has accepted your request and is en route.",
             style: WorkGoFonts.body(
               color: CX.textSecondary,
               fontSize: 13,

@@ -694,12 +694,20 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     _tryAutoDecryptAadhaar();
   }
 
-  Future<void> _tryAutoDecryptAadhaar({bool showFeedback = false}) async {
+  Future<void> _tryAutoDecryptAadhaar({bool showFeedback = false, String? overrideShareCode}) async {
     final details = widget.worker.verificationDetails;
     final zipBase64 = details?.aadhaarZipBase64;
-    final shareCode = details?.aadhaarShareCode ?? "1234";
+    final shareCode = (overrideShareCode ?? details?.aadhaarShareCode ?? "1234").trim();
 
     if (zipBase64 == null || zipBase64.trim().isEmpty) {
+      if (showFeedback) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("No Aadhaar document payload found for this artisan."),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+      }
       return;
     }
 
@@ -731,6 +739,12 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
             workerId: widget.worker.id,
             data: result,
           );
+          if (overrideShareCode != null && overrideShareCode != details?.aadhaarShareCode) {
+            widget.workerService.updateAadhaarShareCode(
+              workerId: widget.worker.id,
+              shareCode: overrideShareCode,
+            );
+          }
           if (showFeedback) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -763,6 +777,69 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
           _aadhaarDecryptError = "$e";
         });
       }
+    }
+  }
+
+  Future<void> _promptCustomShareCode() async {
+    final currentCode = widget.worker.verificationDetails?.aadhaarShareCode ?? "1234";
+    final ctrl = TextEditingController(text: currentCode);
+
+    final enteredCode = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.key_rounded, color: WorkGoColors.primaryDark, size: 20),
+            SizedBox(width: 8),
+            Text("Unlock Aadhaar Archive", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Enter the 4-digit Share Code password used when downloading the offline e-KYC archive from UIDAI:",
+              style: TextStyle(fontSize: 12.5, color: WorkGoColors.textSecondary, height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 4),
+              decoration: InputDecoration(
+                labelText: "4-Digit Share Code",
+                counterText: "",
+                filled: true,
+                fillColor: const Color(0xFFF9F6EE),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(null),
+            child: const Text("Cancel", style: TextStyle(color: WorkGoColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: WorkGoColors.primaryDark,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Unlock & Decrypt", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (enteredCode != null && enteredCode.isNotEmpty) {
+      await _tryAutoDecryptAadhaar(showFeedback: true, overrideShareCode: enteredCode);
     }
   }
 
@@ -1357,7 +1434,11 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
   Widget _buildAadhaarVerificationSection(VerificationDetails? details, Worker worker) {
     final zipBase64 = details?.aadhaarZipBase64;
     final shareCode = details?.aadhaarShareCode ?? "1234";
-    final isDecrypted = _decryptedAadhaar?.isSuccess == true;
+    final hasVerifiedDemographics = details?.aadhaarVerifiedName != null &&
+        details?.aadhaarVerifiedName != "Artisan Cardholder" &&
+        details?.aadhaarMaskedNumber != null &&
+        !details!.aadhaarMaskedNumber!.contains("Zip-Locked");
+    final isDecrypted = _decryptedAadhaar?.isSuccess == true || hasVerifiedDemographics;
     final photoB64 = _decryptedAadhaar?.photoBase64 ?? details?.aadhaarPhotoBase64;
     final verifiedName = _decryptedAadhaar?.name ?? details?.aadhaarVerifiedName ?? worker.name;
     final maskedUid = _decryptedAadhaar?.maskedUid ?? details?.aadhaarMaskedNumber ?? "XXXXXXXX1234";
@@ -1426,7 +1507,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     ),
                   ),
                   InkWell(
-                    onTap: () => _tryAutoDecryptAadhaar(showFeedback: true),
+                    onTap: () => _promptCustomShareCode(),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1459,7 +1540,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () => _tryAutoDecryptAadhaar(showFeedback: true),
+                    onPressed: () => _promptCustomShareCode(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFEF4444),
                       foregroundColor: Colors.white,

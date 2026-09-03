@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -58,6 +59,78 @@ class LocationService {
 
   FirebaseFirestore get _db => FirebaseFirestore.instance;
 
+  StreamSubscription<Position>? _positionStreamSub;
+
+  /// Start continuous background GPS streaming to Firestore.
+  /// Configures native Android/iOS background location settings with wake lock and foreground notification
+  /// so updates stream continuously even when the app is outside/minimized or device is locked.
+  Future<void> startRealtimeBroadcast({
+    required Future<void> Function(double lat, double lng) onLocationUpdate,
+  }) async {
+    await stopRealtimeBroadcast();
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint("LocationService: Device location service disabled.");
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      late final LocationSettings locationSettings;
+
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        locationSettings = AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 3,
+          intervalDuration: const Duration(seconds: 5),
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+            notificationTitle: "WorkGo Dispatch Radar Active",
+            notificationText: "Transmitting live GPS position to incoming customer requests...",
+            enableWakeLock: true,
+          ),
+        );
+      } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+        locationSettings = AppleSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 3,
+          activityType: ActivityType.otherNavigation,
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
+        );
+      } else {
+        locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 3,
+        );
+      }
+
+      _positionStreamSub = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+        (Position pos) async {
+          try {
+            await onLocationUpdate(pos.latitude, pos.longitude);
+          } catch (e) {
+            debugPrint("LocationService broadcast stream callback error: $e");
+          }
+        },
+        onError: (err) {
+          debugPrint("LocationService getPositionStream error: $err");
+        },
+      );
+    } catch (e) {
+      debugPrint("LocationService startRealtimeBroadcast exception: $e");
+    }
+  }
+
+  /// Stop real-time background position streaming.
+  Future<void> stopRealtimeBroadcast() async {
+    await _positionStreamSub?.cancel();
+    _positionStreamSub = null;
+  }
+
   // ── Coordinates & Geocoding ────────────────────────────────────────────────
 
   /// Retrieve current real-time GPS coordinates via device hardware GPS.
@@ -113,31 +186,37 @@ class LocationService {
       debugPrint("LocationService: Hardware GPS exception: $e");
     }
 
-    // 3. Fallback: IP-based lookup if device GPS fails
-    final ipCoords = await _getIpCoordinates();
-    if (ipCoords != null) {
-      return ipCoords;
-    }
-
-    // Default Erode / Tamil Nadu central coordinates
-    return {"latitude": 11.3410, "longitude": 77.7172};
+    // Default Perundurai / Erode Tamil Nadu central coordinates (No IP lookup to avoid Mumbai cellular gateway errors)
+    return {"latitude": 11.2743, "longitude": 77.5866};
   }
 
-  Future<Map<String, double>?> _getIpCoordinates() async {
+  /// Forward geocode any address string into real-world (lat, lon) coordinates via OpenStreetMap Nominatim.
+  Future<Map<String, double>?> forwardGeocode(String addressText) async {
+    final query = addressText.trim();
+    if (query.isEmpty) return null;
+
     try {
-      final res = await http
-          .get(Uri.parse("https://ipapi.co/json/"))
-          .timeout(const Duration(seconds: 4));
+      final encoded = Uri.encodeComponent(query);
+      final url = Uri.parse("https://nominatim.openstreetmap.org/search?format=json&q=$encoded&addressdetails=1&limit=1");
+      final res = await http.get(url, headers: {
+        "User-Agent": "WorkGoCooperativeApp/1.0 (support@workgo.in)",
+        "Accept": "application/json",
+      }).timeout(const Duration(seconds: 4));
+
       if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        if (data["latitude"] != null && data["longitude"] != null) {
-          return {
-            "latitude": (data["latitude"] as num).toDouble(),
-            "longitude": (data["longitude"] as num).toDouble(),
-          };
+        final list = jsonDecode(res.body) as List;
+        if (list.isNotEmpty) {
+          final item = list.first;
+          final lat = double.tryParse(item["lat"]?.toString() ?? "");
+          final lon = double.tryParse(item["lon"]?.toString() ?? "");
+          if (lat != null && lon != null) {
+            return {"latitude": lat, "longitude": lon};
+          }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("LocationService: dynamic forwardGeocode exception: $e");
+    }
     return null;
   }
 

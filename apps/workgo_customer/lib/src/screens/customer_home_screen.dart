@@ -8,6 +8,7 @@ import '../customer_theme.dart';
 import '../../main.dart';
 import 'booking_creation_screen.dart';
 import 'live_booking_tracker_screen.dart';
+import 'rapido_live_broadcast_screen.dart';
 import 'payment_receipt_screen.dart';
 import 'worker_search_screen.dart';
 
@@ -28,13 +29,14 @@ class CustomerHomeScreen extends StatefulWidget {
 class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     with TickerProviderStateMixin {
   int _currentNavIndex = 0;
-  int _selectedDayIndex = 3; // Today default
   final BookingService _bookingService = BookingService();
   final AuthService _authService = AuthService();
   final WorkerService _workerService = WorkerService();
   late AnimationController _navIndicatorCtrl;
   String _bookingFilter = "all"; // 'all', 'active', 'completed', 'cancelled'
   static bool _hasPromptedThisSession = false;
+  double? _customerLat;
+  double? _customerLng;
 
   @override
   void initState() {
@@ -45,7 +47,61 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndPromptLocation();
+      _loadCustomerLocation();
     });
+  }
+
+  Future<void> _loadCustomerLocation() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.user.uid)
+          .get();
+      if (doc.exists) {
+        final data = doc.data() ?? {};
+        final currAddr = data["currentAddress"];
+        final lat = (data["latitude"] as num?)?.toDouble() ??
+            (currAddr is Map ? (currAddr["latitude"] as num?)?.toDouble() : null);
+        final lng = (data["longitude"] as num?)?.toDouble() ??
+            (currAddr is Map ? (currAddr["longitude"] as num?)?.toDouble() : null);
+        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+          setState(() {
+            _customerLat = lat;
+            _customerLng = lng;
+          });
+          return;
+        }
+      }
+
+      final addrSnap = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.user.uid)
+          .collection("addresses")
+          .limit(1)
+          .get();
+      if (addrSnap.docs.isNotEmpty) {
+        final d = addrSnap.docs.first.data();
+        final lat = (d["latitude"] as num?)?.toDouble();
+        final lng = (d["longitude"] as num?)?.toDouble();
+        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+          setState(() {
+            _customerLat = lat;
+            _customerLng = lng;
+          });
+          return;
+        }
+      }
+
+      final coords = await LocationService.instance.getCurrentCoordinates();
+      final hardwareLat = (coords["latitude"] as num?)?.toDouble();
+      final hardwareLng = (coords["longitude"] as num?)?.toDouble();
+      if (hardwareLat != null && hardwareLng != null && hardwareLat > 1.0 && mounted) {
+        setState(() {
+          _customerLat = hardwareLat;
+          _customerLng = hardwareLng;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _checkAndPromptLocation() async {
@@ -96,6 +152,35 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
   void _onNavTap(int index) {
     setState(() => _currentNavIndex = index);
+  }
+
+  void _navigateToActiveBooking(BuildContext context, Booking booking) {
+    HapticFeedback.lightImpact();
+    // If the booking is pending and has no artisan assigned, it is an active broadcast!
+    if (booking.status == BookingStatus.pending &&
+        (booking.workerId == null || booking.workerId!.isEmpty)) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => RapidoLiveBroadcastScreen(
+            bookingId: booking.id,
+            serviceCategory: booking.serviceType,
+            initialAmount: booking.totalAmount,
+            pickupAddress:
+                booking.customerAddressText ?? "Your Service Location",
+          ),
+        ),
+      );
+    } else {
+      // Booking is direct-assigned, accepted, or in progress
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => LiveBookingTrackerScreen(
+            bookingId: booking.id,
+            initialBooking: booking,
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -217,11 +302,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             _buildWorkGoDispatchHeroCard(),
             const SizedBox(height: 16),
 
-            // 3. Weekly 7-Day Calendar Strip (Sun .. Sat with Active Obsidian Pill)
-            _buildWeeklyCalendarStrip(),
+            // 3. Customer Live Order Radar & 1-Tap Rebook Hub
+            _buildCustomerLiveHubAndRebookStrip(),
+            const SizedBox(height: 16),
+
+            // 4. Emergency Rapid 10-Min SOS Dispatch Row
+            _buildEmergencyRapidDispatchBar(),
+            const SizedBox(height: 16),
+
+            // 5. Cooperative Fair-Pricing & Quality Guarantee Badges
+            _buildCooperativeGuaranteeStrip(),
             const SizedBox(height: 22),
 
-            // 4. "Active Bookings & Fast Action" Bento Grid (Real Stream Data)
+            // 6. "Active Bookings & Fast Action" Bento Grid (Real Stream Data)
             _buildCustomerWorkGoBentoGrid(),
             const SizedBox(height: 24),
 
@@ -635,88 +728,455 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   }
 
   // ──────────────────────────────────────────
-  //  WEEKLY 7-DAY CALENDAR STRIP
+  //  CUSTOMER LIVE HUB & REPEAT REBOOK STRIP
   // ──────────────────────────────────────────
-  Widget _buildWeeklyCalendarStrip() {
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday % 7)); // Sunday start
+  Widget _buildCustomerLiveHubAndRebookStrip() {
+    return StreamBuilder<List<Booking>>(
+      stream: _bookingService.streamCustomerBookings(widget.user.uid),
+      builder: (context, snapshot) {
+        final bookings = snapshot.data ?? [];
+        final activeList = bookings.where((b) =>
+            b.status == BookingStatus.inProgress ||
+            b.status == BookingStatus.accepted ||
+            b.status == BookingStatus.pending).toList();
+        final completedList = bookings.where((b) => b.status == BookingStatus.completed).toList();
 
-    final dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        // Active Order Live Radar
+        if (activeList.isNotEmpty) {
+          final active = activeList.first;
+          final statusLabel = active.status == BookingStatus.pending
+              ? "Connecting with Specialist..."
+              : (active.status == BookingStatus.accepted ? "Artisan Assigned • En Route" : "Service in Progress");
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(7, (i) {
-        final dayDate = startOfWeek.add(Duration(days: i));
-        final dayName = dayLabels[i];
-        final dayNum = "${dayDate.day}";
-        final isSelected = _selectedDayIndex == i;
-
-        return GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            setState(() => _selectedDayIndex = i);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            width: 44,
-            height: 72,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF141416) : Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isSelected ? const Color(0xFF141416) : const Color(0xFFF0EDE6),
-                width: 1.2,
+          return GestureDetector(
+            onTap: () => _navigateToActiveBooking(context, active),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E1035), Color(0xFF2E1065)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x282E1065),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
+                ],
               ),
-              boxShadow: isSelected
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x24000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.12),
+                      border: Border.all(color: const Color(0xFFFFB800), width: 1.5),
+                    ),
+                    child: const Center(
+                      child: PulsingDot(color: Color(0xFFFFB800), size: 10),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFB800),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                "LIVE ORDER",
+                                style: TextStyle(
+                                  color: Color(0xFF141416),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              active.serviceType,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          statusLabel,
+                          style: const TextStyle(
+                            color: Color(0xFFD8B4FE),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Repeat Recent Service Rebook Capsule
+        if (completedList.isNotEmpty) {
+          final last = completedList.first;
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x06000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.history_rounded, color: Color(0xFF059669), size: 20),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Repeat Recent Service",
+                        style: TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ]
-                  : const [
+                      Text(
+                        "${last.serviceType} • ₹${last.totalAmount.toStringAsFixed(0)}",
+                        style: const TextStyle(
+                          color: Color(0xFF141416),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => BookingCreationScreen(
+                          serviceCategory: last.serviceType,
+                          customerId: widget.user.uid,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.replay_rounded, size: 12, color: Colors.white),
+                  label: const Text("1-Tap Book", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF141416),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: const Size(0, 34),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Default greeting if no prior bookings
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(
+            children: const [
+              Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 18),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "WorkGo Cooperative: Direct Artisan Dispatch with 0% Middleman Markup",
+                  style: TextStyle(
+                    color: Color(0xFF374151),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  EMERGENCY RAPID 10-MIN SOS DISPATCH BAR
+  // ──────────────────────────────────────────
+  Widget _buildEmergencyRapidDispatchBar() {
+    final emergencies = [
+      (trade: "Plumbing", label: "Pipe Burst / Leak", icon: Icons.water_drop_rounded, color: const Color(0xFF0284C7)),
+      (trade: "Electrical", label: "Power Cut / Spark", icon: Icons.bolt_rounded, color: const Color(0xFFD97706)),
+      (trade: "Appliance Repair", label: "Fridge / AC Off", icon: Icons.kitchen_rounded, color: const Color(0xFFDC2626)),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.flash_on_rounded, color: Color(0xFFEF4444), size: 16),
+                SizedBox(width: 4),
+                Text(
+                  "Rapid 10-Min SOS Dispatch",
+                  style: TextStyle(
+                    color: Color(0xFF141416),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                "PRIORITY",
+                style: TextStyle(
+                  color: Color(0xFFDC2626),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 56,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: emergencies.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, i) {
+              final em = emergencies[i];
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BookingCreationScreen(
+                        serviceCategory: em.trade,
+                        customerId: widget.user.uid,
+                        isEmergencyInitial: true,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 175,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: em.color.withValues(alpha: 0.3)),
+                    boxShadow: const [
                       BoxShadow(
                         color: Color(0x04000000),
                         blurRadius: 6,
                         offset: Offset(0, 2),
                       ),
                     ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: em.color.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(em.icon, color: em.color, size: 15),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              em.trade,
+                              style: TextStyle(
+                                color: em.color,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              em.label,
+                              style: const TextStyle(
+                                color: Color(0xFF141416),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  COOPERATIVE TRUST & GUARANTEE STRIP
+  // ──────────────────────────────────────────
+  Widget _buildCooperativeGuaranteeStrip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildMiniGuaranteeBadge("🛡️ 100% Guaranteed"),
+          Container(width: 1, height: 14, color: const Color(0xFFD1D5DB)),
+          _buildMiniGuaranteeBadge("💰 0% Platform Cut"),
+          Container(width: 1, height: 14, color: const Color(0xFFD1D5DB)),
+          _buildMiniGuaranteeBadge("⚡ Live Verified Pros"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniGuaranteeBadge(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Color(0xFF374151),
+        fontSize: 10.5,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.2,
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  CUSTOMER-SIDE DELETE BOOKING DIALOG (Retains for Admin)
+  // ──────────────────────────────────────────
+  void _confirmDeleteBooking(Booking booking) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 24),
+            SizedBox(width: 10),
+            Text(
+              "Remove Booking",
+              style: TextStyle(
+                color: Color(0xFF141416),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  dayName,
-                  style: const TextStyle(
-                    color: Color(0xFF9CA3AF),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Container(
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? const Color(0xFFFFB800) : const Color(0xFFD1D5DB),
-                  ),
-                ),
-                Text(
-                  dayNum,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : const Color(0xFF141416),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+          ],
+        ),
+        content: Text(
+          "Are you sure you want to remove this ${booking.serviceType} booking from your activity history? Co-op ledger and invoice records will remain securely archived for administrative audits.",
+          style: const TextStyle(
+            color: Color(0xFF4B5563),
+            fontSize: 13,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w700),
             ),
           ),
-        );
-      }),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              HapticFeedback.mediumImpact();
+              await _bookingService.hideBookingForCustomer(booking.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text("Booking removed from your history."),
+                    backgroundColor: const Color(0xFF141416),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("Remove", style: TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -791,17 +1251,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     flex: 11,
                     child: GestureDetector(
                       onTap: () {
-                        HapticFeedback.lightImpact();
                         if (active != null) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (ctx) => LiveBookingTrackerScreen(
-                                bookingId: active.id,
-                                initialBooking: active,
-                              ),
-                            ),
-                          );
+                          _navigateToActiveBooking(context, active);
                         } else {
+                          HapticFeedback.lightImpact();
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (ctx) => BookingCreationScreen(
@@ -1678,7 +2131,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   // ──────────────────────────────────────────
   Widget _buildTopArtisansSpotlight() {
     return StreamBuilder<List<Worker>>(
-      stream: _workerService.streamAvailableWorkers(skill: "All"),
+      stream: _workerService.streamAvailableWorkers(skill: "All", onlineOnly: false),
       builder: (context, snap) {
         final workers = snap.data ?? [];
         if (workers.isEmpty) return const SizedBox.shrink();
@@ -1729,9 +2182,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 itemCount: workers.length.clamp(0, 6),
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (context, idx) {
-                  final worker = workers[idx];
+                  final rawWorker = workers[idx];
+                  final worker = rawWorker.withCalculatedDistance(_customerLat, _customerLng);
                   return _ArtisanSpotlightCard(
                     worker: worker,
+                    customerLat: _customerLat,
+                    customerLng: _customerLng,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (ctx) => BookingCreationScreen(
@@ -1963,17 +2419,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           padding: const EdgeInsets.only(bottom: 14),
                           child: _BookingListTile(
                             booking: b,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (ctx) => LiveBookingTrackerScreen(
-                                    bookingId: b.id,
-                                    initialBooking: b,
-                                  ),
-                                ),
-                              );
-                            },
+                            onTap: () => _navigateToActiveBooking(context, b),
                             onBookAgain: () {
                               HapticFeedback.lightImpact();
                               Navigator.of(context).push(
@@ -1985,6 +2431,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 ),
                               );
                             },
+                            onDelete: () => _confirmDeleteBooking(b),
                           ),
                         );
                       },
@@ -2051,54 +2498,81 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ),
               ),
 
-              // OTP Pill with 1-tap Copy
-              GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: otp));
-                  HapticFeedback.lightImpact();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("OTP $otp copied to clipboard!"),
-                      backgroundColor: const Color(0xFF047857),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              // OTP Pill with 1-tap Copy (Only when accepted or in progress)
+              if (booking.status == BookingStatus.accepted ||
+                  booking.status == BookingStatus.inProgress)
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: otp));
+                    HapticFeedback.lightImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("OTP $otp copied to clipboard!"),
+                        backgroundColor: const Color(0xFF047857),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF59E0B)),
                     ),
-                  );
-                },
-                child: Container(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "START OTP: ",
+                          style: TextStyle(
+                            color: Color(0xFF78350F),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          otp,
+                          style: const TextStyle(
+                            color: Color(0xFFD97706),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.copy_rounded, color: Color(0xFFD97706), size: 12),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFF59E0B)),
+                    border: Border.all(color: const Color(0xFF93C5FD)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        "START OTP: ",
-                        style: TextStyle(
-                          color: Color(0xFF78350F),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                    children: const [
+                      Icon(Icons.radar_rounded, size: 12, color: Color(0xFF2563EB)),
+                      SizedBox(width: 4),
                       Text(
-                        otp,
-                        style: const TextStyle(
-                          color: Color(0xFFD97706),
-                          fontSize: 13,
+                        "BROADCASTING",
+                        style: TextStyle(
+                          color: Color(0xFF1D4ED8),
+                          fontSize: 10,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.copy_rounded, color: Color(0xFFD97706), size: 12),
                     ],
                   ),
                 ),
-              ),
             ],
           ),
 
@@ -2176,17 +2650,45 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               ElevatedButton.icon(
                 onPressed: () {
                   HapticFeedback.lightImpact();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (ctx) => LiveBookingTrackerScreen(
-                        bookingId: booking.id,
-                        initialBooking: booking,
+                  if (booking.status == BookingStatus.pending &&
+                      (booking.workerId == null || booking.workerId!.isEmpty)) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RapidoLiveBroadcastScreen(
+                          bookingId: booking.id,
+                          serviceCategory: booking.serviceType,
+                          initialAmount: booking.totalAmount,
+                          pickupAddress:
+                              booking.customerAddressText ?? "Your Service Location",
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (ctx) => LiveBookingTrackerScreen(
+                          bookingId: booking.id,
+                          initialBooking: booking,
+                        ),
+                      ),
+                    );
+                  }
                 },
-                icon: const Icon(Icons.navigation_rounded, size: 14, color: Colors.white),
-                label: const Text("Track GPS", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                icon: Icon(
+                  (booking.status == BookingStatus.pending &&
+                          (booking.workerId == null || booking.workerId!.isEmpty))
+                      ? Icons.radar_rounded
+                      : Icons.navigation_rounded,
+                  size: 14,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  (booking.status == BookingStatus.pending &&
+                          (booking.workerId == null || booking.workerId!.isEmpty))
+                      ? "View Radar"
+                      : "Track GPS",
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF141416),
                   foregroundColor: Colors.white,
@@ -3467,14 +3969,22 @@ class _QuickSolutionChipState extends State<_QuickSolutionChip>
 //  ARTISAN SPOTLIGHT CARD (Nearby Co-op Stars)
 // ──────────────────────────────────────────────────────
 class _ArtisanSpotlightCard extends StatelessWidget {
-  const _ArtisanSpotlightCard({required this.worker, required this.onTap});
+  const _ArtisanSpotlightCard({
+    required this.worker,
+    required this.onTap,
+    this.customerLat,
+    this.customerLng,
+  });
   final Worker worker;
   final VoidCallback onTap;
+  final double? customerLat;
+  final double? customerLng;
 
   @override
   Widget build(BuildContext context) {
     final trade = worker.skills.isNotEmpty ? worker.skills.first : "Artisan";
     final style = categoryStyle(trade);
+    final distanceText = worker.formattedDistanceString(customerLat, customerLng);
 
     return GestureDetector(
       onTap: onTap,
@@ -3501,6 +4011,7 @@ class _ArtisanSpotlightCard extends StatelessWidget {
               children: [
                 WorkGoAvatar(
                   name: worker.name.isNotEmpty ? worker.name : "Artisan",
+                  avatarBase64: worker.avatarBase64,
                   radius: 20,
                 ),
                 const SizedBox(width: 10),
@@ -3530,13 +4041,63 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Text(
-                        trade,
-                        style: TextStyle(
-                          color: style.accentColor ?? const Color(0xFF2563EB),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: worker.isOnlineOrCheckedIn
+                                  ? const Color(0xFFECFDF5)
+                                  : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: worker.isOnlineOrCheckedIn
+                                    ? const Color(0xFFA7F3D0)
+                                    : const Color(0xFFCBD5E1),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 5.5,
+                                  height: 5.5,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: worker.isOnlineOrCheckedIn
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                                const SizedBox(width: 3.5),
+                                Text(
+                                  worker.isOnlineOrCheckedIn ? "Checked In" : "Checked Out",
+                                  style: TextStyle(
+                                    color: worker.isOnlineOrCheckedIn
+                                        ? const Color(0xFF065F46)
+                                        : const Color(0xFF475569),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              trade,
+                              style: TextStyle(
+                                color: style.accentColor ?? const Color(0xFF2563EB),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -3553,21 +4114,24 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                     Text(
                       worker.avgRating > 0
                           ? worker.avgRating.toStringAsFixed(1)
-                          : "4.9",
+                          : (worker.totalRatings > 0 ? "5.0" : "New"),
                       style: const TextStyle(
                         color: Color(0xFF141416),
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    Text(
-                      " (${worker.totalReviews > 0 ? worker.totalReviews : 24})",
-                      style: const TextStyle(color: Color(0xFF6B7280), fontSize: 10),
-                    ),
+                    if (worker.totalReviews > 0 || worker.totalRatings > 0)
+                      Text(
+                        " (${worker.totalReviews > 0 ? worker.totalReviews : worker.totalRatings})",
+                        style: const TextStyle(color: Color(0xFF6B7280), fontSize: 10),
+                      ),
                   ],
                 ),
                 Text(
-                  "🏡 ${worker.homesServiced > 0 ? worker.homesServiced : 38} homes",
+                  worker.homesServiced > 0
+                      ? "🏡 ${worker.homesServiced} homes"
+                      : (worker.totalRatings > 0 ? "🏡 ${worker.totalRatings} jobs" : "🌟 Verified Pro"),
                   style: const TextStyle(
                     color: Color(0xFF059669),
                     fontSize: 10.5,
@@ -3580,7 +4144,7 @@ class _ArtisanSpotlightCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "📍 ${worker.distanceKm.toStringAsFixed(1)} km away",
+                  "📍 $distanceText",
                   style: const TextStyle(
                     color: Color(0xFF2563EB),
                     fontSize: 10.5,
@@ -3622,11 +4186,13 @@ class _BookingListTile extends StatelessWidget {
     required this.booking,
     required this.onTap,
     this.onBookAgain,
+    this.onDelete,
   });
 
   final Booking booking;
   final VoidCallback onTap;
   final VoidCallback? onBookAgain;
+  final VoidCallback? onDelete;
 
   AuroraBadgeStyle get _badgeStyle => switch (booking.status) {
     BookingStatus.completed => AuroraBadgeStyle.emerald,
@@ -3754,9 +4320,24 @@ class _BookingListTile extends StatelessWidget {
                   ],
                 ),
               ),
-              AuroraBadge(
-                label: booking.status.name.toUpperCase(),
-                style: _badgeStyle,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AuroraBadge(
+                    label: booking.status.name.toUpperCase(),
+                    style: _badgeStyle,
+                  ),
+                  if (onDelete != null && (isCompleted || booking.status == BookingStatus.cancelled)) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFF9CA3AF)),
+                      tooltip: "Remove from History",
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      onPressed: onDelete,
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

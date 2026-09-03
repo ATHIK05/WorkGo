@@ -502,6 +502,16 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
         ? _formattedAddress
         : "${_flatCtrl.text.trim()}, ${_streetCtrl.text.trim()}, ${_cityCtrl.text.trim()} ${_pincodeCtrl.text.trim()}";
 
+    double saveLat = _latitude;
+    double saveLng = _longitude;
+    try {
+      final geo = await LocationService().forwardGeocode(fullFormatted);
+      if (geo != null) {
+        saveLat = geo["latitude"] ?? saveLat;
+        saveLng = geo["longitude"] ?? saveLng;
+      }
+    } catch (_) {}
+
     final newAddress = UserAddress(
       id: widget.existingAddress?.id ?? "addr_${DateTime.now().millisecondsSinceEpoch}",
       label: _selectedLabel,
@@ -509,12 +519,12 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
       flatBuilding: _flatCtrl.text.trim(),
       streetArea: _streetCtrl.text.trim(),
       landmark: _landmarkCtrl.text.trim(),
-      city: _cityCtrl.text.trim().isNotEmpty ? _cityCtrl.text.trim() : "Chennai",
+      city: _cityCtrl.text.trim().isNotEmpty ? _cityCtrl.text.trim() : "Erode",
       state: "Tamil Nadu",
       pincode: _pincodeCtrl.text.trim(),
       formattedAddress: fullFormatted,
-      latitude: _latitude,
-      longitude: _longitude,
+      latitude: saveLat,
+      longitude: saveLng,
       isDefault: _isDefault,
       createdAt: widget.existingAddress?.createdAt ?? DateTime.now(),
     );

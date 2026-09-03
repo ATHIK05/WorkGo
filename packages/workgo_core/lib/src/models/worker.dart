@@ -1,3 +1,4 @@
+import 'dart:math';
 import "package:cloud_firestore/cloud_firestore.dart";
 import "user_address.dart";
 
@@ -377,14 +378,72 @@ class Worker {
   });
 
   bool get isTitan => isCheckedIn && availabilityStatus == AvailabilityStatus.online;
+  bool get isOnlineOrCheckedIn => isCheckedIn || availabilityStatus == AvailabilityStatus.online;
   bool get isApproved => verificationStatus == VerificationStatus.approved;
   bool get isPubliclyVisible => visibilityStatus == VisibilityStatus.public;
 
+  String? get avatarBase64 =>
+      verificationDetails?.selfieBase64 ??
+      verificationDetails?.selfieCenterBase64 ??
+      verificationDetails?.aadhaarPhotoBase64;
+
+  /// Calculate real-time geodesic distance in kilometers to a given customer coordinate.
+  double calculateDistanceKm(double? custLat, double? custLng) {
+    if (custLat == null || custLng == null || custLat <= 1.0 || custLng <= 1.0) {
+      return distanceKm > 0 ? distanceKm : 1.0;
+    }
+    final wLat = latitude;
+    final wLng = longitude;
+    if (wLat == null || wLng == null || wLat <= 1.0 || wLng <= 1.0) {
+      return distanceKm > 0 ? distanceKm : 1.0;
+    }
+
+    // High-accuracy geodesic distance using Haversine formula
+    const p = 0.017453292519943295; // Math.PI / 180
+    final a = 0.5 -
+        cos((wLat - custLat) * p) / 2 +
+        cos(custLat * p) *
+            cos(wLat * p) *
+            (1 - cos((wLng - custLng) * p)) /
+            2;
+    final clampedA = a.clamp(0.0, 1.0);
+    return 12742.0 * asin(sqrt(clampedA)); // 2 * R; R = 6371 km
+  }
+
+  /// Formatted distance string (e.g. "45 m away", "1.4 km away", "At your doorstep").
+  String formattedDistanceString(double? custLat, double? custLng) {
+    if (custLat == null || custLng == null || custLat <= 1.0 || custLng <= 1.0 ||
+        latitude == null || longitude == null || latitude! <= 1.0 || longitude! <= 1.0) {
+      return distanceKm > 0 ? "${distanceKm.toStringAsFixed(1)} km away" : "Nearby";
+    }
+
+    final km = calculateDistanceKm(custLat, custLng);
+    if (km <= 0.04) {
+      return "At your doorstep";
+    } else if (km < 1.0) {
+      final meters = (km * 1000).round();
+      return "$meters m away";
+    } else {
+      return "${km.toStringAsFixed(1)} km away";
+    }
+  }
+
+  /// Creates a copy of Worker with distanceKm updated to the real-time distance from customer.
+  Worker withCalculatedDistance(double? custLat, double? custLng) {
+    if (custLat == null || custLng == null || custLat <= 1.0 || custLng <= 1.0 ||
+        latitude == null || longitude == null || latitude! <= 1.0 || longitude! <= 1.0) {
+      return this;
+    }
+    final km = calculateDistanceKm(custLat, custLng);
+    return copyWith(distanceKm: km);
+  }
+
   factory Worker.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
-    final totalRatings = d["totalRatings"] ?? 0;
-    final totalReviews = d["totalReviews"] ?? (totalRatings > 0 ? (totalRatings * 0.8).round() : 0);
-    final homesServiced = d["homesServiced"] ?? (totalRatings > 0 ? totalRatings * 2 + 5 : 0);
+    final totalRatings = (d["totalRatings"] as num?)?.toInt() ?? 0;
+    final totalReviews = (d["totalReviews"] as num?)?.toInt() ?? (totalRatings > 0 ? (totalRatings * 0.8).round() : 0);
+    final homesServiced = (d["homesServiced"] as num?)?.toInt() ?? (totalRatings > 0 ? totalRatings * 2 + 5 : 0);
+    final expYears = (d["experienceYears"] as num?)?.toInt() ?? 2;
     final rawName = d["name"] ?? d["displayName"] ?? d["artisanName"];
     final defaultName = d["isProxy"] == true ? "Artisan Partner" : "Co-op Artisan";
     final rawVerStatus = d["verificationStatus"] ?? (d["verified"] == true ? "approved" : "pending");
@@ -429,20 +488,27 @@ class Worker {
         baseAddr?.longitude ??
         (addrList.isNotEmpty ? addrList.first.longitude : null);
 
-    // Fallback: If location indicates Perundurai / MBA Block, resolve to campus coordinates
-    final combinedAddressText = "${d["baseAddress"]} ${d["currentAddress"]} ${d["baseArea"]} ${d["serviceLocation"]} ${d["primaryArea"]} ${baseAddr?.formattedAddress ?? ''}".toLowerCase();
-    if (lat == null && (combinedAddressText.contains("perundurai") || combinedAddressText.contains("mba") || combinedAddressText.contains("kongu"))) {
-      lat = 11.2743;
-      lng = 77.5866;
+    List<String> parsedSkills = [];
+    if (d["skills"] is List) {
+      parsedSkills = List<String>.from((d["skills"] as List).map((e) => e.toString()));
+    } else if (d["skills"] is String && (d["skills"] as String).trim().isNotEmpty) {
+      parsedSkills = [(d["skills"] as String).trim()];
+    } else if (d["skill"] is String && (d["skill"] as String).trim().isNotEmpty) {
+      parsedSkills = [(d["skill"] as String).trim()];
+    } else if (d["trade"] is String && (d["trade"] as String).trim().isNotEmpty) {
+      parsedSkills = [(d["trade"] as String).trim()];
     }
+
+    final bool isOnlineOrChecked = (d["availabilityStatus"] == "online") || (d["isCheckedIn"] == true);
+    final availStatus = isOnlineOrChecked ? AvailabilityStatus.online : AvailabilityStatus.offline;
 
     return Worker(
       id: doc.id,
       userId: d["userId"] ?? doc.id,
       name: (rawName != null && rawName.toString().isNotEmpty) ? rawName : defaultName,
       organizationId: d["organizationId"] ?? "coop_tn_01",
-      skills: List<String>.from(d["skills"] ?? []),
-      experienceYears: d["experienceYears"] ?? 2,
+      skills: parsedSkills,
+      experienceYears: expYears,
       isProxy: d["isProxy"] ?? false,
       proxyReferrerId: d["proxyReferrerId"],
       phoneForCalling: d["phoneForCalling"],
@@ -456,14 +522,11 @@ class Worker {
       homesServiced: homesServiced,
       location: geoPoint ?? (lat != null && lng != null ? GeoPoint(lat, lng) : null),
       serviceRadiusKm: (d["serviceRadiusKm"] ?? 5.0).toDouble(),
-      distanceKm: (d["distanceKm"] ?? 2.4).toDouble(),
+      distanceKm: (d["distanceKm"] as num?)?.toDouble() ?? 1.0,
       baseRate: (d["baseRate"] ?? 149.0).toDouble(),
       perKmRate: (d["perKmRate"] ?? 12.0).toDouble(),
       verificationBadge: d["verificationBadge"] ?? (rawVerStatus == "approved" ? "Co-op Certified" : ""),
-      availabilityStatus: AvailabilityStatus.values.firstWhere(
-        (a) => a.name == (d["availabilityStatus"] ?? "offline"),
-        orElse: () => AvailabilityStatus.offline,
-      ),
+      availabilityStatus: availStatus,
       insuranceStatus: d["insuranceStatus"] ?? false,
       welfareSchemeId: d["welfareSchemeId"],
       workingHoursStart: d["workingHoursStart"] ?? "08:00",
@@ -474,7 +537,7 @@ class Worker {
       referralEarnings: (d["referralEarnings"] ?? 0.0).toDouble(),
       secondLineReferralIds: List<String>.from(d["secondLineReferralIds"] ?? []),
       engagementMode: d["engagementMode"] ?? "passion",
-      isCheckedIn: (d["isCheckedIn"] == true) && (d["availabilityStatus"] == "online"),
+      isCheckedIn: isOnlineOrChecked,
       checkedInAt: (d["checkedInAt"] as Timestamp?)?.toDate(),
       passionBio: d["passionBio"],
       addresses: addrList,
