@@ -345,7 +345,7 @@
   "authenticity_flagged": "संदिग्ध मेटाडेटा / डिफ्यूजन मार्कर मिले",
   "audit_history_title": "ऑनबोर्डिंग और सत्यापन ऑडिट ट्रेल",
   "approve_mint_c2pa_btn": "स्वीकृत करें और C2PA बैज जारी करें",
-  "reject_worker_btn": "आवेदन अस्वीकार करें",
+  "reject_worker_application_btn": "आवेदन अस्वीकार करें",
   "rejection_reason_hint": "अस्वीकृति का कारण दर्ज करें...",
   "report_artisan_title": "कारीगर की रिपोर्ट करें",
   "report_artisan_desc": "यदि आपने सुरक्षा उल्लंघन का सामना किया है, तो तुरंत रिपोर्ट करें।",

@@ -24,10 +24,33 @@ class Booking {
   final String? startOtp;
   final double? workerLatitude;
   final double? workerLongitude;
+  final double? workerHeading;
+  final DateTime? workerLocationUpdatedAt;
   final String? customerAddressText;
   final double? customerLatitude;
   final double? customerLongitude;
   final bool deletedByCustomer;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+
+  // AI Diagnostic & Specialist Handoff extensions
+  final String bookingType; // 'direct', 'broadcast', 'diagnostic'
+  final String? symptomDescription;
+  final String? customerIssueDetails;
+  final String? equipmentTag;
+  final List<String> suggestedToolsNeeded;
+  final double diagnosticFee;
+  final bool isFeeCredited;
+  final String? handoffStatus; // 'none', 'requested', 'accepted', 'completed'
+  final String? handoffFromWorkerId;
+  final String? handoffFromWorkerName;
+  final String? handoffDiagnosisNotes;
+  final String? handoffToWorkerId;
+  final String? handoffToWorkerName;
+  final double handoffReferralDividend;
+  final DateTime? handoffRequestedAt;
+  final DateTime? handoffAcceptedAt;
+  final List<Map<String, dynamic>> handoffLogs;
 
   Booking({
     required this.id,
@@ -50,13 +73,36 @@ class Booking {
     this.startOtp,
     this.workerLatitude,
     this.workerLongitude,
+    this.workerHeading,
+    this.workerLocationUpdatedAt,
     this.customerAddressText,
     this.customerLatitude,
     this.customerLongitude,
     this.deletedByCustomer = false,
+    this.startedAt,
+    this.completedAt,
+    this.bookingType = 'direct',
+    this.symptomDescription,
+    this.customerIssueDetails,
+    this.equipmentTag,
+    this.suggestedToolsNeeded = const [],
+    this.diagnosticFee = 0.0,
+    this.isFeeCredited = false,
+    this.handoffStatus = 'none',
+    this.handoffFromWorkerId,
+    this.handoffFromWorkerName,
+    this.handoffDiagnosisNotes,
+    this.handoffToWorkerId,
+    this.handoffToWorkerName,
+    this.handoffReferralDividend = 0.0,
+    this.handoffRequestedAt,
+    this.handoffAcceptedAt,
+    this.handoffLogs = const [],
   });
 
   double get totalAmount => amount + urgencyBonus;
+  bool get isDiagnosticVisit => bookingType == 'diagnostic' || diagnosticFee > 0;
+  bool get hasActiveHandoff => handoffStatus == 'requested' || handoffStatus == 'accepted';
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
@@ -87,10 +133,34 @@ class Booking {
       startOtp: d["startOtp"],
       workerLatitude: (d["workerLatitude"] as num?)?.toDouble(),
       workerLongitude: (d["workerLongitude"] as num?)?.toDouble(),
+      workerHeading: (d["workerHeading"] as num?)?.toDouble(),
+      workerLocationUpdatedAt: (d["workerLocationUpdatedAt"] as Timestamp?)?.toDate(),
       customerAddressText: d["customerAddressText"],
       customerLatitude: (d["customerLatitude"] as num?)?.toDouble(),
       customerLongitude: (d["customerLongitude"] as num?)?.toDouble(),
       deletedByCustomer: d["deletedByCustomer"] ?? d["hiddenForCustomer"] ?? false,
+      startedAt: (d["startedAt"] as Timestamp?)?.toDate(),
+      completedAt: (d["completedAt"] as Timestamp?)?.toDate(),
+      bookingType: d["bookingType"] ?? 'direct',
+      symptomDescription: d["symptomDescription"],
+      customerIssueDetails: d["customerIssueDetails"] ?? d["issueNotes"] ?? d["customerNotes"],
+      equipmentTag: d["equipmentTag"],
+      suggestedToolsNeeded: List<String>.from(d["suggestedToolsNeeded"] ?? []),
+      diagnosticFee: (d["diagnosticFee"] as num?)?.toDouble() ?? 0.0,
+      isFeeCredited: d["isFeeCredited"] ?? false,
+      handoffStatus: d["handoffStatus"] ?? 'none',
+      handoffFromWorkerId: d["handoffFromWorkerId"],
+      handoffFromWorkerName: d["handoffFromWorkerName"],
+      handoffDiagnosisNotes: d["handoffDiagnosisNotes"],
+      handoffToWorkerId: d["handoffToWorkerId"],
+      handoffToWorkerName: d["handoffToWorkerName"],
+      handoffReferralDividend: (d["handoffReferralDividend"] as num?)?.toDouble() ?? 0.0,
+      handoffRequestedAt: (d["handoffRequestedAt"] as Timestamp?)?.toDate(),
+      handoffAcceptedAt: (d["handoffAcceptedAt"] as Timestamp?)?.toDate(),
+      handoffLogs: (d["handoffLogs"] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          const [],
     );
   }
 
@@ -115,9 +185,30 @@ class Booking {
     "startOtp": startOtp,
     "workerLatitude": workerLatitude,
     "workerLongitude": workerLongitude,
+    "workerHeading": workerHeading,
+    "workerLocationUpdatedAt": workerLocationUpdatedAt != null ? Timestamp.fromDate(workerLocationUpdatedAt!) : null,
     "customerAddressText": customerAddressText,
     "customerLatitude": customerLatitude,
     "customerLongitude": customerLongitude,
+    "startedAt": startedAt != null ? Timestamp.fromDate(startedAt!) : null,
+    "completedAt": completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+    "bookingType": bookingType,
+    "symptomDescription": symptomDescription,
+    "customerIssueDetails": customerIssueDetails,
+    "equipmentTag": equipmentTag,
+    "suggestedToolsNeeded": suggestedToolsNeeded,
+    "diagnosticFee": diagnosticFee,
+    "isFeeCredited": isFeeCredited,
+    "handoffStatus": handoffStatus,
+    "handoffFromWorkerId": handoffFromWorkerId,
+    "handoffFromWorkerName": handoffFromWorkerName,
+    "handoffDiagnosisNotes": handoffDiagnosisNotes,
+    "handoffToWorkerId": handoffToWorkerId,
+    "handoffToWorkerName": handoffToWorkerName,
+    "handoffReferralDividend": handoffReferralDividend,
+    "handoffRequestedAt": handoffRequestedAt != null ? Timestamp.fromDate(handoffRequestedAt!) : null,
+    "handoffAcceptedAt": handoffAcceptedAt != null ? Timestamp.fromDate(handoffAcceptedAt!) : null,
+    "handoffLogs": handoffLogs,
   };
 
   Booking copyWith({
@@ -141,9 +232,31 @@ class Booking {
     String? startOtp,
     double? workerLatitude,
     double? workerLongitude,
+    double? workerHeading,
+    DateTime? workerLocationUpdatedAt,
     String? customerAddressText,
     double? customerLatitude,
     double? customerLongitude,
+    bool? deletedByCustomer,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    String? bookingType,
+    String? symptomDescription,
+    String? customerIssueDetails,
+    String? equipmentTag,
+    List<String>? suggestedToolsNeeded,
+    double? diagnosticFee,
+    bool? isFeeCredited,
+    String? handoffStatus,
+    String? handoffFromWorkerId,
+    String? handoffFromWorkerName,
+    String? handoffDiagnosisNotes,
+    String? handoffToWorkerId,
+    String? handoffToWorkerName,
+    double? handoffReferralDividend,
+    DateTime? handoffRequestedAt,
+    DateTime? handoffAcceptedAt,
+    List<Map<String, dynamic>>? handoffLogs,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -166,9 +279,31 @@ class Booking {
       startOtp: startOtp ?? this.startOtp,
       workerLatitude: workerLatitude ?? this.workerLatitude,
       workerLongitude: workerLongitude ?? this.workerLongitude,
+      workerHeading: workerHeading ?? this.workerHeading,
+      workerLocationUpdatedAt: workerLocationUpdatedAt ?? this.workerLocationUpdatedAt,
       customerAddressText: customerAddressText ?? this.customerAddressText,
       customerLatitude: customerLatitude ?? this.customerLatitude,
       customerLongitude: customerLongitude ?? this.customerLongitude,
+      deletedByCustomer: deletedByCustomer ?? this.deletedByCustomer,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      bookingType: bookingType ?? this.bookingType,
+      symptomDescription: symptomDescription ?? this.symptomDescription,
+      customerIssueDetails: customerIssueDetails ?? this.customerIssueDetails,
+      equipmentTag: equipmentTag ?? this.equipmentTag,
+      suggestedToolsNeeded: suggestedToolsNeeded ?? this.suggestedToolsNeeded,
+      diagnosticFee: diagnosticFee ?? this.diagnosticFee,
+      isFeeCredited: isFeeCredited ?? this.isFeeCredited,
+      handoffStatus: handoffStatus ?? this.handoffStatus,
+      handoffFromWorkerId: handoffFromWorkerId ?? this.handoffFromWorkerId,
+      handoffFromWorkerName: handoffFromWorkerName ?? this.handoffFromWorkerName,
+      handoffDiagnosisNotes: handoffDiagnosisNotes ?? this.handoffDiagnosisNotes,
+      handoffToWorkerId: handoffToWorkerId ?? this.handoffToWorkerId,
+      handoffToWorkerName: handoffToWorkerName ?? this.handoffToWorkerName,
+      handoffReferralDividend: handoffReferralDividend ?? this.handoffReferralDividend,
+      handoffRequestedAt: handoffRequestedAt ?? this.handoffRequestedAt,
+      handoffAcceptedAt: handoffAcceptedAt ?? this.handoffAcceptedAt,
+      handoffLogs: handoffLogs ?? this.handoffLogs,
     );
   }
 }

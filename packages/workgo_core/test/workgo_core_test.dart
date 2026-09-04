@@ -214,6 +214,106 @@ void main() {
     expect(map["startOtp"], "8492");
     expect(map["customerAddressText"], "1148 E Main St, Thanjavur");
   });
+
+  test("Worker geodesic distance calculation and formatting works accurately", () {
+    // Customer at Erode Bus Stand: 11.3445, 77.7327
+    const custLat = 11.3445;
+    const custLng = 77.7327;
+
+    // 1. Worker at Perundurai Hub: 11.2743, 77.5866 (~17.7 km away)
+    final workerPerundurai = Worker(
+      id: "w_pnd_01",
+      userId: "u_pnd_01",
+      name: "Senthil Kumar",
+      skills: ["Electrical"],
+      experienceYears: 4,
+      verificationStatus: VerificationStatus.approved,
+      latitude: 11.2743,
+      longitude: 77.5866,
+    );
+
+    final distKm = workerPerundurai.calculateDistanceKm(custLat, custLng);
+    expect(distKm, greaterThan(16.0));
+    expect(distKm, lessThan(19.0));
+    expect(workerPerundurai.formattedDistanceString(custLat, custLng), contains("km away"));
+
+    // 2. Worker 30 meters away (Doorstep test)
+    // 0.0002 deg lat ~ 22 meters
+    final workerDoorstep = Worker(
+      id: "w_doorstep_01",
+      userId: "u_doorstep_01",
+      name: "Ramesh P.",
+      skills: ["Plumbing"],
+      experienceYears: 5,
+      verificationStatus: VerificationStatus.approved,
+      latitude: custLat + 0.0002,
+      longitude: custLng,
+    );
+    expect(workerDoorstep.formattedDistanceString(custLat, custLng), "At your doorstep");
+
+    // 3. Worker 450 meters away (Sub-km test)
+    // 0.004 deg lat ~ 445 meters
+    final workerSubKm = Worker(
+      id: "w_subkm_01",
+      userId: "u_subkm_01",
+      name: "Vignesh T.",
+      skills: ["Carpentry"],
+      experienceYears: 3,
+      verificationStatus: VerificationStatus.approved,
+      latitude: custLat + 0.004,
+      longitude: custLng,
+    );
+    final subKmStr = workerSubKm.formattedDistanceString(custLat, custLng);
+    expect(subKmStr, contains("m away"));
+    expect(subKmStr, isNot(contains("km away")));
+
+    // 4. withCalculatedDistance updates distanceKm field
+    final updatedWorker = workerPerundurai.withCalculatedDistance(custLat, custLng);
+    expect(updatedWorker.distanceKm, distKm);
+
+    // 5. Fallback handling when coordinates are truly missing
+    final workerNoLoc = Worker(
+      id: "w_noloc_01",
+      userId: "u_noloc_01",
+      name: "Mani K.",
+      skills: ["Masonry"],
+      experienceYears: 2,
+      verificationStatus: VerificationStatus.approved,
+      distanceKm: 2.4, // constructor default
+    );
+    // When customer location is null, should show "Nearby", NOT fake "2.4 km away"
+    expect(workerNoLoc.formattedDistanceString(null, null), "Nearby");
+  });
+
+  test("Booking model preserves startedAt and completedAt timestamps", () {
+    final now = DateTime.now();
+    final startedTime = now.subtract(const Duration(minutes: 15));
+    final completedTime = now;
+
+    final booking = Booking(
+      id: "b_test_started_01",
+      customerId: "cust_01",
+      workerId: "work_01",
+      organizationId: "org_01",
+      serviceType: "Electrical",
+      status: BookingStatus.inProgress,
+      startOtp: "6321",
+      startedAt: startedTime,
+    );
+
+    expect(booking.startedAt, startedTime);
+    expect(booking.status, BookingStatus.inProgress);
+    expect(booking.completedAt, isNull);
+
+    final completedBooking = booking.copyWith(
+      status: BookingStatus.completed,
+      completedAt: completedTime,
+    );
+
+    expect(completedBooking.status, BookingStatus.completed);
+    expect(completedBooking.startedAt, startedTime);
+    expect(completedBooking.completedAt, completedTime);
+  });
 }
 
 

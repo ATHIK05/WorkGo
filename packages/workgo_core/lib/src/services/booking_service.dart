@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking.dart';
 import '../models/worker.dart';
+import '../localization/trade_localization.dart';
 
 class BookingService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -54,6 +55,7 @@ class BookingService {
     String? customerAddressText,
     double? customerLatitude,
     double? customerLongitude,
+    String? customerIssueDetails,
   }) async {
     final docRef = _db.collection("bookings").doc();
 
@@ -82,6 +84,7 @@ class BookingService {
       customerAddressText: customerAddressText,
       customerLatitude: customerLatitude,
       customerLongitude: customerLongitude,
+      customerIssueDetails: customerIssueDetails,
     );
 
     await docRef.set(booking.toFirestore());
@@ -112,7 +115,9 @@ class BookingService {
             final isOnline = data["availabilityStatus"] == "online" || data["availabilityStatus"] == null;
             final isNotRejected = data["verificationStatus"] != "rejected";
             final isPublic = data["visibilityStatus"] == "public" || data["visibilityStatus"] == null;
-            final matchesSkill = serviceType.isEmpty || serviceType == "All" || skills.contains(serviceType);
+            final matchesSkill = serviceType.isEmpty ||
+                serviceType == "All" ||
+                skills.any((s) => s.matchesTrade(serviceType));
             return isNotRejected && isOnline && isPublic && matchesSkill;
           }).length;
           return matching;
@@ -135,7 +140,7 @@ class BookingService {
               data["visibilityStatus"] != "suspended";
           final matchesSkill = serviceType.isEmpty ||
               serviceType == "All" ||
-              skills.contains(serviceType);
+              skills.any((s) => s.matchesTrade(serviceType));
 
           if (isOnline && isNotRejected && isVisible && matchesSkill) {
             list.add(Worker.fromFirestore(doc));
@@ -148,21 +153,28 @@ class BookingService {
 
   // ── Worker Streams & Operations ────────────────────────────────────────────
 
-  /// Stream incoming pending requests for a worker / skill.
+  /// Stream incoming pending requests for a worker / skill, including specialist relay requests.
   Stream<List<Booking>> streamWorkerIncomingRequests({
     required String workerId,
     required List<String> skills,
   }) {
     return _db
         .collection("bookings")
-        .where("status", isEqualTo: "pending")
         .snapshots()
         .map((snap) {
           return snap.docs
               .map((d) => Booking.fromFirestore(d))
-              .where((b) =>
-                  (b.workerId == null || b.workerId == workerId || b.referredByWorkerId == workerId) &&
-                  (skills.isEmpty || skills.contains(b.serviceType)))
+              .where((b) {
+                // Incoming handoff relay directly targeted to this artisan
+                final isRelayTarget = b.handoffStatus == 'requested' && b.handoffToWorkerId == workerId;
+                if (isRelayTarget) return true;
+
+                // Standard pending requests
+                final isPending = b.status == BookingStatus.pending;
+                final isAssignedOrBroadcast = b.workerId == null || b.workerId == workerId || b.referredByWorkerId == workerId;
+                final matchesSkill = skills.isEmpty || skills.any((s) => s.matchesTrade(b.serviceType));
+                return isPending && isAssignedOrBroadcast && matchesSkill;
+              })
               .toList();
         });
   }
@@ -174,6 +186,23 @@ class BookingService {
         .where("workerId", isEqualTo: workerId)
         .snapshots()
         .map((snap) => snap.docs.map((d) => Booking.fromFirestore(d)).toList());
+  }
+
+  /// Stream the single ongoing active booking assigned to a worker (accepted or inProgress).
+  Stream<Booking?> streamCurrentActiveJob(String workerId) {
+    return _db
+        .collection("bookings")
+        .where("workerId", isEqualTo: workerId)
+        .snapshots()
+        .map((snap) {
+          final activeJobs = snap.docs
+              .map((d) => Booking.fromFirestore(d))
+              .where((b) =>
+                  b.status == BookingStatus.accepted ||
+                  b.status == BookingStatus.inProgress)
+              .toList();
+          return activeJobs.isNotEmpty ? activeJobs.first : null;
+        });
   }
 
   /// Worker accepts a booking. Atomically locks the job and sets worker location.
@@ -198,7 +227,7 @@ class BookingService {
   }
 
   /// Verify Start Job OTP entered by the artisan at the customer doorstep.
-  /// If valid, atomically moves status to inProgress.
+  /// If valid, atomically moves status to inProgress and records startedAt timestamp.
   Future<bool> verifyStartOtp({
     required String bookingId,
     required String enteredOtp,
@@ -211,14 +240,19 @@ class BookingService {
     final data = doc.data()!;
     final expectedOtp = data["startOtp"]?.toString().trim();
 
+    final Map<String, dynamic> progressData = {
+      "status": BookingStatus.inProgress.name,
+      "startedAt": FieldValue.serverTimestamp(),
+    };
+
     if (expectedOtp == null || expectedOtp.isEmpty) {
       // Fallback: If no OTP was attached, allow start
-      await updateBookingStatus(bookingId, BookingStatus.inProgress);
+      await _db.collection("bookings").doc(bookingId).update(progressData);
       return true;
     }
 
     if (expectedOtp == enteredOtp.trim()) {
-      await updateBookingStatus(bookingId, BookingStatus.inProgress);
+      await _db.collection("bookings").doc(bookingId).update(progressData);
       return true;
     } else {
       return false;
@@ -249,14 +283,38 @@ class BookingService {
     });
   }
 
-  /// Update booking progress status (inProgress, completed, cancelled).
+  /// Update booking progress status (inProgress, completed, cancelled) with timestamps.
   Future<void> updateBookingStatus(
     String bookingId,
     BookingStatus status,
   ) async {
-    await _db.collection("bookings").doc(bookingId).update({
+    final Map<String, dynamic> updateData = {
       "status": status.name,
-    });
+    };
+    if (status == BookingStatus.inProgress) {
+      updateData["startedAt"] = FieldValue.serverTimestamp();
+    } else if (status == BookingStatus.completed) {
+      updateData["completedAt"] = FieldValue.serverTimestamp();
+    }
+    await _db.collection("bookings").doc(bookingId).update(updateData);
+  }
+
+  /// Update the live worker GPS coordinates and heading on an active booking in real time.
+  Future<void> updateLiveWorkerLocation({
+    required String bookingId,
+    required double latitude,
+    required double longitude,
+    double? heading,
+  }) async {
+    final data = <String, dynamic>{
+      "workerLatitude": latitude,
+      "workerLongitude": longitude,
+      "workerLocationUpdatedAt": FieldValue.serverTimestamp(),
+    };
+    if (heading != null) {
+      data["workerHeading"] = heading;
+    }
+    await _db.collection("bookings").doc(bookingId).update(data);
   }
 
   /// Mark booking payment as paid.
@@ -276,5 +334,240 @@ class BookingService {
     return query.snapshots().map(
       (snap) => snap.docs.map((d) => Booking.fromFirestore(d)).toList(),
     );
+  }
+
+  // ── AI Diagnostic & Specialist Relay Operations ────────────────────────────
+
+  /// Creates an on-site Smart Diagnostic Visit (₹99 — 100% credited against repair bill).
+  Future<String> createDiagnosticBooking({
+    required String customerId,
+    required String primaryCategory,
+    required String symptomDescription,
+    required String equipmentTag,
+    String? customerIssueDetails,
+    List<String>? suggestedToolsNeeded,
+    String? workerId,
+    String? acceptedWorkerName,
+    double? workerLatitude,
+    double? workerLongitude,
+    String organizationId = "coop_tn_01",
+    GeoPoint? location,
+    String? customerAddressText,
+    double? customerLatitude,
+    double? customerLongitude,
+    double diagnosticFee = 99.0,
+  }) async {
+    final docRef = _db.collection("bookings").doc();
+    final randomOtp = (1000 + Random().nextInt(9000)).toString();
+
+    final booking = Booking(
+      id: docRef.id,
+      customerId: customerId,
+      workerId: workerId,
+      acceptedWorkerName: acceptedWorkerName,
+      workerLatitude: workerLatitude,
+      workerLongitude: workerLongitude,
+      organizationId: organizationId,
+      serviceType: primaryCategory.toCanonicalTrade(),
+      isEmergency: false,
+      scheduledAt: DateTime.now(),
+      status: workerId != null ? BookingStatus.accepted : BookingStatus.pending,
+      amount: diagnosticFee,
+      urgencyBonus: 0.0,
+      broadcastRadiusKm: 12.0,
+      broadcastExpiresAt: DateTime.now().add(const Duration(minutes: 10)),
+      paymentStatus: PaymentStatus.unpaid,
+      location: location,
+      startOtp: randomOtp,
+      customerAddressText: customerAddressText,
+      customerLatitude: customerLatitude,
+      customerLongitude: customerLongitude,
+      bookingType: 'diagnostic',
+      symptomDescription: symptomDescription,
+      customerIssueDetails: customerIssueDetails,
+      equipmentTag: equipmentTag,
+      suggestedToolsNeeded: suggestedToolsNeeded ?? const [],
+      diagnosticFee: diagnosticFee,
+      isFeeCredited: false,
+      handoffStatus: 'none',
+      handoffLogs: [
+        {
+          "timestamp": Timestamp.now(),
+          "action": "diagnostic_visit_created",
+          "equipmentTag": equipmentTag,
+          "symptom": symptomDescription,
+          "customerIssueDetails": customerIssueDetails ?? "",
+          "suggestedTools": suggestedToolsNeeded ?? [],
+          "fee": diagnosticFee,
+        }
+      ],
+    );
+
+    await docRef.set(booking.toFirestore());
+    return docRef.id;
+  }
+
+  /// Worker A requests a specialist handoff after diagnosing root cause out of scope.
+  Future<void> requestBookingHandoff({
+    required String bookingId,
+    required String fromWorkerId,
+    required String fromWorkerName,
+    required String toWorkerId,
+    required String toWorkerName,
+    required String diagnosisNotes,
+    double referralDividend = 50.0,
+  }) async {
+    final docRef = _db.collection("bookings").doc(bookingId);
+    final logEntry = {
+      "timestamp": Timestamp.now(),
+      "action": "handoff_requested",
+      "fromWorkerId": fromWorkerId,
+      "fromWorkerName": fromWorkerName,
+      "toWorkerId": toWorkerId,
+      "toWorkerName": toWorkerName,
+      "notes": diagnosisNotes,
+      "dividend": referralDividend,
+    };
+
+    await docRef.update({
+      "handoffStatus": "requested",
+      "handoffFromWorkerId": fromWorkerId,
+      "handoffFromWorkerName": fromWorkerName,
+      "handoffToWorkerId": toWorkerId,
+      "handoffToWorkerName": toWorkerName,
+      "handoffDiagnosisNotes": diagnosisNotes,
+      "handoffReferralDividend": referralDividend,
+      "handoffRequestedAt": FieldValue.serverTimestamp(),
+      "handoffLogs": FieldValue.arrayUnion([logEntry]),
+    });
+  }
+
+  /// Specialist Worker B reviews pre-inspection diagnosis notes and explicitly acknowledges & accepts.
+  Future<void> acknowledgeAndAcceptHandoff({
+    required String bookingId,
+    required String specialistWorkerId,
+    required String specialistWorkerName,
+    double? initialWorkerLat,
+    double? initialWorkerLng,
+  }) async {
+    final docRef = _db.collection("bookings").doc(bookingId);
+    final logEntry = {
+      "timestamp": Timestamp.now(),
+      "action": "handoff_accepted",
+      "specialistWorkerId": specialistWorkerId,
+      "specialistWorkerName": specialistWorkerName,
+      "acknowledged": true,
+    };
+
+    final Map<String, dynamic> updateData = {
+      "workerId": specialistWorkerId,
+      "acceptedWorkerName": specialistWorkerName,
+      "handoffStatus": "accepted",
+      "status": BookingStatus.accepted.name,
+      "handoffAcceptedAt": FieldValue.serverTimestamp(),
+      "handoffLogs": FieldValue.arrayUnion([logEntry]),
+    };
+
+    if (initialWorkerLat != null && initialWorkerLng != null) {
+      updateData["workerLatitude"] = initialWorkerLat;
+      updateData["workerLongitude"] = initialWorkerLng;
+    }
+
+    await docRef.update(updateData);
+  }
+
+  /// Stream handoff requests specifically targeted to this specialist artisan.
+  Stream<List<Booking>> streamWorkerHandoffRequests(String workerId) {
+    return _db
+        .collection("bookings")
+        .where("handoffToWorkerId", isEqualTo: workerId)
+        .where("handoffStatus", isEqualTo: "requested")
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => Booking.fromFirestore(d)).toList());
+  }
+
+  /// Artisan adds/updates equipment tags & service keywords in Karya to boost profile match strength.
+  Future<void> saveWorkerKeywords({
+    required String workerId,
+    required List<String> equipmentTags,
+    required List<String> serviceKeywords,
+  }) async {
+    await _db.collection("workers").doc(workerId).set({
+      "equipmentTags": equipmentTags,
+      "serviceKeywords": serviceKeywords,
+      "keywordsUpdatedAt": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Stream real specialists matching the diagnosed trade and equipment tags in real-time.
+  Stream<List<Worker>> streamSpecializedWorkers({
+    required String primaryCategory,
+    String? secondaryCategory,
+    String? equipmentTag,
+    List<String> keywords = const [],
+  }) {
+    return _db.collection("workers").snapshots().map((snap) {
+      final list = <Worker>[];
+      for (final doc in snap.docs) {
+        try {
+          final w = Worker.fromFirestore(doc);
+          if (w.verificationStatus == VerificationStatus.rejected) continue;
+          if (w.visibilityStatus == VisibilityStatus.hidden || w.visibilityStatus == VisibilityStatus.suspended) continue;
+
+          // Must match primary trade or secondary trade (flexible cluster matching)
+          final matchesPrimary = w.matchesTradeCategory(primaryCategory);
+          final matchesSecondary = secondaryCategory != null &&
+              secondaryCategory.isNotEmpty &&
+              w.matchesTradeCategory(secondaryCategory);
+
+          if (!matchesPrimary && !matchesSecondary) continue;
+
+          list.add(w);
+        } catch (_) {}
+      }
+
+      // Sort by relevance:
+      // 1. Matches equipmentTag or keywords
+      // 2. Online/Checked-in first
+      // 3. Higher avgRating & diagnostic accuracy score
+      list.sort((a, b) {
+        int scoreA = 0;
+        int scoreB = 0;
+
+        if (equipmentTag != null && equipmentTag.isNotEmpty) {
+          if (a.equipmentTags.any((t) => t.toLowerCase().contains(equipmentTag.toLowerCase()))) scoreA += 10;
+          if (b.equipmentTags.any((t) => t.toLowerCase().contains(equipmentTag.toLowerCase()))) scoreB += 10;
+        }
+
+        for (final kw in keywords) {
+          final lkw = kw.toLowerCase();
+          if (a.serviceKeywords.any((k) => k.toLowerCase().contains(lkw))) scoreA += 4;
+          if (b.serviceKeywords.any((k) => k.toLowerCase().contains(lkw))) scoreB += 4;
+          if (a.skills.any((s) => s.toLowerCase().contains(lkw))) scoreA += 2;
+          if (b.skills.any((s) => s.toLowerCase().contains(lkw))) scoreB += 2;
+        }
+
+        if (a.isOnlineOrCheckedIn) scoreA += 5;
+        if (b.isOnlineOrCheckedIn) scoreB += 5;
+
+        scoreA += (a.avgRating * 2).round();
+        scoreB += (b.avgRating * 2).round();
+
+        scoreA += (a.diagnosticAccuracyScore * 10).round();
+        scoreB += (b.diagnosticAccuracyScore * 10).round();
+
+        return scoreB.compareTo(scoreA);
+      });
+
+      return list;
+    });
+  }
+
+  /// Credits the ₹99 diagnostic fee against the final repair bill.
+  Future<void> creditDiagnosticFee(String bookingId) async {
+    await _db.collection("bookings").doc(bookingId).update({
+      "isFeeCredited": true,
+      "feeCreditedAt": FieldValue.serverTimestamp(),
+    });
   }
 }

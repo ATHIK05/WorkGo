@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:crypto/crypto.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../api_client/workgo_api_client.dart';
@@ -748,5 +749,37 @@ class WorkerService {
       }
     } catch (_) {}
     await _db.collection("workers").doc(workerId).delete();
+  }
+
+  /// Records a successful daily 3D face verification check-in against the worker's KYC selfie.
+  Future<void> recordDailyFaceCheckIn({
+    required String workerId,
+    required String capturedFaceBase64,
+    required double matchScore,
+  }) async {
+    try {
+      await _db.collection("workers").doc(workerId).set({
+        "verificationDetails": {
+          "lastFaceCheckInAt": FieldValue.serverTimestamp(),
+          "lastFaceCheckInBase64": capturedFaceBase64,
+        },
+      }, SetOptions(merge: true));
+
+      // Record audit entry in verification_audit_logs
+      await _db.collection("verification_audit_logs").add({
+        "workerId": workerId,
+        "action": "DAILY_3D_FACE_VERIFICATION_PASSED",
+        "actorId": workerId,
+        "actorRole": "worker",
+        "reason": "Artisan verified live face presence against approved 3D KYC selfie before going online.",
+        "timestamp": DateTime.now().toIso8601String(),
+        "metadata": {
+          "matchConfidence": matchScore,
+          "verifiedAt": DateTime.now().toIso8601String(),
+        },
+      });
+    } catch (e) {
+      debugPrint("[WorkerService] recordDailyFaceCheckIn error: $e");
+    }
   }
 }

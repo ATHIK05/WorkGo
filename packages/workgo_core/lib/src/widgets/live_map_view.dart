@@ -1,8 +1,11 @@
 // ignore_for_file: deprecated_member_use
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/worker.dart';
+import '../services/road_routing_service.dart';
 import 'interactive_rapido_map.dart' show MapMode;
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -36,6 +39,7 @@ class LiveMapView extends StatefulWidget {
     // Real GPS bindings — optional (falls back to illustrated if null)
     this.partnerLatitude,
     this.partnerLongitude,
+    this.partnerHeading,
     this.pickupLatitude,
     this.pickupLongitude,
     this.nearbyWorkerLocations,
@@ -59,6 +63,7 @@ class LiveMapView extends StatefulWidget {
   // ── Real GPS bindings (new, optional) ────────────────────────────────────
   final double? partnerLatitude;
   final double? partnerLongitude;
+  final double? partnerHeading;
   final double? pickupLatitude;
   final double? pickupLongitude;
   final List<LatLng>? nearbyWorkerLocations;
@@ -84,6 +89,8 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
   static const LatLng _defaultPickup = LatLng(11.2743, 77.5866); // MBA Block, Perundurai
   static const LatLng _defaultPartner = LatLng(11.2680, 77.5750);
 
+  RoadRoute? _roadRoute;
+
   bool get _isAtSameSpot {
     if (widget.mode != MapMode.routeNavigation) return false;
     final p1 = _partnerLatLng;
@@ -93,6 +100,9 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
 
   double get _computedDistanceKm {
     if (_isAtSameSpot) return 0.0;
+    if (_roadRoute != null && _roadRoute!.isSuccess && _roadRoute!.distanceKm > 0.0) {
+      return _roadRoute!.distanceKm;
+    }
     if (_hasRealCoords && (_hasMyLocation || widget.pickupLatitude != null)) {
       final p1 = _partnerLatLng;
       final p2 = _customerLatLng;
@@ -105,10 +115,50 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
 
   int get _computedEtaMinutes {
     if (_isAtSameSpot) return 0;
+    if (_roadRoute != null && _roadRoute!.isSuccess && _roadRoute!.durationMinutes > 0) {
+      return _roadRoute!.durationMinutes;
+    }
     final km = _computedDistanceKm;
     if (km <= 0.04) return 0;
     if (widget.etaMinutes > 0 && !_hasRealCoords) return widget.etaMinutes;
     return ((km * 2.5) + 1.0).round().clamp(1, 45);
+  }
+
+  void _fetchRoadRoute({bool forceRefresh = false}) async {
+    if (widget.mode != MapMode.routeNavigation) return;
+    final p1 = _partnerLatLng;
+    final p2 = _customerLatLng;
+
+    // Check if at same spot
+    if (_isAtSameSpot) {
+      if (mounted && _roadRoute != null) {
+        setState(() => _roadRoute = null);
+      }
+      return;
+    }
+
+    // Check if route already exists and vehicle hasn't deviated by >60m
+    if (!forceRefresh && _roadRoute != null && _roadRoute!.points.isNotEmpty) {
+      final deviated = RoadRoutingService.instance.hasDeviatedFromRoute(
+        currentPosition: p1,
+        routePoints: _roadRoute!.points,
+        thresholdMeters: 60.0,
+      );
+      if (!deviated) return;
+    }
+
+    try {
+      final route = await RoadRoutingService.instance.getRoute(
+        origin: p1,
+        destination: p2,
+        forceRefresh: forceRefresh,
+      );
+      if (mounted) {
+        setState(() {
+          _roadRoute = route;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -127,6 +177,10 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchRoadRoute();
+    });
   }
 
   @override
@@ -137,6 +191,15 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         oldWidget.partnerLongitude != widget.partnerLongitude;
     if (partnerChanged && _hasRealCoords && !_hasUserInteracted) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitBounds());
+    }
+
+    final coordsChanged = partnerChanged ||
+        oldWidget.pickupLatitude != widget.pickupLatitude ||
+        oldWidget.pickupLongitude != widget.pickupLongitude ||
+        oldWidget.myLocationLatitude != widget.myLocationLatitude ||
+        oldWidget.myLocationLongitude != widget.myLocationLongitude;
+    if (coordsChanged && widget.mode == MapMode.routeNavigation) {
+      _fetchRoadRoute();
     }
 
     final workersChanged = oldWidget.nearbyWorkers != widget.nearbyWorkers ||
@@ -221,7 +284,9 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         return;
       }
 
-      final allPoints = <LatLng>[p1, p2];
+      final allPoints = (_roadRoute != null && _roadRoute!.points.isNotEmpty)
+          ? _roadRoute!.points
+          : <LatLng>[p1, p2];
       final bounds = LatLngBounds.fromPoints(allPoints);
       _mapController.fitCamera(
         CameraFit.bounds(
@@ -596,52 +661,62 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         _buildTileLayer(),
 
         if (isRoute) ...[
-          // ── Route Polyline (partner → customer) ─────────────────────────────
-          PolylineLayer(
-            polylines: [
-              // When at the same spot, render a glowing emerald arrival tether between them
-              if (_isAtSameSpot)
-                Polyline(
-                  points: [displayPartner, customer],
-                  strokeWidth: 4.0,
-                  color: const Color(0xFF10B981),
-                  strokeCap: StrokeCap.round,
-                )
-              else ...[
-                // Shadow glow beneath route
-                Polyline(
-                  points: [partner, customer],
-                  strokeWidth: 11.0,
-                  color: tradeColor.withOpacity(0.18),
-                  strokeCap: StrokeCap.round,
-                  strokeJoin: StrokeJoin.round,
-                ),
-                // Travelled section (grey-blue) — behind partner
-                Polyline(
-                  points: _buildTravelledSegment(partner, customer),
-                  strokeWidth: 5.0,
-                  color: const Color(0xFF94A3B8),
-                  strokeCap: StrokeCap.round,
-                  strokeJoin: StrokeJoin.round,
-                ),
-                // Remaining route — trade color
-                Polyline(
-                  points: [partner, customer],
-                  strokeWidth: 5.5,
-                  gradientColors: [tradeColor, tradeColor.withOpacity(0.7)],
-                  strokeCap: StrokeCap.round,
-                  strokeJoin: StrokeJoin.round,
-                ),
-                // Inner white guidance line on top of route
-                Polyline(
-                  points: [partner, customer],
-                  strokeWidth: 2.0,
-                  color: Colors.white.withOpacity(0.85),
-                  strokeCap: StrokeCap.round,
-                  strokeJoin: StrokeJoin.round,
-                ),
-              ],
-            ],
+          // ── Road-Snapped Polyline (partner → customer) ──────────────────────
+          Builder(
+            builder: (context) {
+              final rawPoints = (_roadRoute != null && _roadRoute!.points.isNotEmpty)
+                  ? _roadRoute!.points
+                  : <LatLng>[partner, customer];
+              final (travelled, remaining) = _splitRoadRoute(rawPoints, partner);
+
+              return PolylineLayer(
+                polylines: [
+                  // When at the same spot, render a glowing emerald arrival tether between them
+                  if (_isAtSameSpot)
+                    Polyline(
+                      points: [displayPartner, customer],
+                      strokeWidth: 4.0,
+                      color: const Color(0xFF10B981),
+                      strokeCap: StrokeCap.round,
+                    )
+                  else ...[
+                    // 1. Shadow glow beneath remaining route
+                    Polyline(
+                      points: remaining,
+                      strokeWidth: 11.0,
+                      color: tradeColor.withOpacity(0.20),
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                    // 2. Travelled section (grey-blue) — behind partner
+                    if (travelled.length > 1)
+                      Polyline(
+                        points: travelled,
+                        strokeWidth: 4.5,
+                        color: const Color(0xFF94A3B8),
+                        strokeCap: StrokeCap.round,
+                        strokeJoin: StrokeJoin.round,
+                      ),
+                    // 3. Remaining road-snapped route — trade color
+                    Polyline(
+                      points: remaining,
+                      strokeWidth: 5.5,
+                      gradientColors: [tradeColor, tradeColor.withOpacity(0.8)],
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                    // 4. Inner white guidance line on top of route
+                    Polyline(
+                      points: remaining,
+                      strokeWidth: 2.0,
+                      color: Colors.white.withOpacity(0.9),
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ] else ...[
           // ── Broadcast mode: concentric radius rings (animated around customer) ──
@@ -698,8 +773,9 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
             // ── Customer Live Location Marker (Rapido pulsing blue GPS dot) ──
             Marker(
               point: customer,
-              width: 72,
-              height: 72,
+              width: 80,
+              height: 80,
+              alignment: Alignment.topCenter,
               child: _buildMyLocationDot(),
             ),
 
@@ -707,10 +783,19 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
             if (isRoute)
               Marker(
                 point: displayPartner,
-                width: 90,
-                height: 90,
+                width: 112,
+                height: 104,
                 alignment: Alignment.topCenter,
-                child: _buildPartnerMarker(tradeColor, tradeDarkColor, tradeIcon, tradeVehicleLabel),
+                child: _buildPartnerMarker(
+                  tradeColor,
+                  tradeDarkColor,
+                  tradeIcon,
+                  tradeVehicleLabel,
+                  vehicleAngle: _calculateVehicleHeading(
+                    _roadRoute != null ? _roadRoute!.points : [partner, customer],
+                    partner,
+                  ),
+                ),
               ),
 
             // ── Real online workers from Firestore (broadcast mode) ───────────
@@ -764,12 +849,52 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     );
   }
 
-  /// Build the already-travelled segment behind the partner marker
-  List<LatLng> _buildTravelledSegment(LatLng partner, LatLng pickup) {
-    final dLat = (pickup.latitude - partner.latitude) * 0.35;
-    final dLng = (pickup.longitude - partner.longitude) * 0.35;
-    final pastPoint = LatLng(partner.latitude - dLat, partner.longitude - dLng);
-    return [pastPoint, partner];
+  /// Splits a road polyline into the travelled segment behind the partner and the remaining route ahead.
+  (List<LatLng>, List<LatLng>) _splitRoadRoute(List<LatLng> roadPoints, LatLng partner) {
+    if (roadPoints.length <= 2) {
+      return (<LatLng>[partner], roadPoints);
+    }
+    int closestIdx = 0;
+    double minDist = double.infinity;
+    const dist = Distance();
+    for (int i = 0; i < roadPoints.length; i++) {
+      final d = dist.as(LengthUnit.Meter, partner, roadPoints[i]);
+      if (d < minDist) {
+        minDist = d;
+        closestIdx = i;
+      }
+    }
+    final travelled = roadPoints.sublist(0, closestIdx + 1);
+    final remaining = [partner, ...roadPoints.sublist(closestIdx + 1)];
+    return (travelled, remaining);
+  }
+
+  /// Calculates the vehicle compass rotation heading in radians along the road geometry.
+  double _calculateVehicleHeading(List<LatLng> roadPoints, LatLng partner) {
+    if (widget.partnerHeading != null && widget.partnerHeading! >= 0) {
+      return widget.partnerHeading! * (math.pi / 180.0);
+    }
+    if (roadPoints.length < 2) return 0.0;
+
+    int closestIdx = 0;
+    double minDist = double.infinity;
+    const dist = Distance();
+    for (int i = 0; i < roadPoints.length; i++) {
+      final d = dist.as(LengthUnit.Meter, partner, roadPoints[i]);
+      if (d < minDist) {
+        minDist = d;
+        closestIdx = i;
+      }
+    }
+
+    final nextIdx = (closestIdx + 1 < roadPoints.length) ? closestIdx + 1 : closestIdx;
+    if (nextIdx == closestIdx) return 0.0;
+
+    final p1 = roadPoints[closestIdx];
+    final p2 = roadPoints[nextIdx];
+
+    final bearingDeg = Geolocator.bearingBetween(p1.latitude, p1.longitude, p2.latitude, p2.longitude);
+    return bearingDeg * (math.pi / 180.0);
   }
 
   Color _altColor(int i) {
@@ -791,172 +916,196 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
       animation: _myLocationCtrl,
       builder: (context, _) {
         final pulse = _myLocationCtrl.value;
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E40AF),
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2563EB).withOpacity(0.4),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topCenter,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E40AF),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2563EB).withOpacity(0.4),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Text(
+                  'YOU ARE HERE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 7.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Expanding ripple
+                  Container(
+                    width: 30 + pulse * 22,
+                    height: 30 + pulse * 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF2563EB).withOpacity((1.0 - pulse) * 0.28),
+                    ),
+                  ),
+                  // Accuracy boundary
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF3B82F6).withOpacity(0.18),
+                      border: Border.all(
+                        color: const Color(0xFF2563EB).withOpacity(0.4),
+                        width: 1.2,
+                      ),
+                    ),
+                  ),
+                  // Solid core
+                  Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF1D4ED8),
+                      border: Border.all(color: Colors.white, width: 2.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF1D4ED8).withOpacity(0.6),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.navigation_rounded,
+                        size: 8,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ],
               ),
-              child: const Text(
-                'YOU ARE HERE',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 7.5,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.6,
-                ),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                // Expanding ripple
-                Container(
-                  width: 30 + pulse * 22,
-                  height: 30 + pulse * 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF2563EB).withOpacity((1.0 - pulse) * 0.28),
-                  ),
-                ),
-                // Accuracy boundary
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF3B82F6).withOpacity(0.18),
-                    border: Border.all(
-                      color: const Color(0xFF2563EB).withOpacity(0.4),
-                      width: 1.2,
-                    ),
-                  ),
-                ),
-                // Solid core
-                Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF1D4ED8),
-                    border: Border.all(color: Colors.white, width: 2.2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1D4ED8).withOpacity(0.6),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.navigation_rounded,
-                      size: 8,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildPartnerMarker(Color tradeColor, Color tradeDarkColor, IconData tradeIcon, String tradeLabel) {
+  Widget _buildPartnerMarker(
+    Color tradeColor,
+    Color tradeDarkColor,
+    IconData tradeIcon,
+    String tradeLabel, {
+    double vehicleAngle = 0.0,
+  }) {
     return AnimatedBuilder(
       animation: _pulseCtrl,
       builder: (context, _) {
         final glow = 0.5 + _pulseCtrl.value * 0.5;
 
-        // Clean name to prevent awkward "Artisan Plumber" text
+        // Clean name to prevent awkward "Artisan" generic text
         String cleanName = (widget.artisanName ?? "").trim();
         cleanName = cleanName.replaceAll(RegExp(r'^Artisan\s+', caseSensitive: false), '').trim();
+        final lower = cleanName.toLowerCase();
         if (cleanName.isEmpty ||
-            cleanName.toLowerCase() == 'partner' ||
-            cleanName.toLowerCase() == 'artisan partner' ||
-            cleanName.toLowerCase() == 'verified artisan') {
+            lower == 'artisan' ||
+            lower == 'partner' ||
+            lower == 'artisan partner' ||
+            lower == 'verified artisan' ||
+            lower == 'specialist' ||
+            lower == 'worker') {
           cleanName = tradeLabel;
         }
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Rapido / Uber Style Sleek Artisan Pill
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: tradeColor.withOpacity(0.4), width: 1.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(tradeIcon, size: 11, color: tradeDarkColor),
-                  const SizedBox(width: 4),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 82),
-                    child: Text(
-                      cleanName,
-                      style: const TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topCenter,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Rapido / Uber Style Sleek Artisan Pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: tradeColor.withValues(alpha: 0.4), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 3),
-            // Trade icon circle with pulsing glow
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [tradeColor, tradeDarkColor],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  ],
                 ),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: tradeColor.withOpacity(glow * 0.65),
-                    blurRadius: 14 + glow * 10,
-                    spreadRadius: 2,
-                  ),
-                ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(tradeIcon, size: 11, color: tradeDarkColor),
+                    const SizedBox(width: 4),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 86),
+                      child: Text(
+                        cleanName,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Icon(tradeIcon, color: Colors.white, size: 26),
-            ),
-            // Direction arrow pointing to pickup
-            const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 18),
-          ],
+              const SizedBox(height: 3),
+              // Rotatable Trade Icon circle with pulsing glow (faces direction of travel)
+              Transform.rotate(
+                angle: vehicleAngle,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [tradeColor, tradeDarkColor],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: tradeColor.withValues(alpha: glow * 0.65),
+                        blurRadius: 14 + glow * 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Icon(tradeIcon, color: Colors.white, size: 25),
+                ),
+              ),
+              // Direction pointer arrow
+              Transform.rotate(
+                angle: vehicleAngle,
+                child: const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 16),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -966,10 +1115,13 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
     return AnimatedBuilder(
       animation: _pulseCtrl,
       builder: (context, _) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (name != null && name.isNotEmpty) ...[
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topCenter,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (name != null && name.isNotEmpty) ...[
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -1047,10 +1199,11 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
               ],
             ),
           ],
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildAddressPill(Color tradeColor, Color tradeDarkColor) {
     final isRoute = widget.mode == MapMode.routeNavigation;
@@ -1161,10 +1314,12 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                     ),
                   ),
                   Text(
-                    _isAtSameSpot ? 'On Site' : '${_computedDistanceKm.toStringAsFixed(1)} km',
+                    _isAtSameSpot
+                        ? 'On Site'
+                        : '${_computedDistanceKm.toStringAsFixed(1)} km${_roadRoute?.primaryRoad != null ? " · ${_roadRoute!.primaryRoad}" : ""}',
                     style: const TextStyle(
                       color: Colors.white70,
-                      fontSize: 10,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'live_booking_tracker_screen.dart';
 import 'rapido_live_broadcast_screen.dart';
 import 'payment_receipt_screen.dart';
 import 'worker_search_screen.dart';
+import 'voice_ai_triage_screen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({
@@ -41,6 +43,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   @override
   void initState() {
     super.initState();
+    _customerLat = widget.user.latitude ?? widget.user.currentAddress?.latitude;
+    _customerLng = widget.user.longitude ?? widget.user.currentAddress?.longitude;
+    // Fallback to regional hub if coordinates not yet present on user profile
+    if (_customerLat == null || _customerLat! <= 1.0 || _customerLng == null || _customerLng! <= 1.0) {
+      _customerLat = 11.3445;
+      _customerLng = 77.7327;
+    }
     _navIndicatorCtrl = AnimationController(
       vsync: this,
       duration: CAnim.normal,
@@ -51,8 +60,46 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     });
   }
 
+  @override
+  void didUpdateWidget(covariant CustomerHomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final userLat = widget.user.latitude ?? widget.user.currentAddress?.latitude;
+    final userLng = widget.user.longitude ?? widget.user.currentAddress?.longitude;
+    if (userLat != null && userLng != null && userLat > 1.0 && userLng > 1.0 &&
+        (userLat != _customerLat || userLng != _customerLng)) {
+      setState(() {
+        _customerLat = userLat;
+        _customerLng = userLng;
+      });
+    }
+  }
+
   Future<void> _loadCustomerLocation() async {
     try {
+      // 1. High-precision live hardware GPS has top priority for customer radar
+      final coords = await LocationService.instance.getCurrentCoordinates();
+      final hardwareLat = (coords["latitude"] as num?)?.toDouble();
+      final hardwareLng = (coords["longitude"] as num?)?.toDouble();
+
+      if (hardwareLat != null && hardwareLng != null && hardwareLat > 1.0 && mounted) {
+        setState(() {
+          _customerLat = hardwareLat;
+          _customerLng = hardwareLng;
+        });
+
+        // Sync live GPS to Firestore user profile in background
+        FirebaseFirestore.instance
+            .collection("users")
+            .doc(widget.user.uid)
+            .set({
+          "latitude": hardwareLat,
+          "longitude": hardwareLng,
+          "lastGpsUpdate": FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true)).catchError((_) {});
+        return;
+      }
+
+      // 2. Saved user profile address
       final doc = await FirebaseFirestore.instance
           .collection("users")
           .doc(widget.user.uid)
@@ -73,6 +120,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         }
       }
 
+      // 3. Saved addresses collection
       final addrSnap = await FirebaseFirestore.instance
           .collection("users")
           .doc(widget.user.uid)
@@ -90,16 +138,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           });
           return;
         }
-      }
-
-      final coords = await LocationService.instance.getCurrentCoordinates();
-      final hardwareLat = (coords["latitude"] as num?)?.toDouble();
-      final hardwareLng = (coords["longitude"] as num?)?.toDouble();
-      if (hardwareLat != null && hardwareLng != null && hardwareLat > 1.0 && mounted) {
-        setState(() {
-          _customerLat = hardwareLat;
-          _customerLng = hardwareLng;
-        });
       }
     } catch (_) {}
   }
@@ -201,7 +239,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           index: _currentNavIndex,
           children: [
             _buildHomeFeed(context),
-            WorkerSearchScreen(customerId: widget.user.uid),
+            WorkerSearchScreen(
+              customerId: widget.user.uid,
+              customerLat: _customerLat,
+              customerLng: _customerLng,
+            ),
             _buildMyBookingsTab(context),
             _buildProfileTab(context),
           ],
@@ -296,7 +338,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           children: [
             // 1. Top Header (Avatar + Hello, Customer + Real Date + Search)
             _buildSandraTopBar(),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
+
+            // 1.5 Smart AI Symptom-First Search & Problem Triage Bar
+            _buildAiSymptomSearchBar(),
+            const SizedBox(height: 16),
 
             // 2. WorkGo Fast-Track Artisan Dispatch Card (Lavender / Soft Purple Card)
             _buildWorkGoDispatchHeroCard(),
@@ -400,12 +446,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   ),
                   const SizedBox(height: 1),
                   GestureDetector(
-                    onTap: () => showAddressManagementSheet(
-                      context,
-                      userId: widget.user.uid,
-                      userRole: "customer",
-                      selectedAddress: activeAddr,
-                    ),
+                    onTap: () async {
+                      final selectedAddr = await showAddressManagementSheet(
+                        context,
+                        userId: widget.user.uid,
+                        userRole: "customer",
+                        selectedAddress: activeAddr,
+                      );
+                      if (selectedAddr != null && mounted) {
+                        setState(() {
+                          _customerLat = selectedAddr.latitude;
+                          _customerLng = selectedAddr.longitude;
+                        });
+                      }
+                    },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -444,7 +498,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
-                _onNavTap(1);
+                VoiceAiTriageScreen.show(
+                  context,
+                  user: liveUser,
+                  customerLat: _customerLat,
+                  customerLng: _customerLng,
+                  customerAddress: liveUser.currentAddress?.shortSummary ?? liveUser.primaryArea,
+                );
               },
               child: Container(
                 width: 40,
@@ -473,6 +533,117 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           ],
         );
       },
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  AI SYMPTOM-FIRST SEARCH BAR
+  // ──────────────────────────────────────────
+  Widget _buildAiSymptomSearchBar() {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        VoiceAiTriageScreen.show(
+          context,
+          user: widget.user,
+          customerLat: _customerLat,
+          customerLng: _customerLng,
+          customerAddress: widget.user.currentAddress?.shortSummary ?? widget.user.primaryArea,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: CX.dividerLight),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x08000000),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: CX.violet.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.troubleshoot_rounded,
+                color: CX.amberDark,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Describe household problem (e.g. tap leaking, motor humming)",
+                    style: WorkGoFonts.body(
+                      color: CX.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    "AI Triage identifies the exact trade & tools needed",
+                    style: WorkGoFonts.body(
+                      color: CX.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                VoiceAiTriageScreen.show(
+                  context,
+                  user: widget.user,
+                  customerLat: _customerLat,
+                  customerLng: _customerLng,
+                  customerAddress: widget.user.currentAddress?.shortSummary ?? widget.user.primaryArea,
+                );
+              },
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: CX.violet.withValues(alpha: 0.16),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: CX.amberDark.withValues(alpha: 0.35), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: CX.amberDark.withValues(alpha: 0.18),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.mic_rounded,
+                    color: CX.amberDark,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -744,95 +915,120 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         // Active Order Live Radar
         if (activeList.isNotEmpty) {
           final active = activeList.first;
-          final statusLabel = active.status == BookingStatus.pending
-              ? "Connecting with Specialist..."
-              : (active.status == BookingStatus.accepted ? "Artisan Assigned • En Route" : "Service in Progress");
+          return StreamBuilder<Worker?>(
+            stream: (active.workerId != null && active.workerId!.isNotEmpty)
+                ? _workerService.streamWorker(active.workerId!)
+                : Stream.value(null),
+            builder: (context, workerSnap) {
+              final worker = workerSnap.data;
+              String assignedName = (active.acceptedWorkerName?.isNotEmpty == true &&
+                      active.acceptedWorkerName!.toLowerCase() != 'artisan' &&
+                      active.acceptedWorkerName!.toLowerCase() != 'partner' &&
+                      active.acceptedWorkerName!.toLowerCase() != 'worker' &&
+                      active.acceptedWorkerName!.toLowerCase() != 'artisian')
+                  ? active.acceptedWorkerName!
+                  : (worker?.name.isNotEmpty == true ? worker!.name : "");
 
-          return GestureDetector(
-            onTap: () => _navigateToActiveBooking(context, active),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E1035), Color(0xFF2E1065)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x282E1065),
-                    blurRadius: 16,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.12),
-                      border: Border.all(color: const Color(0xFFFFB800), width: 1.5),
+              final String statusLabel;
+              if (active.status == BookingStatus.pending) {
+                statusLabel = "Connecting with Specialist...";
+              } else if (active.status == BookingStatus.accepted) {
+                statusLabel = assignedName.isNotEmpty
+                    ? "$assignedName Assigned • En Route"
+                    : "Artisan Assigned • En Route";
+              } else {
+                statusLabel = assignedName.isNotEmpty
+                    ? "$assignedName • Service in Progress"
+                    : "Service in Progress";
+              }
+
+              return GestureDetector(
+                onTap: () => _navigateToActiveBooking(context, active),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E1035), Color(0xFF2E1065)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    child: const Center(
-                      child: PulsingDot(color: Color(0xFFFFB800), size: 10),
-                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x282E1065),
+                        blurRadius: 16,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.12),
+                          border: Border.all(color: const Color(0xFFFFB800), width: 1.5),
+                        ),
+                        child: const Center(
+                          child: PulsingDot(color: Color(0xFFFFB800), size: 10),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFB800),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                "LIVE ORDER",
-                                style: TextStyle(
-                                  color: Color(0xFF141416),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFB800),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    "LIVE ORDER",
+                                    style: TextStyle(
+                                      color: Color(0xFF141416),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  active.serviceType,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(height: 4),
                             Text(
-                              active.serviceType,
+                              statusLabel,
                               style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
+                                color: Color(0xFFD8B4FE),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          statusLabel,
-                          style: const TextStyle(
-                            color: Color(0xFFD8B4FE),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+                    ],
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           );
         }
 
@@ -1320,7 +1516,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 const SizedBox(height: 6),
                                 Text(
                                   active != null
-                                      ? DateFormat('d MMM · HH:mm').format(active.scheduledAt ?? DateTime.now())
+                                      ? (active.scheduledAt ?? DateTime.now()).to12HourDateTime()
                                       : "₹0 Commission • Fixed Rate",
                                   style: const TextStyle(
                                     color: Color(0xFF4B5563),
@@ -1346,46 +1542,73 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
                             // Bottom Artisan Row or Quick Book CTA
                             if (active != null)
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Color(0xFF3B82F6),
-                                    ),
-                                    child: const Center(
-                                      child: Icon(Icons.person_rounded, color: Colors.white, size: 18),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text(
-                                          "Assigned Artisan",
-                                          style: TextStyle(
-                                            color: Color(0xFF4B5563),
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w600,
+                              StreamBuilder<Worker?>(
+                                stream: (active.workerId != null && active.workerId!.isNotEmpty)
+                                    ? _workerService.streamWorker(active.workerId!)
+                                    : Stream.value(null),
+                                builder: (context, snap) {
+                                  final worker = snap.data;
+                                  String displayName = (active.acceptedWorkerName?.isNotEmpty == true &&
+                                          active.acceptedWorkerName!.toLowerCase() != 'artisan' &&
+                                          active.acceptedWorkerName!.toLowerCase() != 'partner' &&
+                                          active.acceptedWorkerName!.toLowerCase() != 'worker' &&
+                                          active.acceptedWorkerName!.toLowerCase() != 'artisian')
+                                      ? active.acceptedWorkerName!
+                                      : (worker?.name.isNotEmpty == true
+                                          ? worker!.name
+                                          : (active.status == BookingStatus.pending
+                                              ? "Matching pro..."
+                                              : "${active.serviceType} Specialist"));
+
+                                  return Row(
+                                    children: [
+                                      if (worker?.avatarBase64 != null && worker!.avatarBase64!.isNotEmpty)
+                                        WorkGoAvatar(
+                                          name: displayName,
+                                          avatarBase64: worker.avatarBase64,
+                                          radius: 16,
+                                        )
+                                      else
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Color(0xFF3B82F6),
+                                          ),
+                                          child: const Center(
+                                            child: Icon(Icons.person_rounded, color: Colors.white, size: 18),
                                           ),
                                         ),
-                                        Text(
-                                          active.acceptedWorkerName ?? "Matching pro...",
-                                          style: const TextStyle(
-                                            color: Color(0xFF141416),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Text(
+                                              "Assigned Artisan",
+                                              style: TextStyle(
+                                                color: Color(0xFF4B5563),
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            Text(
+                                              displayName,
+                                              style: const TextStyle(
+                                                color: Color(0xFF141416),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                                      ),
+                                    ],
+                                  );
+                                },
                               )
                             else
                               Container(
@@ -2133,8 +2356,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     return StreamBuilder<List<Worker>>(
       stream: _workerService.streamAvailableWorkers(skill: "All", onlineOnly: false),
       builder: (context, snap) {
-        final workers = snap.data ?? [];
-        if (workers.isEmpty) return const SizedBox.shrink();
+        final rawWorkers = snap.data ?? [];
+        if (rawWorkers.isEmpty) return const SizedBox.shrink();
+
+        // Calculate real geodesic distance and sort nearest artisans first
+        final workers = rawWorkers
+            .map((w) => w.withCalculatedDistance(_customerLat, _customerLng))
+            .toList();
+        workers.sort((a, b) {
+          if (a.isOnlineOrCheckedIn != b.isOnlineOrCheckedIn) {
+            return a.isOnlineOrCheckedIn ? -1 : 1;
+          }
+          return a.distanceKm.compareTo(b.distanceKm);
+        });
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2182,8 +2416,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 itemCount: workers.length.clamp(0, 6),
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (context, idx) {
-                  final rawWorker = workers[idx];
-                  final worker = rawWorker.withCalculatedDistance(_customerLat, _customerLng);
+                  final worker = workers[idx];
                   return _ArtisanSpotlightCard(
                     worker: worker,
                     customerLat: _customerLat,
@@ -2498,16 +2731,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ),
               ),
 
-              // OTP Pill with 1-tap Copy (Only when accepted or in progress)
-              if (booking.status == BookingStatus.accepted ||
-                  booking.status == BookingStatus.inProgress)
+              // OTP Pill with 1-tap Copy (Strictly only when status is accepted)
+              if (booking.status == BookingStatus.accepted)
                 GestureDetector(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: otp));
                     HapticFeedback.lightImpact();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("OTP $otp copied to clipboard!"),
+                        content: Text("OTP $otp copied! Share with artisan upon arrival."),
                         backgroundColor: const Color(0xFF047857),
                         behavior: SnackBarBehavior.floating,
                         duration: const Duration(seconds: 2),
@@ -2547,6 +2779,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       ],
                     ),
                   ),
+                )
+              else if (booking.status == BookingStatus.inProgress)
+                _CustomerStopwatchBadge(
+                  startedAt: booking.startedAt ?? booking.scheduledAt ?? DateTime.now(),
                 )
               else
                 Container(
@@ -2605,46 +2841,81 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           Row(
             children: [
               Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF3B82F6),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Specialist Pro",
-                            style: TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
+                child: StreamBuilder<Worker?>(
+                  stream: (booking.workerId != null && booking.workerId!.isNotEmpty)
+                      ? _workerService.streamWorker(booking.workerId!)
+                      : Stream.value(null),
+                  builder: (context, snap) {
+                    final worker = snap.data;
+                    String proName = (booking.acceptedWorkerName?.isNotEmpty == true &&
+                            booking.acceptedWorkerName!.toLowerCase() != 'artisan' &&
+                            booking.acceptedWorkerName!.toLowerCase() != 'partner' &&
+                            booking.acceptedWorkerName!.toLowerCase() != 'worker' &&
+                            booking.acceptedWorkerName!.toLowerCase() != 'artisian')
+                        ? booking.acceptedWorkerName!
+                        : (worker?.name.isNotEmpty == true
+                            ? worker!.name
+                            : (booking.status == BookingStatus.pending
+                                ? "Matching nearest pro..."
+                                : "${booking.serviceType} Specialist"));
+                    if (proName.toLowerCase() == 'artisan' ||
+                        proName.toLowerCase() == 'partner' ||
+                        proName.toLowerCase() == 'worker' ||
+                        proName.toLowerCase() == 'artisian') {
+                      proName = worker?.name.isNotEmpty == true
+                          ? worker!.name
+                          : "${booking.serviceType} Specialist";
+                    }
+
+                    return Row(
+                      children: [
+                        if (worker?.avatarBase64 != null && worker!.avatarBase64!.isNotEmpty)
+                          WorkGoAvatar(
+                            name: proName,
+                            avatarBase64: worker.avatarBase64,
+                            radius: 19,
+                          )
+                        else
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF3B82F6),
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
                             ),
                           ),
-                          Text(
-                            booking.acceptedWorkerName ?? "Matching nearest pro...",
-                            style: const TextStyle(
-                              color: Color(0xFF141416),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Assigned Artisan",
+                                style: TextStyle(
+                                  color: Color(0xFF6B7280),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                proName,
+                                style: const TextStyle(
+                                  color: Color(0xFF141416),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
               ElevatedButton.icon(
@@ -4354,55 +4625,112 @@ class _BookingListTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                if (booking.acceptedWorkerName != null &&
-                    booking.acceptedWorkerName!.isNotEmpty) ...[
-                  WorkGoAvatar(name: booking.acceptedWorkerName!, radius: 12),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Artisan: ${booking.acceptedWorkerName}",
-                      style: const TextStyle(
-                        color: Color(0xFF141416),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                StreamBuilder<Worker?>(
+                  stream: (booking.workerId != null && booking.workerId!.isNotEmpty)
+                      ? WorkerService().streamWorker(booking.workerId!)
+                      : Stream.value(null),
+                  builder: (context, snap) {
+                    final worker = snap.data;
+                    String cleanName = (booking.acceptedWorkerName != null &&
+                            booking.acceptedWorkerName!.trim().isNotEmpty &&
+                            booking.acceptedWorkerName!.toLowerCase() != 'artisan' &&
+                            booking.acceptedWorkerName!.toLowerCase() != 'partner' &&
+                            booking.acceptedWorkerName!.toLowerCase() != 'worker' &&
+                            booking.acceptedWorkerName!.toLowerCase() != 'artisian')
+                        ? booking.acceptedWorkerName!.trim()
+                        : (worker?.name.isNotEmpty == true
+                            ? worker!.name
+                            : "");
+
+                    if (cleanName.isNotEmpty) {
+                      return Expanded(
+                        child: Row(
+                          children: [
+                            WorkGoAvatar(
+                              name: cleanName,
+                              avatarBase64: worker?.avatarBase64,
+                              radius: 12,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                cleanName,
+                                style: const TextStyle(
+                                  color: Color(0xFF141416),
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                "VERIFIED PRO",
+                                style: TextStyle(
+                                  color: Color(0xFF2563EB),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (isPending) {
+                      return Expanded(
+                        child: Row(
+                          children: [
+                            const PulsingDot(color: Color(0xFFD97706), size: 7),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Broadcasting to local specialists (${booking.broadcastRadiusKm.toInt()} km)...",
+                                style: const TextStyle(
+                                  color: Color(0xFF92400E),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.verified_user_rounded,
+                            color: Color(0xFF10B981),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "${booking.serviceType} Specialist Assigned",
+                              style: const TextStyle(
+                                color: Color(0xFF065F46),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ] else if (isPending) ...[
-                  const PulsingDot(color: Color(0xFFD97706), size: 7),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Broadcasting to local specialists (${booking.broadcastRadiusKm.toInt()} km)...",
-                      style: const TextStyle(
-                        color: Color(0xFF92400E),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ] else ...[
-                  const Icon(
-                    Icons.handyman_rounded,
-                    color: Color(0xFF6B7280),
-                    size: 14,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "WorkGo Co-op Dispatch #${booking.id.substring(0, booking.id.length > 6 ? 6 : booking.id.length)}",
-                      style: const TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -4490,11 +4818,15 @@ class _BookingListTile extends StatelessWidget {
                     OutlinedButton.icon(
                       onPressed: () {
                         HapticFeedback.lightImpact();
+                        final receiptWorker = (booking.acceptedWorkerName?.isNotEmpty == true &&
+                                booking.acceptedWorkerName!.toLowerCase() != 'artisan')
+                            ? booking.acceptedWorkerName!
+                            : "${booking.serviceType} Specialist";
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => PaymentReceiptScreen(
                               booking: booking,
-                              workerName: booking.acceptedWorkerName ?? "Verified Co-op Specialist",
+                              workerName: receiptWorker,
                             ),
                           ),
                         );
@@ -4541,6 +4873,88 @@ class _BookingListTile extends StatelessWidget {
                   ],
                 ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────
+//  CUSTOMER STOPWATCH BADGE (Live Service Progress)
+// ──────────────────────────────────────────────────────
+class _CustomerStopwatchBadge extends StatefulWidget {
+  const _CustomerStopwatchBadge({this.startedAt});
+  final DateTime? startedAt;
+
+  @override
+  State<_CustomerStopwatchBadge> createState() => _CustomerStopwatchBadgeState();
+}
+
+class _CustomerStopwatchBadgeState extends State<_CustomerStopwatchBadge> {
+  Timer? _timer;
+  Duration _elapsed = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateElapsed();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateElapsed());
+  }
+
+  void _updateElapsed() {
+    final start = widget.startedAt ?? DateTime.now();
+    final diff = DateTime.now().difference(start);
+    if (mounted) {
+      setState(() {
+        _elapsed = diff.isNegative ? Duration.zero : diff;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hours = _elapsed.inHours;
+    final mins = _elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final secs = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final formatted = hours > 0
+        ? "${hours.toString().padLeft(2, '0')}:$mins:$secs"
+        : "$mins:$secs";
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF064E3B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF10B981), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.handyman_rounded, color: Color(0xFF34D399), size: 12),
+          const SizedBox(width: 4),
+          const Text(
+            "WORKING: ",
+            style: TextStyle(
+              color: Color(0xFF6EE7B7),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            formatted,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'monospace',
+            ),
           ),
         ],
       ),

@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
+import '../widgets/handoff_specialist_sheet.dart';
 
 class ActiveJobScreen extends StatefulWidget {
   const ActiveJobScreen({
@@ -24,10 +27,12 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
   late BookingStatus _currentStatus;
   final BookingService _bookingService = BookingService();
   final C2paService _c2paService = C2paService();
+  final WorkerService _workerService = WorkerService();
 
   late AnimationController _pulseCtrl;
   bool _isSigningC2pa = false;
   C2paManifestRecord? _c2paManifest;
+  StreamSubscription<Position>? _activeJobGpsSub;
 
   @override
   void initState() {
@@ -40,10 +45,74 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
+
+    if (_currentStatus == BookingStatus.accepted || _currentStatus == BookingStatus.inProgress) {
+      _startActiveJobGpsStream();
+    }
+  }
+
+  void _startActiveJobGpsStream() {
+    _activeJobGpsSub?.cancel();
+
+    late final LocationSettings locationSettings;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final serviceName = widget.booking.serviceType.trim().isNotEmpty
+          ? widget.booking.serviceType
+          : "WorkGo Service";
+      locationSettings = AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 3,
+        intervalDuration: const Duration(seconds: 4),
+        foregroundNotificationConfig: ForegroundNotificationConfig(
+          notificationTitle: "WorkGo · Live Tracking Active 📍",
+          notificationText: "Transmitting your road GPS for $serviceName...",
+          enableWakeLock: true,
+        ),
+      );
+    } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+      locationSettings = AppleSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 3,
+        activityType: ActivityType.otherNavigation,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+      );
+    } else {
+      locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 3,
+      );
+    }
+
+    _activeJobGpsSub = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen((Position pos) async {
+      try {
+        await _bookingService.updateLiveWorkerLocation(
+          bookingId: widget.booking.id,
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          heading: pos.heading,
+        );
+        await _workerService.updateWorkerLocation(
+          widget.worker.id,
+          pos.latitude,
+          pos.longitude,
+        );
+      } catch (e) {
+        debugPrint("[ActiveJobScreen] Live GPS transmit error: $e");
+      }
+    });
+  }
+
+  void _stopActiveJobGpsStream() {
+    _activeJobGpsSub?.cancel();
+    _activeJobGpsSub = null;
   }
 
   @override
   void dispose() {
+    _stopActiveJobGpsStream();
     _pulseCtrl.dispose();
     super.dispose();
   }
@@ -486,6 +555,28 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                   ),
                   const SizedBox(height: 12),
 
+                  // ── Arrival Start OTP Prompt Card (When Accepted / En Route)
+                  if (status == BookingStatus.accepted) ...[
+                    KSlideFadeIn(
+                      delay: const Duration(milliseconds: 20),
+                      child: _ArrivalStartOtpPromptCard(
+                        onEnterOtp: _showStartOtpDialog,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── Live Service Progress HUD Card (When inProgress)
+                  if (status == BookingStatus.inProgress) ...[
+                    KSlideFadeIn(
+                      delay: const Duration(milliseconds: 20),
+                      child: _LiveJobProgressHUDCard(
+                        startedAt: currentBooking.startedAt,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   // ── C2PA Provenance Banner (If Completed)
                   if (status == BookingStatus.completed || _c2paManifest != null) ...[
                     KSlideFadeIn(
@@ -559,7 +650,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                   // ── Slide Action CTA
                   KSlideFadeIn(
                     delay: const Duration(milliseconds: 120),
-                    child: _buildActionSlider(status),
+                    child: _buildActionSlider(status, currentBooking),
                   ),
                 ],
               ),
@@ -570,7 +661,43 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
     );
   }
 
-  Widget _buildActionSlider(BookingStatus status) {
+  Widget _buildActionSlider(BookingStatus status, Booking currentBooking) {
+    if (currentBooking.handoffStatus == 'requested') {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF93C5FD)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.sync_rounded, color: Color(0xFF2563EB), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Relay in Progress: ${currentBooking.handoffToWorkerName ?? 'Specialist'}",
+                    style: const TextStyle(
+                      color: Color(0xFF1E3A8A),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              "Awaiting peer specialist acknowledgment. Once accepted, this job transfers automatically and your ₹50 referral dividend will be reserved.",
+              style: TextStyle(color: Color(0xFF1D4ED8), fontSize: 11.5, height: 1.3),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (status == BookingStatus.completed) {
       return KaryaButton(
         label: "nav_cockpit".tr(),
@@ -583,23 +710,97 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
     }
 
     if (status == BookingStatus.accepted) {
-      return KaryaSlideAction(
-        label: "Arrived · Enter Customer OTP",
-        icon: Icons.key_rounded,
-        gradient: KX.luminaVioletGold,
-        glowColor: KX.gold,
-        height: 52,
-        onConfirmed: _advanceJob,
+      return Column(
+        children: [
+          KaryaButton(
+            label: "Enter Customer Start OTP",
+            icon: Icons.key_rounded,
+            onPressed: _showStartOtpDialog,
+            gradient: KX.luminaVioletGold,
+            glowColor: KX.gold,
+            height: 52,
+          ),
+          const SizedBox(height: 10),
+          KaryaSlideAction(
+            key: const ValueKey("slide_start_otp"),
+            label: "Slide when Arrived at Doorstep",
+            icon: Icons.arrow_forward_ios_rounded,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2E1065), Color(0xFF4C1D95)],
+            ),
+            glowColor: KX.gold,
+            height: 50,
+            onConfirmed: _advanceJob,
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final relayed = await HandoffSpecialistSheet.show(
+                context,
+                booking: currentBooking,
+                currentWorker: widget.worker,
+              );
+              if (relayed == true && mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            icon: const Icon(Icons.swap_horiz_rounded, color: KX.amber, size: 18),
+            label: const Text(
+              "Hand Off to Specialist (Co-op Relay · Earn ₹50)",
+              style: TextStyle(
+                color: KX.amber,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: KX.amber),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
       );
     }
 
-    return KaryaSlideAction(
-      label: "Capture Work & Complete",
-      icon: Icons.camera_alt_rounded,
-      gradient: KX.auroraAccept,
-      glowColor: KX.emerald,
-      height: 52,
-      onConfirmed: _advanceJob,
+    return Column(
+      children: [
+        KaryaButton(
+          label: "Capture Work & Complete Service",
+          icon: Icons.camera_alt_rounded,
+          onPressed: _advanceJob,
+          gradient: KX.auroraAccept,
+          glowColor: KX.emerald,
+          height: 52,
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final relayed = await HandoffSpecialistSheet.show(
+              context,
+              booking: currentBooking,
+              currentWorker: widget.worker,
+            );
+            if (relayed == true && mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+          icon: const Icon(Icons.swap_horiz_rounded, color: KX.amber, size: 18),
+          label: const Text(
+            "Hand Off to Specialist (Co-op Relay · Earn ₹50)",
+            style: TextStyle(
+              color: KX.amber,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: KX.amber),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -683,9 +884,9 @@ class _StatusStageBar extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────────
-//  SERVICE & CUSTOMER DISPATCH CARD
+//  SERVICE & CUSTOMER DISPATCH CARD WITH AI GEAR CHECKLIST
 // ──────────────────────────────────────────────────────────────
-class _ServiceCustomerCard extends StatelessWidget {
+class _ServiceCustomerCard extends StatefulWidget {
   const _ServiceCustomerCard({
     required this.booking,
     required this.status,
@@ -695,8 +896,20 @@ class _ServiceCustomerCard extends StatelessWidget {
   final BookingStatus status;
 
   @override
+  State<_ServiceCustomerCard> createState() => _ServiceCustomerCardState();
+}
+
+class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
+  final Set<String> _verifiedTools = {};
+
+  @override
   Widget build(BuildContext context) {
-    final isDone = status == BookingStatus.completed;
+    final booking = widget.booking;
+    final isDone = widget.status == BookingStatus.completed;
+    final hasDiagnosticContext = (booking.equipmentTag?.isNotEmpty == true) ||
+        (booking.customerIssueDetails?.isNotEmpty == true) ||
+        (booking.symptomDescription?.isNotEmpty == true) ||
+        booking.suggestedToolsNeeded.isNotEmpty;
 
     return KaryaCard(
       padding: const EdgeInsets.all(16),
@@ -751,7 +964,7 @@ class _ServiceCustomerCard extends StatelessWidget {
                           const SizedBox(width: 6),
                         ],
                         Text(
-                          "Direct Dispatch",
+                          booking.isDiagnosticVisit ? "Smart Diagnostic Visit" : "Direct Dispatch",
                           style: TextStyle(color: KX.textSecondary, fontSize: 11),
                         ),
                       ],
@@ -764,20 +977,175 @@ class _ServiceCustomerCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(color: Colors.white12, height: 1),
           const SizedBox(height: 12),
+
+          // Doorstep Address
           Row(
             children: [
               const Icon(Icons.location_on_rounded, color: KX.gold, size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  "Doorstep Service Address · Sector 4, Metro Corridor",
-                  style: TextStyle(color: KX.textSecondary, fontSize: 12),
-                  maxLines: 1,
+                  booking.customerAddressText?.isNotEmpty == true
+                      ? booking.customerAddressText!
+                      : "Customer Doorstep Address",
+                  style: const TextStyle(color: KX.textSecondary, fontSize: 12),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
+
+          // AI Diagnostic Brief & Gear Checklist (if diagnostic context present)
+          if (hasDiagnosticContext) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Equipment header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: KX.gold.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.precision_manufacturing_rounded,
+                          color: KX.gold,
+                          size: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          booking.equipmentTag?.isNotEmpty == true
+                              ? "Target: ${booking.equipmentTag}"
+                              : "Diagnostic Context",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Customer issue & observations description
+                  if (booking.customerIssueDetails?.isNotEmpty == true ||
+                      booking.symptomDescription?.isNotEmpty == true) ...[
+                    Text(
+                      booking.customerIssueDetails?.isNotEmpty == true
+                          ? booking.customerIssueDetails!
+                          : booking.symptomDescription!,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Interactive AI Gear Checklist
+                  if (booking.suggestedToolsNeeded.isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.handyman_rounded, size: 13, color: KX.gold),
+                            SizedBox(width: 5),
+                            Text(
+                              "AI Recommended Gear Checklist",
+                              style: TextStyle(
+                                color: KX.gold,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          "${_verifiedTools.length}/${booking.suggestedToolsNeeded.length} packed",
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: booking.suggestedToolsNeeded.map((tool) {
+                        final isChecked = _verifiedTools.contains(tool);
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() {
+                              if (isChecked) {
+                                _verifiedTools.remove(tool);
+                              } else {
+                                _verifiedTools.add(tool);
+                              }
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isChecked
+                                  ? KX.emerald.withValues(alpha: 0.15)
+                                  : Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isChecked
+                                    ? KX.emerald
+                                    : Colors.white.withValues(alpha: 0.18),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isChecked ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                  size: 13,
+                                  color: isChecked ? KX.emerald : Colors.white60,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  tool,
+                                  style: TextStyle(
+                                    color: isChecked ? Colors.white : Colors.white70,
+                                    fontSize: 11,
+                                    fontWeight: isChecked ? FontWeight.w800 : FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -797,6 +1165,234 @@ class _ServiceCustomerCard extends StatelessWidget {
       default:
         return Icons.handyman_rounded;
     }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  ARRIVAL START OTP PROMPT CARD
+// ──────────────────────────────────────────────────────────────
+class _ArrivalStartOtpPromptCard extends StatelessWidget {
+  const _ArrivalStartOtpPromptCard({required this.onEnterOtp});
+  final VoidCallback onEnterOtp;
+
+  @override
+  Widget build(BuildContext context) {
+    return KaryaCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: 20,
+      borderColor: const Color(0xFFF59E0B).withValues(alpha: 0.8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.key_rounded, color: Color(0xFFFBBF24), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Arrival Verification Gate",
+                      style: WorkGoFonts.display(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      "Ask customer for the 4-digit OTP shown on their phone",
+                      style: TextStyle(color: Colors.white60, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: onEnterOtp,
+              icon: const Icon(Icons.pin_rounded, size: 18, color: Color(0xFF0F172A)),
+              label: const Text(
+                "Enter Customer Start OTP",
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFBBF24),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  LIVE JOB PROGRESS HUD CARD (REAL-TIME ELAPSED STOPWATCH)
+// ──────────────────────────────────────────────────────────────
+class _LiveJobProgressHUDCard extends StatefulWidget {
+  const _LiveJobProgressHUDCard({this.startedAt});
+  final DateTime? startedAt;
+
+  @override
+  State<_LiveJobProgressHUDCard> createState() => _LiveJobProgressHUDCardState();
+}
+
+class _LiveJobProgressHUDCardState extends State<_LiveJobProgressHUDCard> {
+  Timer? _timer;
+  Duration _elapsed = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateElapsed();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateElapsed());
+  }
+
+  void _updateElapsed() {
+    final start = widget.startedAt ?? DateTime.now();
+    final diff = DateTime.now().difference(start);
+    if (mounted) {
+      setState(() {
+        _elapsed = diff.isNegative ? Duration.zero : diff;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hours = _elapsed.inHours;
+    final mins = _elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final secs = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final formatted = hours > 0
+        ? "${hours.toString().padLeft(2, '0')}:$mins:$secs"
+        : "$mins:$secs";
+
+    return KaryaCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: 20,
+      borderColor: const Color(0xFF10B981).withValues(alpha: 0.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF10B981),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "LIVE SERVICE UNDERWAY",
+                    style: WorkGoFonts.badge(
+                      color: const Color(0xFF34D399),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF064E3B),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF10B981), width: 1),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_rounded, color: Color(0xFF34D399), size: 13),
+                    const SizedBox(width: 4),
+                    Text(
+                      formatted,
+                      style: const TextStyle(
+                        color: Color(0xFF34D399),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Service timer active · Complete work then seal with C2PA",
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildMicroBadge(Icons.security_rounded, "Insured"),
+              const SizedBox(width: 6),
+              _buildMicroBadge(Icons.gps_fixed_rounded, "GPS Active"),
+              const SizedBox(width: 6),
+              _buildMicroBadge(Icons.camera_alt_rounded, "C2PA Ready"),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMicroBadge(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: Colors.white70),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
   }
 }
 

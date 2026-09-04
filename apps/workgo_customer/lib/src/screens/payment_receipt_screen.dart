@@ -120,8 +120,35 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                 const SizedBox(height: 8),
                 _buildCostRow('emergency_rush_fee'.tr(), "+₹150", isHighlight: true),
               ],
+              if (widget.booking.isDiagnosticVisit && widget.booking.isFeeCredited) ...[
+                const SizedBox(height: 8),
+                _buildCostRow("Smart Diagnostic Credit (100%)", "-₹${widget.booking.diagnosticFee.toStringAsFixed(0)}", isHighlight: true),
+              ],
               const SizedBox(height: 8),
               _buildCostRow("Platform / GST (5%)", "₹${(totalAmount * 0.05).toStringAsFixed(0)}"),
+              if (widget.booking.isDiagnosticVisit && !widget.booking.isFeeCredited) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.verified_rounded, size: 14, color: Color(0xFF16A34A)),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          "₹99 Diagnostic Guarantee: 100% credited against subsequent repair bill.",
+                          style: TextStyle(color: Color(0xFF15803D), fontSize: 10.5, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const Divider(color: Color(0xFFF0EDE6), height: 24),
               _buildCostRow(
                 'total_amount'.tr(),

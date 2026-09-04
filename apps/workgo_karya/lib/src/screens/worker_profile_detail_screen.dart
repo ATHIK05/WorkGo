@@ -7,6 +7,8 @@ import 'document_upload_screen.dart';
 import 'karya_home_screen.dart';
 import 'worker_profile_setup_screen.dart';
 import 'worker_welfare_screen.dart';
+import 'daily_face_verification_screen.dart';
+import '../widgets/artisan_keyword_uplift_widget.dart';
 
 class WorkerProfileDetailScreen extends StatefulWidget {
   const WorkerProfileDetailScreen({
@@ -211,6 +213,13 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
 
                   // 3 Metric Bento Chips (Mint Green, Sky Blue, Pastel Amber)
                   _buildMetricStatsRow(worker),
+                  const SizedBox(height: 18),
+
+                  // AI Match Strength & Equipment Specializations Hub
+                  ArtisanKeywordUpliftWidget(
+                    worker: worker,
+                    onKeywordsUpdated: () => setState(() {}),
+                  ),
                   const SizedBox(height: 20),
 
                   // Menu Matrix List Cards
@@ -736,7 +745,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         return;
       }
 
-      // Native Biometric Fingerprint/Face ID verification prompt
+      // 1. Native Biometric Fingerprint/Face ID verification prompt
       final authenticated = await BiometricService().authenticate(
         reason: "Scan fingerprint or face to verify identity before checking in.",
       );
@@ -758,6 +767,35 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           );
         }
         return;
+      }
+
+      // 2. Mandatory Daily 3D Face Verification against registered KYC selfie
+      if (mounted) {
+        final faceVerified = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => DailyFaceVerificationScreen(worker: worker),
+          ),
+        );
+
+        if (faceVerified != true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Row(
+                  children: [
+                    Icon(Icons.face_retouching_off_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Expanded(child: Text("3D Face verification cancelled or failed. Check-in aborted.")),
+                  ],
+                ),
+                backgroundColor: const Color(0xFFE11D48),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            );
+          }
+          return;
+        }
       }
     }
 

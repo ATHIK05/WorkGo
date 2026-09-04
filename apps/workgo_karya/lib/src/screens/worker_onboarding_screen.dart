@@ -739,7 +739,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                 const Icon(Icons.schedule_rounded, color: KX.gold, size: 16),
                 const SizedBox(width: 6),
                 Text(
-                  time,
+                  time.to12HourTime(),
                   style: WorkGoFonts.numeric(
                     color: KX.textPrimary,
                     fontSize: 14,

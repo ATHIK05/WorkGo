@@ -359,7 +359,7 @@
   "authenticity_flagged": "Suspicious Metadata / Diffusion Markers Detected",
   "audit_history_title": "Onboarding & Verification Audit Trail",
   "approve_mint_c2pa_btn": "Approve & Mint C2PA Badge",
-  "reject_worker_btn": "Reject Application",
+  "reject_worker_application_btn": "Reject Application",
   "rejection_reason_hint": "Enter reason for rejection...",
   "report_artisan_title": "Report Artisan & Request Freeze",
   "report_artisan_desc": "If you encountered severe misconduct or safety violations, report immediately for cooperative investigation.",

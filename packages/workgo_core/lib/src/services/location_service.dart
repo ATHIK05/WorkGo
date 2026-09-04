@@ -65,7 +65,8 @@ class LocationService {
   /// Configures native Android/iOS background location settings with wake lock and foreground notification
   /// so updates stream continuously even when the app is outside/minimized or device is locked.
   Future<void> startRealtimeBroadcast({
-    required Future<void> Function(double lat, double lng) onLocationUpdate,
+    Future<void> Function(double lat, double lng)? onLocationUpdate,
+    Future<void> Function(Position pos)? onPositionUpdate,
   }) async {
     await stopRealtimeBroadcast();
 
@@ -111,7 +112,12 @@ class LocationService {
       _positionStreamSub = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
         (Position pos) async {
           try {
-            await onLocationUpdate(pos.latitude, pos.longitude);
+            if (onLocationUpdate != null) {
+              await onLocationUpdate(pos.latitude, pos.longitude);
+            }
+            if (onPositionUpdate != null) {
+              await onPositionUpdate(pos);
+            }
           } catch (e) {
             debugPrint("LocationService broadcast stream callback error: $e");
           }

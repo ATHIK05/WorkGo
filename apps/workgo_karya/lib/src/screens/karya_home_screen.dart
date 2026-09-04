@@ -11,7 +11,10 @@ import 'document_upload_screen.dart';
 import 'incoming_requests_screen.dart';
 import 'worker_earnings_screen.dart';
 import 'worker_profile_detail_screen.dart';
+import 'daily_face_verification_screen.dart';
 import '../widgets/karya_spotlight_tour.dart';
+import '../widgets/artisan_keyword_uplift_widget.dart';
+import '../widgets/handoff_acknowledgment_dialog.dart';
 
 class KaryaHomeScreen extends StatefulWidget {
   const KaryaHomeScreen({
@@ -70,6 +73,12 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     _ensureWorkerProfileExists();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkAndPromptWorkerLocation();
+      try {
+        final worker = await _workerService.fetchWorkerByUserId(widget.user.uid);
+        if (worker != null && worker.availabilityStatus == AvailabilityStatus.online) {
+          _startLiveLocationBroadcasting(worker.id);
+        }
+      } catch (_) {}
       if (mounted) {
         await _checkAndShowAppTour();
       }
@@ -347,7 +356,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         return;
       }
 
-      // Native Biometric Fingerprint/Face ID verification prompt
+      // 1. Native Biometric Fingerprint/Face ID verification prompt
       final authenticated = await BiometricService().authenticate(
         reason: "Scan fingerprint or face to verify identity before going live on radar.",
       );
@@ -369,6 +378,35 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           );
         }
         return;
+      }
+
+      // 2. Mandatory Daily 3D Face Verification against registered KYC selfie
+      if (mounted) {
+        final faceVerified = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => DailyFaceVerificationScreen(worker: worker),
+          ),
+        );
+
+        if (faceVerified != true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Row(
+                  children: [
+                    Icon(Icons.face_retouching_off_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Expanded(child: Text("3D Face verification cancelled or failed. Check-in aborted.")),
+                  ],
+                ),
+                backgroundColor: const Color(0xFFE11D48),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            );
+          }
+          return;
+        }
       }
     }
 
@@ -782,6 +820,39 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               const SizedBox(height: 14),
             ],
 
+            // ── 2.5 Live Active Mission Card (If artisan has an accepted or in-progress booking)
+            StreamBuilder<Booking?>(
+              stream: _bookingService.streamCurrentActiveJob(worker.id),
+              builder: (context, activeSnap) {
+                final activeBooking = activeSnap.data;
+                if (activeBooking == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: KSlideFadeIn(
+                    child: _buildActiveMissionCockpitCard(context, activeBooking, worker),
+                  ),
+                );
+              },
+            ),
+
+            // ── 2.6 Incoming Specialist Co-op Relay Alert (Mutual Acknowledgment)
+            StreamBuilder<List<Booking>>(
+              stream: _bookingService.streamWorkerHandoffRequests(worker.id),
+              builder: (context, handoffSnap) {
+                final requests = handoffSnap.data ?? [];
+                if (requests.isEmpty) return const SizedBox.shrink();
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    children: requests.map((b) {
+                      return _buildSpecialistRelayAlertCard(context, b, worker);
+                    }).toList(),
+                  ),
+                );
+              },
+            ),
+
             // ── 3. Daily Challenge / Earnings Hero Card (Reference-Inspired)
             KSlideFadeIn(
               delay: const Duration(milliseconds: 40),
@@ -817,8 +888,151 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                 child: _buildTacticalActionGrid(context, worker),
               ),
             ),
+            const SizedBox(height: 18),
+
+            // ── 7. Artisan AI Match Strength & Equipment Tagging Hub
+            KSlideFadeIn(
+              delay: const Duration(milliseconds: 110),
+              child: ArtisanKeywordUpliftWidget(
+                worker: worker,
+                onKeywordsUpdated: () {
+                  setState(() {});
+                },
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  SPECIALIST RELAY ALERT CARD (Mutual Acknowledgment Action)
+  // ──────────────────────────────────────────────────────────────
+  Widget _buildSpecialistRelayAlertCard(BuildContext context, Booking booking, Worker worker) {
+    final fromName = booking.handoffFromWorkerName ?? 'Peer Artisan';
+    final notes = booking.handoffDiagnosisNotes ?? 'Pre-inspection findings attached.';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF3B82F6), width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2563EB),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.swap_horiz_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Specialist Relay Alert',
+                      style: TextStyle(
+                        color: Color(0xFF1E3A8A),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'Referred by $fromName · Awaiting your mutual acknowledgment',
+                      style: const TextStyle(
+                        color: Color(0xFF1D4ED8),
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDBEAFE),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'ACTION REQ',
+                  style: TextStyle(
+                    color: Color(0xFF1D4ED8),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Diagnosis: "$notes"',
+            style: const TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                HapticFeedback.mediumImpact();
+                final accepted = await HandoffAcknowledgmentDialog.show(
+                  context,
+                  booking: booking,
+                  currentSpecialist: worker,
+                );
+                if (accepted == true && context.mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ActiveJobScreen(
+                        booking: booking.copyWith(
+                          workerId: worker.id,
+                          acceptedWorkerName: worker.name,
+                          handoffStatus: 'accepted',
+                          status: BookingStatus.accepted,
+                        ),
+                        worker: worker,
+                      ),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.rate_review_rounded, size: 16),
+              label: const Text(
+                'Review Pre-Inspection & Acknowledge',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1368,7 +1582,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
                               // Date & Time
                               Text(
-                                "${DateFormat('d MMM').format(DateTime.now())} · ${worker.workingHoursStart} - ${worker.workingHoursEnd}",
+                                "${DateFormat('d MMM').format(DateTime.now())} · ${worker.workingHoursStart.to12HourTime()} - ${worker.workingHoursEnd.to12HourTime()}",
                                 style: GoogleFonts.plusJakartaSans(
                                   color: const Color(0xFF78350F),
                                   fontSize: 11.5,
@@ -1951,6 +2165,581 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           ),
         ),
       ],
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  ACTIVE MISSION COCKPIT CARD & START OTP ENTRY
+  // ──────────────────────────────────────────────────────────────
+  Widget _buildActiveMissionCockpitCard(
+    BuildContext context,
+    Booking booking,
+    Worker worker,
+  ) {
+    final isAccepted = booking.status == BookingStatus.accepted;
+    final isInProgress = booking.status == BookingStatus.inProgress;
+
+    final tradeTitle = booking.serviceType.toLocalizedTrade();
+    final address = booking.customerAddressText ?? "Customer Doorstep Address";
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (ctx) => ActiveJobScreen(
+              booking: booking,
+              worker: worker,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isAccepted ? const Color(0xFF13111C) : const Color(0xFF091E16),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isAccepted ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+            width: 1.6,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: (isAccepted ? const Color(0xFFF59E0B) : const Color(0xFF10B981))
+                  .withValues(alpha: 0.18),
+              blurRadius: 18,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Status Badge + Live Timer or Amount
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (isAccepted ? const Color(0xFFF59E0B) : const Color(0xFF10B981))
+                        .withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: isAccepted ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isAccepted ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isAccepted ? "📍 ARRIVAL · ENTER OTP" : "🟢 SERVICE IN PROGRESS",
+                        style: TextStyle(
+                          color: isAccepted ? const Color(0xFFFDE68A) : const Color(0xFFA7F3D0),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isInProgress)
+                  _KaryaStopwatchBadge(startedAt: booking.startedAt)
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "₹${booking.totalAmount.toStringAsFixed(0)}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Trade Title
+            Text(
+              "$tradeTitle Mission",
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 4),
+
+            // Address
+            Row(
+              children: [
+                const Icon(Icons.location_on_rounded, color: Colors.white60, size: 14),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    address,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            if ((booking.equipmentTag?.isNotEmpty == true) ||
+                (booking.customerIssueDetails?.isNotEmpty == true) ||
+                booking.suggestedToolsNeeded.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.precision_manufacturing_rounded, size: 13, color: Color(0xFFFDE68A)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        booking.equipmentTag?.isNotEmpty == true
+                            ? "${booking.equipmentTag} · ${booking.suggestedToolsNeeded.isNotEmpty ? '${booking.suggestedToolsNeeded.length} Tools Advised' : (booking.customerIssueDetails ?? booking.symptomDescription ?? 'Inspection Scheduled')}"
+                            : (booking.customerIssueDetails ?? booking.symptomDescription ?? "Inspection Scheduled"),
+                        style: const TextStyle(
+                          color: Color(0xFFFDE68A),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+
+            // Action Buttons
+            Row(
+              children: [
+                if (isAccepted) ...[
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showStartOtpDialogForBooking(context, booking, worker),
+                      icon: const Icon(Icons.key_rounded, size: 17, color: Color(0xFF0F172A)),
+                      label: const Text(
+                        "Enter Start OTP",
+                        style: TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFBBF24),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (ctx) => ActiveJobScreen(
+                            booking: booking,
+                            worker: worker,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.navigation_rounded, size: 16, color: Colors.white),
+                    label: const Text(
+                      "HUD",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white24),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (ctx) => ActiveJobScreen(
+                              booking: booking,
+                              worker: worker,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.camera_alt_rounded, size: 17, color: Colors.white),
+                      label: const Text(
+                        "Complete Service & Seal C2PA",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showStartOtpDialogForBooking(
+    BuildContext context,
+    Booking booking,
+    Worker worker,
+  ) {
+    final c1 = TextEditingController();
+    final c2 = TextEditingController();
+    final c3 = TextEditingController();
+    final c4 = TextEditingController();
+    final f2 = FocusNode();
+    final f3 = FocusNode();
+    final f4 = FocusNode();
+    bool isVerifying = false;
+    String? errorText;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFF13111C),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(color: const Color(0xFFFBBF24), width: 1.5),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBBF24).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.key_rounded, color: Color(0xFFFBBF24), size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Enter Customer Start OTP",
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            "Ask the customer for the 4-digit code shown on their screen",
+                            style: TextStyle(color: Colors.white60, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // 4-Box Pin Inputs
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildOtpInputBox(c1, null, f2, (val) {
+                      if (val.isNotEmpty) f2.requestFocus();
+                    }),
+                    const SizedBox(width: 10),
+                    _buildOtpInputBox(c2, f2, f3, (val) {
+                      if (val.isNotEmpty) f3.requestFocus();
+                    }),
+                    const SizedBox(width: 10),
+                    _buildOtpInputBox(c3, f3, f4, (val) {
+                      if (val.isNotEmpty) f4.requestFocus();
+                    }),
+                    const SizedBox(width: 10),
+                    _buildOtpInputBox(c4, f4, null, (val) {}),
+                  ],
+                ),
+                if (errorText != null) ...[
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      errorText!,
+                      style: const TextStyle(color: Color(0xFFF43F5E), fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 22),
+
+                ElevatedButton(
+                  onPressed: isVerifying
+                      ? null
+                      : () async {
+                          final fullOtp = "${c1.text}${c2.text}${c3.text}${c4.text}".trim();
+                          if (fullOtp.length != 4) {
+                            setModalState(() => errorText = "Please enter all 4 digits");
+                            return;
+                          }
+
+                          setModalState(() {
+                            isVerifying = true;
+                            errorText = null;
+                          });
+
+                          try {
+                            final success = await _bookingService.verifyStartOtp(
+                              bookingId: booking.id,
+                              enteredOtp: fullOtp,
+                            );
+
+                            if (success) {
+                              HapticFeedback.heavyImpact();
+                              if (ctx.mounted) {
+                                Navigator.of(ctx).pop();
+                              }
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("OTP Verified! Service started successfully."),
+                                    backgroundColor: Color(0xFF047857),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (c) => ActiveJobScreen(
+                                      booking: booking.copyWith(
+                                        status: BookingStatus.inProgress,
+                                        startedAt: DateTime.now(),
+                                      ),
+                                      worker: worker,
+                                    ),
+                                  ),
+                                );
+                              }
+                            } else {
+                              HapticFeedback.vibrate();
+                              setModalState(() {
+                                isVerifying = false;
+                                errorText = "Incorrect OTP. Please check customer app.";
+                              });
+                            }
+                          } catch (e) {
+                            setModalState(() {
+                              isVerifying = false;
+                              errorText = "Verification error: $e";
+                            });
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFBBF24),
+                    foregroundColor: const Color(0xFF0D0A1C),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: isVerifying
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                        )
+                      : const Text(
+                          "Verify & Start Service",
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOtpInputBox(
+    TextEditingController ctrl,
+    FocusNode? currentFocus,
+    FocusNode? nextFocus,
+    ValueChanged<String> onChanged,
+  ) {
+    return Container(
+      width: 52,
+      height: 56,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1A2E),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.5), width: 1.5),
+      ),
+      child: Center(
+        child: TextField(
+          controller: ctrl,
+          focusNode: currentFocus,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          maxLength: 1,
+          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+          decoration: const InputDecoration(
+            counterText: "",
+            border: InputBorder.none,
+          ),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  KARYA LIVE STOPWATCH BADGE (FOR IN-PROGRESS MISSIONS)
+// ──────────────────────────────────────────────────────────────
+class _KaryaStopwatchBadge extends StatefulWidget {
+  const _KaryaStopwatchBadge({this.startedAt});
+  final DateTime? startedAt;
+
+  @override
+  State<_KaryaStopwatchBadge> createState() => _KaryaStopwatchBadgeState();
+}
+
+class _KaryaStopwatchBadgeState extends State<_KaryaStopwatchBadge> {
+  Timer? _timer;
+  Duration _elapsed = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateElapsed();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateElapsed());
+  }
+
+  void _updateElapsed() {
+    final start = widget.startedAt ?? DateTime.now();
+    final diff = DateTime.now().difference(start);
+    if (mounted) {
+      setState(() {
+        _elapsed = diff.isNegative ? Duration.zero : diff;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hours = _elapsed.inHours;
+    final mins = _elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final secs = _elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final formatted = hours > 0
+        ? "${hours.toString().padLeft(2, '0')}:$mins:$secs"
+        : "$mins:$secs";
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFF064E3B),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF10B981), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.timer_rounded, color: Color(0xFF34D399), size: 12),
+          const SizedBox(width: 4),
+          Text(
+            formatted,
+            style: const TextStyle(
+              color: Color(0xFF34D399),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

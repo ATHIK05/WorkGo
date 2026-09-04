@@ -711,7 +711,143 @@ class _LuminaRequestCard extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 14),
+          // Customer Reported Issue & AI Equipment Advice Card (if diagnostic context present)
+          if ((booking.equipmentTag?.isNotEmpty == true) ||
+              (booking.symptomDescription?.isNotEmpty == true) ||
+              (booking.customerIssueDetails?.isNotEmpty == true) ||
+              booking.suggestedToolsNeeded.isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFDE68A), width: 1.1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Equipment Tag Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.precision_manufacturing_rounded,
+                          color: Color(0xFFB45309),
+                          size: 15,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          booking.equipmentTag?.isNotEmpty == true
+                              ? "Target: ${booking.equipmentTag}"
+                              : "Diagnostic Dispatch",
+                          style: const TextStyle(
+                            color: Color(0xFF78350F),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (booking.isDiagnosticVisit)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: const Text(
+                            "DIAGNOSTIC",
+                            style: TextStyle(
+                              color: Color(0xFF92400E),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Customer issue & observations description
+                  if (booking.customerIssueDetails?.isNotEmpty == true ||
+                      booking.symptomDescription?.isNotEmpty == true) ...[
+                    Text(
+                      booking.customerIssueDetails?.isNotEmpty == true
+                          ? booking.customerIssueDetails!
+                          : booking.symptomDescription!,
+                      style: const TextStyle(
+                        color: Color(0xFF92400E),
+                        fontSize: 11.5,
+                        height: 1.3,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // AI Gear Advice: Recommended tools to pack
+                  if (booking.suggestedToolsNeeded.isNotEmpty) ...[
+                    Row(
+                      children: const [
+                        Icon(Icons.handyman_rounded, size: 12, color: Color(0xFFB45309)),
+                        SizedBox(width: 4),
+                        Text(
+                          "AI Gear Advice · Tools to Bring:",
+                          style: TextStyle(
+                            color: Color(0xFF92400E),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 5,
+                      children: booking.suggestedToolsNeeded.map((tool) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.build_rounded, size: 10, color: Color(0xFFB45309)),
+                              const SizedBox(width: 4),
+                              Text(
+                                tool,
+                                style: const TextStyle(
+                                  color: Color(0xFF78350F),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
 
           // Action Buttons: Refer vs Instant Accept
           Row(

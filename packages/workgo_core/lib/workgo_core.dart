@@ -22,6 +22,7 @@ export "src/models/booking.dart";
 export "src/models/rating_org_demand.dart";
 export "src/models/verification_audit_model.dart";
 export "src/models/c2pa_manifest_model.dart";
+export "src/models/symptom_catalog.dart";
 
 // Widgets
 export "src/widgets/safe_text.dart";
@@ -65,9 +66,14 @@ export "src/services/location_service.dart";
 export "src/services/c2pa_service.dart";
 export "src/services/biometric_service.dart";
 export "src/services/aadhaar_offline_parser.dart";
+export "src/services/road_routing_service.dart";
+export "src/services/face_comparison_service.dart";
 export "src/services/session_manager.dart";
+export "src/services/ai_diagnostic_service.dart";
 
 // API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";
 export "package:url_launcher/url_launcher.dart";
 export "package:latlong2/latlong.dart" hide Path;
+export "package:geolocator/geolocator.dart";
+export "src/utils/workgo_time_format.dart";

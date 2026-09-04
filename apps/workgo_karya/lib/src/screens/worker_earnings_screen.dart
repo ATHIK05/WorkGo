@@ -585,7 +585,7 @@ class _LedgerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCompleted = job.status == BookingStatus.completed;
     final dateStr = job.scheduledAt != null
-        ? DateFormat('d MMM · HH:mm').format(job.scheduledAt!.toLocal())
+        ? job.scheduledAt!.to12HourDateTime()
         : "Today";
 
     final tradeTitle = job.serviceType.toLocalizedTrade();

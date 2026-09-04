@@ -1392,7 +1392,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
   }
 
   Widget _buildAuditItem(VerificationAuditLog log) {
-    final timeStr = log.timestamp.toLocal().toString().substring(11, 16);
+    final timeStr = log.timestamp.to12HourTime();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),

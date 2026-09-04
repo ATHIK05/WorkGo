@@ -1,20 +1,27 @@
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
+import '../services/voice_recognition_service.dart';
 import 'booking_creation_screen.dart';
+import 'symptom_triage_sheet.dart';
 
 class WorkerSearchScreen extends StatefulWidget {
   const WorkerSearchScreen({
     super.key,
     required this.customerId,
     this.initialCategory,
+    this.customerLat,
+    this.customerLng,
   });
 
   final String customerId;
   final String? initialCategory;
+  final double? customerLat;
+  final double? customerLng;
 
   @override
   State<WorkerSearchScreen> createState() => _WorkerSearchScreenState();
@@ -30,11 +37,20 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   bool _searchFocused = false;
   final FocusNode _searchFocus = FocusNode();
 
-  String _sortBy = "nearest"; // "nearest", "rating", "fare"
+  String _sortBy = "nearest"; // "nearest", "rating", "fare_asc", "fare_desc"
   String _statusFilter = "all"; // "all", "checked_in", "checked_out"
   bool _dismissedFloatingBanner = false;
   double? _customerLat;
   double? _customerLng;
+  double _minPrice = 99.0;
+  double _maxPrice = 2000.0;
+
+  bool get _hasActiveFilter =>
+      _sortBy != "nearest" ||
+      _radiusKm > 0 ||
+      _statusFilter != "all" ||
+      _minPrice > 99.0 ||
+      _maxPrice < 2000.0;
 
   final List<({String key, String emoji, String title, Color color, LinearGradient gradient})> _categories = [
     (key: "All", emoji: "🌐", title: "All Trades", color: CX.cyan, gradient: CX.auroraVioletCyan),
@@ -51,6 +67,8 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   @override
   void initState() {
     super.initState();
+    _customerLat = widget.customerLat;
+    _customerLng = widget.customerLng;
     _selectedCategory = widget.initialCategory ?? "All";
     _searchFocusCtrl = AnimationController(vsync: this, duration: CAnim.normal);
     _searchFocus.addListener(() {
@@ -64,8 +82,40 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
     _loadCustomerLocation();
   }
 
+  @override
+  void didUpdateWidget(covariant WorkerSearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.customerLat != oldWidget.customerLat ||
+        widget.customerLng != oldWidget.customerLng) {
+      if (widget.customerLat != null && widget.customerLng != null && mounted) {
+        setState(() {
+          _customerLat = widget.customerLat;
+          _customerLng = widget.customerLng;
+        });
+      }
+    }
+  }
+
   Future<void> _loadCustomerLocation() async {
     try {
+      // 1. High-accuracy live hardware GPS (highest priority)
+      final coords = await LocationService.instance.getCurrentCoordinates();
+      final hardwareLat = (coords["latitude"] as num?)?.toDouble();
+      final hardwareLng = (coords["longitude"] as num?)?.toDouble();
+      if (hardwareLat != null && hardwareLng != null && hardwareLat > 1.0 && mounted) {
+        setState(() {
+          _customerLat = hardwareLat;
+          _customerLng = hardwareLng;
+        });
+        return;
+      }
+
+      // If already have valid coordinates from parent, retain them
+      if (_customerLat != null && _customerLng != null && _customerLat! > 1.0 && _customerLng! > 1.0) {
+        return;
+      }
+
+      // 2. Saved user profile address
       final doc = await FirebaseFirestore.instance
           .collection("users")
           .doc(widget.customerId)
@@ -86,6 +136,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
         }
       }
 
+      // 3. Saved addresses collection
       final addrSnap = await FirebaseFirestore.instance
           .collection("users")
           .doc(widget.customerId)
@@ -105,16 +156,21 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
         }
       }
 
-      final coords = await LocationService.instance.getCurrentCoordinates();
-      final hardwareLat = (coords["latitude"] as num?)?.toDouble();
-      final hardwareLng = (coords["longitude"] as num?)?.toDouble();
-      if (hardwareLat != null && hardwareLng != null && hardwareLat > 1.0 && mounted) {
+      // 4. Default cooperative regional hub fallback
+      if ((_customerLat == null || _customerLat! <= 1.0) && mounted) {
         setState(() {
-          _customerLat = hardwareLat;
-          _customerLng = hardwareLng;
+          _customerLat = 11.3445;
+          _customerLng = 77.7327;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      if ((_customerLat == null || _customerLat! <= 1.0) && mounted) {
+        setState(() {
+          _customerLat = 11.3445;
+          _customerLng = 77.7327;
+        });
+      }
+    }
   }
 
   @override
@@ -170,7 +226,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  "RADAR ${_radiusKm.toInt()}KM",
+                  _radiusKm > 0 ? "RADAR ${_radiusKm.toInt()}KM" : "RADAR ACTIVE",
                   style: const TextStyle(
                     color: Color(0xFF1D4ED8),
                     fontSize: 10,
@@ -192,12 +248,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
               child: _buildLuxurySearchBar(),
             ),
 
-            // 2. Horizontal Quick Filters & Sort Strip
-            SizedBox(
-              height: 42,
-              child: _buildQuickFiltersStrip(),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
 
             // 3. Select Craft Rail Title + Pills (Image 1 Style)
             Padding(
@@ -250,8 +301,6 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   //  MODERN ANDROID SEARCH BAR (EXACT TEMPLATE IMPLEMENTATION)
   // ──────────────────────────────────────────
   Widget _buildLuxurySearchBar() {
-    final hasActiveFilter = _sortBy != "nearest" || _radiusKm != 10.0;
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       height: 56,
@@ -326,43 +375,65 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             const SizedBox(width: 6),
           ],
 
-          // Filter Sliders Icon (Tune)
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                if (_sortBy == "nearest") {
-                  _sortBy = "rating";
-                } else if (_sortBy == "rating") {
-                  _sortBy = "fare";
-                } else {
-                  _sortBy = "nearest";
-                }
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Icon(
-                Icons.tune_rounded,
-                size: 22,
-                color: hasActiveFilter
-                    ? const Color(0xFF1D4ED8)
-                    : const Color(0xFF6B7280),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Microphone Icon
+          // Filter Sliders Icon (Tune) - Opens Rich Filter & Cost Range Bottom Sheet
           GestureDetector(
             onTap: () {
               HapticFeedback.lightImpact();
+              _showFilterBottomSheet();
             },
-            child: const Padding(
-              padding: EdgeInsets.only(left: 2),
-              child: Icon(
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: _hasActiveFilter
+                    ? const Color(0xFFEFF6FF)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: _hasActiveFilter
+                        ? const Color(0xFF2563EB)
+                        : const Color(0xFF6B7280),
+                  ),
+                  if (_hasActiveFilter)
+                    Positioned(
+                      top: -1,
+                      right: -1,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2563EB),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+
+          // Microphone Icon - Opens Interactive Voice Search Bottom Sheet
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _showVoiceSearchBottomSheet();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
                 Icons.mic_rounded,
-                size: 22,
-                color: Color(0xFF6B7280),
+                size: 19,
+                color: Color(0xFF334155),
               ),
             ),
           ),
@@ -371,151 +442,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
     );
   }
 
-  // ──────────────────────────────────────────
-  //  QUICK FILTERS & SORT STRIP (HORIZONTAL SCROLL)
-  // ──────────────────────────────────────────
-  Widget _buildQuickFiltersStrip() {
-    final radiusOptions = [-1.0, 10.0, 25.0, 50.0];
 
-    return ListView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        // Status Filter Chips
-        _buildStatusChip("all", "All Artisans"),
-        _buildStatusChip("checked_in", "🟢 Checked In"),
-        _buildStatusChip("checked_out", "⚪ Checked Out"),
-        const SizedBox(width: 4),
-
-        // Radius Chips
-        ...radiusOptions.map((r) {
-          final isSelected = _radiusKm == r;
-          return GestureDetector(
-            onTap: () => setState(() {
-              _radiusKm = r;
-              _dismissedFloatingBanner = false;
-            }),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF141416) : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSelected ? const Color(0xFF141416) : const Color(0xFFE2E8F0),
-                  width: 1.1,
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x04000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  r <= 0 ? "All Distance" : "${r.toInt()} km",
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : const Color(0xFF475569),
-                    fontSize: 11.5,
-                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
-
-        // Sort Options
-        _buildSortChip("nearest", "⚡ Nearest"),
-        _buildSortChip("rating", "★ Top Rated"),
-        _buildSortChip("fare", "💰 Best Value"),
-      ],
-    );
-  }
-
-  Widget _buildStatusChip(String filterKey, String label) {
-    final isSelected = _statusFilter == filterKey;
-    final isOnlineTab = filterKey == "checked_in";
-    return GestureDetector(
-      onTap: () => setState(() => _statusFilter = filterKey),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isOnlineTab ? const Color(0xFF065F46) : const Color(0xFF141416))
-              : (isOnlineTab ? const Color(0xFFECFDF5) : Colors.white),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? (isOnlineTab ? const Color(0xFF065F46) : const Color(0xFF141416))
-                : (isOnlineTab ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0)),
-            width: 1.1,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x04000000),
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected
-                  ? Colors.white
-                  : (isOnlineTab ? const Color(0xFF065F46) : const Color(0xFF475569)),
-              fontSize: 11.5,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSortChip(String sortKey, String label) {
-    final isSelected = _sortBy == sortKey;
-    return GestureDetector(
-      onTap: () => setState(() => _sortBy = sortKey),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-            width: 1.1,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x04000000),
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : const Color(0xFF475569),
-              fontSize: 11.5,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   // ──────────────────────────────────────────
   //  CATEGORY PILLS RAIL (Image 1 Style Dark Active Pill)
@@ -665,14 +592,24 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
           }).toList();
         }
 
-        // 2. Check-In Status Filtering (All, Checked In, Checked Out)
+        // 2. Cost / Visit Rate Range Filtering
+        if (_minPrice > 99.0 || _maxPrice < 2000.0) {
+          workers = workers.where((w) {
+            final rate = w.baseRate;
+            final matchMin = rate >= _minPrice;
+            final matchMax = _maxPrice >= 2000.0 ? true : rate <= _maxPrice;
+            return matchMin && matchMax;
+          }).toList();
+        }
+
+        // 3. Check-In Status Filtering (All, Checked In, Checked Out)
         if (_statusFilter == "checked_in") {
           workers = workers.where((w) => w.isOnlineOrCheckedIn).toList();
         } else if (_statusFilter == "checked_out") {
           workers = workers.where((w) => !w.isOnlineOrCheckedIn).toList();
         }
 
-        // 3. Radius filtering with real geodesic distance
+        // 4. Radius filtering with real geodesic distance
         if (_radiusKm > 0) {
           final withinRadius = workers.where((w) {
             return w.distanceKm <= _radiusKm + 2.0;
@@ -682,11 +619,15 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
           }
         }
 
-        // 4. Sorting
+        // 5. Sorting (Proximity, Rating, Price: Low to High, Price: High to Low)
         if (_sortBy == "rating") {
           workers.sort((a, b) => b.avgRating.compareTo(a.avgRating));
-        } else if (_sortBy == "fare") {
+        } else if (_sortBy == "fare" || _sortBy == "fare_asc") {
+          // Low to High
           workers.sort((a, b) => a.baseRate.compareTo(b.baseRate));
+        } else if (_sortBy == "fare_desc") {
+          // High to Low
+          workers.sort((a, b) => b.baseRate.compareTo(a.baseRate));
         } else {
           // Nearest: Online/Checked-in artisans prioritized, then closest distance
           workers.sort((a, b) {
@@ -730,7 +671,11 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                         child: Text(
                           _sortBy == "rating"
                               ? "Sorted by Rating"
-                              : (_sortBy == "fare" ? "Sorted by Value" : "Sorted by Proximity"),
+                              : (_sortBy == "fare_asc" || _sortBy == "fare"
+                                  ? "Sorted by Price: Low to High"
+                                  : (_sortBy == "fare_desc"
+                                      ? "Sorted by Price: High to Low"
+                                      : "Sorted by Proximity")),
                           style: const TextStyle(
                             color: Color(0xFF334155),
                             fontSize: 11,
@@ -765,7 +710,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             ),
 
             // Floating Dismissible Radius Expander Banner at bottom of list
-            if (!_dismissedFloatingBanner && _radiusKm < 50)
+            if (!_dismissedFloatingBanner && _radiusKm > 0 && _radiusKm < 50)
               Positioned(
                 left: 16,
                 right: 16,
@@ -808,7 +753,9 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              "Showing within ${_radiusKm.toInt()} km",
+                              _radiusKm > 0
+                                  ? "Showing within ${_radiusKm.toInt()} km"
+                                  : "Showing all distances",
                               style: const TextStyle(
                                 color: Color(0xFF141416),
                                 fontSize: 12.5,
@@ -870,6 +817,543 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   }
 
   // ──────────────────────────────────────────
+  //  RICH FILTER & COST BOTTOM SHEET WITH RANGE SLIDER
+  // ──────────────────────────────────────────
+  void _showFilterBottomSheet() {
+    double tempMin = _minPrice;
+    double tempMax = _maxPrice;
+    String tempSort = _sortBy;
+    String tempStatus = _statusFilter;
+    double tempRadius = _radiusKm;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final activeFiltersCount = (tempSort != "nearest" ? 1 : 0) +
+                (tempRadius > 0 ? 1 : 0) +
+                (tempStatus != "all" ? 1 : 0) +
+                ((tempMin > 99.0 || tempMax < 2000.0) ? 1 : 0);
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x22000000),
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.only(
+                top: 14,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Drag handle
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Header Row
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.tune_rounded,
+                              color: Color(0xFF2563EB),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      "Filters & Sort",
+                                      style: TextStyle(
+                                        color: Color(0xFF0F172A),
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                    if (activeFiltersCount > 0) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 7,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF2563EB),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          "$activeFiltersCount active",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  "Tune pricing, proximity, and availability",
+                                  style: TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              setModalState(() {
+                                tempMin = 99.0;
+                                tempMax = 2000.0;
+                                tempSort = "nearest";
+                                tempStatus = "all";
+                                tempRadius = -1.0;
+                              });
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              "Reset",
+                              style: TextStyle(
+                                color: Color(0xFFEF4444),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
+                    // Scrollable Filter Sections
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.58,
+                      ),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ── 1. COST / PRICING FILTER (RANGER) ──
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      "Cost Range",
+                                      style: TextStyle(
+                                        color: Color(0xFF1E293B),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      "(Base Visit Rate)",
+                                      style: TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 11.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFFA7F3D0),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "₹${tempMin.toInt()} - ${tempMax >= 2000.0 ? '₹2,000+' : '₹${tempMax.toInt()}'}",
+                                    style: const TextStyle(
+                                      color: Color(0xFF047857),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+
+                            // RangeSlider Theme
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: const Color(0xFF10B981),
+                                inactiveTrackColor: const Color(0xFFE2E8F0),
+                                trackHeight: 5,
+                                thumbColor: const Color(0xFF059669),
+                                overlayColor: const Color(0x2210B981),
+                                valueIndicatorColor: const Color(0xFF0F172A),
+                                valueIndicatorTextStyle: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              child: RangeSlider(
+                                values: RangeValues(tempMin, tempMax),
+                                min: 99.0,
+                                max: 2000.0,
+                                divisions: 38,
+                                labels: RangeLabels(
+                                  "₹${tempMin.toInt()}",
+                                  tempMax >= 2000.0 ? "₹2000+" : "₹${tempMax.toInt()}",
+                                ),
+                                onChanged: (RangeValues vals) {
+                                  setModalState(() {
+                                    tempMin = vals.start.roundToDouble();
+                                    tempMax = vals.end.roundToDouble();
+                                  });
+                                },
+                              ),
+                            ),
+
+                            // Quick Price Preset Chips
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: [
+                                _buildModalFilterChip(
+                                  label: "All Rates",
+                                  isSelected: tempMin <= 99.0 && tempMax >= 2000.0,
+                                  onTap: () {
+                                    setModalState(() {
+                                      tempMin = 99.0;
+                                      tempMax = 2000.0;
+                                    });
+                                  },
+                                ),
+                                _buildModalFilterChip(
+                                  label: "Under ₹299",
+                                  isSelected: tempMin <= 99.0 && tempMax == 299.0,
+                                  onTap: () {
+                                    setModalState(() {
+                                      tempMin = 99.0;
+                                      tempMax = 299.0;
+                                    });
+                                  },
+                                ),
+                                _buildModalFilterChip(
+                                  label: "₹300 - ₹799",
+                                  isSelected: tempMin == 300.0 && tempMax == 799.0,
+                                  onTap: () {
+                                    setModalState(() {
+                                      tempMin = 300.0;
+                                      tempMax = 799.0;
+                                    });
+                                  },
+                                ),
+                                _buildModalFilterChip(
+                                  label: "₹800+",
+                                  isSelected: tempMin == 800.0 && tempMax >= 2000.0,
+                                  onTap: () {
+                                    setModalState(() {
+                                      tempMin = 800.0;
+                                      tempMax = 2000.0;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 18),
+
+                            // ── 2. SORTING (Pricing & Proximity) ──
+                            const Text(
+                              "Sort Co-Workers By",
+                              style: TextStyle(
+                                color: Color(0xFF1E293B),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _buildModalFilterChip(
+                                  label: "⚡ Proximity (Nearest)",
+                                  isSelected: tempSort == "nearest",
+                                  onTap: () => setModalState(() => tempSort = "nearest"),
+                                ),
+                                _buildModalFilterChip(
+                                  label: "💵 Price: Low to High",
+                                  isSelected: tempSort == "fare_asc" || tempSort == "fare",
+                                  onTap: () => setModalState(() => tempSort = "fare_asc"),
+                                ),
+                                _buildModalFilterChip(
+                                  label: "💎 Price: High to Low",
+                                  isSelected: tempSort == "fare_desc",
+                                  onTap: () => setModalState(() => tempSort = "fare_desc"),
+                                ),
+                                _buildModalFilterChip(
+                                  label: "★ Top Rated",
+                                  isSelected: tempSort == "rating",
+                                  onTap: () => setModalState(() => tempSort = "rating"),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 18),
+
+                            // ── 3. STATUS / AVAILABILITY ──
+                            const Text(
+                              "Availability",
+                              style: TextStyle(
+                                color: Color(0xFF1E293B),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _buildModalFilterChip(
+                                  label: "All Artisans",
+                                  isSelected: tempStatus == "all",
+                                  onTap: () => setModalState(() => tempStatus = "all"),
+                                ),
+                                _buildModalFilterChip(
+                                  label: "🟢 Online / Checked In",
+                                  isSelected: tempStatus == "checked_in",
+                                  onTap: () => setModalState(() => tempStatus = "checked_in"),
+                                ),
+                                _buildModalFilterChip(
+                                  label: "⚪ Checked Out",
+                                  isSelected: tempStatus == "checked_out",
+                                  onTap: () => setModalState(() => tempStatus = "checked_out"),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 18),
+
+                            // ── 4. MAXIMUM DISTANCE ──
+                            const Text(
+                              "Search Radius",
+                              style: TextStyle(
+                                color: Color(0xFF1E293B),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _buildModalFilterChip(
+                                  label: "All Distances",
+                                  isSelected: tempRadius <= 0,
+                                  onTap: () => setModalState(() => tempRadius = -1.0),
+                                ),
+                                _buildModalFilterChip(
+                                  label: "Within 10 km",
+                                  isSelected: tempRadius == 10.0,
+                                  onTap: () => setModalState(() => tempRadius = 10.0),
+                                ),
+                                _buildModalFilterChip(
+                                  label: "Within 25 km",
+                                  isSelected: tempRadius == 25.0,
+                                  onTap: () => setModalState(() => tempRadius = 25.0),
+                                ),
+                                _buildModalFilterChip(
+                                  label: "Within 50 km",
+                                  isSelected: tempRadius == 50.0,
+                                  onTap: () => setModalState(() => tempRadius = 50.0),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    const SizedBox(height: 12),
+
+                    // Apply Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            HapticFeedback.mediumImpact();
+                            setState(() {
+                              _minPrice = tempMin;
+                              _maxPrice = tempMax;
+                              _sortBy = tempSort;
+                              _statusFilter = tempStatus;
+                              _radiusKm = tempRadius;
+                              _dismissedFloatingBanner = false;
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF141416),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            "Apply Filters",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildModalFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+            width: 1.1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF1E293B).withValues(alpha: 0.18),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  VOICE SEARCH BOTTOM SHEET TRIGGER
+  // ──────────────────────────────────────────
+  void _showVoiceSearchBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return _VoiceSearchSheet(
+          customerId: widget.customerId,
+          initialQuery: _searchController.text,
+          customerLat: widget.customerLat,
+          customerLng: widget.customerLng,
+          onQuerySelected: (query) {
+            setState(() {
+              _searchController.text = query;
+              _searchController.selection = TextSelection.fromPosition(
+                TextPosition(offset: query.length),
+              );
+            });
+          },
+        );
+      },
+    );
+  }
+
+  // ──────────────────────────────────────────
   //  NEXT-GEN INTERACTIVE EMPTY COCKPIT (PERFECTLY CENTERED)
   // ──────────────────────────────────────────
   Widget _buildInteractiveEmptyCockpit() {
@@ -882,6 +1366,74 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Active filters warning/recovery banner
+            if (_hasActiveFilter || _searchController.text.isNotEmpty) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.filter_alt_off_rounded,
+                      color: Color(0xFFDC2626),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _minPrice > 99.0 || _maxPrice < 2000.0
+                            ? "No artisans in price range ₹${_minPrice.toInt()} - ${_maxPrice >= 2000.0 ? '₹2000+' : '₹${_maxPrice.toInt()}'}"
+                            : "Active filters may be restricting results",
+                        style: const TextStyle(
+                          color: Color(0xFF991B1B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        setState(() {
+                          _minPrice = 99.0;
+                          _maxPrice = 2000.0;
+                          _statusFilter = "all";
+                          _radiusKm = -1.0;
+                          _sortBy = "nearest";
+                          _searchController.clear();
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        "Reset All",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // 1. Radar Scanning Beacon
             _RadarScanningBeacon(
               category: _selectedCategory,
@@ -890,7 +1442,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             const SizedBox(height: 22),
 
             // 2. Expand Radius 1-Tap Recovery Button
-            if (_radiusKm < 50) ...[
+            if (_radiusKm > 0 && _radiusKm < 50) ...[
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -1085,6 +1637,586 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
 }
 
 // ──────────────────────────────────────────────────────
+//  VOICE SEARCH BOTTOM SHEET (PULSING MIC + WAVEFORM + POPULAR SHORTCUTS)
+// ──────────────────────────────────────────────────────
+class _VoiceSearchSheet extends StatefulWidget {
+  const _VoiceSearchSheet({
+    required this.customerId,
+    required this.initialQuery,
+    required this.onQuerySelected,
+    this.customerLat,
+    this.customerLng,
+  });
+
+  final String customerId;
+  final String initialQuery;
+  final ValueChanged<String> onQuerySelected;
+  final double? customerLat;
+  final double? customerLng;
+
+  @override
+  State<_VoiceSearchSheet> createState() => _VoiceSearchSheetState();
+}
+
+class _VoiceSearchSheetState extends State<_VoiceSearchSheet>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseCtrl;
+  final VoiceRecognitionService _voiceService = VoiceRecognitionService.instance;
+
+  bool _isListening = false;
+  double _soundLevel = 0.0;
+  String _spokenWords = '';
+  bool _isSymptomDetected = false;
+  String _statusText = 'Listening... Speak your problem or trade';
+
+  final List<({IconData icon, String label})> _popularPrompts = const [
+    (icon: Icons.water_drop_rounded, label: "Plumber"),
+    (icon: Icons.bolt_rounded, label: "Electrician"),
+    (icon: Icons.ac_unit_rounded, label: "Appliance Repair"),
+    (icon: Icons.carpenter_rounded, label: "Carpentry"),
+    (icon: Icons.format_paint_rounded, label: "Painting"),
+    (icon: Icons.cleaning_services_rounded, label: "Cleaning"),
+    (icon: Icons.handyman_rounded, label: "Masonry"),
+    (icon: Icons.yard_rounded, label: "Gardening"),
+  ];
+
+  final List<String> _popularSymptoms = const [
+    'Water motor humming',
+    'AC leaking water',
+    'Geyser not heating',
+    'MCB tripping repeatedly',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startListening();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    _voiceService.cancelListening();
+    super.dispose();
+  }
+
+  Future<void> _startListening() async {
+    setState(() {
+      _isListening = true;
+      _statusText = 'Listening... Speak clearly';
+      _soundLevel = 0.0;
+    });
+
+    final available = await _voiceService.startListening(
+      onResult: (words, isFinal) {
+        if (!mounted) return;
+        final isSymptom = _voiceService.isLikelySymptomQuery(words);
+        setState(() {
+          _spokenWords = words;
+          _isSymptomDetected = isSymptom;
+        });
+
+        if (isFinal && words.trim().isNotEmpty) {
+          _handleFinalSpokenQuery(words.trim(), isSymptom);
+        }
+      },
+      onSoundLevel: (level) {
+        if (!mounted) return;
+        setState(() {
+          _soundLevel = level;
+        });
+      },
+    );
+
+    if (!available && mounted) {
+      setState(() {
+        _isListening = false;
+        _statusText = 'Microphone speech recognition unavailable on this device';
+      });
+    }
+  }
+
+  Future<void> _stopListening() async {
+    await _voiceService.stopListening();
+    if (mounted) {
+      setState(() {
+        _isListening = false;
+        _soundLevel = 0.0;
+      });
+    }
+  }
+
+  void _handleFinalSpokenQuery(String query, bool isSymptom) {
+    final isProblem = isSymptom ||
+        _voiceService.isLikelySymptomQuery(query) ||
+        SymptomCatalog.matchSymptom(query).confidence >= 0.65;
+
+    if (isProblem) {
+      setState(() {
+        _statusText = 'Problem detected · Launching AI Triage...';
+      });
+      HapticFeedback.lightImpact();
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (mounted) _launchAiTriage(query);
+      });
+    } else {
+      // Direct trade search query
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (mounted) _selectQuery(query);
+      });
+    }
+  }
+
+  void _selectQuery(String query) {
+    HapticFeedback.mediumImpact();
+    _voiceService.stopListening();
+    widget.onQuerySelected(query);
+    Navigator.of(context).pop();
+  }
+
+  void _launchAiTriage(String query) {
+    HapticFeedback.mediumImpact();
+    _voiceService.stopListening();
+    Navigator.of(context).pop();
+    SymptomTriageSheet.show(
+      context,
+      customerId: widget.customerId,
+      initialQuery: query,
+      customerLat: widget.customerLat,
+      customerLng: widget.customerLng,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 20,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        top: 14,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: CX.violet.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.mic_rounded,
+                          color: CX.amberDark,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Voice Search & AI Triage",
+                            style: WorkGoFonts.heading(
+                              color: const Color(0xFF0F172A),
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            "Speak your problem or pick a trade below",
+                            style: WorkGoFonts.body(
+                              color: const Color(0xFF64748B),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      _voiceService.stopListening();
+                      Navigator.of(context).pop();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFF1F5F9),
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Pulsing Mic Beacon with concentric ripple waves reacting to decibels
+            AnimatedBuilder(
+              animation: _pulseCtrl,
+              builder: (context, child) {
+                final val = _pulseCtrl.value;
+                final soundScale = (_soundLevel * 25.0);
+                return SizedBox(
+                  height: 110,
+                  child: Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Outer Ripple Ring
+                        Container(
+                          width: 80 + (val * 30) + soundScale,
+                          height: 80 + (val * 30) + soundScale,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: (_isListening ? CX.amberDark : const Color(0xFF94A3B8))
+                                .withValues(alpha: (1.0 - val) * 0.18),
+                          ),
+                        ),
+                        // Inner Ripple Ring
+                        Container(
+                          width: 66 + (val * 16) + (soundScale * 0.6),
+                          height: 66 + (val * 16) + (soundScale * 0.6),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: (_isListening ? CX.amberDark : const Color(0xFF94A3B8))
+                                .withValues(alpha: (1.0 - val) * 0.30),
+                          ),
+                        ),
+                        // Central Core Mic
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedback.heavyImpact();
+                            if (_isListening) {
+                              _stopListening();
+                            } else {
+                              _startListening();
+                            }
+                          },
+                          child: Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: _isListening
+                                    ? [CX.amberDark, const Color(0xFFB45309)]
+                                    : [const Color(0xFF475569), const Color(0xFF334155)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (_isListening ? CX.amberDark : const Color(0xFF475569))
+                                      .withValues(alpha: 0.35),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              _isListening ? Icons.mic_rounded : Icons.mic_off_rounded,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 10),
+
+            // Live Decibel Waveform Bars
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(7, (i) {
+                final baseSin = math.sin((_pulseCtrl.value * math.pi) + (i * 0.55)).abs();
+                final dynamicH = 6.0 + (_soundLevel * 20.0) + (baseSin * (_isListening ? 10.0 : 2.0));
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                  width: 4,
+                  height: dynamicH.clamp(4.0, 24.0),
+                  decoration: BoxDecoration(
+                    color: _isListening ? CX.amberDark : const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
+              }),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Live Transcribed Text or Status
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                _spokenWords.isNotEmpty ? '"$_spokenWords"' : _statusText,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: _spokenWords.isNotEmpty ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                  fontSize: _spokenWords.isNotEmpty ? 15 : 13,
+                  fontWeight: _spokenWords.isNotEmpty ? FontWeight.w700 : FontWeight.w500,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            // AI Symptom Triage Action Banner (if symptom detected)
+            if (_isSymptomDetected && _spokenWords.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: CX.amberDark.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.troubleshoot_rounded,
+                          color: CX.amberDark,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              "Household Problem Detected",
+                              style: TextStyle(
+                                color: Color(0xFF78350F),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              "Diagnose root causes & dispatch specialists",
+                              style: TextStyle(
+                                color: Color(0xFF92400E),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => _launchAiTriage(_spokenWords),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: CX.amberDark,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          "AI Triage",
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+            ),
+            const SizedBox(height: 12),
+
+            // Quick Symptom Suggestions
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: const [
+                    Icon(Icons.auto_awesome, color: CX.amberDark, size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      "Common Problems (1-Tap AI Triage)",
+                      style: TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _popularSymptoms.map((symptom) {
+                  return GestureDetector(
+                    onTap: () => _launchAiTriage(symptom),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: CX.amberDark.withValues(alpha: 0.25)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.bolt_rounded, size: 13, color: CX.amberDark),
+                          const SizedBox(width: 4),
+                          Text(
+                            symptom,
+                            style: const TextStyle(
+                              color: Color(0xFF78350F),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Quick Tap Trade Suggestions (Clean Material Icons, zero emojis)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Popular Trades",
+                  style: TextStyle(
+                    color: const Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.start,
+                children: _popularPrompts.map((p) {
+                  return GestureDetector(
+                    onTap: () => _selectQuery(p.label),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(p.icon, size: 14, color: const Color(0xFF2563EB)),
+                          const SizedBox(width: 6),
+                          Text(
+                            p.label,
+                            style: const TextStyle(
+                              color: Color(0xFF334155),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────
 //  RADAR SCANNING BEACON ANIMATION WIDGET
 // ──────────────────────────────────────────────────────
 class _RadarScanningBeacon extends StatefulWidget {
@@ -1196,8 +2328,12 @@ class _RadarScanningBeaconState extends State<_RadarScanningBeacon>
         const SizedBox(height: 14),
         Text(
           widget.category == "All"
-              ? "Scanning ${widget.radiusKm.toInt()} km Radar..."
-              : "No ${widget.category} Artisans in ${widget.radiusKm.toInt()} km",
+              ? (widget.radiusKm > 0
+                  ? "Scanning ${widget.radiusKm.toInt()} km Radar..."
+                  : "Scanning All Available Artisans...")
+              : (widget.radiusKm > 0
+                  ? "No ${widget.category} Artisans in ${widget.radiusKm.toInt()} km"
+                  : "No ${widget.category} Artisans Currently Online"),
           style: const TextStyle(
             color: Color(0xFF141416),
             fontSize: 17,
@@ -1208,7 +2344,9 @@ class _RadarScanningBeaconState extends State<_RadarScanningBeacon>
         ),
         const SizedBox(height: 4),
         Text(
-          "All registered ${widget.category} specialists are currently on live job dispatches or beyond ${widget.radiusKm.toInt()} km.",
+          widget.radiusKm > 0
+              ? "All registered ${widget.category} specialists are currently on live job dispatches or beyond ${widget.radiusKm.toInt()} km."
+              : "All registered ${widget.category} specialists are currently busy or on live job dispatches.",
           style: const TextStyle(
             color: Color(0xFF64748B),
             fontSize: 12,
