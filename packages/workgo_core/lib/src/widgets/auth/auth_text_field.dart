@@ -71,8 +71,8 @@ class _AuthTextFieldState extends State<AuthTextField> {
               widget.labelText!,
               style: TextStyle(
                 color: _isFocused
-                    ? const Color(0xFF141416)
-                    : const Color(0xFF64748B),
+                    ? const Color(0xFFD97706)
+                    : const Color(0xFF57534E),
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -88,19 +88,21 @@ class _AuthTextFieldState extends State<AuthTextField> {
           autofillHints: widget.autofillHints,
           enabled: widget.enabled,
           style: const TextStyle(
-            color: Color(0xFF141416),
+            color: Color(0xFF1A1A1A),
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
-          cursorColor: const Color(0xFF141416),
+          cursorColor: const Color(0xFFD97706),
           validator: widget.validator,
           onFieldSubmitted: widget.onFieldSubmitted,
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFFF8FAFC),
+            fillColor: _isFocused
+                ? const Color(0xFFFFFDF8)
+                : const Color(0xFFFAF7F2),
             hintText: widget.hintText,
             hintStyle: const TextStyle(
-              color: Color(0xFF94A3B8),
+              color: Color(0xFFA8A29E),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -110,8 +112,8 @@ class _AuthTextFieldState extends State<AuthTextField> {
                 widget.prefixIcon,
                 size: 20,
                 color: _isFocused
-                    ? const Color(0xFF141416)
-                    : const Color(0xFF64748B),
+                    ? const Color(0xFFD97706)
+                    : const Color(0xFF78716C),
               ),
             ),
             prefixIconConstraints: const BoxConstraints(
@@ -130,8 +132,8 @@ class _AuthTextFieldState extends State<AuthTextField> {
                         key: ValueKey<bool>(_obscureText),
                         size: 20,
                         color: _isFocused
-                            ? const Color(0xFF141416)
-                            : const Color(0xFF64748B),
+                            ? const Color(0xFFD97706)
+                            : const Color(0xFF78716C),
                       ),
                     ),
                     onPressed: () {
@@ -147,15 +149,15 @@ class _AuthTextFieldState extends State<AuthTextField> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(22),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+              borderSide: const BorderSide(color: Color(0xFFE7E2D9), width: 1.2),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(22),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+              borderSide: const BorderSide(color: Color(0xFFE7E2D9), width: 1.2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(22),
-              borderSide: const BorderSide(color: Color(0xFF141416), width: 1.6),
+              borderSide: const BorderSide(color: Color(0xFFFFB800), width: 1.8),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(22),
@@ -167,7 +169,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(22),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+              borderSide: const BorderSide(color: Color(0xFFE7E2D9), width: 1.0),
             ),
             errorStyle: const TextStyle(
               color: Color(0xFFE11D48),

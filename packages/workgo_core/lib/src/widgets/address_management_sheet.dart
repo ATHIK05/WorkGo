@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../localization/trade_localization.dart';
@@ -77,54 +78,65 @@ class _AddressManagementSheetContent extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    userRole == "worker" ? "operating_bases_title".trSafe("Operating Bases & Hubs") : "saved_addresses_title".trSafe("Saved Addresses"),
-                    style: GoogleFonts.plusJakartaSans(
-                      color: const Color(0xFF1A1A1A),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userRole == "worker" ? "operating_bases_title".trSafe("Operating Bases & Hubs") : "saved_addresses_title".trSafe("Saved Addresses"),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF1A1A1A),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    "select_address_subtitle".trSafe("Tap to select active location"),
-                    style: GoogleFonts.plusJakartaSans(
-                      color: const Color(0xFF6B6B6B),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      "select_address_subtitle".trSafe("Tap to select active location"),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF6B6B6B),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final newAddr = await showAddAddressSheet(
-                    context,
-                    userId: userId,
-                    userRole: userRole,
-                  );
-                  if (newAddr != null && context.mounted) {
-                    Navigator.of(context).pop(newAddr);
-                  }
-                },
-                icon: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF1E1035)),
-                label: Text(
-                  "add_new_btn".trSafe("Add New"),
-                  style: const TextStyle(
-                    color: Color(0xFF1E1035),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  ],
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFB800),
-                  foregroundColor: const Color(0xFF1E1035),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final newAddr = await showAddAddressSheet(
+                      context,
+                      userId: userId,
+                      userRole: userRole,
+                    );
+                    if (newAddr != null && context.mounted) {
+                      Navigator.of(context).pop(newAddr);
+                    }
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF1E1035)),
+                  label: Text(
+                    "add_new_btn".trSafe("Add New"),
+                    style: const TextStyle(
+                      color: Color(0xFF1E1035),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB800),
+                    foregroundColor: const Color(0xFF1E1035),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
                 ),
               ),
             ],
@@ -182,7 +194,12 @@ class _AddressManagementSheetContent extends StatelessWidget {
                         OutlinedButton.icon(
                           onPressed: () => showAddAddressSheet(context, userId: userId, userRole: userRole),
                           icon: const Icon(Icons.my_location_rounded, size: 16, color: Color(0xFFB45309)),
-                          label: Text("detect_current_location".trSafe("Detect Current Location"), style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w700)),
+                          label: Text(
+                            "detect_current_location".trSafe("Detect Current Location"),
+                            style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w700),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Color(0xFFFFB800)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -225,12 +242,12 @@ class _AddressManagementSheetContent extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("Delete Address", style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.bold)),
-        content: Text("Are you sure you want to remove '${addr.displayTitle}'?", style: GoogleFonts.plusJakartaSans(color: const Color(0xFF6B6B6B))),
+        title: Text("delete_address_title".trSafe("Delete Address"), style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontWeight: FontWeight.bold)),
+        content: Text("delete_address_confirm".trSafe("Are you sure you want to remove '{}'?", [addr.displayTitle]), style: GoogleFonts.plusJakartaSans(color: const Color(0xFF6B6B6B))),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Cancel", style: TextStyle(color: Color(0xFF6B6B6B))),
+            child: Text("cancel_btn".trSafe("Cancel"), style: const TextStyle(color: Color(0xFF6B6B6B))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -238,7 +255,7 @@ class _AddressManagementSheetContent extends StatelessWidget {
               Navigator.of(ctx).pop();
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: Text("delete_btn".trSafe("Delete"), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -302,13 +319,20 @@ class _AddressCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        address.displayTitle.toUpperCase(),
-                        style: GoogleFonts.plusJakartaSans(
-                          color: const Color(0xFF1A1A1A),
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
+                      Flexible(
+                        child: Text(
+                          (address.label == AddressLabel.other && address.customLabel.trim().isNotEmpty
+                                  ? address.customLabel.trim()
+                                  : 'address_label_${address.label.name}'.trSafe(address.displayTitle))
+                              .toUpperCase(),
+                          style: GoogleFonts.plusJakartaSans(
+                            color: const Color(0xFF1A1A1A),
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -320,9 +344,9 @@ class _AddressCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
                           ),
-                          child: const Text(
-                            "DEFAULT",
-                            style: TextStyle(
+                          child: Text(
+                            "default_badge".trSafe("DEFAULT"),
+                            style: const TextStyle(
                               color: Color(0xFF065F46),
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
@@ -336,7 +360,7 @@ class _AddressCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    address.fullDisplayAddress,
+                    address.fullDisplayAddress.toLocalizedAddress(context.locale.languageCode),
                     style: GoogleFonts.plusJakartaSans(
                       color: const Color(0xFF6B6B6B),
                       fontSize: 12,
@@ -348,31 +372,38 @@ class _AddressCard extends StatelessWidget {
                   const SizedBox(height: 8),
 
                   // Action Buttons
-                  Row(
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       if (!address.isDefault) ...[
                         GestureDetector(
                           onTap: onSetDefault,
-                          child: const Text(
-                            "Set as Default",
-                            style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w700),
+                          child: Text(
+                            "set_as_default_btn".trSafe("Set as Default"),
+                            style: const TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w700),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 14),
                       ],
                       GestureDetector(
                         onTap: onEdit,
-                        child: const Text(
-                          "Edit",
-                          style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 11, fontWeight: FontWeight.w700),
+                        child: Text(
+                          "edit_btn".trSafe("Edit"),
+                          style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 11, fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 14),
                       GestureDetector(
                         onTap: onDelete,
-                        child: const Text(
-                          "Delete",
-                          style: TextStyle(color: Color(0xFFF43F5E), fontSize: 11, fontWeight: FontWeight.w700),
+                        child: Text(
+                          "delete_btn".trSafe("Delete"),
+                          style: const TextStyle(color: Color(0xFFF43F5E), fontSize: 11, fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -583,18 +614,27 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    widget.existingAddress != null ? "Edit Address" : "Add New Address",
-                    style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 18, fontWeight: FontWeight.w800),
+                  Expanded(
+                    child: Text(
+                      widget.existingAddress != null ? "edit_address_title".trSafe("Edit Address") : "add_new_address_title".trSafe("Add New Address"),
+                      style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 18, fontWeight: FontWeight.w800),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  TextButton.icon(
-                    onPressed: _isDetectingGps ? null : _autoDetectGps,
-                    icon: _isDetectingGps
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFB800)))
-                        : const Icon(Icons.my_location_rounded, size: 16, color: Color(0xFFB45309)),
-                    label: Text(
-                      _isDetectingGps ? "Detecting..." : "Detect GPS",
-                      style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.w800),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: TextButton.icon(
+                      onPressed: _isDetectingGps ? null : _autoDetectGps,
+                      icon: _isDetectingGps
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFB800)))
+                          : const Icon(Icons.my_location_rounded, size: 16, color: Color(0xFFB45309)),
+                      label: Text(
+                        _isDetectingGps ? "detecting_gps_btn".trSafe("Detecting...") : "detect_gps_btn".trSafe("Detect GPS"),
+                        style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.w800),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ],
@@ -602,32 +642,40 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
               const SizedBox(height: 14),
 
               // Address Label Selector Pills
-              Text("Save As", style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 12, fontWeight: FontWeight.w700)),
+              Text(
+                "save_as_label".trSafe("Save As"),
+                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 12, fontWeight: FontWeight.w700),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: AddressLabel.values.map((lbl) {
                   final isSelected = _selectedLabel == lbl;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(lbl.icon, size: 14, color: isSelected ? const Color(0xFF1E1035) : const Color(0xFF6B6B6B)),
-                          const SizedBox(width: 6),
-                          Text(lbl.displayName),
-                        ],
-                      ),
-                      selected: isSelected,
-                      selectedColor: const Color(0xFFFFB800),
-                      backgroundColor: const Color(0xFFF9F6EE),
-                      labelStyle: TextStyle(
-                        color: isSelected ? const Color(0xFF1E1035) : const Color(0xFF1A1A1A),
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                      ),
-                      onSelected: (val) => setState(() => _selectedLabel = lbl),
+                  return ChoiceChip(
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(lbl.icon, size: 14, color: isSelected ? const Color(0xFF1E1035) : const Color(0xFF6B6B6B)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'address_label_${lbl.name}'.trSafe(lbl.displayName),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
+                    selected: isSelected,
+                    selectedColor: const Color(0xFFFFB800),
+                    backgroundColor: const Color(0xFFF9F6EE),
+                    labelStyle: TextStyle(
+                      color: isSelected ? const Color(0xFF1E1035) : const Color(0xFF1A1A1A),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                    onSelected: (val) => setState(() => _selectedLabel = lbl),
                   );
                 }).toList(),
               ),
@@ -636,7 +684,7 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                 const SizedBox(height: 10),
                 _buildTextField(
                   controller: _customLabelCtrl,
-                  label: "Custom Name (e.g. Mom's House, Workshop Hub)",
+                  label: "custom_name_hint".trSafe("Custom Name (e.g. Mom's House, Workshop Hub)"),
                   icon: Icons.tag_rounded,
                 ),
               ],
@@ -645,25 +693,25 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
               // House / Flat / Block
               _buildTextField(
                 controller: _flatCtrl,
-                label: "House / Flat / Block No. / Floor *",
+                label: "house_flat_floor_label".trSafe("House / Flat / Block No. / Floor *"),
                 icon: Icons.apartment_rounded,
-                validator: (val) => val == null || val.trim().isEmpty ? "Required" : null,
+                validator: (val) => val == null || val.trim().isEmpty ? "required_field".trSafe("Required") : null,
               ),
               const SizedBox(height: 10),
 
               // Street / Area
               _buildTextField(
                 controller: _streetCtrl,
-                label: "Street, Colony, Area *",
+                label: "street_colony_area_label".trSafe("Street, Colony, Area *"),
                 icon: Icons.signpost_rounded,
-                validator: (val) => val == null || val.trim().isEmpty ? "Required" : null,
+                validator: (val) => val == null || val.trim().isEmpty ? "required_field".trSafe("Required") : null,
               ),
               const SizedBox(height: 10),
 
               // Landmark
               _buildTextField(
                 controller: _landmarkCtrl,
-                label: "Nearby Landmark (Optional)",
+                label: "landmark_optional_label".trSafe("Nearby Landmark (Optional)"),
                 icon: Icons.flag_rounded,
               ),
               const SizedBox(height: 10),
@@ -675,9 +723,9 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                     flex: 3,
                     child: _buildTextField(
                       controller: _cityCtrl,
-                      label: "City *",
+                      label: "city_required_label".trSafe("City *"),
                       icon: Icons.location_city_rounded,
-                      validator: (val) => val == null || val.trim().isEmpty ? "Required" : null,
+                      validator: (val) => val == null || val.trim().isEmpty ? "required_field".trSafe("Required") : null,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -685,10 +733,10 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                     flex: 2,
                     child: _buildTextField(
                       controller: _pincodeCtrl,
-                      label: "Pincode *",
+                      label: "pincode_required_label".trSafe("Pincode *"),
                       icon: Icons.pin_drop_rounded,
                       keyboardType: TextInputType.number,
-                      validator: (val) => val == null || val.trim().isEmpty ? "Required" : null,
+                      validator: (val) => val == null || val.trim().isEmpty ? "required_field".trSafe("Required") : null,
                     ),
                   ),
                 ],
@@ -703,8 +751,10 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                 checkColor: const Color(0xFF1E1035),
                 onChanged: (val) => setState(() => _isDefault = val ?? false),
                 title: Text(
-                  "Set as default service address",
+                  "set_as_default_service_address".trSafe("Set as default service address"),
                   style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 13, fontWeight: FontWeight.w600),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: 16),
@@ -720,10 +770,27 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                   elevation: 0,
                 ),
                 child: _isSaving
-                    ? const CircularProgressIndicator(color: Color(0xFF1E1035))
-                    : const Text(
-                        "Save Address",
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Color(0xFF1E1035),
+                        ),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              "save_address_btn".trSafe("Save Address"),
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
               ),
             ],

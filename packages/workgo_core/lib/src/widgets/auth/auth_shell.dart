@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../firebase/auth_service.dart';
+import '../../localization/trade_localization.dart';
 import '../../models/app_user.dart';
 import '../../theme/colors.dart';
 import '../../theme/spacing.dart';
@@ -244,11 +245,11 @@ class _AuthShellState extends State<AuthShell>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFFFFBF2),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── 1. Subtle Editorial Light Background ──────────────────────────
+          // ── 1. Warm Editorial Light Canvas ───────────────────────────────
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -256,27 +257,28 @@ class _AuthShellState extends State<AuthShell>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0xFFF8FAFC),
-                    Color(0xFFF1F5F9),
-                    Color(0xFFEDE8E1),
+                    Color(0xFFFFFDF9),
+                    Color(0xFFFFF8EE),
+                    Color(0xFFFFF3D6),
                   ],
                 ),
               ),
             ),
           ),
 
-          // ── 2. Soft Warm Ambient Radial Accents ───────────────────────────
+          // ── 2. Soft Warm Amber & Peach Ambient Radial Accents ────────────
           Positioned(
             top: -100,
             right: -60,
             child: Container(
-              width: 320,
-              height: 320,
+              width: 340,
+              height: 340,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFFFEF3C7).withValues(alpha: 0.6),
+                    const Color(0xFFFFB800).withValues(alpha: 0.18),
+                    const Color(0xFFFEF3C7).withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -287,13 +289,14 @@ class _AuthShellState extends State<AuthShell>
             bottom: -80,
             left: -60,
             child: Container(
-              width: 300,
-              height: 300,
+              width: 320,
+              height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFFDBEAFE).withValues(alpha: 0.5),
+                    const Color(0xFFFFE3C2).withValues(alpha: 0.35),
+                    const Color(0xFFFDE68A).withValues(alpha: 0.10),
                     Colors.transparent,
                   ],
                 ),
@@ -342,14 +345,43 @@ class _AuthShellState extends State<AuthShell>
 
                       const SizedBox(height: 24),
 
-                      const SafeText(
-                        'WorkGo • 100% Direct Payout to Certified Artisans',
-                        style: TextStyle(
-                          color: Color(0xFF94A3B8),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SafeText(
+                            'WorkGo',
+                            style: TextStyle(
+                              color: Color(0xFF8C7A6B),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Container(
+                            width: 4,
+                            height: 4,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFFFFB800),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: SafeText(
+                              'direct_payout_certified'.tr(),
+                              style: const TextStyle(
+                                color: Color(0xFF8C7A6B),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              enableAutoShrink: true,
+                              minFontSize: 9.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -365,10 +397,10 @@ class _AuthShellState extends State<AuthShell>
   Widget _buildEditorialHero() {
     return Column(
       children: [
-        const SafeText(
-          "Services Without Limits",
-          style: TextStyle(
-            color: Color(0xFF141416),
+        SafeText(
+          'services_without_limits'.trSafe("Services Without Limits"),
+          style: const TextStyle(
+            color: Color(0xFF1A1A1A),
             fontSize: 28,
             fontWeight: FontWeight.w900,
             letterSpacing: -0.8,
@@ -378,9 +410,9 @@ class _AuthShellState extends State<AuthShell>
         ),
         const SizedBox(height: 6),
         SafeText(
-          "Connect with verified local craftsmen • 0% commission co-op",
-          style: TextStyle(
-            color: const Color(0xFF64748B).withValues(alpha: 0.9),
+          'auth_hero_subtitle'.trSafe("Connect with verified local craftsmen • 0% commission co-op"),
+          style: const TextStyle(
+            color: Color(0xFF78716C),
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -399,14 +431,25 @@ class _AuthShellState extends State<AuthShell>
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141416),
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFFB800), Color(0xFFF59E0B)],
+                  ),
+                  borderRadius: BorderRadius.circular(13),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFFB800).withValues(alpha: 0.38),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: const Center(
-                  child: Icon(Icons.handyman_rounded, color: Colors.white, size: 20),
+                  child: Icon(Icons.handyman_rounded, color: Color(0xFF1A1A1A), size: 22),
                 ),
               ),
               const SizedBox(width: 12),
@@ -418,7 +461,7 @@ class _AuthShellState extends State<AuthShell>
                     const SafeText(
                       'WorkGo',
                       style: TextStyle(
-                        color: Color(0xFF141416),
+                        color: Color(0xFF1A1A1A),
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
@@ -427,7 +470,7 @@ class _AuthShellState extends State<AuthShell>
                     SafeText(
                       'app_name'.tr(),
                       style: const TextStyle(
-                        color: Color(0xFF64748B),
+                        color: Color(0xFF8C7A6B),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -453,7 +496,7 @@ class _AuthShellState extends State<AuthShell>
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFE2E8F0),
+          color: const Color(0xFFEFECE6),
           width: 1.0,
         ),
         boxShadow: const [
@@ -490,13 +533,29 @@ class _AuthShellState extends State<AuthShell>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFF141416) : Colors.transparent,
+          gradient: active
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFFB800), Color(0xFFF59E0B)],
+                )
+              : null,
+          color: active ? null : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFFFB800).withValues(alpha: 0.32),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: active ? Colors.white : const Color(0xFF64748B),
+            color: active ? const Color(0xFF1A1A1A) : const Color(0xFF78716C),
             fontSize: 11.5,
             fontWeight: active ? FontWeight.w900 : FontWeight.w600,
           ),

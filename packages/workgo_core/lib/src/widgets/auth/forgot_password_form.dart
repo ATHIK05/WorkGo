@@ -59,7 +59,7 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF141416)),
+              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFFD97706)),
               onPressed: widget.isLoading ? null : widget.onBackToSignIn,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -71,7 +71,7 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
           SafeText(
             'forgot_password'.tr(),
             style: const TextStyle(
-              color: Color(0xFF141416),
+              color: Color(0xFF1A1A1A),
               fontSize: 26,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.6,
@@ -82,7 +82,7 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
           SafeText(
             'reset_password'.tr(),
             style: const TextStyle(
-              color: Color(0xFF64748B),
+              color: Color(0xFF78716C),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -105,17 +105,21 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
           ),
           const SizedBox(height: WorkGoSpacing.xl),
 
-          // Submit Button (Sleek Dark Pill Button)
+          // Submit Button (Radiant Solar Amber Pill Button)
           Container(
             height: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFF141416),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFB800), Color(0xFFF59E0B)],
+              ),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
+                  color: const Color(0xFFFFB800).withValues(alpha: 0.38),
+                  blurRadius: 16,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -131,14 +135,14 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1A1A)),
                           ),
                         )
                       : SafeText(
                           'reset_password'.tr(),
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                            color: Color(0xFF1A1A1A),
+                            fontSize: 16,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.3,
                           ),
@@ -160,13 +164,13 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
                   const Icon(
                     Icons.arrow_back_rounded,
                     size: 16,
-                    color: Color(0xFF141416),
+                    color: Color(0xFFD97706),
                   ),
                   const SizedBox(width: 6),
                   SafeText(
                     'sign_in'.tr(),
                     style: const TextStyle(
-                      color: Color(0xFF141416),
+                      color: Color(0xFFD97706),
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                     ),

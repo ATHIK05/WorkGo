@@ -1,5 +1,6 @@
 import 'dart:math';
 import "package:cloud_firestore/cloud_firestore.dart";
+import "../localization/trade_localization.dart";
 import "user_address.dart";
 
 enum VerificationStatus { pending, approved, rejected }
@@ -436,18 +437,18 @@ class Worker {
 
     if (!hasCustCoords || !hasWorkerCoords) {
       return (distanceKm > 0 && distanceKm != 2.4 && distanceKm != 1.0)
-          ? "${distanceKm.toStringAsFixed(1)} km away"
-          : "Nearby";
+          ? 'km_away'.trSafe('${distanceKm.toStringAsFixed(1)} km away', [distanceKm.toStringAsFixed(1)])
+          : 'nearby'.trSafe('Nearby');
     }
 
     final km = calculateDistanceKm(custLat, custLng);
     if (km <= 0.04) {
-      return "At your doorstep";
+      return 'at_your_doorstep'.trSafe('At your doorstep');
     } else if (km < 1.0) {
       final meters = (km * 1000).round();
-      return "$meters m away";
+      return 'meters_away'.trSafe('$meters m away', [meters.toString()]);
     } else {
-      return "${km.toStringAsFixed(1)} km away";
+      return 'km_away'.trSafe('${km.toStringAsFixed(1)} km away', [km.toStringAsFixed(1)]);
     }
   }
 

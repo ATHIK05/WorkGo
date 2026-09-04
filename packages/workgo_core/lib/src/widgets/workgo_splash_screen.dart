@@ -10,19 +10,19 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// ---- Brand palette -------------------------------------------------------
+/// ---- Brand palette: Warm Solar Amber, Molten Gold & Obsidian Luxury ----
 class WorkGoBrandColors {
   WorkGoBrandColors._();
 
-  static const Color bgTop = Color(0xFF120B22); // near-black violet
-  static const Color bgBottom = Color(0xFF07040E); // almost black
-  static const Color violetDeep = Color(0xFF3A0CA3);
-  static const Color violetCore = Color(0xFF7B2FF7);
-  static const Color violetSoft = Color(0xFFB185F7);
-  static const Color yellow = Color(0xFFFFD60A);
-  static const Color yellowSoft = Color(0xFFFFE873);
-  static const Color textPrimary = Color(0xFFF5F1FF);
-  static const Color textSecondary = Color(0xFFB9AEDD);
+  static const Color bgTop = Color(0xFF130F1A); // Deep warm obsidian
+  static const Color bgBottom = Color(0xFF08060B); // Near-black warm obsidian
+  static const Color amberDark = Color(0xFFD97706); // Deep warm amber
+  static const Color amberCore = Color(0xFFFFB800); // Signature WorkGo amber yellow
+  static const Color amberSoft = Color(0xFFFFCD4A); // Luminous warm amber
+  static const Color yellow = Color(0xFFFFD60A); // Solar gold
+  static const Color yellowSoft = Color(0xFFFFEFA0); // Brilliant gold highlight
+  static const Color textPrimary = Color(0xFFFFFBF2); // Warm off-white
+  static const Color textSecondary = Color(0xFFD6CFC7); // Warm cream muted
 }
 
 /// ---- Public entry widget --------------------------------------------------
@@ -284,6 +284,79 @@ class _WorkGoSplashScreenState extends State<WorkGoSplashScreen>
                   ),
                 ),
               ),
+
+              // Bottom cooperative badge & sleek loading progress bar.
+              Positioned(
+                bottom: 34,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Opacity(
+                    opacity: _taglineFade.value.clamp(0.0, 1.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF181320).withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: WorkGoBrandColors.amberCore.withValues(alpha: 0.35),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.35),
+                                blurRadius: 12,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.verified_rounded,
+                                color: WorkGoBrandColors.amberCore,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 7),
+                              const Text(
+                                '100% DIRECT ARTISAN COOPERATIVE',
+                                style: TextStyle(
+                                  color: WorkGoBrandColors.yellowSoft,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: 110,
+                          height: 2.5,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              value: _mainController.value,
+                              backgroundColor: Colors.white.withValues(alpha: 0.08),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                WorkGoBrandColors.amberCore,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -312,8 +385,8 @@ class _WorkGoSplashScreenState extends State<WorkGoSplashScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    WorkGoBrandColors.violetCore.withValues(alpha: 0.28 * glow),
-                    WorkGoBrandColors.violetDeep.withValues(alpha: 0.10 * glow),
+                    WorkGoBrandColors.amberCore.withValues(alpha: 0.24 * glow),
+                    WorkGoBrandColors.amberDark.withValues(alpha: 0.08 * glow),
                     Colors.transparent,
                   ],
                   stops: const [0.0, 0.45, 1.0],
@@ -324,13 +397,13 @@ class _WorkGoSplashScreenState extends State<WorkGoSplashScreen>
           Align(
             alignment: const Alignment(0.6, 0.5),
             child: Container(
-              width: size.width * 0.6,
-              height: size.width * 0.6,
+              width: size.width * 0.65,
+              height: size.width * 0.65,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    WorkGoBrandColors.yellow.withValues(alpha: 0.06 * glow),
+                    WorkGoBrandColors.yellow.withValues(alpha: 0.12 * glow),
                     Colors.transparent,
                   ],
                 ),
@@ -343,81 +416,58 @@ class _WorkGoSplashScreenState extends State<WorkGoSplashScreen>
   }
 }
 
-/// ---- Logomark: two interlocking ribbon shapes (violet -> yellow) --------
+/// ---- Logomark: Radiant Solar Amber & Gold Squircle with Artisan Emblem ----
 class WorkGoMark extends StatelessWidget {
   const WorkGoMark({super.key, required this.size});
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: size,
       height: size,
-      child: CustomPaint(painter: _MarkPainter()),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            WorkGoBrandColors.yellowSoft,
+            WorkGoBrandColors.amberCore,
+            WorkGoBrandColors.amberDark,
+          ],
+          stops: [0.0, 0.48, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        boxShadow: [
+          BoxShadow(
+            color: WorkGoBrandColors.amberCore.withValues(alpha: 0.50),
+            blurRadius: size * 0.40,
+            spreadRadius: size * 0.04,
+            offset: Offset(0, size * 0.08),
+          ),
+          BoxShadow(
+            color: WorkGoBrandColors.yellowSoft.withValues(alpha: 0.35),
+            blurRadius: size * 0.18,
+            offset: Offset(0, -size * 0.03),
+          ),
+        ],
+        border: Border.all(
+          color: WorkGoBrandColors.yellowSoft.withValues(alpha: 0.65),
+          width: 1.6,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.handyman_rounded,
+          size: size * 0.52,
+          color: const Color(0xFF130F1A),
+        ),
+      ),
     );
   }
 }
 
-class _MarkPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Back ribbon (violet gradient) — a "V" swoosh.
-    final backPath = Path()
-      ..moveTo(w * 0.06, h * 0.08)
-      ..lineTo(w * 0.34, h * 0.08)
-      ..lineTo(w * 0.58, h * 0.62)
-      ..lineTo(w * 0.44, h * 0.98)
-      ..close();
-
-    final backPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [WorkGoBrandColors.violetSoft, WorkGoBrandColors.violetCore],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
-    canvas.drawPath(backPath, backPaint);
-
-    // Front ribbon (yellow gradient) — the "G/arrow" swoosh, offset & angled.
-    final frontPath = Path()
-      ..moveTo(w * 0.30, h * 0.32)
-      ..lineTo(w * 0.62, h * 0.32)
-      ..lineTo(w * 0.94, h * 0.98)
-      ..lineTo(w * 0.66, h * 0.98)
-      ..close();
-
-    final frontPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [WorkGoBrandColors.yellowSoft, WorkGoBrandColors.yellow],
-      ).createShader(Rect.fromLTWH(0, 0, w, h))
-      ..style = PaintingStyle.fill;
-    canvas.save();
-    canvas.saveLayer(Rect.fromLTWH(0, 0, w, h), Paint());
-    canvas.drawPath(frontPath,
-        frontPaint..color = frontPaint.color.withValues(alpha: 0.94));
-    canvas.restore();
-    canvas.restore();
-
-    // Soft glow behind the mark.
-    final glowPaint = Paint()
-      ..color = WorkGoBrandColors.violetCore.withValues(alpha: 0.35)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
-    canvas.drawCircle(Offset(w * 0.5, h * 0.5), w * 0.42, glowPaint);
-
-    // Repaint the two ribbons on top of the glow so they stay crisp.
-    canvas.drawPath(backPath, backPaint);
-    canvas.drawPath(frontPath, frontPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// ---- Comet streak intro (violet -> yellow trail that draws itself) ------
+/// ---- Comet streak intro (amber -> solar gold trail) ------
 class _StreakPainter extends CustomPainter {
   _StreakPainter({required this.progress});
   final double progress; // 0..1
@@ -440,7 +490,7 @@ class _StreakPainter extends CustomPainter {
     final drawPath = metrics.extractPath(0, extractLength);
 
     final gradient = const LinearGradient(
-      colors: [WorkGoBrandColors.violetSoft, WorkGoBrandColors.yellow],
+      colors: [WorkGoBrandColors.amberSoft, WorkGoBrandColors.yellow],
     ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     final trailPaint = Paint()
@@ -472,7 +522,7 @@ class _StreakPainter extends CustomPainter {
       oldDelegate.progress != progress;
 }
 
-/// ---- Orbit ring (spinning arc around the wordmark) -----------------------
+/// ---- Orbit ring (spinning gold arc around the wordmark) -------------------
 class _OrbitRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -484,7 +534,7 @@ class _OrbitRingPainter extends CustomPainter {
       ..shader = const SweepGradient(
         colors: [
           Colors.transparent,
-          WorkGoBrandColors.violetSoft,
+          WorkGoBrandColors.amberSoft,
           WorkGoBrandColors.yellow,
           Colors.transparent,
         ],
@@ -499,7 +549,7 @@ class _OrbitRingPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// ---- Ambient floating particles ------------------------------------------
+/// ---- Ambient floating golden particles -----------------------------------
 class WorkGoParticlePainter extends CustomPainter {
   WorkGoParticlePainter({required this.loopValue, required this.revealValue});
   final double loopValue;
@@ -529,7 +579,7 @@ class WorkGoParticlePainter extends CustomPainter {
       final paint = Paint()
         ..color = (s.isYellow
                 ? WorkGoBrandColors.yellow
-                : WorkGoBrandColors.violetSoft)
+                : WorkGoBrandColors.amberSoft)
             .withValues(alpha: opacity.clamp(0.0, 1.0))
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2);
 

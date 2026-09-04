@@ -7,14 +7,38 @@ extension DynamicTradeLocalization on String {
   /// Converts trade strings like 'Plumbing', 'Electrical', 'Carpentry' etc. to localized text.
   String toLocalizedTrade() {
     final lower = toLowerCase().trim();
-    if (lower.contains('plumb')) return 'cat_plumbing'.tr();
-    if (lower.contains('electr')) return 'cat_electrical'.tr();
-    if (lower.contains('carpent')) return 'cat_carpentry'.tr();
-    if (lower.contains('clean')) return 'cat_cleaning'.tr();
-    if (lower.contains('paint')) return 'cat_painting'.tr();
-    if (lower.contains('appliance')) return 'cat_appliance'.tr();
-    if (lower.contains('mason')) return 'cat_masonry'.tr();
-    if (lower.contains('garden')) return 'cat_gardening'.tr();
+    if (lower.contains('plumb') || lower.contains('tap') || lower.contains('pipe') || lower.contains('faucet')) {
+      return 'cat_plumbing'.tr();
+    }
+    if (lower.contains('electr') || lower.contains('wire') || lower.contains('power')) {
+      return 'cat_electrical'.tr();
+    }
+    if (lower.contains('carpent') || lower.contains('wood') || lower.contains('furniture')) {
+      return 'cat_carpentry'.tr();
+    }
+    if (lower.contains('clean') || lower.contains('housekeep')) {
+      return 'cat_cleaning'.tr();
+    }
+    if (lower.contains('paint')) {
+      return 'cat_painting'.tr();
+    }
+    if (lower.contains('appliance') ||
+        lower.contains('repair') ||
+        lower.contains('ac') ||
+        lower.contains('hvac') ||
+        lower.contains('refrigerator') ||
+        lower.contains('washing') ||
+        lower.contains('geyser') ||
+        lower.contains('cooler') ||
+        lower.contains('purifier')) {
+      return 'cat_appliance'.tr();
+    }
+    if (lower.contains('mason') || lower.contains('civil') || lower.contains('tile')) {
+      return 'cat_masonry'.tr();
+    }
+    if (lower.contains('garden')) {
+      return 'cat_gardening'.tr();
+    }
     return this;
   }
 
@@ -124,6 +148,20 @@ extension BookingStatusLocalization on BookingStatus {
   }
 }
 
+/// Extension on PaymentStatus to get localized label.
+extension PaymentStatusLocalization on PaymentStatus {
+  String toLocalizedName() {
+    switch (this) {
+      case PaymentStatus.paid:
+        return 'status_paid'.trSafe('PAID');
+      case PaymentStatus.unpaid:
+        return 'status_unpaid'.trSafe('UNPAID');
+      case PaymentStatus.refunded:
+        return 'status_refunded'.trSafe('REFUNDED');
+    }
+  }
+}
+
 /// Extension on VerificationStatus to get localized label.
 extension VerificationStatusLocalization on VerificationStatus {
   String toLocalizedName() {
@@ -166,4 +204,126 @@ extension SafeTranslationExtension on String {
       return fallback ?? this;
     }
   }
+
+  /// Synchronously translates landmark and address tokens for zero-latency address display.
+  String toLocalizedAddress(String locale) {
+    if (locale == 'en' || trim().isEmpty) return this;
+    final dict = _addressDictionary[locale];
+    if (dict == null) return this;
+    String result = this;
+    dict.forEach((key, val) {
+      final regex = RegExp(r'\b' + RegExp.escape(key) + r'\b', caseSensitive: false);
+      result = result.replaceAllMapped(regex, (m) => val);
+    });
+    return result;
+  }
 }
+
+const Map<String, Map<String, String>> _addressDictionary = {
+  'hi': {
+    'home': 'घर',
+    'office': 'कार्यालय',
+    'work': 'कार्यस्थल',
+    'near': 'के पास',
+    'near to': 'के पास',
+    'nearby': 'आसपास',
+    'opposite': 'के सामने',
+    'opp': 'के सामने',
+    'behind': 'के पीछे',
+    'road': 'मार्ग',
+    'rd': 'मार्ग',
+    'street': 'गली',
+    'st': 'गली',
+    'main road': 'मुख्य मार्ग',
+    'cross': 'क्रॉस',
+    'nagar': 'नगर',
+    'colony': 'कॉलोनी',
+    'apartment': 'अपार्टमेंट',
+    'apt': 'अपार्टमेंट',
+    'layout': 'लेआउट',
+    'sector': 'सेक्टर',
+    'block': 'ब्लॉक',
+    'floor': 'मंजिल',
+    'tamil nadu': 'तमिलनाडु',
+    'erode': 'इरोड',
+    'chennai': 'चेन्नई',
+    'coimbatore': 'कोयंबटूर',
+    'salem': 'सेलम',
+    'madurai': 'मदुरै',
+    'tirupur': 'तिरुपुर',
+    'bangalore': 'बेंगलुरु',
+    'bengaluru': 'बेंगलुरु',
+    'mumbai': 'मुंबई',
+    'delhi': 'दिल्ली',
+    'hyderabad': 'हैदराबाद',
+    'pune': 'पुणे',
+    'kolkata': 'कोलकाता',
+    'kerala': 'केरल',
+    'karnataka': 'कर्नाटक',
+    'maharashtra': 'महाराष्ट्र',
+    'thanjavur': 'तंजावुर',
+    'trichy': 'त्रिची',
+    'tiruchirappalli': 'तिरुचिरापल्ली',
+    'vellore': 'वेल्लोर',
+    'hosur': 'होसुर',
+    'e main st': 'ईस्ट मेन स्ट्रीट',
+    'main st': 'मेन स्ट्रीट',
+    'east': 'पूर्व',
+    'west': 'पश्चिम',
+    'north': 'उत्तर',
+    'south': 'दक्षिण',
+  },
+  'ta': {
+    'home': 'வீடு',
+    'office': 'அலுவலகம்',
+    'work': 'வேலை இடம்',
+    'near': 'அருகில்',
+    'near to': 'அருகில்',
+    'nearby': 'அருகில்',
+    'opposite': 'எதிரில்',
+    'opp': 'எதிரில்',
+    'behind': 'பின்புறம்',
+    'road': 'சாலை',
+    'rd': 'சாலை',
+    'street': 'தெரு',
+    'st': 'தெரு',
+    'main road': 'பிரதான சாலை',
+    'cross': 'குறுக்குத் தெரு',
+    'nagar': 'நகர்',
+    'colony': 'காலனி',
+    'apartment': 'அபார்ட்மெண்ட்',
+    'apt': 'அபார்ட்மெண்ட்',
+    'layout': 'லேஅவுட்',
+    'sector': 'செக்டார்',
+    'block': 'பிளாக்',
+    'floor': 'தளம்',
+    'tamil nadu': 'தமிழ்நாடு',
+    'erode': 'ஈரோடு',
+    'chennai': 'சென்னை',
+    'coimbatore': 'கோயம்புத்தூர்',
+    'salem': 'சேலம்',
+    'madurai': 'மதுரை',
+    'tirupur': 'திருப்பூர்',
+    'bangalore': 'பெங்களூரு',
+    'bengaluru': 'பெங்களூரு',
+    'mumbai': 'மும்பை',
+    'delhi': 'டெல்லி',
+    'hyderabad': 'ஹைதராபாத்',
+    'pune': 'புனே',
+    'kolkata': 'கொல்கத்தா',
+    'kerala': 'கேரளா',
+    'karnataka': 'கர்நாடகா',
+    'maharashtra': 'மகாராஷ்டிரா',
+    'thanjavur': 'தஞ்சாவூர்',
+    'trichy': 'திருச்சி',
+    'tiruchirappalli': 'திருச்சிராப்பள்ளி',
+    'vellore': 'வேலூர்',
+    'hosur': 'ஓசூர்',
+    'e main st': 'கிழக்கு பிரதான சாலை',
+    'main st': 'பிரதான சாலை',
+    'east': 'கிழக்கு',
+    'west': 'மேற்கு',
+    'north': 'வடக்கு',
+    'south': 'தெற்கு',
+  },
+};

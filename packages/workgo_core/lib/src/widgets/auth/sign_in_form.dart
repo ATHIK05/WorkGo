@@ -77,7 +77,7 @@ class _SignInFormState extends State<SignInForm> {
           SafeText(
             'welcome_back'.tr(),
             style: const TextStyle(
-              color: Color(0xFF141416),
+              color: Color(0xFF1A1A1A),
               fontSize: 26,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.6,
@@ -88,7 +88,7 @@ class _SignInFormState extends State<SignInForm> {
           SafeText(
             'sign_in'.tr(),
             style: const TextStyle(
-              color: Color(0xFF64748B),
+              color: Color(0xFF78716C),
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -128,54 +128,71 @@ class _SignInFormState extends State<SignInForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              InkWell(
-                onTap: widget.isLoading
-                    ? null
-                    : () => setState(() => _rememberMe = !_rememberMe),
-                borderRadius: BorderRadius.circular(6),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: Checkbox(
-                          value: _rememberMe,
-                          onChanged: widget.isLoading
-                              ? null
-                              : (v) => setState(() => _rememberMe = v ?? true),
-                          activeColor: const Color(0xFF141416),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              Flexible(
+                child: InkWell(
+                  onTap: widget.isLoading
+                      ? null
+                      : () => setState(() => _rememberMe = !_rememberMe),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: Checkbox(
+                            value: _rememberMe,
+                            onChanged: widget.isLoading
+                                ? null
+                                : (v) => setState(() => _rememberMe = v ?? true),
+                            activeColor: const Color(0xFFFFB800),
+                            checkColor: const Color(0xFF1A1A1A),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const SafeText(
-                        'Stay signed in',
-                        style: TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: SafeText(
+                            'stay_signed_in'.tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF57534E),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            enableAutoShrink: true,
+                            minFontSize: 10.0,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-              TextButton(
-                onPressed: widget.isLoading ? null : widget.onForgotPassword,
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: SafeText(
-                  'forgot_password'.tr(),
-                  style: const TextStyle(
-                    color: Color(0xFF2563EB),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
+              const SizedBox(width: 6),
+              Flexible(
+                child: TextButton(
+                  onPressed: widget.isLoading ? null : widget.onForgotPassword,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: SafeText(
+                    'forgot_password'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFFD97706),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    enableAutoShrink: true,
+                    minFontSize: 10.0,
                   ),
                 ),
               ),
@@ -183,17 +200,21 @@ class _SignInFormState extends State<SignInForm> {
           ),
           const SizedBox(height: WorkGoSpacing.lg),
 
-          // Submit Button (Sleek Dark Pill Button)
+          // Submit Button (Radiant Solar Amber Pill Button)
           Container(
             height: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFF141416),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFB800), Color(0xFFF59E0B)],
+              ),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
+                  color: const Color(0xFFFFB800).withValues(alpha: 0.38),
+                  blurRadius: 16,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -209,7 +230,7 @@ class _SignInFormState extends State<SignInForm> {
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1A1A)),
                           ),
                         )
                       : Row(
@@ -218,8 +239,8 @@ class _SignInFormState extends State<SignInForm> {
                             SafeText(
                               'continue_btn'.tr(),
                               style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
+                                color: Color(0xFF1A1A1A),
+                                fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.3,
                               ),
@@ -228,8 +249,8 @@ class _SignInFormState extends State<SignInForm> {
                             const SizedBox(width: 8),
                             const Icon(
                               Icons.arrow_forward_rounded,
-                              size: 18,
-                              color: Colors.white,
+                              size: 19,
+                              color: Color(0xFF1A1A1A),
                             ),
                           ],
                         ),
@@ -243,12 +264,18 @@ class _SignInFormState extends State<SignInForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SafeText(
-                'no_account'.tr(),
-                style: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
+              Flexible(
+                child: SafeText(
+                  'no_account'.tr(),
+                  style: const TextStyle(
+                    color: Color(0xFF78716C),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  enableAutoShrink: true,
+                  minFontSize: 10.0,
                 ),
               ),
               const SizedBox(width: 4),
@@ -259,12 +286,16 @@ class _SignInFormState extends State<SignInForm> {
                   child: SafeText(
                     'sign_up'.tr(),
                     style: const TextStyle(
-                      color: Color(0xFF141416),
+                      color: Color(0xFFD97706),
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
                       decoration: TextDecoration.underline,
-                      decorationColor: Color(0xFF141416),
+                      decorationColor: Color(0xFFD97706),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    enableAutoShrink: true,
+                    minFontSize: 10.0,
                   ),
                 ),
               ),

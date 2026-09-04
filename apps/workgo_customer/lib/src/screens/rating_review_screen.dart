@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
+import '../services/ml_translation_service.dart';
 
 class RatingReviewScreen extends StatefulWidget {
   const RatingReviewScreen({
@@ -76,7 +77,7 @@ class _RatingReviewScreenState extends State<RatingReviewScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Error submitting review: $e"),
+            content: Text('review_submit_error'.tr(args: [e.toString()])),
             backgroundColor: CX.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -149,7 +150,12 @@ class _RatingReviewScreenState extends State<RatingReviewScreen>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'how_was_service'.tr(args: [widget.workerName]),
+                  'how_was_service'.tr(args: [
+                    MlTranslationService.instance.translateSync(
+                      widget.workerName,
+                      context.locale.languageCode,
+                    ),
+                  ]),
                   style: const TextStyle(
                     color: CX.textPrimary,
                     fontSize: 18,
@@ -186,9 +192,11 @@ class _RatingReviewScreenState extends State<RatingReviewScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "What did you like the most?",
-                style: TextStyle(
+              Text(
+                'what_liked_most'.tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   color: CX.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -289,11 +297,11 @@ class _RatingReviewScreenState extends State<RatingReviewScreen>
   }
 
   String _ratingLabel(double rating) {
-    if (rating >= 5) return "Exceptional! 🌟";
-    if (rating >= 4) return "Very Good!";
-    if (rating >= 3) return "Good";
-    if (rating >= 2) return "Fair";
-    return "Needs Improvement";
+    if (rating >= 5) return 'rating_exceptional'.tr();
+    if (rating >= 4) return 'rating_very_good'.tr();
+    if (rating >= 3) return 'rating_good'.tr();
+    if (rating >= 2) return 'rating_fair'.tr();
+    return 'rating_needs_improvement'.tr();
   }
 }
 
@@ -573,7 +581,9 @@ class _SuccessViewState extends State<_SuccessView>
             SlideFadeIn(
               delay: const Duration(milliseconds: 380),
               child: Text(
-                "Your feedback helps our cooperative artisans grow & improve.",
+                'feedback_helps_coop'.tr(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: CX.textSecondary.withValues(alpha: 0.8),
                   fontSize: 14,

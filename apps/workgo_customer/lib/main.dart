@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -5,12 +6,27 @@ import 'package:workgo_core/workgo_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'src/screens/customer_home_screen.dart';
 
+/// Enables drag-scrolling across touch, mouse, trackpad, and stylus devices
+class WorkGoScrollBehavior extends MaterialScrollBehavior {
+  const WorkGoScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
   try {
-    await Firebase.initializeApp(options: WorkGoFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: WorkGoFirebaseOptions.currentPlatform,
+    );
   } catch (e) {
     debugPrint("Firebase init note: $e");
   }
@@ -28,7 +44,8 @@ void main() async {
   );
 }
 
-final GlobalKey<NavigatorState> customerNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> customerNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 class WorkGoCustomerApp extends StatefulWidget {
   const WorkGoCustomerApp({super.key});
@@ -46,6 +63,7 @@ class _WorkGoCustomerAppState extends State<WorkGoCustomerApp> {
       navigatorKey: customerNavigatorKey,
       title: 'WorkGo Customer',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const WorkGoScrollBehavior(),
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
@@ -144,12 +162,16 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
         return StreamBuilder<AppUser?>(
           stream: _authService.streamAppUser(effectiveUid),
           builder: (context, userSnapshot) {
-            final appUser = userSnapshot.data ??
+            final appUser =
+                userSnapshot.data ??
                 _cachedUser ??
                 AppUser(
                   uid: effectiveUid,
                   email: firebaseUser?.email ?? _cachedUser?.email ?? "",
-                  displayName: firebaseUser?.displayName ?? _cachedUser?.displayName ?? "Customer",
+                  displayName:
+                      firebaseUser?.displayName ??
+                      _cachedUser?.displayName ??
+                      "Customer",
                   role: UserRole.customer,
                   region: "Tamil Nadu",
                 );
@@ -157,7 +179,9 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
             return CustomerHomeScreen(
               user: appUser,
               onSignOut: () async {
-                customerNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+                customerNavigatorKey.currentState?.popUntil(
+                  (route) => route.isFirst,
+                );
                 setState(() {
                   _cachedUser = null;
                 });
@@ -170,5 +194,3 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
     );
   }
 }
-
-

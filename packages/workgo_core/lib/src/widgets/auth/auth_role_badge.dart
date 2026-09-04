@@ -19,8 +19,8 @@ class AuthRoleBadge extends StatelessWidget {
       UserRole.customer => (
         Icons.person_rounded,
         'customer_role',
-        const Color(0xFF4F46E5),
-        const Color(0xFFEEF2FF),
+        const Color(0xFFD97706),
+        const Color(0xFFFFF3D6),
       ),
       UserRole.worker => (
         Icons.handyman_rounded,
@@ -29,7 +29,7 @@ class AuthRoleBadge extends StatelessWidget {
         const Color(0xFFF0F9FF),
       ),
       UserRole.admin => (
-        Icons.admin_panel_settings_rounded,
+        Icons.shield_rounded,
         'admin_role',
         const Color(0xFF059669),
         const Color(0xFFECFDF5),

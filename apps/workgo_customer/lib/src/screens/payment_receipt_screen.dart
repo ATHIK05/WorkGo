@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:workgo_core/workgo_core.dart';
+import '../services/ml_translation_service.dart';
 import 'rating_review_screen.dart';
 
 class PaymentReceiptScreen extends StatefulWidget {
@@ -93,7 +94,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               ),
               const SizedBox(height: 8),
               WorkGoBadge(
-                label: widget.booking.serviceType.toUpperCase(),
+                label: widget.booking.serviceType.toLocalizedTrade().toUpperCase(),
                 type: BadgeType.accent,
               ),
             ],
@@ -107,7 +108,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SafeText(
-                "Cost Breakdown",
+                'cost_breakdown'.tr(),
                 style: const TextStyle(
                   color: WorkGoColors.textPrimary,
                   fontSize: 16,
@@ -122,10 +123,10 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               ],
               if (widget.booking.isDiagnosticVisit && widget.booking.isFeeCredited) ...[
                 const SizedBox(height: 8),
-                _buildCostRow("Smart Diagnostic Credit (100%)", "-₹${widget.booking.diagnosticFee.toStringAsFixed(0)}", isHighlight: true),
+                _buildCostRow('smart_diagnostic_credit'.tr(), "-₹${widget.booking.diagnosticFee.toStringAsFixed(0)}", isHighlight: true),
               ],
               const SizedBox(height: 8),
-              _buildCostRow("Platform / GST (5%)", "₹${(totalAmount * 0.05).toStringAsFixed(0)}"),
+              _buildCostRow('platform_gst'.tr(), "₹${(totalAmount * 0.05).toStringAsFixed(0)}"),
               if (widget.booking.isDiagnosticVisit && !widget.booking.isFeeCredited) ...[
                 const SizedBox(height: 8),
                 Container(
@@ -136,13 +137,15 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                     border: Border.all(color: const Color(0xFFBBF7D0)),
                   ),
                   child: Row(
-                    children: const [
-                      Icon(Icons.verified_rounded, size: 14, color: Color(0xFF16A34A)),
-                      SizedBox(width: 6),
+                    children: [
+                      const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF16A34A)),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          "₹99 Diagnostic Guarantee: 100% credited against subsequent repair bill.",
-                          style: TextStyle(color: Color(0xFF15803D), fontSize: 10.5, fontWeight: FontWeight.w700),
+                          'diagnostic_guarantee_note'.tr(),
+                          style: const TextStyle(color: Color(0xFF15803D), fontSize: 10.5, fontWeight: FontWeight.w700),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -189,24 +192,24 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
         const SizedBox(height: WorkGoSpacing.sm),
         _buildPaymentOption(
           id: "upi",
-          title: "Instant UPI (GPay, PhonePe, Paytm)",
-          subtitle: "Zero fee instant transfer",
+          title: 'upi_payment_title'.tr(),
+          subtitle: 'upi_payment_sub'.tr(),
           icon: Icons.qr_code_2_rounded,
           color: const Color(0xFF38BDF8),
         ),
         const SizedBox(height: WorkGoSpacing.sm),
         _buildPaymentOption(
           id: "card",
-          title: "Credit / Debit Card / NetBanking",
-          subtitle: "Visa, Mastercard, RuPay",
+          title: 'card_payment_title'.tr(),
+          subtitle: 'card_payment_sub'.tr(),
           icon: Icons.credit_card_rounded,
           color: WorkGoColors.accent,
         ),
         const SizedBox(height: WorkGoSpacing.sm),
         _buildPaymentOption(
           id: "cash",
-          title: "Cash to Artisan",
-          subtitle: "Pay in cash upon completion",
+          title: 'cash_payment_title'.tr(),
+          subtitle: 'cash_payment_sub'.tr(),
           icon: Icons.money_rounded,
           color: const Color(0xFF34D399),
         ),
@@ -214,7 +217,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
 
         // Pay Button
         WorkGoButton(
-          label: "Pay ₹${totalAmount.toStringAsFixed(0)} via Razorpay",
+          label: 'pay_via_razorpay'.tr(args: [totalAmount.toStringAsFixed(0)]),
           variant: WorkGoButtonVariant.primary,
           isLoading: _isProcessing,
           onPressed: _processPayment,
@@ -279,16 +282,21 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        SafeText(
-          label,
-          style: TextStyle(
-            color: isHighlight
-                ? const Color(0xFFF87171)
-                : (isBold ? WorkGoColors.textPrimary : WorkGoColors.textSecondary),
-            fontSize: isBold ? 15 : 13,
-            fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
+        Expanded(
+          child: SafeText(
+            label,
+            style: TextStyle(
+              color: isHighlight
+                  ? const Color(0xFFF87171)
+                  : (isBold ? WorkGoColors.textPrimary : WorkGoColors.textSecondary),
+              fontSize: isBold ? 15 : 13,
+              fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
+        const SizedBox(width: 8),
         SafeText(
           value,
           style: TextStyle(
@@ -354,27 +362,38 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const SafeText(
-                    "WorkGo Official Tax Invoice",
-                    style: TextStyle(
-                      color: WorkGoColors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                  Expanded(
+                    child: SafeText(
+                      'official_tax_invoice'.tr(),
+                      style: const TextStyle(
+                        color: WorkGoColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  WorkGoBadge(label: "PAID", type: BadgeType.success),
+                  const SizedBox(width: 8),
+                  WorkGoBadge(label: 'status_paid'.tr(), type: BadgeType.success),
                 ],
               ),
               const Divider(color: Color(0xFFF0EDE6), height: 24),
-              _buildCostRow("Service Category", widget.booking.serviceType),
+              _buildCostRow('service_category_label'.tr(), widget.booking.serviceType.toLocalizedTrade()),
               const SizedBox(height: 6),
-              _buildCostRow("Assigned Artisan", widget.workerName),
+              _buildCostRow(
+                'assigned_artisan_label'.tr(),
+                MlTranslationService.instance.translateSync(
+                  widget.workerName,
+                  context.locale.languageCode,
+                ),
+              ),
               const SizedBox(height: 6),
-              _buildCostRow("Payment Mode", _selectedMethod.toUpperCase()),
+              _buildCostRow('payment_mode_label'.tr(), _selectedMethod.toUpperCase()),
               const SizedBox(height: 6),
-              _buildCostRow("Transaction ID", "TXN-${DateTime.now().millisecondsSinceEpoch}"),
+              _buildCostRow('transaction_id_label'.tr(), "TXN-${DateTime.now().millisecondsSinceEpoch}"),
               const Divider(color: Color(0xFFF0EDE6), height: 24),
-              _buildCostRow("Amount Paid", "₹${totalAmount.toStringAsFixed(0)}", isBold: true),
+              _buildCostRow('amount_paid_label'.tr(), "₹${totalAmount.toStringAsFixed(0)}", isBold: true),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(10),
@@ -389,7 +408,13 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: SafeText(
-                        "₹${coopDividend.toStringAsFixed(1)} directly contributed to ${widget.workerName}'s Cooperative Welfare & Health Fund.",
+                        'coop_welfare_contribution'.tr(args: [
+                          coopDividend.toStringAsFixed(1),
+                          MlTranslationService.instance.translateSync(
+                            widget.workerName,
+                            context.locale.languageCode,
+                          ),
+                        ]),
                         style: const TextStyle(
                           color: Color(0xFF34D399),
                           fontSize: 11,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import '../localization/trade_localization.dart';
 import '../models/worker.dart';
 import '../services/road_routing_service.dart';
 import 'interactive_rapido_map.dart' show MapMode;
@@ -432,23 +433,27 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Text(
-                              "PRO AT YOUR LOCATION",
-                              style: TextStyle(
+                              'pro_at_your_location'.trSafe('PRO AT YOUR LOCATION'),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.3,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              "Specialist & you are at the exact same spot",
-                              style: TextStyle(
+                              'specialist_at_same_spot'.trSafe('Specialist & you are at the exact same spot'),
+                              style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -459,9 +464,9 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                           color: const Color(0xFF10B981),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
-                          "ON-SITE",
-                          style: TextStyle(
+                        child: Text(
+                          'on_site'.trSafe('ON-SITE'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
@@ -935,9 +940,9 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                     ),
                   ],
                 ),
-                child: const Text(
-                  'YOU ARE HERE',
-                  style: TextStyle(
+                child: Text(
+                  'you_are_here'.trSafe('YOU ARE HERE'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 7.5,
                     fontWeight: FontWeight.w900,
@@ -1252,9 +1257,9 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          'YOUR LOCATION',
-                          style: TextStyle(
+                        Text(
+                          'your_location_caps'.trSafe('YOUR LOCATION'),
+                          style: const TextStyle(
                             color: Color(0xFF94A3B8),
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
@@ -1306,7 +1311,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _isAtSameSpot ? 'ARRIVED' : '$_computedEtaMinutes MIN',
+                    _isAtSameSpot ? 'arrived'.trSafe('ARRIVED') : '$_computedEtaMinutes MIN',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -1315,7 +1320,7 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                   ),
                   Text(
                     _isAtSameSpot
-                        ? 'On Site'
+                        ? 'on_site_small'.trSafe('On Site')
                         : '${_computedDistanceKm.toStringAsFixed(1)} km${_roadRoute?.primaryRoad != null ? " · ${_roadRoute!.primaryRoad}" : ""}',
                     style: const TextStyle(
                       color: Colors.white70,
@@ -1338,13 +1343,13 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
         ? const Color(0xFF059669)
         : (isRoute ? const Color(0xFF10B981) : tradeColor);
     final statusText = _isAtSameSpot
-        ? 'Specialist Arrived · At Your Doorstep'
+        ? 'specialist_arrived_doorstep'.trSafe('Specialist Arrived · At Your Doorstep')
         : (isRoute
-            ? 'Artisan En Route · $tradeVehicleLabel'
-            : 'Broadcasting · 10 km live radius');
+            ? 'artisan_en_route_arg'.trSafe('Artisan En Route · {}', [tradeVehicleLabel.toLocalizedTrade()])
+            : 'broadcasting_live_radius'.trSafe('Broadcasting · 10 km live radius'));
     final badgeText = _isAtSameSpot
-        ? 'ON SITE'
-        : (isRoute ? 'LIVE GPS' : 'SCANNING');
+        ? 'on_site'.trSafe('ON SITE')
+        : (isRoute ? 'live_gps'.trSafe('LIVE GPS') : 'scanning'.trSafe('SCANNING'));
 
     return Positioned(
       bottom: 10,

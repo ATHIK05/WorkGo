@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
+import '../widgets/translated_text.dart';
 import 'live_booking_tracker_screen.dart';
 import 'rapido_live_broadcast_screen.dart';
 
@@ -14,6 +15,8 @@ class BookingCreationScreen extends StatefulWidget {
     this.worker,
     this.targetWorkerId,
     required this.customerId,
+    this.customerLat,
+    this.customerLng,
     this.isEmergencyInitial = false,
   });
 
@@ -21,6 +24,8 @@ class BookingCreationScreen extends StatefulWidget {
   final Worker? worker;
   final String? targetWorkerId;
   final String customerId;
+  final double? customerLat;
+  final double? customerLng;
   final bool isEmergencyInitial;
 
   @override
@@ -50,6 +55,19 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       duration: const Duration(milliseconds: 600),
     );
     if (_isEmergency) _emergencyCtrl.forward();
+
+    // Pre-populate with live caller coordinates so distance calculation is immediate and correct
+    if (widget.customerLat != null && widget.customerLng != null && widget.customerLat! > 1.0) {
+      _selectedAddress = UserAddress(
+        id: "passed_gps",
+        formattedAddress: "current_location".tr(),
+        latitude: widget.customerLat!,
+        longitude: widget.customerLng!,
+        createdAt: DateTime.now(),
+      );
+      _addressController.text = "current_location".tr();
+    }
+
     _loadUserDefaultAddress();
   }
 
@@ -66,9 +84,12 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       if (addrSnap.docs.isNotEmpty && mounted) {
         final list = addrSnap.docs.map((d) => UserAddress.fromMap(d.data())).toList();
         final defaultAddr = list.firstWhere((a) => a.isDefault, orElse: () => list.first);
+        final validLat = defaultAddr.latitude > 1.0 ? defaultAddr.latitude : (widget.customerLat ?? defaultAddr.latitude);
+        final validLng = defaultAddr.longitude > 1.0 ? defaultAddr.longitude : (widget.customerLng ?? defaultAddr.longitude);
+        final effectiveAddr = defaultAddr.copyWith(latitude: validLat, longitude: validLng);
         setState(() {
-          _selectedAddress = defaultAddr;
-          _addressController.text = defaultAddr.fullDisplayAddress;
+          _selectedAddress = effectiveAddr;
+          _addressController.text = effectiveAddr.fullDisplayAddress;
         });
         return;
       }
@@ -79,16 +100,19 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       final currentAddrObj = data["currentAddressObj"] as Map<String, dynamic>?;
       if (currentAddrObj != null && mounted) {
         final addr = UserAddress.fromMap(currentAddrObj);
+        final validLat = addr.latitude > 1.0 ? addr.latitude : (widget.customerLat ?? addr.latitude);
+        final validLng = addr.longitude > 1.0 ? addr.longitude : (widget.customerLng ?? addr.longitude);
+        final effectiveAddr = addr.copyWith(latitude: validLat, longitude: validLng);
         setState(() {
-          _selectedAddress = addr;
-          _addressController.text = addr.fullDisplayAddress;
+          _selectedAddress = effectiveAddr;
+          _addressController.text = effectiveAddr.fullDisplayAddress;
         });
         return;
       }
 
       final currentAddressStr = data["currentAddress"] as String?;
-      final lat = (data["latitude"] as num?)?.toDouble() ?? 0.0;
-      final lng = (data["longitude"] as num?)?.toDouble() ?? 0.0;
+      final lat = (data["latitude"] as num?)?.toDouble() ?? (widget.customerLat ?? 0.0);
+      final lng = (data["longitude"] as num?)?.toDouble() ?? (widget.customerLng ?? 0.0);
       if (currentAddressStr != null && currentAddressStr.isNotEmpty && mounted) {
         setState(() {
           _selectedAddress = UserAddress(
@@ -103,11 +127,25 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         return;
       }
 
-      // 3. Fallback to real hardware GPS coordinates directly from device
+      // 3. Fallback to passed GPS coords or real hardware GPS
+      if (widget.customerLat != null && widget.customerLat! > 1.0 && mounted) {
+        setState(() {
+          _selectedAddress = UserAddress(
+            id: "gps",
+            formattedAddress: "current_location".tr(),
+            latitude: widget.customerLat!,
+            longitude: widget.customerLng ?? 0.0,
+            createdAt: DateTime.now(),
+          );
+          _addressController.text = "current_location".tr();
+        });
+        return;
+      }
+
       final coords = await LocationService.instance.getCurrentCoordinates();
       final hardwareLat = (coords["latitude"] as num?)?.toDouble() ?? 0.0;
       final hardwareLng = (coords["longitude"] as num?)?.toDouble() ?? 0.0;
-      final addrName = coords["address"]?.toString() ?? "Current Location";
+      final addrName = coords["address"]?.toString() ?? "current_location".tr();
       if (mounted && hardwareLat > 1.0) {
         setState(() {
           _selectedAddress = UserAddress(
@@ -147,9 +185,13 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     setState(() => _isSubmitting = true);
     try {
       final worker = widget.worker;
-      final custLatInit = _selectedAddress?.latitude;
-      final custLngInit = _selectedAddress?.longitude;
-      final realDist = worker?.calculateDistanceKm(custLatInit, custLngInit) ?? 1.2;
+      final custLatInit = (_selectedAddress != null && _selectedAddress!.latitude > 1.0)
+          ? _selectedAddress!.latitude
+          : widget.customerLat;
+      final custLngInit = (_selectedAddress != null && _selectedAddress!.longitude > 1.0)
+          ? _selectedAddress!.longitude
+          : widget.customerLng;
+      final realDist = worker?.calculateDistanceKm(custLatInit, custLngInit) ?? (worker?.distanceKm ?? 1.2);
       final fare = CooperativePricingEngine.instance.calculateFare(
         category: widget.serviceCategory,
         distanceKm: realDist,
@@ -166,8 +208,12 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       final assignedWorkerId =
           widget.targetWorkerId ?? widget.worker?.id;
       String addressText = _addressController.text.trim();
-      double custLat = _selectedAddress?.latitude ?? 0.0;
-      double custLng = _selectedAddress?.longitude ?? 0.0;
+      double custLat = (_selectedAddress != null && _selectedAddress!.latitude > 1.0)
+          ? _selectedAddress!.latitude
+          : (widget.customerLat ?? 0.0);
+      double custLng = (_selectedAddress != null && _selectedAddress!.longitude > 1.0)
+          ? _selectedAddress!.longitude
+          : (widget.customerLng ?? 0.0);
 
       if (addressText.isEmpty) {
         addressText = _selectedAddress?.fullDisplayAddress ?? "";
@@ -181,7 +227,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
             custLat = (coords["latitude"] as num).toDouble();
             custLng = (coords["longitude"] as num).toDouble();
             if (addressText.isEmpty || addressText.toLowerCase().contains("mumbai")) {
-              addressText = coords["address"]?.toString() ?? "Current Location";
+              addressText = coords["address"]?.toString() ?? "current_location".tr();
             }
           }
         } catch (_) {}
@@ -201,7 +247,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       }
 
       if (addressText.isEmpty) {
-        addressText = "Current Location";
+        addressText = "current_location".tr();
       }
 
       final bookingId = await bookingService.createBooking(
@@ -248,7 +294,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Booking error: $e"),
+            content: Text("booking_error".tr(args: [e.toString()])),
             backgroundColor: CX.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -265,9 +311,13 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
   @override
   Widget build(BuildContext context) {
     final worker = widget.worker;
-    final custLat = _selectedAddress?.latitude;
-    final custLng = _selectedAddress?.longitude;
-    final realDist = worker?.calculateDistanceKm(custLat, custLng) ?? 1.2;
+    final custLat = (_selectedAddress != null && _selectedAddress!.latitude > 1.0)
+        ? _selectedAddress!.latitude
+        : widget.customerLat;
+    final custLng = (_selectedAddress != null && _selectedAddress!.longitude > 1.0)
+        ? _selectedAddress!.longitude
+        : widget.customerLng;
+    final realDist = worker?.calculateDistanceKm(custLat, custLng) ?? (worker?.distanceKm ?? 1.2);
     final fare = CooperativePricingEngine.instance.calculateFare(
       category: widget.serviceCategory,
       distanceKm: realDist,
@@ -327,8 +377,8 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                           child: _DayChip(
                             index: 0,
                             selected: _selectedDayIndex == 0,
-                            label: "Today",
-                            sub: "Immediate",
+                            label: "date_today".tr(),
+                            sub: "date_today_sub".tr(),
                             onTap: () =>
                                 setState(() => _selectedDayIndex = 0),
                           ),
@@ -338,8 +388,8 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                           child: _DayChip(
                             index: 1,
                             selected: _selectedDayIndex == 1,
-                            label: "Tomorrow",
-                            sub: "Standard",
+                            label: "date_tomorrow".tr(),
+                            sub: "date_tomorrow_sub".tr(),
                             onTap: () =>
                                 setState(() => _selectedDayIndex = 1),
                           ),
@@ -349,8 +399,8 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                           child: _DayChip(
                             index: 2,
                             selected: _selectedDayIndex == 2,
-                            label: "Scheduled",
-                            sub: "Flexible",
+                            label: "date_scheduled".tr(),
+                            sub: "date_scheduled_sub".tr(),
                             onTap: () =>
                                 setState(() => _selectedDayIndex = 2),
                           ),
@@ -423,26 +473,32 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _sectionLabel('address'.tr()),
-                        TextButton.icon(
-                          onPressed: () async {
-                            final chosen = await showAddressManagementSheet(
-                              context,
-                              userId: widget.customerId,
-                              userRole: "customer",
-                              selectedAddress: _selectedAddress,
-                            );
-                            if (chosen != null && mounted) {
-                              setState(() {
-                                _selectedAddress = chosen;
-                                _addressController.text = chosen.fullDisplayAddress;
-                              });
-                            }
-                          },
-                          icon: const Icon(Icons.swap_horiz_rounded, color: CX.amber, size: 16),
-                          label: Text(
-                            _selectedAddress != null ? "Change (${_selectedAddress!.displayTitle})" : "Select Saved Address",
-                            style: const TextStyle(color: CX.amber, fontSize: 12, fontWeight: FontWeight.w800),
+                        Flexible(child: _sectionLabel('address'.tr())),
+                        Flexible(
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              final chosen = await showAddressManagementSheet(
+                                context,
+                                userId: widget.customerId,
+                                userRole: "customer",
+                                selectedAddress: _selectedAddress,
+                              );
+                              if (chosen != null && mounted) {
+                                setState(() {
+                                  _selectedAddress = chosen;
+                                  _addressController.text = chosen.fullDisplayAddress;
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.swap_horiz_rounded, color: CX.amber, size: 16),
+                            label: Text(
+                              _selectedAddress != null
+                                  ? "change_address".tr(args: [_selectedAddress!.displayTitle])
+                                  : "select_saved_address".tr(),
+                              style: const TextStyle(color: CX.amber, fontSize: 12, fontWeight: FontWeight.w800),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
                       ],
@@ -452,7 +508,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                       controller: _addressController,
                       prefixIcon: _selectedAddress?.label.icon ?? Icons.location_on_rounded,
                       prefixIconColor: CX.rose,
-                      hintText: "Enter service address or select from saved",
+                      hintText: "address_field_hint".tr(),
                     ),
                   ],
                 ),
@@ -469,7 +525,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                     const SizedBox(height: 10),
                     _AuroraTextField(
                       controller: _notesController,
-                      hintText: "E.g. Leaking kitchen sink pipe under the counter",
+                      hintText: "notes_field_hint".tr(),
                       prefixIcon: Icons.notes_rounded,
                       prefixIconColor: CX.violetLight,
                       maxLines: 3,
@@ -491,25 +547,31 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                         children: [
                           const Icon(Icons.bolt_rounded, color: CX.amber, size: 20),
                           const SizedBox(width: 8),
-                          Text(
-                            "urgency_boost".tr(),
-                            style: WorkGoFonts.heading(
-                              color: CX.textPrimary,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
+                          Expanded(
+                            child: Text(
+                              "urgency_boost".tr(),
+                              style: WorkGoFonts.heading(
+                                color: CX.textPrimary,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "Add a tip to incentivize nearby Artisans to accept your request within minutes",
+                        "urgency_tip_label".tr(),
                         style: WorkGoFonts.body(color: CX.textSecondary, fontSize: 11.5),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          _buildUrgencyChip("Standard", 0.0),
+                          _buildUrgencyChip("urgency_standard".tr(), 0.0),
                           const SizedBox(width: 8),
                           _buildUrgencyChip("+₹50", 50.0),
                           const SizedBox(width: 8),
@@ -583,6 +645,8 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                 fontSize: 11.5,
                 fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
@@ -645,7 +709,7 @@ class _ServiceHeroCard extends StatelessWidget {
             children: [
               if (worker != null) ...[
                 WorkGoAvatar(
-                  name: displayName ?? "Artisan",
+                  name: displayName ?? "artisan".trSafe("Artisan"),
                   avatarBase64: worker!.avatarBase64,
                   radius: 28,
                 ),
@@ -664,29 +728,33 @@ class _ServiceHeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      categoryName,
+                      categoryName.toLocalizedTrade(),
                       style: const TextStyle(
                         color: CX.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.4,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    TranslatedText(
                       displayName != null
-                          ? "Assigned: $displayName"
-                          : "Auto-Dispatching Nearest Verified Artisan",
+                          ? "artisan_assigned_name".tr(args: [displayName])
+                          : "auto_dispatching".tr(),
                       style: const TextStyle(
                         color: CX.textSecondary,
                         fontSize: 12,
                         height: 1.3,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     AuroraBadge(
-                      label: worker != null ? "CO-OP CERTIFIED ARTISAN" : "COOPERATIVE SERVICE",
+                      label: worker != null ? "coop_certified_artisan".tr() : "cooperative_service".tr(),
                       style: worker != null ? AuroraBadgeStyle.emerald : AuroraBadgeStyle.violet,
                     ),
                   ],
@@ -702,38 +770,51 @@ class _ServiceHeroCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, color: CX.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      worker!.avgRating > 0
-                          ? worker!.avgRating.toStringAsFixed(1)
-                          : (worker!.totalRatings > 0 ? "5.0" : "New"),
-                      style: WorkGoFonts.numeric(
-                        color: CX.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (totalReviews > 0) ...[
-                      const SizedBox(width: 3),
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star_rounded, color: CX.amber, size: 16),
+                      const SizedBox(width: 4),
                       Text(
-                        "($totalReviews)",
-                        style: WorkGoFonts.body(color: CX.textMuted, fontSize: 11),
+                        worker!.avgRating > 0
+                            ? worker!.avgRating.toStringAsFixed(1)
+                            : (worker!.totalRatings > 0 ? "5.0" : 'badge_new'.trSafe("New")),
+                        style: WorkGoFonts.numeric(
+                          color: CX.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
+                      if (totalReviews > 0) ...[
+                        const SizedBox(width: 3),
+                        Text(
+                          "($totalReviews)",
+                          style: WorkGoFonts.body(color: CX.textMuted, fontSize: 11),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-                Text(
-                  worker!.homesServiced > 0
-                      ? "🏡 ${worker!.homesServiced} homes"
-                      : (worker!.totalRatings > 0 ? "🏡 ${worker!.totalRatings} jobs" : "🌟 Verified Pro"),
-                  style: WorkGoFonts.body(color: const Color(0xFF6EE7B7), fontSize: 11.5, fontWeight: FontWeight.w700),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    worker!.homesServiced > 0
+                        ? "🏡 ${worker!.homesServiced} homes"
+                        : (worker!.totalRatings > 0 ? "🏡 ${worker!.totalRatings} jobs" : "🌟 ${"verified_pro".tr()}"),
+                    style: WorkGoFonts.body(color: const Color(0xFF6EE7B7), fontSize: 11.5, fontWeight: FontWeight.w700),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                Text(
-                  "📍 ${worker!.formattedDistanceString(custLat, custLng)}",
-                  style: WorkGoFonts.body(color: CX.cyan, fontSize: 11.5, fontWeight: FontWeight.w700),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    "📍 ${worker!.formattedDistanceString(custLat, custLng)}",
+                    style: WorkGoFonts.body(color: CX.cyan, fontSize: 11.5, fontWeight: FontWeight.w700),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -808,15 +889,19 @@ class _EmergencyToggleCard extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "Guaranteed dispatch under 30 min (+₹150)",
+                      "emergency_dispatch_note".tr(),
                       style: const TextStyle(
                         color: CX.textSecondary,
                         fontSize: 11,
                         height: 1.4,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -926,6 +1011,8 @@ class _DayChip extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 2),
             Text(
@@ -936,6 +1023,8 @@ class _DayChip extends StatelessWidget {
                     : CX.textMuted,
                 fontSize: 10,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -1004,6 +1093,8 @@ class _SlotChip extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 2),
             Text(
@@ -1013,6 +1104,8 @@ class _SlotChip extends StatelessWidget {
                 fontSize: 9.5,
               ),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -1141,10 +1234,14 @@ class _PriceCard extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      "Transparent On-Demand Co-op Pricing",
+                      "transparent_coop_pricing".tr(),
                       style: TextStyle(color: CX.textSecondary.withValues(alpha: 0.8), fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -1159,10 +1256,15 @@ class _PriceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'base_visit_fare'.tr(),
-                style: const TextStyle(color: CX.textSecondary, fontSize: 13),
+              Expanded(
+                child: Text(
+                  'base_visit_fare'.tr(),
+                  style: const TextStyle(color: CX.textSecondary, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 fare.formattedBase,
                 style: const TextStyle(
@@ -1179,10 +1281,15 @@ class _PriceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "${'transit_distance_fare'.tr()} (${fare.formattedDistance})",
-                style: const TextStyle(color: CX.textSecondary, fontSize: 13),
+              Expanded(
+                child: Text(
+                  "${'transit_distance_fare'.tr()} (${fare.formattedDistance})",
+                  style: const TextStyle(color: CX.textSecondary, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 fare.formattedTransit,
                 style: const TextStyle(
@@ -1199,10 +1306,15 @@ class _PriceCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "${'experience_bonus'.tr()} (${fare.experienceYears} yrs)",
-                  style: const TextStyle(color: CX.amber, fontSize: 13, fontWeight: FontWeight.w600),
+                Expanded(
+                  child: Text(
+                    "${'experience_bonus'.tr()} (${fare.experienceYears} yrs)",
+                    style: const TextStyle(color: CX.amber, fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   "+₹${fare.experienceBonus.toStringAsFixed(0)}",
                   style: const TextStyle(
@@ -1220,10 +1332,15 @@ class _PriceCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Urgency Priority Tip",
-                  style: TextStyle(color: CX.amber, fontSize: 13, fontWeight: FontWeight.w600),
+                Expanded(
+                  child: Text(
+                    "urgency_priority_tip".tr(),
+                    style: const TextStyle(color: CX.amber, fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   "+₹${fare.urgencyTip.toStringAsFixed(0)}",
                   style: const TextStyle(
@@ -1246,16 +1363,23 @@ class _PriceCard extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.bolt_rounded, color: CX.rose, size: 14),
-                              const SizedBox(width: 4),
-                              const Text(
-                                "Emergency Rush (<30 min)",
-                                style: TextStyle(color: CX.rose, fontSize: 13),
-                              ),
-                            ],
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(Icons.bolt_rounded, color: CX.rose, size: 14),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    "emergency_rush_label".tr(),
+                                    style: const TextStyle(color: CX.rose, fontSize: 13),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           const Text(
                             "₹150",
                             style: TextStyle(
@@ -1277,14 +1401,19 @@ class _PriceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'total_amount'.tr(),
-                style: const TextStyle(
-                  color: CX.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  'total_amount'.tr(),
+                  style: const TextStyle(
+                    color: CX.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               AnimatedCounter(
                 value: fare.totalEstimatedFare,
                 style: const TextStyle(

@@ -13,6 +13,8 @@ import 'rapido_live_broadcast_screen.dart';
 import 'payment_receipt_screen.dart';
 import 'worker_search_screen.dart';
 import 'voice_ai_triage_screen.dart';
+import '../services/ml_translation_service.dart';
+import '../widgets/translated_text.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({
@@ -44,9 +46,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   void initState() {
     super.initState();
     _customerLat = widget.user.latitude ?? widget.user.currentAddress?.latitude;
-    _customerLng = widget.user.longitude ?? widget.user.currentAddress?.longitude;
+    _customerLng =
+        widget.user.longitude ?? widget.user.currentAddress?.longitude;
     // Fallback to regional hub if coordinates not yet present on user profile
-    if (_customerLat == null || _customerLat! <= 1.0 || _customerLng == null || _customerLng! <= 1.0) {
+    if (_customerLat == null ||
+        _customerLat! <= 1.0 ||
+        _customerLng == null ||
+        _customerLng! <= 1.0) {
       _customerLat = 11.3445;
       _customerLng = 77.7327;
     }
@@ -63,9 +69,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   @override
   void didUpdateWidget(covariant CustomerHomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final userLat = widget.user.latitude ?? widget.user.currentAddress?.latitude;
-    final userLng = widget.user.longitude ?? widget.user.currentAddress?.longitude;
-    if (userLat != null && userLng != null && userLat > 1.0 && userLng > 1.0 &&
+    final userLat =
+        widget.user.latitude ?? widget.user.currentAddress?.latitude;
+    final userLng =
+        widget.user.longitude ?? widget.user.currentAddress?.longitude;
+    if (userLat != null &&
+        userLng != null &&
+        userLat > 1.0 &&
+        userLng > 1.0 &&
         (userLat != _customerLat || userLng != _customerLng)) {
       setState(() {
         _customerLat = userLat;
@@ -81,7 +92,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       final hardwareLat = (coords["latitude"] as num?)?.toDouble();
       final hardwareLng = (coords["longitude"] as num?)?.toDouble();
 
-      if (hardwareLat != null && hardwareLng != null && hardwareLat > 1.0 && mounted) {
+      if (hardwareLat != null &&
+          hardwareLng != null &&
+          hardwareLat > 1.0 &&
+          mounted) {
         setState(() {
           _customerLat = hardwareLat;
           _customerLng = hardwareLng;
@@ -92,10 +106,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             .collection("users")
             .doc(widget.user.uid)
             .set({
-          "latitude": hardwareLat,
-          "longitude": hardwareLng,
-          "lastGpsUpdate": FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true)).catchError((_) {});
+              "latitude": hardwareLat,
+              "longitude": hardwareLng,
+              "lastGpsUpdate": FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true))
+            .catchError((_) {});
         return;
       }
 
@@ -107,10 +122,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       if (doc.exists) {
         final data = doc.data() ?? {};
         final currAddr = data["currentAddress"];
-        final lat = (data["latitude"] as num?)?.toDouble() ??
-            (currAddr is Map ? (currAddr["latitude"] as num?)?.toDouble() : null);
-        final lng = (data["longitude"] as num?)?.toDouble() ??
-            (currAddr is Map ? (currAddr["longitude"] as num?)?.toDouble() : null);
+        final lat =
+            (data["latitude"] as num?)?.toDouble() ??
+            (currAddr is Map
+                ? (currAddr["latitude"] as num?)?.toDouble()
+                : null);
+        final lng =
+            (data["longitude"] as num?)?.toDouble() ??
+            (currAddr is Map
+                ? (currAddr["longitude"] as num?)?.toDouble()
+                : null);
         if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
           setState(() {
             _customerLat = lat;
@@ -148,7 +169,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final alreadyConfigured = prefs.getBool("customer_loc_done_${widget.user.uid}") ?? false;
+      final alreadyConfigured =
+          prefs.getBool("customer_loc_done_${widget.user.uid}") ?? false;
       if (alreadyConfigured) return;
 
       final doc = await FirebaseFirestore.instance
@@ -166,7 +188,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           .limit(1)
           .get();
 
-      final hasLocation = addrSnap.docs.isNotEmpty || currentAddress != null || lat != null;
+      final hasLocation =
+          addrSnap.docs.isNotEmpty || currentAddress != null || lat != null;
 
       if (!hasLocation && mounted) {
         await prefs.setBool("customer_loc_done_${widget.user.uid}", true);
@@ -203,8 +226,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             bookingId: booking.id,
             serviceCategory: booking.serviceType,
             initialAmount: booking.totalAmount,
-            pickupAddress:
-                booking.customerAddressText ?? "Your Service Location",
+            pickupAddress: booking.customerAddressText ?? 'your_location'.tr(),
           ),
         ),
       );
@@ -234,6 +256,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         }
       },
       child: AuroraScaffold(
+        extendBody: true,
         bottomNavigationBar: _buildFloatingDock(),
         body: IndexedStack(
           index: _currentNavIndex,
@@ -257,10 +280,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   // ──────────────────────────────────────────
   Widget _buildFloatingDock() {
     final items = [
-      (Icons.home_rounded, "Home"),
-      (Icons.grid_view_rounded, "Explore"),
-      (Icons.receipt_long_rounded, "Orders"),
-      (Icons.person_outline_rounded, "Profile"),
+      (Icons.home_rounded, 'nav_home'.tr()),
+      (Icons.grid_view_rounded, 'nav_explore'.tr()),
+      (Icons.receipt_long_rounded, 'nav_orders'.tr()),
+      (Icons.person_outline_rounded, 'nav_profile_tab'.tr()),
     ];
 
     return SafeArea(
@@ -314,7 +337,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     child: Icon(
                       icon,
                       size: 22,
-                      color: active ? const Color(0xFF141416) : const Color(0xFF8E8E93),
+                      color: active
+                          ? const Color(0xFF141416)
+                          : const Color(0xFF8E8E93),
                     ),
                   ),
                 ),
@@ -332,6 +357,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   Widget _buildHomeFeed(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,8 +394,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
             // 5. Section Header: Explore Craft Services
             _buildSectionHeader(
-              title: "Explore Craft Services",
-              actionLabel: "View All (8)",
+              title: 'explore_craft_services'.tr(),
+              actionLabel: 'view_all'.tr(),
               onAction: () => _onNavTap(1),
             ),
             const SizedBox(height: 14),
@@ -392,7 +420,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         ? widget.user.displayName.split(' ').first
         : widget.user.email.split('@').first;
     final now = DateTime.now();
-    final dateStr = "Today ${DateFormat('d MMM').format(now)}";
+    final dateStr =
+        "${'today'.tr()} ${DateFormat('d MMM', context.locale.languageCode).format(now)}";
 
     return StreamBuilder<AppUser?>(
       stream: _authService.streamAppUser(widget.user.uid),
@@ -403,7 +432,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         final activeAddr = liveUser.currentAddress;
         final areaLabel = activeAddr != null
             ? "${activeAddr.displayTitle} · ${activeAddr.shortSummary}"
-            : (liveUser.primaryArea ?? "Select Address");
+            : (liveUser.primaryArea ?? 'select_address'.tr());
 
         return Row(
           children: [
@@ -417,7 +446,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 padding: const EdgeInsets.all(2.5),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFF0EDE6), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFFF0EDE6),
+                    width: 1.5,
+                  ),
                   color: Colors.white,
                 ),
                 child: WorkGoAvatar(
@@ -436,13 +468,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "Hello, $name",
+                    'greeting_hello'.tr(args: [name]),
                     style: WorkGoFonts.heading(
                       color: const Color(0xFF141416),
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.3,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 1),
                   GestureDetector(
@@ -463,20 +497,31 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          dateStr,
-                          style: WorkGoFonts.body(
-                            color: const Color(0xFF6B6B6B),
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
+                        Flexible(
+                          child: Text(
+                            dateStr,
+                            style: WorkGoFonts.body(
+                              color: const Color(0xFF6B6B6B),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Text("•", style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 11)),
+                        const Text(
+                          "•",
+                          style: TextStyle(
+                            color: Color(0xFF9CA3AF),
+                            fontSize: 11,
+                          ),
+                        ),
                         const SizedBox(width: 4),
                         Flexible(
-                          child: Text(
+                          child: TranslatedText(
                             areaLabel,
+                            isAddress: true,
                             style: const TextStyle(
                               color: Color(0xFFD97706),
                               fontSize: 11.5,
@@ -486,48 +531,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Icon(Icons.arrow_drop_down_rounded, size: 16, color: Color(0xFFD97706)),
+                        const Icon(
+                          Icons.arrow_drop_down_rounded,
+                          size: 16,
+                          color: Color(0xFFD97706),
+                        ),
                       ],
                     ),
                   ),
                 ],
-              ),
-            ),
-
-            // Search Icon Circle
-            GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                VoiceAiTriageScreen.show(
-                  context,
-                  user: liveUser,
-                  customerLat: _customerLat,
-                  customerLng: _customerLng,
-                  customerAddress: liveUser.currentAddress?.shortSummary ?? liveUser.primaryArea,
-                );
-              },
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x06000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.search_rounded,
-                    color: Color(0xFF141416),
-                    size: 20,
-                  ),
-                ),
               ),
             ),
           ],
@@ -548,7 +560,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           user: widget.user,
           customerLat: _customerLat,
           customerLng: _customerLng,
-          customerAddress: widget.user.currentAddress?.shortSummary ?? widget.user.primaryArea,
+          customerAddress:
+              widget.user.currentAddress?.shortSummary ??
+              widget.user.primaryArea,
         );
       },
       child: Container(
@@ -586,7 +600,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "Describe household problem (e.g. tap leaking, motor humming)",
+                    'ai_search_placeholder'.tr(),
                     style: WorkGoFonts.body(
                       color: CX.textPrimary,
                       fontSize: 13,
@@ -596,11 +610,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    "AI Triage identifies the exact trade & tools needed",
+                    'ai_search_subtitle'.tr(),
                     style: WorkGoFonts.body(
                       color: CX.textSecondary,
                       fontSize: 11,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -614,7 +630,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   user: widget.user,
                   customerLat: _customerLat,
                   customerLng: _customerLng,
-                  customerAddress: widget.user.currentAddress?.shortSummary ?? widget.user.primaryArea,
+                  customerAddress:
+                      widget.user.currentAddress?.shortSummary ??
+                      widget.user.primaryArea,
                 );
               },
               child: Container(
@@ -623,7 +641,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 decoration: BoxDecoration(
                   color: CX.violet.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
-                  border: Border.all(color: CX.amberDark.withValues(alpha: 0.35), width: 1.2),
+                  border: Border.all(
+                    color: CX.amberDark.withValues(alpha: 0.35),
+                    width: 1.2,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: CX.amberDark.withValues(alpha: 0.18),
@@ -633,11 +654,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   ],
                 ),
                 child: const Center(
-                  child: Icon(
-                    Icons.mic_rounded,
-                    color: CX.amberDark,
-                    size: 20,
-                  ),
+                  child: Icon(Icons.mic_rounded, color: CX.amberDark, size: 20),
                 ),
               ),
             ),
@@ -664,8 +681,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           },
           child: Container(
             width: double.infinity,
-            height: 154,
-            padding: const EdgeInsets.fromLTRB(20, 18, 18, 18),
+            constraints: const BoxConstraints(minHeight: 156),
+            padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFFEDE8FF), Color(0xFFDFD4FF)],
@@ -681,128 +698,159 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ),
               ],
             ),
-            child: Stack(
+            child: Row(
               children: [
-                // Left Content
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Instant Pro Dispatch",
-                          style: WorkGoFonts.heading(
-                            color: const Color(0xFF141416),
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.6,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "⚡ 15-Min Guaranteed Artisan Arrival",
-                          style: WorkGoFonts.body(
-                            color: const Color(0xFF4B5563),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Avatar Stack: Live Available Workers
-                    Row(
-                      children: [
-                        if (workers.isNotEmpty)
-                          SizedBox(
-                            width: (workers.length.clamp(1, 3) * 20 + 14).toDouble(),
-                            height: 32,
-                            child: Stack(
-                              children: List.generate(workers.length.clamp(1, 3), (i) {
-                                final w = workers[i];
-                                return Positioned(
-                                  left: (i * 20).toDouble(),
-                                  child: Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                      color: const Color(0xFF4F46E5),
-                                    ),
-                                    child: WorkGoAvatar(
-                                      avatarBase64: w.verificationDetails?.selfieBase64 ??
-                                          w.verificationDetails?.aadhaarPhotoBase64,
-                                      name: w.name,
-                                      radius: 14,
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
-                          )
-                        else
-                          SizedBox(
-                            width: 76,
-                            height: 32,
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                  left: 0,
-                                  child: _miniAvatar(
-                                    bg: const Color(0xFFFF6B6B),
-                                    icon: Icons.handyman_rounded,
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 20,
-                                  child: _miniAvatar(
-                                    bg: const Color(0xFF4ECDC4),
-                                    icon: Icons.plumbing_rounded,
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 40,
-                                  child: _miniAvatar(
-                                    bg: const Color(0xFFFFD93D),
-                                    icon: Icons.bolt_rounded,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6366F1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            totalCount > 0 ? "+$totalCount Verified Active" : "Online Pros",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
+                // Left Content: Title, Subtitle, and Live Available Pros
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'dispatch_hero_title'.tr(),
+                            style: WorkGoFonts.heading(
+                              color: const Color(0xFF141416),
+                              fontSize: 19,
                               fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                              height: 1.15,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'dispatch_hero_subtitle'.tr(),
+                            style: WorkGoFonts.body(
+                              color: const Color(0xFF4B5563),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              height: 1.25,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Avatar Stack: Live Available Workers + Verified Active Pill
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          if (workers.isNotEmpty)
+                            SizedBox(
+                              width: (workers.length.clamp(1, 3) * 20 + 14)
+                                  .toDouble(),
+                              height: 30,
+                              child: Stack(
+                                children: List.generate(
+                                  workers.length.clamp(1, 3),
+                                  (i) {
+                                    final w = workers[i];
+                                    return Positioned(
+                                      left: (i * 20).toDouble(),
+                                      child: Container(
+                                        width: 30,
+                                        height: 30,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                          color: const Color(0xFF4F46E5),
+                                        ),
+                                        child: WorkGoAvatar(
+                                          avatarBase64:
+                                              w
+                                                  .verificationDetails
+                                                  ?.selfieBase64 ??
+                                              w
+                                                  .verificationDetails
+                                                  ?.aadhaarPhotoBase64,
+                                          name: w.name,
+                                          radius: 13,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            )
+                          else
+                            SizedBox(
+                              width: 72,
+                              height: 30,
+                              child: Stack(
+                                children: [
+                                  Positioned(
+                                    left: 0,
+                                    child: _miniAvatar(
+                                      bg: const Color(0xFFFF6B6B),
+                                      icon: Icons.handyman_rounded,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 18,
+                                    child: _miniAvatar(
+                                      bg: const Color(0xFF4ECDC4),
+                                      icon: Icons.plumbing_rounded,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 36,
+                                    child: _miniAvatar(
+                                      bg: const Color(0xFFFFD93D),
+                                      icon: Icons.bolt_rounded,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              totalCount > 0
+                                  ? 'verified_active_count'.tr(
+                                      args: ['$totalCount'],
+                                    )
+                                  : 'online_pros'.tr(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
 
                 // Right Graphic: 3D Toy-style Geometric Orb Cluster
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
+                SizedBox(
+                  width: 88,
                   child: Center(
                     child: Container(
-                      width: 100,
-                      height: 100,
+                      width: 88,
+                      height: 88,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
@@ -817,46 +865,50 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         children: [
                           // Yellow Ring
                           Positioned(
-                            bottom: 12,
-                            left: 10,
+                            bottom: 10,
+                            left: 8,
                             child: Container(
-                              width: 38,
-                              height: 38,
+                              width: 34,
+                              height: 34,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: const Color(0xFFFFB800),
-                                  width: 9,
+                                  width: 8,
                                 ),
                               ),
                             ),
                           ),
                           // Dark Cylinder
                           Positioned(
-                            top: 8,
-                            left: 14,
+                            top: 6,
+                            left: 12,
                             child: Container(
-                              width: 44,
-                              height: 44,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
                                 color: const Color(0xFF334155),
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(13),
                               ),
                               child: const Center(
-                                child: Icon(Icons.flash_on_rounded, color: Color(0xFFFFB800), size: 22),
+                                child: Icon(
+                                  Icons.flash_on_rounded,
+                                  color: Color(0xFFFFB800),
+                                  size: 20,
+                                ),
                               ),
                             ),
                           ),
                           // Soft Violet/Grey Cushion
                           Positioned(
-                            right: 10,
-                            bottom: 24,
+                            right: 8,
+                            bottom: 20,
                             child: Container(
-                              width: 36,
-                              height: 36,
+                              width: 32,
+                              height: 32,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFC4B5FD),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(11),
                                 boxShadow: const [
                                   BoxShadow(
                                     color: Color(0x1A000000),
@@ -866,7 +918,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 ],
                               ),
                               child: const Center(
-                                child: Icon(Icons.handyman_rounded, color: Colors.white, size: 18),
+                                child: Icon(
+                                  Icons.handyman_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                               ),
                             ),
                           ),
@@ -892,9 +948,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         color: bg,
         border: Border.all(color: Colors.white, width: 2),
       ),
-      child: Center(
-        child: Icon(icon, color: Colors.white, size: 15),
-      ),
+      child: Center(child: Icon(icon, color: Colors.white, size: 15)),
     );
   }
 
@@ -906,11 +960,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       stream: _bookingService.streamCustomerBookings(widget.user.uid),
       builder: (context, snapshot) {
         final bookings = snapshot.data ?? [];
-        final activeList = bookings.where((b) =>
-            b.status == BookingStatus.inProgress ||
-            b.status == BookingStatus.accepted ||
-            b.status == BookingStatus.pending).toList();
-        final completedList = bookings.where((b) => b.status == BookingStatus.completed).toList();
+        final activeList = bookings
+            .where(
+              (b) =>
+                  b.status == BookingStatus.inProgress ||
+                  b.status == BookingStatus.accepted ||
+                  b.status == BookingStatus.pending,
+            )
+            .toList();
+        final completedList = bookings
+            .where((b) => b.status == BookingStatus.completed)
+            .toList();
 
         // Active Order Live Radar
         if (activeList.isNotEmpty) {
@@ -921,7 +981,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 : Stream.value(null),
             builder: (context, workerSnap) {
               final worker = workerSnap.data;
-              String assignedName = (active.acceptedWorkerName?.isNotEmpty == true &&
+              String assignedName =
+                  (active.acceptedWorkerName?.isNotEmpty == true &&
                       active.acceptedWorkerName!.toLowerCase() != 'artisan' &&
                       active.acceptedWorkerName!.toLowerCase() != 'partner' &&
                       active.acceptedWorkerName!.toLowerCase() != 'worker' &&
@@ -929,17 +990,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   ? active.acceptedWorkerName!
                   : (worker?.name.isNotEmpty == true ? worker!.name : "");
 
+              final String localizedAssignedName = assignedName.isNotEmpty
+                  ? MlTranslationService.instance.translateSync(
+                      assignedName,
+                      context.locale.languageCode,
+                    )
+                  : "";
               final String statusLabel;
               if (active.status == BookingStatus.pending) {
-                statusLabel = "Connecting with Specialist...";
+                statusLabel = 'connecting_specialist'.tr();
               } else if (active.status == BookingStatus.accepted) {
-                statusLabel = assignedName.isNotEmpty
-                    ? "$assignedName Assigned • En Route"
-                    : "Artisan Assigned • En Route";
+                statusLabel = localizedAssignedName.isNotEmpty
+                    ? 'assigned_en_route'.tr(args: [localizedAssignedName])
+                    : 'artisan_en_route'.tr();
               } else {
-                statusLabel = assignedName.isNotEmpty
-                    ? "$assignedName • Service in Progress"
-                    : "Service in Progress";
+                statusLabel = localizedAssignedName.isNotEmpty
+                    ? 'worker_in_progress'.tr(args: [localizedAssignedName])
+                    : 'service_in_progress'.tr();
               }
 
               return GestureDetector(
@@ -969,7 +1036,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white.withValues(alpha: 0.12),
-                          border: Border.all(color: const Color(0xFFFFB800), width: 1.5),
+                          border: Border.all(
+                            color: const Color(0xFFFFB800),
+                            width: 1.5,
+                          ),
                         ),
                         child: const Center(
                           child: PulsingDot(color: Color(0xFFFFB800), size: 10),
@@ -983,14 +1053,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFFB800),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text(
-                                    "LIVE ORDER",
-                                    style: TextStyle(
+                                  child: Text(
+                                    'live_order_badge'.tr().toUpperCase(),
+                                    style: const TextStyle(
                                       color: Color(0xFF141416),
                                       fontSize: 9,
                                       fontWeight: FontWeight.w900,
@@ -999,12 +1072,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  active.serviceType,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
+                                Expanded(
+                                  child: Text(
+                                    active.serviceType.toLocalizedTrade(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -1023,7 +1100,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           ],
                         ),
                       ),
-                      const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                     ],
                   ),
                 ),
@@ -1059,7 +1140,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Center(
-                    child: Icon(Icons.history_rounded, color: Color(0xFF059669), size: 20),
+                    child: Icon(
+                      Icons.history_rounded,
+                      color: Color(0xFF059669),
+                      size: 20,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1067,21 +1152,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Repeat Recent Service",
-                        style: TextStyle(
+                      Text(
+                        'repeat_recent_service'.tr(),
+                        style: const TextStyle(
                           color: Color(0xFF6B7280),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        "${last.serviceType} • ₹${last.totalAmount.toStringAsFixed(0)}",
+                        "${last.serviceType.toLocalizedTrade()} • ₹${last.totalAmount.toStringAsFixed(0)}",
                         style: const TextStyle(
                           color: Color(0xFF141416),
                           fontSize: 13.5,
                           fontWeight: FontWeight.w800,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -1094,18 +1183,35 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         builder: (_) => BookingCreationScreen(
                           serviceCategory: last.serviceType,
                           customerId: widget.user.uid,
+                          customerLat: _customerLat,
+                          customerLng: _customerLng,
                         ),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.replay_rounded, size: 12, color: Colors.white),
-                  label: const Text("1-Tap Book", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5)),
+                  icon: const Icon(
+                    Icons.replay_rounded,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                  label: Text(
+                    'one_tap_book'.tr(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11.5,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF141416),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     minimumSize: const Size(0, 34),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
@@ -1122,17 +1228,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             border: Border.all(color: const Color(0xFFE5E7EB)),
           ),
           child: Row(
-            children: const [
-              Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 18),
-              SizedBox(width: 10),
+            children: [
+              const Icon(
+                Icons.verified_user_rounded,
+                color: Color(0xFF059669),
+                size: 18,
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  "WorkGo Cooperative: Direct Artisan Dispatch with 0% Middleman Markup",
-                  style: TextStyle(
+                  'coop_trust_banner'.tr(),
+                  style: const TextStyle(
                     color: Color(0xFF374151),
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -1147,9 +1259,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   // ──────────────────────────────────────────
   Widget _buildEmergencyRapidDispatchBar() {
     final emergencies = [
-      (trade: "Plumbing", label: "Pipe Burst / Leak", icon: Icons.water_drop_rounded, color: const Color(0xFF0284C7)),
-      (trade: "Electrical", label: "Power Cut / Spark", icon: Icons.bolt_rounded, color: const Color(0xFFD97706)),
-      (trade: "Appliance Repair", label: "Fridge / AC Off", icon: Icons.kitchen_rounded, color: const Color(0xFFDC2626)),
+      (
+        trade: "Plumbing",
+        label: 'em_pipe_burst'.tr(),
+        icon: Icons.water_drop_rounded,
+        color: const Color(0xFF0284C7),
+      ),
+      (
+        trade: "Electrical",
+        label: 'em_power_cut'.tr(),
+        icon: Icons.bolt_rounded,
+        color: const Color(0xFFD97706),
+      ),
+      (
+        trade: "Appliance Repair",
+        label: 'em_fridge_ac'.tr(),
+        icon: Icons.kitchen_rounded,
+        color: const Color(0xFFDC2626),
+      ),
     ];
 
     return Column(
@@ -1158,29 +1285,40 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: const [
-                Icon(Icons.flash_on_rounded, color: Color(0xFFEF4444), size: 16),
-                SizedBox(width: 4),
-                Text(
-                  "Rapid 10-Min SOS Dispatch",
-                  style: TextStyle(
-                    color: Color(0xFF141416),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
+            Expanded(
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.flash_on_rounded,
+                    color: Color(0xFFEF4444),
+                    size: 16,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'rapid_sos_title'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFF141416),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: const Color(0xFFFEE2E2),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text(
-                "PRIORITY",
-                style: TextStyle(
+              child: Text(
+                'priority_badge'.tr(),
+                style: const TextStyle(
                   color: Color(0xFFDC2626),
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
@@ -1206,6 +1344,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       builder: (_) => BookingCreationScreen(
                         serviceCategory: em.trade,
                         customerId: widget.user.uid,
+                        customerLat: _customerLat,
+                        customerLng: _customerLng,
                         isEmergencyInitial: true,
                       ),
                     ),
@@ -1213,7 +1353,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 },
                 child: Container(
                   width: 175,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -1243,12 +1386,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              em.trade,
+                              em.trade.toLocalizedTrade(),
                               style: TextStyle(
                                 color: em.color,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               em.label,
@@ -1287,24 +1432,29 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildMiniGuaranteeBadge("🛡️ 100% Guaranteed"),
+          _buildMiniGuaranteeBadge('guarantee_100'.tr()),
           Container(width: 1, height: 14, color: const Color(0xFFD1D5DB)),
-          _buildMiniGuaranteeBadge("💰 0% Platform Cut"),
+          _buildMiniGuaranteeBadge('guarantee_0cut'.tr()),
           Container(width: 1, height: 14, color: const Color(0xFFD1D5DB)),
-          _buildMiniGuaranteeBadge("⚡ Live Verified Pros"),
+          _buildMiniGuaranteeBadge('guarantee_live_pros'.tr()),
         ],
       ),
     );
   }
 
   Widget _buildMiniGuaranteeBadge(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Color(0xFF374151),
-        fontSize: 10.5,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.2,
+    return Flexible(
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Color(0xFF374151),
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.2,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -1319,21 +1469,31 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
-          children: const [
-            Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 24),
-            SizedBox(width: 10),
-            Text(
-              "Remove Booking",
-              style: TextStyle(
-                color: Color(0xFF141416),
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
+          children: [
+            const Icon(
+              Icons.delete_outline_rounded,
+              color: Color(0xFFDC2626),
+              size: 24,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'remove_booking_title'.tr(),
+                style: const TextStyle(
+                  color: Color(0xFF141416),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
         content: Text(
-          "Are you sure you want to remove this ${booking.serviceType} booking from your activity history? Co-op ledger and invoice records will remain securely archived for administrative audits.",
+          'remove_booking_body'.tr(
+            args: [booking.serviceType.toLocalizedTrade()],
+          ),
           style: const TextStyle(
             color: Color(0xFF4B5563),
             fontSize: 13,
@@ -1343,9 +1503,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w700),
+            child: Text(
+              'cancel'.tr(),
+              style: const TextStyle(
+                color: Color(0xFF6B7280),
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           ElevatedButton(
@@ -1356,10 +1519,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text("Booking removed from your history."),
+                    content: Text('booking_removed_toast'.tr()),
                     backgroundColor: const Color(0xFF141416),
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 );
               }
@@ -1367,9 +1532,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text("Remove", style: TextStyle(fontWeight: FontWeight.w800)),
+            child: Text(
+              'remove_action'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
@@ -1400,39 +1570,54 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  active != null ? "Active Ongoing Order" : "Fast Actions & Radar",
-                  style: WorkGoFonts.heading(
-                    color: const Color(0xFF141416),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.4,
+                Expanded(
+                  child: Text(
+                    active != null
+                        ? 'active_ongoing_order'.tr()
+                        : 'fast_actions_radar'.tr(),
+                    style: WorkGoFonts.heading(
+                      color: const Color(0xFF141416),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.4,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (active != null)
+                if (active != null) ...[
+                  const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF10B981).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        PulsingDot(color: Color(0xFF10B981), size: 6),
-                        SizedBox(width: 4),
+                      children: [
+                        const PulsingDot(color: Color(0xFF10B981), size: 6),
+                        const SizedBox(width: 4),
                         Text(
-                          "LIVE",
-                          style: TextStyle(
+                          'live_badge'.tr(),
+                          style: const TextStyle(
                             color: Color(0xFF047857),
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 14),
@@ -1456,6 +1641,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                               builder: (ctx) => BookingCreationScreen(
                                 serviceCategory: "Appliance Repair",
                                 customerId: widget.user.uid,
+                                customerLat: _customerLat,
+                                customerLng: _customerLng,
                               ),
                             ),
                           );
@@ -1483,27 +1670,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                               children: [
                                 // Top Pill Tag
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.5),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
                                     active != null
-                                        ? "STATUS: ${active.status.name.toUpperCase()}"
-                                        : "CO-OP PROMISE",
+                                        ? "STATUS: ${active.status.toLocalizedName().toUpperCase()}"
+                                        : 'coop_promise'.tr(),
                                     style: const TextStyle(
                                       color: Color(0xFF141416),
                                       fontSize: 10,
                                       fontWeight: FontWeight.w800,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
                                   active != null
-                                      ? "${active.serviceType} Service"
-                                      : "Instant Home Repairs",
+                                      ? active.serviceType.toLocalizedTrade()
+                                      : 'instant_home_repairs'.tr(),
                                   style: WorkGoFonts.heading(
                                     color: const Color(0xFF141416),
                                     fontSize: 18,
@@ -1516,19 +1708,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 const SizedBox(height: 6),
                                 Text(
                                   active != null
-                                      ? (active.scheduledAt ?? DateTime.now()).to12HourDateTime()
-                                      : "₹0 Commission • Fixed Rate",
-                                  style: const TextStyle(
-                                    color: Color(0xFF4B5563),
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  active != null
-                                      ? (active.customerAddressText ?? "Your Location")
-                                      : "Tap to book nearby artisan",
+                                      ? (active.scheduledAt ?? DateTime.now())
+                                            .to12HourDateTime()
+                                      : 'zero_commission'.tr(),
                                   style: const TextStyle(
                                     color: Color(0xFF4B5563),
                                     fontSize: 11.5,
@@ -1537,32 +1719,73 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                const SizedBox(height: 2),
+                                if (active != null)
+                                  TranslatedText(
+                                    active.customerAddressText ??
+                                        'your_location'.tr(),
+                                    isAddress: true,
+                                    style: const TextStyle(
+                                      color: Color(0xFF4B5563),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  )
+                                else
+                                  Text(
+                                    'tap_to_book'.tr(),
+                                    style: const TextStyle(
+                                      color: Color(0xFF4B5563),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                               ],
                             ),
 
                             // Bottom Artisan Row or Quick Book CTA
                             if (active != null)
                               StreamBuilder<Worker?>(
-                                stream: (active.workerId != null && active.workerId!.isNotEmpty)
-                                    ? _workerService.streamWorker(active.workerId!)
+                                stream:
+                                    (active.workerId != null &&
+                                        active.workerId!.isNotEmpty)
+                                    ? _workerService.streamWorker(
+                                        active.workerId!,
+                                      )
                                     : Stream.value(null),
                                 builder: (context, snap) {
                                   final worker = snap.data;
-                                  String displayName = (active.acceptedWorkerName?.isNotEmpty == true &&
-                                          active.acceptedWorkerName!.toLowerCase() != 'artisan' &&
-                                          active.acceptedWorkerName!.toLowerCase() != 'partner' &&
-                                          active.acceptedWorkerName!.toLowerCase() != 'worker' &&
-                                          active.acceptedWorkerName!.toLowerCase() != 'artisian')
+                                  String displayName =
+                                      (active.acceptedWorkerName?.isNotEmpty ==
+                                              true &&
+                                          active.acceptedWorkerName!
+                                                  .toLowerCase() !=
+                                              'artisan' &&
+                                          active.acceptedWorkerName!
+                                                  .toLowerCase() !=
+                                              'partner' &&
+                                          active.acceptedWorkerName!
+                                                  .toLowerCase() !=
+                                              'worker' &&
+                                          active.acceptedWorkerName!
+                                                  .toLowerCase() !=
+                                              'artisian')
                                       ? active.acceptedWorkerName!
                                       : (worker?.name.isNotEmpty == true
-                                          ? worker!.name
-                                          : (active.status == BookingStatus.pending
-                                              ? "Matching pro..."
-                                              : "${active.serviceType} Specialist"));
+                                            ? worker!.name
+                                            : (active.status ==
+                                                      BookingStatus.pending
+                                                  ? 'matching_pro'.tr()
+                                                  : "${active.serviceType.toLocalizedTrade()} ${'specialist_assigned'.tr()}"));
 
                                   return Row(
                                     children: [
-                                      if (worker?.avatarBase64 != null && worker!.avatarBase64!.isNotEmpty)
+                                      if (worker?.avatarBase64 != null &&
+                                          worker!.avatarBase64!.isNotEmpty)
                                         WorkGoAvatar(
                                           name: displayName,
                                           avatarBase64: worker.avatarBase64,
@@ -1577,30 +1800,38 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                             color: Color(0xFF3B82F6),
                                           ),
                                           child: const Center(
-                                            child: Icon(Icons.person_rounded, color: Colors.white, size: 18),
+                                            child: Icon(
+                                              Icons.person_rounded,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
                                           ),
                                         ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Text(
-                                              "Assigned Artisan",
-                                              style: TextStyle(
+                                            Text(
+                                              'assigned_artisan_label'.tr(),
+                                              style: const TextStyle(
                                                 color: Color(0xFF4B5563),
                                                 fontSize: 9.5,
                                                 fontWeight: FontWeight.w600,
                                               ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                            Text(
+                                            TranslatedText(
                                               displayName,
                                               style: const TextStyle(
                                                 color: Color(0xFF141416),
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w800,
                                               ),
+                                              maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
@@ -1612,24 +1843,31 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                               )
                             else
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF141416),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
+                                  children: [
                                     Text(
-                                      "Book Pro Now",
-                                      style: TextStyle(
+                                      'book_pro_now'.tr(),
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 11,
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
-                                    SizedBox(width: 4),
-                                    Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.arrow_forward_rounded,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1668,18 +1906,28 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   // Top Row: 30s MATCH badge on Left + 3D Radar Orb on Right
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3.5,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.65),
-                                          borderRadius: BorderRadius.circular(10),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.65,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         child: const Text(
                                           "30s MATCH",
@@ -1697,18 +1945,27 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
                                           gradient: const RadialGradient(
-                                            colors: [Color(0xFF60A5FA), Color(0xFF2563EB)],
+                                            colors: [
+                                              Color(0xFF60A5FA),
+                                              Color(0xFF2563EB),
+                                            ],
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                                              color: const Color(
+                                                0xFF2563EB,
+                                              ).withValues(alpha: 0.3),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),
                                             ),
                                           ],
                                         ),
                                         child: const Center(
-                                          child: Icon(Icons.radar_rounded, color: Colors.white, size: 18),
+                                          child: Icon(
+                                            Icons.radar_rounded,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1716,21 +1973,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
                                   // Bottom Content: Title + Subtitle (full width, zero overlap)
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "Rapid Radar",
+                                        'rapid_radar'.tr(),
                                         style: WorkGoFonts.heading(
                                           color: const Color(0xFF141416),
                                           fontSize: 16,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: -0.3,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 2),
-                                      const Text(
-                                        "Broadcast request to nearby pros",
-                                        style: TextStyle(
+                                      Text(
+                                        'broadcast_nearby'.tr(),
+                                        style: const TextStyle(
                                           color: Color(0xFF334155),
                                           fontSize: 10.5,
                                           fontWeight: FontWeight.w600,
@@ -1772,7 +2032,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                   HapticFeedback.lightImpact();
                                   _onNavTap(1);
                                 },
-                                child: _pinkActionIcon(Icons.electric_bolt_rounded, const Color(0xFF7C3AED)),
+                                child: _pinkActionIcon(
+                                  Icons.electric_bolt_rounded,
+                                  const Color(0xFF7C3AED),
+                                ),
                               ),
                               // 2. Saved Addresses Manager
                               GestureDetector(
@@ -1781,12 +2044,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                   userId: widget.user.uid,
                                   userRole: "customer",
                                 ),
-                                child: _pinkActionIcon(Icons.location_on_rounded, const Color(0xFFD97706)),
+                                child: _pinkActionIcon(
+                                  Icons.location_on_rounded,
+                                  const Color(0xFFD97706),
+                                ),
                               ),
                               // 3. 24/7 Co-op Helpline
                               GestureDetector(
                                 onTap: () => _showHelplineDialog(context),
-                                child: _pinkActionIcon(Icons.support_agent_rounded, const Color(0xFF2563EB)),
+                                child: _pinkActionIcon(
+                                  Icons.support_agent_rounded,
+                                  const Color(0xFF2563EB),
+                                ),
                               ),
                             ],
                           ),
@@ -1838,7 +2107,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     color: const Color(0xFFECFDF5),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.security_rounded, color: Color(0xFF059669), size: 24),
+                  child: const Icon(
+                    Icons.security_rounded,
+                    color: Color(0xFF059669),
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1846,20 +2119,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "WorkGo Co-op Protection",
+                        'safety_sheet_title'.tr(),
                         style: WorkGoFonts.heading(
                           color: const Color(0xFF141416),
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const Text(
-                        "100% Guaranteed Cooperative Peace of Mind",
-                        style: TextStyle(
+                      Text(
+                        'safety_sheet_subtitle'.tr(),
+                        style: const TextStyle(
                           color: Color(0xFF6B7280),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -1870,22 +2147,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             _buildSafetyFeatureTile(
               icon: Icons.shield_rounded,
               color: const Color(0xFF10B981),
-              title: "₹50,000 Property Cover",
-              desc: "Every booking includes automatic insurance against accidental property damage during repairs.",
+              title: 'safety_property_cover'.tr(),
+              desc: 'safety_property_desc'.tr(),
             ),
             const SizedBox(height: 12),
             _buildSafetyFeatureTile(
               icon: Icons.lock_clock_rounded,
               color: const Color(0xFF3B82F6),
-              title: "OTP-Locked Escrow",
-              desc: "Payment is held safely in escrow and only released after your 4-digit start OTP is verified and job completed.",
+              title: 'safety_escrow_title'.tr(),
+              desc: 'safety_escrow_desc'.tr(),
             ),
             const SizedBox(height: 12),
             _buildSafetyFeatureTile(
               icon: Icons.verified_user_rounded,
               color: const Color(0xFF8B5CF6),
-              title: "Aadhaar & PCC Background Checked",
-              desc: "100% of artisans undergo biometric liveness check, Aadhaar verification, and police clearance review.",
+              title: 'safety_bgcheck_title'.tr(),
+              desc: 'safety_bgcheck_desc'.tr(),
             ),
             const SizedBox(height: 22),
             ElevatedButton(
@@ -1894,9 +2171,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 backgroundColor: const Color(0xFF141416),
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: const Text("Got It • Safe & Covered", style: TextStyle(fontWeight: FontWeight.w800)),
+              child: Text(
+                'got_it_safe'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
           ],
         ),
@@ -1985,7 +2267,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.support_agent_rounded, color: Color(0xFF2563EB), size: 24),
+                  child: const Icon(
+                    Icons.support_agent_rounded,
+                    color: Color(0xFF2563EB),
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1993,20 +2279,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "24/7 Co-op Support Desk",
+                        'helpline_title'.tr(),
                         style: WorkGoFonts.heading(
                           color: const Color(0xFF141416),
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const Text(
-                        "Instant customer care & emergency dispatch",
-                        style: TextStyle(
+                      Text(
+                        'helpline_subtitle'.tr(),
+                        style: const TextStyle(
                           color: Color(0xFF6B7280),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -2022,13 +2312,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   color: Color(0xFFECFDF5),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.phone_rounded, color: Color(0xFF059669), size: 20),
+                child: const Icon(
+                  Icons.phone_rounded,
+                  color: Color(0xFF059669),
+                  size: 20,
+                ),
               ),
-              title: const Text(
-                "Toll-Free Helpline",
-                style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF141416)),
+              title: Text(
+                'helpline_tollfree'.tr(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF141416),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              subtitle: const Text("1800-419-WORK (9675) • 24/7", style: TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
+              subtitle: const Text(
+                "1800-419-WORK (9675) • 24/7",
+                style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+              ),
               trailing: ElevatedButton(
                 onPressed: () {
                   Navigator.of(ctx).pop();
@@ -2037,17 +2339,30 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       content: const Text("Dialing 1800-419-WORK..."),
                       backgroundColor: const Color(0xFF059669),
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF059669),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text("Call", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                child: Text(
+                  'helpline_call_action'.tr(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ),
             const Divider(color: Color(0xFFF3F4F6)),
@@ -2059,13 +2374,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   color: Color(0xFFEFF6FF),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF2563EB), size: 20),
+                child: const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 20,
+                ),
               ),
-              title: const Text(
-                "WhatsApp Live Desk",
-                style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF141416)),
+              title: Text(
+                'helpline_whatsapp'.tr(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF141416),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              subtitle: const Text("Instant resolution via chat", style: TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
+              subtitle: Text(
+                'helpline_whatsapp_sub'.tr(),
+                style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+              ),
               trailing: ElevatedButton(
                 onPressed: () {
                   Navigator.of(ctx).pop();
@@ -2074,17 +2401,30 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       content: const Text("Opening WorkGo WhatsApp Support..."),
                       backgroundColor: const Color(0xFF2563EB),
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2563EB),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text("Chat", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                child: Text(
+                  'helpline_chat_action'.tr(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ),
           ],
@@ -2108,9 +2448,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           ),
         ],
       ),
-      child: Center(
-        child: Icon(icon, color: color, size: 18),
-      ),
+      child: Center(child: Icon(icon, color: color, size: 18)),
     );
   }
 
@@ -2125,37 +2463,47 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: WorkGoFonts.heading(
-            color: const Color(0xFF141416),
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+        Expanded(
+          child: Text(
+            title,
+            style: WorkGoFonts.heading(
+              color: const Color(0xFF141416),
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (actionLabel != null && onAction != null)
-          GestureDetector(
-            onTap: onAction,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF141416).withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF141416).withValues(alpha: 0.12),
+        if (actionLabel != null && onAction != null) ...[
+          const SizedBox(width: 8),
+          Flexible(
+            child: GestureDetector(
+              onTap: onAction,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141416).withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF141416).withValues(alpha: 0.12),
+                  ),
                 ),
-              ),
-              child: Text(
-                actionLabel,
-                style: const TextStyle(
-                  color: Color(0xFF141416),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                child: Text(
+                  actionLabel,
+                  style: const TextStyle(
+                    color: Color(0xFF141416),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
           ),
+        ],
       ],
     );
   }
@@ -2171,9 +2519,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         name: "Plumbing",
         categoryName: "Plumbing",
         tagline: "Pipes, Taps & Leaks",
+        taglineKey: "tagline_plumbing_fittings",
         emoji: "🚰",
         assetPath: "assets/images/crafts/plumbing.jpg",
         price: "From ₹149",
+        priceAmount: 149,
         cardHeight: 205.0,
         gradient: const LinearGradient(
           colors: [Color(0xFFE879F9), Color(0xFFC026D3), Color(0xFF9333EA)],
@@ -2187,9 +2537,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         name: "Electrical",
         categoryName: "Electrical",
         tagline: "Wiring & Power",
+        taglineKey: "tagline_wiring_power",
         emoji: "⚡",
         assetPath: "assets/images/crafts/electrical.jpg",
         price: "From ₹149",
+        priceAmount: 149,
         cardHeight: 160.0,
         gradient: const LinearGradient(
           colors: [Color(0xFF7DD3FC), Color(0xFF0284C7)],
@@ -2203,9 +2555,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         name: "Carpentry",
         categoryName: "Carpentry",
         tagline: "Woodwork & Doors",
+        taglineKey: "tagline_woodwork_doors",
         emoji: "🪚",
         assetPath: "assets/images/crafts/carpentry.jpg",
         price: "From ₹199",
+        priceAmount: 199,
         cardHeight: 155.0,
         gradient: const LinearGradient(
           colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
@@ -2219,9 +2573,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         name: "Cleaning",
         categoryName: "Cleaning",
         tagline: "Deep Home Clean",
+        taglineKey: "tagline_deep_clean",
         emoji: "🧹",
         assetPath: "assets/images/crafts/cleaning.jpg",
         price: "From ₹129",
+        priceAmount: 129,
         cardHeight: 215.0,
         gradient: const LinearGradient(
           colors: [Color(0xFFFB923C), Color(0xFFEA580C)],
@@ -2235,9 +2591,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         name: "Painting",
         categoryName: "Painting",
         tagline: "Walls & Primer",
+        taglineKey: "tagline_walls_primer",
         emoji: "🎨",
         assetPath: "assets/images/crafts/painting.jpg",
         price: "From ₹249",
+        priceAmount: 249,
         cardHeight: 195.0,
         gradient: const LinearGradient(
           colors: [Color(0xFFFB7185), Color(0xFFE11D48)],
@@ -2251,9 +2609,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         name: "Appliance",
         categoryName: "Appliance Repair",
         tagline: "AC & Fridge Repair",
+        taglineKey: "tagline_ac_fridge",
         emoji: "🔌",
         assetPath: "assets/images/crafts/appliance.jpg",
         price: "From ₹179",
+        priceAmount: 179,
         cardHeight: 155.0,
         gradient: const LinearGradient(
           colors: [Color(0xFF818CF8), Color(0xFF4F46E5)],
@@ -2267,9 +2627,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         name: "Masonry",
         categoryName: "Masonry",
         tagline: "Tiles & Grouting",
+        taglineKey: "tagline_tiles_grouting",
         emoji: "🧱",
         assetPath: "assets/images/crafts/masonry.jpg",
         price: "From ₹299",
+        priceAmount: 299,
         cardHeight: 160.0,
         gradient: const LinearGradient(
           colors: [Color(0xFFF97316), Color(0xFFC2410C)],
@@ -2283,9 +2645,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         name: "Gardening",
         categoryName: "Gardening",
         tagline: "Lawn & Soil Care",
+        taglineKey: "tagline_lawn_soil",
         emoji: "🌿",
         assetPath: "assets/images/crafts/gardening.jpg",
         price: "From ₹149",
+        priceAmount: 149,
         cardHeight: 200.0,
         gradient: const LinearGradient(
           colors: [Color(0xFF34D399), Color(0xFF059669)],
@@ -2295,8 +2659,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       ),
     ];
 
-    final leftColumnItems = [craftItems[0], craftItems[2], craftItems[4], craftItems[6]];
-    final rightColumnItems = [craftItems[1], craftItems[3], craftItems[5], craftItems[7]];
+    final leftColumnItems = [
+      craftItems[0],
+      craftItems[2],
+      craftItems[4],
+      craftItems[6],
+    ];
+    final rightColumnItems = [
+      craftItems[1],
+      craftItems[3],
+      craftItems[5],
+      craftItems[7],
+    ];
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2314,6 +2688,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       builder: (ctx) => BookingCreationScreen(
                         serviceCategory: item.categoryName,
                         customerId: widget.user.uid,
+                        customerLat: _customerLat,
+                        customerLng: _customerLng,
                       ),
                     ),
                   ),
@@ -2337,6 +2713,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       builder: (ctx) => BookingCreationScreen(
                         serviceCategory: item.categoryName,
                         customerId: widget.user.uid,
+                        customerLat: _customerLat,
+                        customerLng: _customerLng,
                       ),
                     ),
                   ),
@@ -2354,7 +2732,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   // ──────────────────────────────────────────
   Widget _buildTopArtisansSpotlight() {
     return StreamBuilder<List<Worker>>(
-      stream: _workerService.streamAvailableWorkers(skill: "All", onlineOnly: false),
+      stream: _workerService.streamAvailableWorkers(
+        skill: "All",
+        onlineOnly: false,
+      ),
       builder: (context, snap) {
         final rawWorkers = snap.data ?? [];
         if (rawWorkers.isEmpty) return const SizedBox.shrink();
@@ -2376,34 +2757,43 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.verified_rounded,
-                      color: CX.emerald,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      "Top Verified Artisans Near You",
-                      style: WorkGoFonts.heading(
-                        color: CX.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.verified_rounded,
+                        color: CX.emerald,
+                        size: 18,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'top_verified_artisans'.tr(),
+                          style: WorkGoFonts.heading(
+                            color: CX.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => setState(() => _currentNavIndex = 1),
                   child: Text(
-                    "See All (${workers.length})",
+                    'see_all_count'.tr(args: ['${workers.length}']),
                     style: const TextStyle(
                       color: CX.cyanLight,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -2427,9 +2817,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           serviceCategory: worker.skills.isNotEmpty
                               ? worker.skills.first
                               : "Plumbing",
-                          worker: worker,
+                          worker: worker.withCalculatedDistance(
+                            _customerLat,
+                            _customerLng,
+                          ),
                           targetWorkerId: worker.id,
                           customerId: widget.user.uid,
+                          customerLat: _customerLat,
+                          customerLng: _customerLng,
                         ),
                       ),
                     ),
@@ -2458,7 +2853,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               ),
               const SizedBox(width: 10),
               Text(
-                "Profile photo updated successfully!",
+                'profile_updated_toast'.tr(),
                 style: WorkGoFonts.body(color: Colors.white),
               ),
             ],
@@ -2515,10 +2910,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             return true;
           }).toList();
 
-          final latestActive = activeBookings.isNotEmpty ? activeBookings.first : null;
+          final latestActive = activeBookings.isNotEmpty
+              ? activeBookings.first
+              : null;
 
           return CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             slivers: [
               // 1. Header Bar
               SliverToBoxAdapter(
@@ -2527,61 +2926,81 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "My Bookings",
-                            style: WorkGoFonts.heading(
-                              color: const Color(0xFF141416),
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'my_bookings'.tr(),
+                              style: WorkGoFonts.heading(
+                                color: const Color(0xFF141416),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            "Live GPS updates & cooperative invoices",
-                            style: WorkGoFonts.body(
-                              color: const Color(0xFF6B7280),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(height: 2),
+                            Text(
+                              'invoice_receipt'.tr(),
+                              style: WorkGoFonts.body(
+                                color: const Color(0xFF6B7280),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          _onNavTap(1);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF141416),
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x1A000000),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                              SizedBox(width: 4),
-                              Text(
-                                "Book Pro",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _onNavTap(1);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF141416),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x1A000000),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.add_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    'book_pro_now'.tr(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -2591,7 +3010,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               ),
 
               // 2. Active Booking Spotlight HUD (If active order exists)
-              if (latestActive != null && _bookingFilter != "completed" && _bookingFilter != "cancelled")
+              if (latestActive != null &&
+                  _bookingFilter != "completed" &&
+                  _bookingFilter != "cancelled")
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -2603,16 +3024,33 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               SliverToBoxAdapter(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      _buildBookingFilterPill("all", "🌐 All", allCount),
+                      _buildBookingFilterPill(
+                        "all",
+                        'filter_all'.tr(),
+                        allCount,
+                      ),
                       const SizedBox(width: 8),
-                      _buildBookingFilterPill("active", "⚡ Active", activeCount),
+                      _buildBookingFilterPill(
+                        "active",
+                        'filter_active'.tr(),
+                        activeCount,
+                      ),
                       const SizedBox(width: 8),
-                      _buildBookingFilterPill("completed", "✅ Completed", completedCount),
+                      _buildBookingFilterPill(
+                        "completed",
+                        'filter_completed'.tr(),
+                        completedCount,
+                      ),
                       const SizedBox(width: 8),
-                      _buildBookingFilterPill("cancelled", "❌ Cancelled", cancelledCount),
+                      _buildBookingFilterPill(
+                        "cancelled",
+                        'filter_cancelled'.tr(),
+                        cancelledCount,
+                      ),
                     ],
                   ),
                 ),
@@ -2645,31 +3083,30 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final b = filteredBookings[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _BookingListTile(
-                            booking: b,
-                            onTap: () => _navigateToActiveBooking(context, b),
-                            onBookAgain: () {
-                              HapticFeedback.lightImpact();
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => BookingCreationScreen(
-                                    serviceCategory: b.serviceType,
-                                    customerId: widget.user.uid,
-                                  ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final b = filteredBookings[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: _BookingListTile(
+                          booking: b,
+                          onTap: () => _navigateToActiveBooking(context, b),
+                          onBookAgain: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => BookingCreationScreen(
+                                  serviceCategory: b.serviceType,
+                                  customerId: widget.user.uid,
+                                  customerLat: _customerLat,
+                                  customerLng: _customerLng,
                                 ),
-                              );
-                            },
-                            onDelete: () => _confirmDeleteBooking(b),
-                          ),
-                        );
-                      },
-                      childCount: filteredBookings.length,
-                    ),
+                              ),
+                            );
+                          },
+                          onDelete: () => _confirmDeleteBooking(b),
+                        ),
+                      );
+                    }, childCount: filteredBookings.length),
                   ),
                 ),
             ],
@@ -2680,7 +3117,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   }
 
   Widget _buildActiveBookingPipelineHUD(Booking booking) {
-    final statusName = booking.status.name.toUpperCase();
     final otp = booking.startOtp ?? "9421";
 
     return Container(
@@ -2708,28 +3144,42 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD97706).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const PulsingDot(color: Color(0xFFD97706), size: 6),
-                    const SizedBox(width: 6),
-                    Text(
-                      "LIVE • $statusName",
-                      style: const TextStyle(
-                        color: Color(0xFF92400E),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w900,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const PulsingDot(color: Color(0xFFD97706), size: 6),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'live_status_indicator'.tr(
+                            args: [
+                              booking.status.toLocalizedName().toUpperCase(),
+                            ],
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFF92400E),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
 
               // OTP Pill with 1-tap Copy (Strictly only when status is accepted)
               if (booking.status == BookingStatus.accepted)
@@ -2739,16 +3189,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     HapticFeedback.lightImpact();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("OTP $otp copied! Share with artisan upon arrival."),
+                        content: Text('otp_copied_toast'.tr(args: [otp])),
                         backgroundColor: const Color(0xFF047857),
                         behavior: SnackBarBehavior.floating,
                         duration: const Duration(seconds: 2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -2757,12 +3212,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          "START OTP: ",
-                          style: TextStyle(
-                            color: Color(0xFF78350F),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
+                        Flexible(
+                          child: Text(
+                            'start_otp_label'.tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF78350F),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Text(
@@ -2775,18 +3234,28 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.copy_rounded, color: Color(0xFFD97706), size: 12),
+                        const Icon(
+                          Icons.copy_rounded,
+                          color: Color(0xFFD97706),
+                          size: 12,
+                        ),
                       ],
                     ),
                   ),
                 )
               else if (booking.status == BookingStatus.inProgress)
                 _CustomerStopwatchBadge(
-                  startedAt: booking.startedAt ?? booking.scheduledAt ?? DateTime.now(),
+                  startedAt:
+                      booking.startedAt ??
+                      booking.scheduledAt ??
+                      DateTime.now(),
                 )
               else
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(12),
@@ -2794,12 +3263,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.radar_rounded, size: 12, color: Color(0xFF2563EB)),
-                      SizedBox(width: 4),
+                    children: [
+                      const Icon(
+                        Icons.radar_rounded,
+                        size: 12,
+                        color: Color(0xFF2563EB),
+                      ),
+                      const SizedBox(width: 4),
                       Text(
-                        "BROADCASTING",
-                        style: TextStyle(
+                        'broadcasting_badge'.tr(),
+                        style: const TextStyle(
                           color: Color(0xFF1D4ED8),
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
@@ -2816,16 +3289,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
           // Service Title + Location
           Text(
-            "${booking.serviceType} Dispatch",
+            booking.serviceType.toLocalizedTrade(),
             style: WorkGoFonts.heading(
               color: const Color(0xFF141416),
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 3),
-          Text(
-            booking.customerAddressText ?? "Your Service Location",
+          TranslatedText(
+            booking.customerAddressText ?? 'your_location'.tr(),
+            isAddress: true,
             style: const TextStyle(
               color: Color(0xFF4B5563),
               fontSize: 12,
@@ -2842,34 +3318,41 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             children: [
               Expanded(
                 child: StreamBuilder<Worker?>(
-                  stream: (booking.workerId != null && booking.workerId!.isNotEmpty)
+                  stream:
+                      (booking.workerId != null && booking.workerId!.isNotEmpty)
                       ? _workerService.streamWorker(booking.workerId!)
                       : Stream.value(null),
                   builder: (context, snap) {
                     final worker = snap.data;
-                    String proName = (booking.acceptedWorkerName?.isNotEmpty == true &&
-                            booking.acceptedWorkerName!.toLowerCase() != 'artisan' &&
-                            booking.acceptedWorkerName!.toLowerCase() != 'partner' &&
-                            booking.acceptedWorkerName!.toLowerCase() != 'worker' &&
-                            booking.acceptedWorkerName!.toLowerCase() != 'artisian')
+                    String proName =
+                        (booking.acceptedWorkerName?.isNotEmpty == true &&
+                            booking.acceptedWorkerName!.toLowerCase() !=
+                                'artisan' &&
+                            booking.acceptedWorkerName!.toLowerCase() !=
+                                'partner' &&
+                            booking.acceptedWorkerName!.toLowerCase() !=
+                                'worker' &&
+                            booking.acceptedWorkerName!.toLowerCase() !=
+                                'artisian')
                         ? booking.acceptedWorkerName!
                         : (worker?.name.isNotEmpty == true
-                            ? worker!.name
-                            : (booking.status == BookingStatus.pending
-                                ? "Matching nearest pro..."
-                                : "${booking.serviceType} Specialist"));
+                              ? worker!.name
+                              : (booking.status == BookingStatus.pending
+                                    ? 'matching_pro'.tr()
+                                    : "${booking.serviceType.toLocalizedTrade()} ${'specialist_assigned'.tr()}"));
                     if (proName.toLowerCase() == 'artisan' ||
                         proName.toLowerCase() == 'partner' ||
                         proName.toLowerCase() == 'worker' ||
                         proName.toLowerCase() == 'artisian') {
                       proName = worker?.name.isNotEmpty == true
                           ? worker!.name
-                          : "${booking.serviceType} Specialist";
+                          : "${booking.serviceType.toLocalizedTrade()} ${'specialist_assigned'.tr()}";
                     }
 
                     return Row(
                       children: [
-                        if (worker?.avatarBase64 != null && worker!.avatarBase64!.isNotEmpty)
+                        if (worker?.avatarBase64 != null &&
+                            worker!.avatarBase64!.isNotEmpty)
                           WorkGoAvatar(
                             name: proName,
                             avatarBase64: worker.avatarBase64,
@@ -2884,7 +3367,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                               color: Color(0xFF3B82F6),
                             ),
                             child: const Center(
-                              child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+                              child: Icon(
+                                Icons.person_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
                         const SizedBox(width: 10),
@@ -2892,15 +3379,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "Assigned Artisan",
-                                style: TextStyle(
+                              Text(
+                                'assigned_artisan_label'.tr(),
+                                style: const TextStyle(
                                   color: Color(0xFF6B7280),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              Text(
+                              TranslatedText(
                                 proName,
                                 style: const TextStyle(
                                   color: Color(0xFF141416),
@@ -2918,53 +3407,70 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   },
                 ),
               ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  if (booking.status == BookingStatus.pending &&
-                      (booking.workerId == null || booking.workerId!.isEmpty)) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RapidoLiveBroadcastScreen(
-                          bookingId: booking.id,
-                          serviceCategory: booking.serviceType,
-                          initialAmount: booking.totalAmount,
-                          pickupAddress:
-                              booking.customerAddressText ?? "Your Service Location",
+              const SizedBox(width: 8),
+              Flexible(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    if (booking.status == BookingStatus.pending &&
+                        (booking.workerId == null ||
+                            booking.workerId!.isEmpty)) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => RapidoLiveBroadcastScreen(
+                            bookingId: booking.id,
+                            serviceCategory: booking.serviceType,
+                            initialAmount: booking.totalAmount,
+                            pickupAddress:
+                                booking.customerAddressText ??
+                                'your_location'.tr(),
+                          ),
                         ),
-                      ),
-                    );
-                  } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (ctx) => LiveBookingTrackerScreen(
-                          bookingId: booking.id,
-                          initialBooking: booking,
+                      );
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (ctx) => LiveBookingTrackerScreen(
+                            bookingId: booking.id,
+                            initialBooking: booking,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                },
-                icon: Icon(
-                  (booking.status == BookingStatus.pending &&
-                          (booking.workerId == null || booking.workerId!.isEmpty))
-                      ? Icons.radar_rounded
-                      : Icons.navigation_rounded,
-                  size: 14,
-                  color: Colors.white,
-                ),
-                label: Text(
-                  (booking.status == BookingStatus.pending &&
-                          (booking.workerId == null || booking.workerId!.isEmpty))
-                      ? "View Radar"
-                      : "Track GPS",
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF141416),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      );
+                    }
+                  },
+                  icon: Icon(
+                    (booking.status == BookingStatus.pending &&
+                            (booking.workerId == null ||
+                                booking.workerId!.isEmpty))
+                        ? Icons.radar_rounded
+                        : Icons.navigation_rounded,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                  label: Text(
+                    (booking.status == BookingStatus.pending &&
+                            (booking.workerId == null ||
+                                booking.workerId!.isEmpty))
+                        ? 'view_radar'.tr()
+                        : 'track_gps'.tr(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF141416),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -2988,7 +3494,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           color: isSelected ? const Color(0xFF141416) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFF141416) : const Color(0xFFF0EDE6),
+            color: isSelected
+                ? const Color(0xFF141416)
+                : const Color(0xFFF0EDE6),
             width: 1.2,
           ),
           boxShadow: isSelected
@@ -3015,15 +3523,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             if (count > 0) ...[
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 1.5,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFFFB800) : const Color(0xFFF3F4F6),
+                  color: isSelected
+                      ? const Color(0xFFFFB800)
+                      : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   "$count",
                   style: TextStyle(
-                    color: isSelected ? const Color(0xFF141416) : const Color(0xFF6B7280),
+                    color: isSelected
+                        ? const Color(0xFF141416)
+                        : const Color(0xFF6B7280),
                     fontSize: 10.5,
                     fontWeight: FontWeight.w900,
                   ),
@@ -3057,41 +3572,60 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               border: Border.all(color: const Color(0xFFFDE68A)),
             ),
             child: const Center(
-              child: Icon(Icons.receipt_long_rounded, color: Color(0xFFD97706), size: 28),
+              child: Icon(
+                Icons.receipt_long_rounded,
+                color: Color(0xFFD97706),
+                size: 28,
+              ),
             ),
           ),
           const SizedBox(height: 16),
           Text(
             _bookingFilter == "all"
-                ? "No Bookings Found"
-                : "No ${_bookingFilter[0].toUpperCase()}${_bookingFilter.substring(1)} Bookings",
+                ? 'empty_bookings_title'.tr()
+                : 'empty_bookings_filter_title'.tr(
+                    args: ['filter_$_bookingFilter'.tr()],
+                  ),
             style: WorkGoFonts.heading(
               color: const Color(0xFF141416),
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
-          const Text(
-            "Book verified electricians, plumbers or carpenters on-demand with 0% middleman markup.",
-            style: TextStyle(
+          Text(
+            'empty_bookings_subtitle'.tr(),
+            style: const TextStyle(
               color: Color(0xFF6B7280),
               fontSize: 12,
               height: 1.4,
             ),
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 18),
           ElevatedButton.icon(
             onPressed: () => _onNavTap(1),
-            icon: const Icon(Icons.search_rounded, size: 16, color: Colors.white),
-            label: const Text("Explore 8 Crafts", style: TextStyle(fontWeight: FontWeight.w800)),
+            icon: const Icon(
+              Icons.search_rounded,
+              size: 16,
+              color: Colors.white,
+            ),
+            label: Text(
+              'explore_craft_services'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF141416),
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
         ],
@@ -3109,9 +3643,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         initialData: widget.user,
         builder: (context, userSnap) {
           final liveUser = userSnap.data ?? widget.user;
-          final name = liveUser.displayName.isNotEmpty
-              ? liveUser.displayName
-              : (liveUser.email.isNotEmpty ? liveUser.email.split('@').first : "Customer");
+          final rawName = liveUser.displayName.trim();
+          final name = (rawName.isEmpty || rawName.toLowerCase() == 'customer')
+              ? 'customer_role'.trSafe("Customer")
+              : (rawName.isNotEmpty
+                    ? rawName
+                    : (liveUser.email.isNotEmpty
+                          ? liveUser.email.split('@').first
+                          : 'customer_role'.trSafe("Customer")));
 
           return StreamBuilder<List<Booking>>(
             stream: _bookingService.streamCustomerBookings(widget.user.uid),
@@ -3128,7 +3667,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 builder: (context, addrSnap) {
                   final addresses = addrSnap.data ?? [];
                   final defaultAddr = addresses.isNotEmpty
-                      ? addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first)
+                      ? addresses.firstWhere(
+                          (a) => a.isDefault,
+                          orElse: () => addresses.first,
+                        )
                       : null;
 
                   return StreamBuilder<List<Worker>>(
@@ -3145,13 +3687,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           children: [
                             // 1. Profile Title Header
                             Text(
-                              "Customer Profile",
+                              "customer_profile_title".tr(),
                               style: WorkGoFonts.heading(
                                 color: const Color(0xFF141416),
                                 fontSize: 24,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -0.5,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 16),
 
@@ -3182,24 +3726,36 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             // 6. Secure Sign Out Button
                             OutlinedButton.icon(
                               onPressed: () async {
-                                final confirmed = await showSignOutConfirmationSheet(context);
+                                final confirmed =
+                                    await showSignOutConfirmationSheet(context);
                                 if (confirmed == true) {
                                   widget.onSignOut();
                                 }
                               },
-                              icon: const Icon(Icons.logout_rounded, color: Color(0xFFF43F5E), size: 18),
+                              icon: const Icon(
+                                Icons.logout_rounded,
+                                color: Color(0xFFF43F5E),
+                                size: 18,
+                              ),
                               label: Text(
-                                "Sign Out",
+                                "sign_out".tr(),
                                 style: WorkGoFonts.heading(
                                   color: const Color(0xFFF43F5E),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, 52),
-                                side: const BorderSide(color: Color(0xFFFECDD3), width: 1.2),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                side: const BorderSide(
+                                  color: Color(0xFFFECDD3),
+                                  width: 1.2,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                                 backgroundColor: const Color(0xFFFFF1F2),
                               ),
                             ),
@@ -3208,74 +3764,122 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             // 7. Delete Account CTA (DPDP Act 2023 §12 Right to Erasure)
                             TextButton.icon(
                               onPressed: () async {
-                                final confirmed = await showDeleteAccountConfirmationSheet(context);
+                                final confirmed =
+                                    await showDeleteAccountConfirmationSheet(
+                                      context,
+                                    );
                                 if (confirmed == true) {
                                   if (context.mounted) {
                                     showDialog(
                                       context: context,
                                       barrierDismissible: false,
                                       builder: (ctx) => const Center(
-                                        child: CircularProgressIndicator(color: Color(0xFFE11D48)),
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFFE11D48),
+                                        ),
                                       ),
                                     );
                                   }
 
                                   try {
                                     final authService = AuthService();
-                                    await authService.deleteAccount(uid: widget.user.uid);
-                                    final prefs = await SharedPreferences.getInstance();
+                                    await authService.deleteAccount(
+                                      uid: widget.user.uid,
+                                    );
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
                                     await prefs.clear();
 
                                     if (context.mounted) {
-                                      customerNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+                                      customerNavigatorKey.currentState
+                                          ?.popUntil((route) => route.isFirst);
 
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: const Row(
+                                          content: Row(
                                             children: [
-                                              Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 22),
-                                              SizedBox(width: 12),
+                                              const Icon(
+                                                Icons
+                                                    .check_circle_outline_rounded,
+                                                color: Color(0xFF10B981),
+                                                size: 22,
+                                              ),
+                                              const SizedBox(width: 12),
                                               Expanded(
                                                 child: Text(
-                                                  "Account and personal data permanently erased under DPDP Act 2023.",
-                                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
+                                                  "dpdp_erased_toast".tr(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12.5,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ],
                                           ),
-                                          backgroundColor: const Color(0xFF0F0B24),
+                                          backgroundColor: const Color(
+                                            0xFF0F0B24,
+                                          ),
                                           duration: const Duration(seconds: 5),
                                           behavior: SnackBarBehavior.floating,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(16),
-                                            side: const BorderSide(color: Color(0xFF10B981), width: 1.2),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            side: const BorderSide(
+                                              color: Color(0xFF10B981),
+                                              width: 1.2,
+                                            ),
                                           ),
                                         ),
                                       );
                                     }
                                   } catch (e) {
                                     if (context.mounted) {
-                                      if (Navigator.of(context, rootNavigator: true).canPop()) {
-                                        Navigator.of(context, rootNavigator: true).pop();
+                                      if (Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).canPop()) {
+                                        Navigator.of(
+                                          context,
+                                          rootNavigator: true,
+                                        ).pop();
                                       }
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text("Error during erasure: $e"),
-                                          backgroundColor: const Color(0xFFE11D48),
+                                          content: Text(
+                                            "Error during erasure: $e",
+                                          ),
+                                          backgroundColor: const Color(
+                                            0xFFE11D48,
+                                          ),
                                         ),
                                       );
                                     }
                                   }
                                 }
                               },
-                              icon: const Icon(Icons.delete_forever_rounded, color: Color(0xFF9CA3AF), size: 16),
-                              label: const Text(
-                                "Delete Account & Wipe Data (DPDP Act)",
-                                style: TextStyle(
+                              icon: const Icon(
+                                Icons.delete_forever_rounded,
+                                color: Color(0xFF9CA3AF),
+                                size: 16,
+                              ),
+                              label: Text(
+                                "delete_account_dpdp".tr(),
+                                style: const TextStyle(
                                   color: Color(0xFF9CA3AF),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -3329,7 +3933,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       shape: BoxShape.circle,
                       color: Color(0xFF141416),
                     ),
-                    child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 13),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 13,
+                    ),
                   ),
                 ),
               ),
@@ -3355,12 +3963,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 16),
+                    const Icon(
+                      Icons.verified_rounded,
+                      color: Color(0xFF10B981),
+                      size: 16,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  user.email.isNotEmpty ? user.email : (user.phoneNumber ?? "Verified Patron"),
+                  user.email.isNotEmpty
+                      ? user.email
+                      : (user.phoneNumber ?? "verified_patron".tr()),
                   style: const TextStyle(
                     color: Color(0xFF6B7280),
                     fontSize: 12,
@@ -3371,19 +3985,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF3C7),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFFFDE68A)),
                   ),
-                  child: const Text(
-                    "⭐ WorkGo Patron • 0% Commission Tier",
-                    style: TextStyle(
+                  child: Text(
+                    "⭐ ${"patron_tier_badge".tr()}",
+                    style: const TextStyle(
                       color: Color(0xFFB45309),
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -3406,7 +4025,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         Expanded(
           child: _metricStatTile(
             bg: const Color(0xFFEFF6FF),
-            label: "Total Orders",
+            label: "stat_total_orders".tr(),
             value: "$totalBookings",
             icon: Icons.receipt_long_rounded,
             accent: const Color(0xFF2563EB),
@@ -3418,7 +4037,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         Expanded(
           child: _metricStatTile(
             bg: const Color(0xFFECFDF5),
-            label: "Co-op Saved",
+            label: "stat_coop_saved".tr(),
             value: "₹$savingsAmount",
             icon: Icons.savings_rounded,
             accent: const Color(0xFF059669),
@@ -3430,7 +4049,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         Expanded(
           child: _metricStatTile(
             bg: const Color(0xFFFFFBEB),
-            label: "Addresses",
+            label: "stat_addresses".tr(),
             value: "$addressCount",
             icon: Icons.location_on_rounded,
             accent: const Color(0xFFD97706),
@@ -3505,10 +4124,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           _menuRowItem(
             icon: Icons.bookmark_rounded,
             iconColor: const Color(0xFFD97706),
-            title: "Saved Addresses",
+            title: "menu_saved_addresses".tr(),
             subtitle: defaultAddr != null
-                ? "${defaultAddr.displayTitle} ($addressCount saved)"
-                : "Manage Home & Work locations",
+                ? "${defaultAddr.displayTitle} ($addressCount)"
+                : "menu_saved_addresses_sub".tr(),
             onTap: () => showAddressManagementSheet(
               context,
               userId: widget.user.uid,
@@ -3522,8 +4141,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           _menuRowItem(
             icon: Icons.lock_clock_rounded,
             iconColor: const Color(0xFF059669),
-            title: "Payments & Escrow Protection",
-            subtitle: "UPI, Cards • 100% Satisfied or Refund",
+            title: "menu_payments_escrow".tr(),
+            subtitle: "menu_payments_escrow_sub".tr(),
             onTap: () => _showSafetyGuaranteeSheet(context),
           ),
           const Divider(height: 1, color: Color(0xFFF3F4F6)),
@@ -3532,8 +4151,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           _menuRowItem(
             icon: Icons.shield_rounded,
             iconColor: const Color(0xFF6366F1),
-            title: "Co-op Safety & ₹50,000 Insurance",
-            subtitle: "Property damage coverage on all repairs",
+            title: "menu_safety_insurance".tr(),
+            subtitle: "menu_safety_insurance_sub".tr(),
             onTap: () => _showSafetyGuaranteeSheet(context),
           ),
           const Divider(height: 1, color: Color(0xFFF3F4F6)),
@@ -3549,17 +4168,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.translate_rounded, color: Color(0xFF2563EB), size: 18),
+                  child: const Icon(
+                    Icons.translate_rounded,
+                    color: Color(0xFF2563EB),
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    "App Language",
-                    style: TextStyle(
+                    "menu_app_language".tr(),
+                    style: const TextStyle(
                       color: Color(0xFF141416),
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 _buildLangPill(context),
@@ -3572,8 +4197,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           _menuRowItem(
             icon: Icons.support_agent_rounded,
             iconColor: const Color(0xFF2563EB),
-            title: "24/7 Co-op Helpline",
-            subtitle: "Toll-free 1800-419-WORK & WhatsApp",
+            title: "menu_helpline".tr(),
+            subtitle: "menu_helpline_sub".tr(),
             onTap: () => _showHelplineDialog(context),
           ),
         ],
@@ -3618,6 +4243,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 1.5),
                   Text(
@@ -3627,11 +4254,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF9CA3AF), size: 13),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Color(0xFF9CA3AF),
+              size: 13,
+            ),
           ],
         ),
       ),
@@ -3705,29 +4338,37 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               color: Color(0xFF10B981),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.handshake_rounded, color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.handshake_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Cooperative Patron Advantage",
-                  style: TextStyle(
+                  "coop_patron_advantage".tr(),
+                  style: const TextStyle(
                     color: Color(0xFF065F46),
                     fontSize: 13.5,
                     fontWeight: FontWeight.w800,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
-                  "0% commercial commissions. 2% of every service fee directly funds accident insurance and healthcare for local artisans.",
-                  style: TextStyle(
+                  "coop_patron_advantage_desc".tr(),
+                  style: const TextStyle(
                     color: Color(0xFF047857),
                     fontSize: 11.5,
                     height: 1.4,
                   ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -3816,13 +4457,17 @@ class _PulsingEmergencyBannerState extends State<_PulsingEmergencyBanner>
               children: [
                 Row(
                   children: [
-                    Text(
-                      'emergency_booking'.tr(),
-                      style: WorkGoFonts.display(
-                        color: const Color(0xFF9F1239),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.4,
+                    Expanded(
+                      child: Text(
+                        'emergency_booking'.tr(),
+                        style: WorkGoFonts.display(
+                          color: const Color(0xFF9F1239),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.4,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -3870,9 +4515,11 @@ class _CraftServiceItem {
   final String name;
   final String categoryName;
   final String tagline;
+  final String taglineKey;
   final String emoji;
   final String assetPath;
   final String price;
+  final int priceAmount;
   final double cardHeight;
   final LinearGradient gradient;
 
@@ -3881,19 +4528,18 @@ class _CraftServiceItem {
     required this.name,
     required this.categoryName,
     required this.tagline,
+    required this.taglineKey,
     required this.emoji,
     required this.assetPath,
     required this.price,
+    required this.priceAmount,
     required this.cardHeight,
     required this.gradient,
   });
 }
 
 class _MasonryCraftCard extends StatefulWidget {
-  const _MasonryCraftCard({
-    required this.item,
-    required this.onTap,
-  });
+  const _MasonryCraftCard({required this.item, required this.onTap});
 
   final _CraftServiceItem item;
   final VoidCallback onTap;
@@ -3914,9 +4560,10 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
       vsync: this,
       duration: const Duration(milliseconds: 120),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -3939,7 +4586,8 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
       onTapCancel: () => _ctrl.reverse(),
       child: AnimatedBuilder(
         animation: _scale,
-        builder: (_, child) => Transform.scale(scale: _scale.value, child: child),
+        builder: (_, child) =>
+            Transform.scale(scale: _scale.value, child: child),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3964,9 +4612,7 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
                   children: [
                     // Background fallback gradient
                     Container(
-                      decoration: BoxDecoration(
-                        gradient: item.gradient,
-                      ),
+                      decoration: BoxDecoration(gradient: item.gradient),
                     ),
 
                     // High-Res 3D Imagery with Error Fallback
@@ -4011,7 +4657,10 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
                       top: 12,
                       right: 12,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4.5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.45),
                           borderRadius: BorderRadius.circular(12),
@@ -4021,7 +4670,9 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
                           ),
                         ),
                         child: Text(
-                          item.price,
+                          'from_price_arg'.tr(
+                            args: [item.priceAmount.toString()],
+                          ),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10.5,
@@ -4037,7 +4688,10 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
                       top: 12,
                       left: 12,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3.5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.88),
                           borderRadius: BorderRadius.circular(8),
@@ -4051,12 +4705,16 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.flash_on_rounded, size: 10, color: Color(0xFFD97706)),
-                            SizedBox(width: 2),
+                          children: [
+                            const Icon(
+                              Icons.flash_on_rounded,
+                              size: 10,
+                              color: Color(0xFFD97706),
+                            ),
+                            const SizedBox(width: 2),
                             Text(
-                              "15M",
-                              style: TextStyle(
+                              'badge_15m'.trSafe("15M"),
+                              style: const TextStyle(
                                 color: Color(0xFF141416),
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w900,
@@ -4082,7 +4740,9 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        (item.key).tr().isNotEmpty ? (item.key).tr() : item.name,
+                        (item.key).tr().isNotEmpty
+                            ? (item.key).tr()
+                            : item.name,
                         style: const TextStyle(
                           color: Color(0xFF141416),
                           fontSize: 14.5,
@@ -4094,7 +4754,7 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        item.tagline,
+                        item.taglineKey.trSafe(item.tagline),
                         style: const TextStyle(
                           color: Color(0xFF64748B),
                           fontSize: 11,
@@ -4255,7 +4915,10 @@ class _ArtisanSpotlightCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final trade = worker.skills.isNotEmpty ? worker.skills.first : "Artisan";
     final style = categoryStyle(trade);
-    final distanceText = worker.formattedDistanceString(customerLat, customerLng);
+    final distanceText = worker.formattedDistanceString(
+      customerLat,
+      customerLng,
+    );
 
     return GestureDetector(
       onTap: onTap,
@@ -4293,8 +4956,10 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                       Row(
                         children: [
                           Flexible(
-                            child: Text(
-                              worker.name.isNotEmpty ? worker.name : "Artisan",
+                            child: TranslatedText(
+                              worker.name.isNotEmpty
+                                  ? worker.name
+                                  : "artisan".trSafe("Artisan"),
                               style: WorkGoFonts.heading(
                                 color: const Color(0xFF141416),
                                 fontSize: 13,
@@ -4314,53 +4979,66 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: worker.isOnlineOrCheckedIn
-                                  ? const Color(0xFFECFDF5)
-                                  : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: worker.isOnlineOrCheckedIn
-                                    ? const Color(0xFFA7F3D0)
-                                    : const Color(0xFFCBD5E1),
-                                width: 0.8,
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1.5,
                               ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 5.5,
-                                  height: 5.5,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: worker.isOnlineOrCheckedIn
-                                        ? const Color(0xFF10B981)
-                                        : const Color(0xFF94A3B8),
-                                  ),
+                              decoration: BoxDecoration(
+                                color: worker.isOnlineOrCheckedIn
+                                    ? const Color(0xFFECFDF5)
+                                    : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: worker.isOnlineOrCheckedIn
+                                      ? const Color(0xFFA7F3D0)
+                                      : const Color(0xFFCBD5E1),
+                                  width: 0.8,
                                 ),
-                                const SizedBox(width: 3.5),
-                                Text(
-                                  worker.isOnlineOrCheckedIn ? "Checked In" : "Checked Out",
-                                  style: TextStyle(
-                                    color: worker.isOnlineOrCheckedIn
-                                        ? const Color(0xFF065F46)
-                                        : const Color(0xFF475569),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 5.5,
+                                    height: 5.5,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: worker.isOnlineOrCheckedIn
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF94A3B8),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 3.5),
+                                  Flexible(
+                                    child: Text(
+                                      worker.isOnlineOrCheckedIn
+                                          ? "checked_in".tr()
+                                          : "checked_out".tr(),
+                                      style: TextStyle(
+                                        color: worker.isOnlineOrCheckedIn
+                                            ? const Color(0xFF065F46)
+                                            : const Color(0xFF475569),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              trade,
+                              trade.toLocalizedTrade(),
                               style: TextStyle(
-                                color: style.accentColor ?? const Color(0xFF2563EB),
+                                color:
+                                    style.accentColor ??
+                                    const Color(0xFF2563EB),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -4378,35 +5056,54 @@ class _ArtisanSpotlightCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
-                    const SizedBox(width: 3),
-                    Text(
-                      worker.avgRating > 0
-                          ? worker.avgRating.toStringAsFixed(1)
-                          : (worker.totalRatings > 0 ? "5.0" : "New"),
-                      style: const TextStyle(
-                        color: Color(0xFF141416),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w800,
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        color: Color(0xFFF59E0B),
+                        size: 14,
                       ),
-                    ),
-                    if (worker.totalReviews > 0 || worker.totalRatings > 0)
+                      const SizedBox(width: 3),
                       Text(
-                        " (${worker.totalReviews > 0 ? worker.totalReviews : worker.totalRatings})",
-                        style: const TextStyle(color: Color(0xFF6B7280), fontSize: 10),
+                        worker.avgRating > 0
+                            ? worker.avgRating.toStringAsFixed(1)
+                            : (worker.totalRatings > 0
+                                  ? "5.0"
+                                  : 'badge_new'.trSafe("New")),
+                        style: const TextStyle(
+                          color: Color(0xFF141416),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                  ],
+                      if (worker.totalReviews > 0 || worker.totalRatings > 0)
+                        Text(
+                          " (${worker.totalReviews > 0 ? worker.totalReviews : worker.totalRatings})",
+                          style: const TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 10,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                Text(
-                  worker.homesServiced > 0
-                      ? "🏡 ${worker.homesServiced} homes"
-                      : (worker.totalRatings > 0 ? "🏡 ${worker.totalRatings} jobs" : "🌟 Verified Pro"),
-                  style: const TextStyle(
-                    color: Color(0xFF059669),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    worker.homesServiced > 0
+                        ? "🏡 ${worker.homesServiced} homes"
+                        : (worker.totalRatings > 0
+                              ? "🏡 ${worker.totalRatings} jobs"
+                              : "🌟 ${"verified_pro".tr()}"),
+                    style: const TextStyle(
+                      color: Color(0xFF059669),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -4414,14 +5111,19 @@ class _ArtisanSpotlightCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "📍 $distanceText",
-                  style: const TextStyle(
-                    color: Color(0xFF2563EB),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    "📍 $distanceText",
+                    style: const TextStyle(
+                      color: Color(0xFF2563EB),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -4431,13 +5133,15 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                     color: const Color(0xFF141416),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Text(
-                    "Book",
-                    style: TextStyle(
+                  child: Text(
+                    "book_action".tr(),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -4526,7 +5230,8 @@ class _BookingListTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: (style.accentColor ?? const Color(0xFF2563EB)).withValues(alpha: 0.3),
+                      color: (style.accentColor ?? const Color(0xFF2563EB))
+                          .withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -4545,7 +5250,7 @@ class _BookingListTile extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            booking.serviceType,
+                            booking.serviceType.toLocalizedTrade(),
                             style: const TextStyle(
                               color: Color(0xFF141416),
                               fontSize: 16,
@@ -4564,7 +5269,9 @@ class _BookingListTile extends StatelessWidget {
                               vertical: 1.5,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                              color: const Color(
+                                0xFFEF4444,
+                              ).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
@@ -4587,28 +5294,43 @@ class _BookingListTile extends StatelessWidget {
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AuroraBadge(
-                    label: booking.status.name.toUpperCase(),
-                    style: _badgeStyle,
-                  ),
-                  if (onDelete != null && (isCompleted || booking.status == BookingStatus.cancelled)) ...[
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFF9CA3AF)),
-                      tooltip: "Remove from History",
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      onPressed: onDelete,
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: AuroraBadge(
+                        label: booking.status.toLocalizedName().toUpperCase(),
+                        style: _badgeStyle,
+                      ),
                     ),
+                    if (onDelete != null &&
+                        (isCompleted ||
+                            booking.status == BookingStatus.cancelled)) ...[
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: Color(0xFF9CA3AF),
+                        ),
+                        tooltip: "remove_from_history".tr(),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 28,
+                          minHeight: 28,
+                        ),
+                        onPressed: onDelete,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ],
           ),
@@ -4623,115 +5345,120 @@ class _BookingListTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFF3F4F6)),
             ),
-            child: Row(
-              children: [
-                StreamBuilder<Worker?>(
-                  stream: (booking.workerId != null && booking.workerId!.isNotEmpty)
-                      ? WorkerService().streamWorker(booking.workerId!)
-                      : Stream.value(null),
-                  builder: (context, snap) {
-                    final worker = snap.data;
-                    String cleanName = (booking.acceptedWorkerName != null &&
-                            booking.acceptedWorkerName!.trim().isNotEmpty &&
-                            booking.acceptedWorkerName!.toLowerCase() != 'artisan' &&
-                            booking.acceptedWorkerName!.toLowerCase() != 'partner' &&
-                            booking.acceptedWorkerName!.toLowerCase() != 'worker' &&
-                            booking.acceptedWorkerName!.toLowerCase() != 'artisian')
-                        ? booking.acceptedWorkerName!.trim()
-                        : (worker?.name.isNotEmpty == true
-                            ? worker!.name
-                            : "");
+            child: StreamBuilder<Worker?>(
+              stream: (booking.workerId != null && booking.workerId!.isNotEmpty)
+                  ? WorkerService().streamWorker(booking.workerId!)
+                  : Stream.value(null),
+              builder: (context, snap) {
+                final worker = snap.data;
+                String cleanName =
+                    (booking.acceptedWorkerName != null &&
+                        booking.acceptedWorkerName!.trim().isNotEmpty &&
+                        booking.acceptedWorkerName!.toLowerCase() !=
+                            'artisan' &&
+                        booking.acceptedWorkerName!.toLowerCase() !=
+                            'partner' &&
+                        booking.acceptedWorkerName!.toLowerCase() != 'worker' &&
+                        booking.acceptedWorkerName!.toLowerCase() != 'artisian')
+                    ? booking.acceptedWorkerName!.trim()
+                    : (worker?.name.isNotEmpty == true ? worker!.name : "");
 
-                    if (cleanName.isNotEmpty) {
-                      return Expanded(
-                        child: Row(
-                          children: [
-                            WorkGoAvatar(
-                              name: cleanName,
-                              avatarBase64: worker?.avatarBase64,
-                              radius: 12,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                cleanName,
-                                style: const TextStyle(
-                                  color: Color(0xFF141416),
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFF6FF),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                "VERIFIED PRO",
-                                style: TextStyle(
-                                  color: Color(0xFF2563EB),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    if (isPending) {
-                      return Expanded(
-                        child: Row(
-                          children: [
-                            const PulsingDot(color: Color(0xFFD97706), size: 7),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                "Broadcasting to local specialists (${booking.broadcastRadiusKm.toInt()} km)...",
-                                style: const TextStyle(
-                                  color: Color(0xFF92400E),
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return Expanded(
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.verified_user_rounded,
-                            color: Color(0xFF10B981),
-                            size: 14,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              "${booking.serviceType} Specialist Assigned",
-                              style: const TextStyle(
-                                color: Color(0xFF065F46),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
+                if (cleanName.isNotEmpty) {
+                  return Row(
+                    children: [
+                      WorkGoAvatar(
+                        name: cleanName,
+                        avatarBase64: worker?.avatarBase64,
+                        radius: 12,
                       ),
-                    );
-                  },
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TranslatedText(
+                          cleanName,
+                          style: const TextStyle(
+                            color: Color(0xFF141416),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            "verified_pro".tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF2563EB),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                if (isPending) {
+                  return Row(
+                    children: [
+                      const PulsingDot(color: Color(0xFFD97706), size: 7),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "broadcasting_specialists".tr(
+                            args: [
+                              booking.broadcastRadiusKm.toInt().toString(),
+                            ],
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFF92400E),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    const Icon(
+                      Icons.verified_user_rounded,
+                      color: Color(0xFF10B981),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "${booking.serviceType.toLocalizedTrade()} ${"specialist_assigned".tr()}",
+                        style: const TextStyle(
+                          color: Color(0xFF065F46),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
 
@@ -4741,136 +5468,192 @@ class _BookingListTile extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Total Amount",
-                    style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Row(
-                    children: [
-                      Text(
-                        "₹${booking.totalAmount.toStringAsFixed(0)}",
-                        style: const TextStyle(
-                          color: Color(0xFF141416),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "total_amount".tr(),
+                      style: const TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 1.5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: booking.paymentStatus == PaymentStatus.paid
-                              ? const Color(0xFFECFDF5)
-                              : const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          booking.paymentStatus.name.toUpperCase(),
-                          style: TextStyle(
-                            color: booking.paymentStatus == PaymentStatus.paid
-                                ? const Color(0xFF059669)
-                                : const Color(0xFF6B7280),
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    Row(
+                      children: [
+                        Text(
+                          "₹${booking.totalAmount.toStringAsFixed(0)}",
+                          style: const TextStyle(
+                            color: Color(0xFF141416),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: booking.paymentStatus == PaymentStatus.paid
+                                  ? const Color(0xFFECFDF5)
+                                  : const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              booking.paymentStatus
+                                  .toLocalizedName()
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                color:
+                                    booking.paymentStatus == PaymentStatus.paid
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFF6B7280),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
 
               if (isLive || isPending)
-                ElevatedButton.icon(
-                  onPressed: onTap,
-                  icon: const Icon(Icons.radar_rounded, color: Colors.white, size: 14),
-                  label: const Text(
-                    "Track Live",
-                    style: TextStyle(
+                Flexible(
+                  child: ElevatedButton.icon(
+                    onPressed: onTap,
+                    icon: const Icon(
+                      Icons.radar_rounded,
                       color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
+                      size: 14,
                     ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF141416),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    label: Text(
+                      "track_live".tr(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF141416),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 )
               else if (isCompleted)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Invoice & Receipt Button
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        final receiptWorker = (booking.acceptedWorkerName?.isNotEmpty == true &&
-                                booking.acceptedWorkerName!.toLowerCase() != 'artisan')
-                            ? booking.acceptedWorkerName!
-                            : "${booking.serviceType} Specialist";
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => PaymentReceiptScreen(
-                              booking: booking,
-                              workerName: receiptWorker,
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Invoice & Receipt Button
+                      Flexible(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            final receiptWorker =
+                                (booking.acceptedWorkerName?.isNotEmpty ==
+                                        true &&
+                                    booking.acceptedWorkerName!.toLowerCase() !=
+                                        'artisan')
+                                ? booking.acceptedWorkerName!
+                                : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PaymentReceiptScreen(
+                                  booking: booking,
+                                  workerName: receiptWorker,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.receipt_long_rounded,
+                            color: Color(0xFF2563EB),
+                            size: 13,
+                          ),
+                          label: Text(
+                            "receipt".tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF2563EB),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFBFDBFE)),
+                            backgroundColor: const Color(0xFFEFF6FF),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            minimumSize: const Size(0, 36),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.receipt_long_rounded, color: Color(0xFF2563EB), size: 13),
-                      label: const Text(
-                        "Receipt",
-                        style: TextStyle(
-                          color: Color(0xFF2563EB),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFBFDBFE)),
-                        backgroundColor: const Color(0xFFEFF6FF),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        minimumSize: const Size(0, 36),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    if (onBookAgain != null) ...[
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: onBookAgain,
-                        icon: const Icon(Icons.replay_rounded, color: Colors.white, size: 13),
-                        label: const Text(
-                          "Book Again",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w800,
+                      if (onBookAgain != null) ...[
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: ElevatedButton.icon(
+                            onPressed: onBookAgain,
+                            icon: const Icon(
+                              Icons.replay_rounded,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                            label: Text(
+                              "book_again".tr(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF141416),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              minimumSize: const Size(0, 36),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                           ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF141416),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          minimumSize: const Size(0, 36),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
             ],
           ),
@@ -4888,7 +5671,8 @@ class _CustomerStopwatchBadge extends StatefulWidget {
   final DateTime? startedAt;
 
   @override
-  State<_CustomerStopwatchBadge> createState() => _CustomerStopwatchBadgeState();
+  State<_CustomerStopwatchBadge> createState() =>
+      _CustomerStopwatchBadgeState();
 }
 
 class _CustomerStopwatchBadgeState extends State<_CustomerStopwatchBadge> {
@@ -4899,7 +5683,10 @@ class _CustomerStopwatchBadgeState extends State<_CustomerStopwatchBadge> {
   void initState() {
     super.initState();
     _updateElapsed();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateElapsed());
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateElapsed(),
+    );
   }
 
   void _updateElapsed() {
@@ -4937,15 +5724,21 @@ class _CustomerStopwatchBadgeState extends State<_CustomerStopwatchBadge> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.handyman_rounded, color: Color(0xFF34D399), size: 12),
+          const Icon(
+            Icons.handyman_rounded,
+            color: Color(0xFF34D399),
+            size: 12,
+          ),
           const SizedBox(width: 4),
-          const Text(
-            "WORKING: ",
-            style: TextStyle(
+          Text(
+            "working_timer_label".tr(),
+            style: const TextStyle(
               color: Color(0xFF6EE7B7),
               fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           Text(
             formatted,

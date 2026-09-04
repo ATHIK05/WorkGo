@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
@@ -336,8 +337,10 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
                             const SizedBox(width: 8),
                             Text(
                               _isAnalyzing
-                                  ? 'Diagnosing...'
-                                  : (_isListening ? 'AI Listening' : 'WorkGo AI Voice'),
+                                  ? 'diagnosing_ellipsis'.tr()
+                                  : (_isListening ? 'ai_listening'.tr() : 'workgo_ai_voice'.tr()),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: WorkGoFonts.body(
                                 color: CX.textPrimary,
                                 fontSize: 12,
@@ -370,7 +373,9 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
 
                   // Personalized Greeting Header
                   Text(
-                    'Hello $_customerFirstName,',
+                    'hello_user'.tr(args: [_customerFirstName]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: WorkGoFonts.heading(
                       color: CX.textPrimary,
                       fontSize: 28,
@@ -379,7 +384,9 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'What seems to be the problem today?',
+                    'what_seems_problem'.tr(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: WorkGoFonts.body(
                       color: CX.textSecondary,
                       fontSize: 16,
@@ -424,7 +431,9 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
                                   const SizedBox(width: 14),
                                   Expanded(
                                     child: Text(
-                                      'Analyzing electrical, plumbing, & mechanical fault trees...',
+                                      'analyzing_fault_trees'.tr(),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                       style: WorkGoFonts.body(
                                         color: CX.textPrimary,
                                         fontSize: 13,
@@ -441,6 +450,8 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
                           if (_transcribedWords.isNotEmpty) ...[
                             Text(
                               _transcribedWords,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
                               style: WorkGoFonts.heading(
                                 color: CX.textPrimary,
                                 fontSize: 22,
@@ -451,8 +462,10 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
                           ] else if (!_isKeyboardMode) ...[
                             Text(
                               _isListening
-                                  ? 'Speak clearly (e.g. "My kitchen tap is leaking and water won\'t stop")...'
-                                  : 'Tap the mic below to describe your problem...',
+                                  ? 'speak_clearly_hint'.tr()
+                                  : 'tap_mic_hint'.tr(),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
                               style: WorkGoFonts.body(
                                 color: CX.textMuted,
                                 fontSize: 16,
@@ -489,7 +502,7 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
                                 ),
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
-                                  hintText: 'Type your household problem here...',
+                                  hintText: 'type_problem_hint'.tr(),
                                   hintStyle: WorkGoFonts.body(
                                     color: CX.textMuted,
                                     fontSize: 14,
@@ -543,6 +556,8 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
                                       const SizedBox(width: 6),
                                       Text(
                                         prompt,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: WorkGoFonts.body(
                                           color: CX.textSecondary,
                                           fontSize: 12,

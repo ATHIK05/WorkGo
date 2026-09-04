@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
+import '../services/ml_translation_service.dart';
+import '../widgets/translated_text.dart';
 import 'payment_receipt_screen.dart';
 
 class LiveBookingTrackerScreen extends StatefulWidget {
@@ -102,26 +104,34 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                                 ? booking.acceptedWorkerName!
                                 : (liveWorker?.name.isNotEmpty == true
                                     ? liveWorker!.name
-                                    : "${booking.serviceType} Specialist");
+                                    : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}");
                         if (effectiveWorkerName.toLowerCase() == 'artisan' ||
                             effectiveWorkerName.toLowerCase() == 'partner' ||
                             effectiveWorkerName.toLowerCase() == 'worker') {
                           effectiveWorkerName = liveWorker?.name.isNotEmpty == true
                               ? liveWorker!.name
-                              : "${booking.serviceType} Specialist";
+                              : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
                         }
 
-                        String trackerAddress = booking.customerAddressText ?? "Your Service Location";
+                        String trackerAddress = booking.customerAddressText ?? 'current_live_location'.tr();
                         if (trackerAddress.toLowerCase().contains("mumbai") ||
                             trackerAddress.toLowerCase().contains("bombay") ||
                             trackerAddress.trim().isEmpty) {
-                          trackerAddress = "Current Live Location";
+                          trackerAddress = 'current_live_location'.tr();
+                        } else {
+                          trackerAddress = MlTranslationService.instance.translateAddressSync(
+                            trackerAddress,
+                            context.locale.languageCode,
+                          );
                         }
 
                         return LiveMapView(
                           serviceCategory: booking.serviceType,
                           mode: MapMode.routeNavigation,
-                          artisanName: effectiveWorkerName,
+                          artisanName: MlTranslationService.instance.translateSync(
+                            effectiveWorkerName,
+                            context.locale.languageCode,
+                          ),
                           pickupAddress: trackerAddress,
                           workerProgress: booking.status == BookingStatus.accepted
                               ? 0.55
@@ -292,21 +302,25 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
               child: const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 20),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Service In Progress",
-                    style: TextStyle(
+                    'service_in_progress'.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: Color(0xFF0F172A),
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   Text(
-                    "Artisan is on-site performing authorized work",
-                    style: TextStyle(
+                    'artisan_onsite_work'.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: Color(0xFF64748B),
                       fontSize: 11,
                     ),
@@ -317,9 +331,11 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
             OutlinedButton.icon(
               onPressed: () => _showSafetyHelpModal(context, booking),
               icon: const Icon(Icons.support_agent_rounded, size: 15, color: Color(0xFF2563EB)),
-              label: const Text(
-                "Help",
-                style: TextStyle(
+              label: Text(
+                'help'.tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   color: Color(0xFF2563EB),
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -347,7 +363,7 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text("Booking has been cancelled."),
+                content: Text('booking_cancelled_toast'.tr()),
                 backgroundColor: CX.error,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
@@ -391,32 +407,38 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                   child: const Icon(Icons.support_agent_rounded, color: Color(0xFF2563EB), size: 22),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  "Support & Safety Center",
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
+                Expanded(
+                  child: Text(
+                    'support_safety_center'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 14),
-            const Text(
-              "Your service is protected by the WorkGo Trust & Safety Guarantee with immutable cryptographic session records.",
-              style: TextStyle(color: Color(0xFF475569), fontSize: 12.5, height: 1.4),
+            Text(
+              'support_safety_desc'.tr(),
+              style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, height: 1.4),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 18),
             ListTile(
               leading: const Icon(Icons.phone_in_talk_rounded, color: Color(0xFF10B981)),
-              title: const Text("24/7 Support Helpline", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              subtitle: const Text("Toll-free customer assistance", style: TextStyle(fontSize: 12)),
+              title: Text('helpline_24_7'.tr(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text('toll_free_desc'.tr(), style: const TextStyle(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
               onTap: () {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Connecting to 24/7 Support: 1800-WORKGO..."),
-                    backgroundColor: Color(0xFF047857),
+                  SnackBar(
+                    content: Text('connecting_support'.tr()),
+                    backgroundColor: const Color(0xFF047857),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -424,8 +446,8 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
             ),
             ListTile(
               leading: const Icon(Icons.flag_rounded, color: Color(0xFFEF4444)),
-              title: const Text("Report Artisan / Request Freeze", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFFEF4444))),
-              subtitle: const Text("Tap the flag icon on the artisan card above to file an urgent complaint", style: TextStyle(fontSize: 12)),
+              title: Text('report_artisan'.tr(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFFEF4444)), maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text('report_artisan_sub'.tr(), style: const TextStyle(fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
               onTap: () {
                 Navigator.pop(ctx);
               },
@@ -526,13 +548,15 @@ class _StatusHeaderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        booking.serviceType,
+                        booking.serviceType.toLocalizedTrade(),
                         style: const TextStyle(
                           color: Color(0xFF0F172A),
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.5,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -542,6 +566,8 @@ class _StatusHeaderCard extends StatelessWidget {
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -550,11 +576,11 @@ class _StatusHeaderCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (booking.isEmergency) ...[
-                      const AuroraBadge(label: "EMERGENCY", style: AuroraBadgeStyle.rose),
+                      AuroraBadge(label: 'emergency'.tr(), style: AuroraBadgeStyle.rose),
                       const SizedBox(height: 6),
                     ],
                     if (booking.isDiagnosticVisit) ...[
-                      const AuroraBadge(label: "SMART DIAGNOSTIC", style: AuroraBadgeStyle.amber),
+                      AuroraBadge(label: 'smart_diagnostic'.tr(), style: AuroraBadgeStyle.amber),
                       const SizedBox(height: 6),
                     ],
                     AuroraBadge(label: statusText, style: badgeStyle),
@@ -584,7 +610,7 @@ class _StatusHeaderCard extends StatelessWidget {
                     border: Border.all(color: glow.withValues(alpha: 0.25), width: 1),
                   ),
                   child: Text(
-                    booking.paymentStatus.name.toUpperCase(),
+                    booking.paymentStatus.toLocalizedName().toUpperCase(),
                     style: TextStyle(
                       color: glow,
                       fontSize: 10,
@@ -622,23 +648,23 @@ class _TimelineCard extends StatelessWidget {
     final steps = [
       (
         Icons.send_rounded,
-        "Request Dispatched",
-        "Broadcast to cooperative network"
+        'request_dispatched_title'.tr(),
+        'request_dispatched_sub'.tr(),
       ),
       (
         Icons.directions_bike_rounded,
-        "Artisan Assigned & En Route",
-        "Confirmed the slot & heading over"
+        'artisan_assigned_en_route_title'.tr(),
+        'artisan_assigned_en_route_sub'.tr(),
       ),
       (
         Icons.handyman_rounded,
-        "Service In Progress",
-        "Artisan is actively working at your address"
+        'service_in_progress_title'.tr(),
+        'service_in_progress_sub'.tr(),
       ),
       (
         Icons.check_circle_rounded,
-        "Job Completed",
-        "Ready for payment & welfare dividend receipt"
+        'job_completed_title'.tr(),
+        'job_completed_sub'.tr(),
       ),
     ];
 
@@ -646,9 +672,11 @@ class _TimelineCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Live Service Progress",
-            style: TextStyle(
+          Text(
+            'live_service_progress'.tr(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
               color: CX.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -858,22 +886,26 @@ class _ArtisanCard extends StatelessWidget {
           children: [
             _PulsingRadarOrb(),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Auto-Dispatching Nearest Artisan",
-                    style: TextStyle(
+                    'auto_dispatching_artisan'.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: CX.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
-                    "Finding a verified cooperative artisan in your zone…",
-                    style: TextStyle(color: CX.textSecondary, fontSize: 12, height: 1.4),
+                    'finding_coop_artisan_zone'.tr(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: CX.textSecondary, fontSize: 12, height: 1.4),
                   ),
                 ],
               ),
@@ -891,13 +923,13 @@ class _ArtisanCard extends StatelessWidget {
             ? booking.acceptedWorkerName!
             : (worker?.name.isNotEmpty == true
                 ? worker!.name
-                : "${booking.serviceType} Specialist");
+                : 'specialist_title'.tr(args: [booking.serviceType.toLocalizedTrade()]));
         if (artisanName.toLowerCase() == 'artisan' ||
             artisanName.toLowerCase() == 'partner' ||
             artisanName.toLowerCase() == 'worker') {
           artisanName = worker?.name.isNotEmpty == true
               ? worker!.name
-              : "${booking.serviceType} Specialist";
+              : 'specialist_title'.tr(args: [booking.serviceType.toLocalizedTrade()]);
         }
         final phone = worker?.phoneForCalling;
         final style = worker?.skills.isNotEmpty == true
@@ -935,8 +967,10 @@ class _ArtisanCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TranslatedText(
                       artisanName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: CX.textPrimary,
                         fontSize: 16,
@@ -946,9 +980,11 @@ class _ArtisanCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const AuroraBadge(
-                          label: "VERIFIED",
-                          style: AuroraBadgeStyle.emerald,
+                        Flexible(
+                          child: AuroraBadge(
+                            label: 'verified_badge'.tr(),
+                            style: AuroraBadgeStyle.emerald,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         if (worker != null && worker.avgRating > 0) ...[
@@ -964,9 +1000,11 @@ class _ArtisanCard extends StatelessWidget {
                             ),
                           ],
                         ] else ...[
-                          const AuroraBadge(
-                            label: "CO-OP PRO",
-                            style: AuroraBadgeStyle.cyan,
+                          Flexible(
+                            child: AuroraBadge(
+                              label: 'coop_pro_badge'.tr(),
+                              style: AuroraBadgeStyle.cyan,
+                            ),
                           ),
                         ],
                       ],
@@ -979,7 +1017,7 @@ class _ArtisanCard extends StatelessWidget {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("Calling Artisan ($phone)…"),
+                        content: Text('calling_artisan'.tr(args: [phone])),
                         backgroundColor: CX.success,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
@@ -1079,7 +1117,7 @@ class _ArtisanCard extends StatelessWidget {
                 maxLines: 3,
                 style: const TextStyle(color: Color(0xFF0F172A), fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: "Describe the safety concern or misconduct...",
+                  hintText: 'report_safety_concern_hint'.tr(),
                   hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
@@ -1103,7 +1141,12 @@ class _ArtisanCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Cancel", style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
+            child: Text(
+              'cancel'.tr(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1211,9 +1254,11 @@ class _BookingDetailsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Service Location & Details",
-            style: TextStyle(
+          Text(
+            'service_location_details'.tr(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
               color: CX.textPrimary,
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -1227,7 +1272,8 @@ class _BookingDetailsCard extends StatelessWidget {
             iconColor: CX.rose,
             text: (booking.customerAddressText?.isNotEmpty == true)
                 ? booking.customerAddressText!
-                : "Direct Service Dispatch to Verified Customer",
+                : 'direct_dispatch_customer'.tr(),
+            isAddress: true,
           ),
           const SizedBox(height: 12),
           Row(
@@ -1237,7 +1283,7 @@ class _BookingDetailsCard extends StatelessWidget {
                   icon: Icons.calendar_today_rounded,
                   iconColor: CX.cyan,
                   text:
-                      "Scheduled: ${(booking.scheduledAt ?? DateTime.now()).to12HourDateTime(separator: ', ')}",
+                      'scheduled_time'.tr(args: [(booking.scheduledAt ?? DateTime.now()).to12HourDateTime(separator: ', ')]),
                 ),
               ),
               Container(
@@ -1275,10 +1321,12 @@ class _DetailRow extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.text,
+    this.isAddress = false,
   });
   final IconData icon;
   final Color iconColor;
   final String text;
+  final bool isAddress;
 
   @override
   Widget build(BuildContext context) {
@@ -1295,14 +1343,24 @@ class _DetailRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: CX.textPrimary,
-              fontSize: 13,
-              height: 1.4,
-            ),
-          ),
+          child: isAddress
+              ? TranslatedText(
+                  text,
+                  isAddress: true,
+                  style: const TextStyle(
+                    color: CX.textPrimary,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                )
+              : Text(
+                  text,
+                  style: const TextStyle(
+                    color: CX.textPrimary,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
         ),
       ],
     );
@@ -1346,37 +1404,49 @@ class _CompletedWorkProvenanceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.verified_rounded, color: Color(0xFF00E5FF), size: 18),
                     ),
-                    child: const Icon(Icons.verified_rounded, color: Color(0xFF00E5FF), size: 18),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    "Work Provenance Authenticated",
-                    style: TextStyle(
-                      color: CX.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'work_provenance_authenticated'.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: CX.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               C2paBadge(
-                artisanName: booking.acceptedWorkerName ?? "Verified Artisan",
+                artisanName: MlTranslationService.instance.translateSync(
+                  booking.acceptedWorkerName ?? 'verified_artisan'.tr(),
+                  context.locale.languageCode,
+                ),
                 isCompact: true,
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            "The artisan captured photographic proof of completed work using the WorkGo in-app hardware camera. Cryptographic C2PA provenance verifies this capture is unaltered and bound to the artisan's verified identity.",
-            style: TextStyle(color: CX.textSecondary, fontSize: 12, height: 1.4),
+          Text(
+            'c2pa_provenance_desc'.tr(),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: CX.textSecondary, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 12),
           Container(
@@ -1386,14 +1456,16 @@ class _CompletedWorkProvenanceCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFA7F3D0)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.shield_rounded, color: Color(0xFF059669), size: 16),
-                SizedBox(width: 8),
+                const Icon(Icons.shield_rounded, color: Color(0xFF059669), size: 16),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "SHA-256 Digest & Hardware Attestation Verified",
-                    style: TextStyle(
+                    'sha256_attestation_verified'.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: Color(0xFF065F46),
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
@@ -1440,36 +1512,42 @@ class _StartServiceOtpBanner extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: CX.amber.withValues(alpha: 0.2),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: CX.amber.withValues(alpha: 0.2),
+                      ),
+                      child: const Icon(Icons.key_rounded, color: CX.amber, size: 18),
                     ),
-                    child: const Icon(Icons.key_rounded, color: CX.amber, size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    "START SERVICE OTP",
-                    style: TextStyle(
-                      color: CX.amber,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'start_service_otp'.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: CX.amber,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.copy_rounded, color: CX.amberDark, size: 18),
-                tooltip: "Copy OTP",
+                tooltip: 'copy_otp'.tr(),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: otp));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text("OTP $otp copied to clipboard!"),
+                      content: Text('otp_copied_toast'.tr(args: [otp])),
                       backgroundColor: CX.amberDark,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1517,10 +1595,12 @@ class _StartServiceOtpBanner extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          const Center(
+          Center(
             child: Text(
-              "Share this 4-digit code with your artisan upon arrival to begin work.",
-              style: TextStyle(color: CX.textSecondary, fontSize: 12, height: 1.3),
+              'share_otp_desc'.tr(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: CX.textSecondary, fontSize: 12, height: 1.3),
               textAlign: TextAlign.center,
             ),
           ),
@@ -1604,28 +1684,35 @@ class _LiveServiceProgressCardState extends State<_LiveServiceProgressCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: CX.emerald.withValues(alpha: 0.15),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: CX.emerald.withValues(alpha: 0.15),
+                      ),
+                      child: const PulsingDot(color: CX.emerald, size: 8),
                     ),
-                    child: const PulsingDot(color: CX.emerald, size: 8),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    "SERVICE IN PROGRESS",
-                    style: TextStyle(
-                      color: CX.emerald,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.8,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'service_in_progress_upper'.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: CX.emerald,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               // Live Stopwatch
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1686,7 +1773,9 @@ class _LiveServiceProgressCardState extends State<_LiveServiceProgressCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "${widget.booking.serviceType} Active",
+                        'service_active'.tr(args: [widget.booking.serviceType.toLocalizedTrade()]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: CX.textPrimary,
                           fontSize: 15,
@@ -1694,9 +1783,11 @@ class _LiveServiceProgressCardState extends State<_LiveServiceProgressCard> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const Text(
-                        "Artisan is on-site performing authorized work.",
-                        style: TextStyle(
+                      Text(
+                        'artisan_onsite_work'.tr(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           color: CX.textSecondary,
                           fontSize: 11.5,
                           height: 1.3,
@@ -1720,13 +1811,15 @@ class _LiveServiceProgressCardState extends State<_LiveServiceProgressCard> {
               border: Border.all(color: const Color(0xFFBBF7D0)),
             ),
             child: Row(
-              children: const [
-                Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 16),
-                SizedBox(width: 8),
+              children: [
+                const Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 16),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "Start OTP verified • Guaranteed under WorkGo Assurance",
-                    style: TextStyle(
+                    'otp_verified_assurance'.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: Color(0xFF15803D),
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -1787,12 +1880,16 @@ class _SmartDiagnosticCreditBanner extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      "Smart Diagnostic Visit · ₹99",
-                      style: TextStyle(
-                        color: Color(0xFF78350F),
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
+                    Expanded(
+                      child: Text(
+                        'smart_diagnostic_visit_fee'.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF78350F),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1802,9 +1899,11 @@ class _SmartDiagnosticCreditBanner extends StatelessWidget {
                         color: const Color(0xFF10B981).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
-                        "100% CREDITED",
-                        style: TextStyle(
+                      child: Text(
+                        'credited_100'.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           color: Color(0xFF047857),
                           fontSize: 9.5,
                           fontWeight: FontWeight.w800,
@@ -1816,8 +1915,10 @@ class _SmartDiagnosticCreditBanner extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   booking.equipmentTag != null
-                      ? "Targeting ${booking.equipmentTag}: Technician uses diagnostic instruments on-site. If repairs or parts are needed, ₹99 is 100% credited against your final invoice."
-                      : "Zero risk inspection. If further repair work or spare parts are authorized, this entire ₹99 fee is subtracted from your final labor charge.",
+                      ? 'targeting_equipment_desc'.tr(args: [booking.equipmentTag!])
+                      : 'diagnostic_risk_free_desc'.tr(),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF92400E),
                     fontSize: 11.5,
@@ -1842,9 +1943,15 @@ class _RelayProvenanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fromName = booking.handoffFromWorkerName ?? "Diagnosing Artisan";
-    final toName = booking.handoffToWorkerName ?? booking.acceptedWorkerName ?? "Specialist";
-    final notes = booking.handoffDiagnosisNotes ?? "Pre-inspection identified secondary craft specialty required.";
+    final fromName = MlTranslationService.instance.translateSync(
+      booking.handoffFromWorkerName ?? 'diagnosing_artisan'.tr(),
+      context.locale.languageCode,
+    );
+    final toName = MlTranslationService.instance.translateSync(
+      booking.handoffToWorkerName ?? booking.acceptedWorkerName ?? 'specialist'.tr(),
+      context.locale.languageCode,
+    );
+    final notes = booking.handoffDiagnosisNotes ?? 'pre_inspection_fallback_notes'.tr();
     final isAccepted = booking.handoffStatus == 'accepted';
 
     return Container(
@@ -1883,39 +1990,48 @@ class _RelayProvenanceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Specialist Co-op Relay",
-                      style: TextStyle(
+                    Text(
+                      'specialist_coop_relay'.tr(),
+                      style: const TextStyle(
                         color: Color(0xFF1E3A8A),
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       isAccepted
-                          ? "Relay acknowledged & accepted by specialist"
-                          : "Relay requested · Awaiting specialist acknowledgment",
+                          ? 'relay_acknowledged'.tr()
+                          : 'relay_awaiting'.tr(),
                       style: TextStyle(
                         color: isAccepted ? const Color(0xFF047857) : const Color(0xFFD97706),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isAccepted ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  isAccepted ? "CONFIRMED" : "IN ROUTE",
-                  style: TextStyle(
-                    color: isAccepted ? const Color(0xFF059669) : const Color(0xFFD97706),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isAccepted ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isAccepted ? 'status_confirmed'.tr() : 'status_in_route'.tr(),
+                    style: TextStyle(
+                      color: isAccepted ? const Color(0xFF059669) : const Color(0xFFD97706),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -1932,13 +2048,17 @@ class _RelayProvenanceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Referred From",
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5, fontWeight: FontWeight.w600),
+                    Text(
+                      'referred_from'.tr(),
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       fromName,
                       style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -1949,13 +2069,17 @@ class _RelayProvenanceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Target Specialist",
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5, fontWeight: FontWeight.w600),
+                    Text(
+                      'target_specialist'.tr(),
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       toName,
                       style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -1964,7 +2088,7 @@ class _RelayProvenanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Diagnostic Notes from First Responder
+          // Diagnostic Notes from First Responder (Dynamic ML Kit On-Device Translation)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(10),
@@ -1976,23 +2100,35 @@ class _RelayProvenanceCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Pre-Inspection Diagnostic Notes:",
-                  style: TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.w700),
+                Text(
+                  'pre_inspection_notes'.tr(),
+                  style: const TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  notes,
-                  style: const TextStyle(color: Color(0xFF334155), fontSize: 11.5, height: 1.3),
+                FutureBuilder<String>(
+                  future: MlTranslationService.instance.translate(notes, context.locale),
+                  builder: (context, snapshot) {
+                    final translatedNotes = snapshot.data ?? notes;
+                    return Text(
+                      translatedNotes,
+                      style: const TextStyle(color: Color(0xFF334155), fontSize: 11.5, height: 1.3),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    );
+                  },
                 ),
               ],
             ),
           ),
           const SizedBox(height: 8),
 
-          const Text(
-            "Guaranteed under WorkGo Cooperative Peer Protocol: No repeated visit fees.",
-            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5, fontStyle: FontStyle.italic),
+          Text(
+            'peer_protocol_guarantee'.tr(),
+            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5, fontStyle: FontStyle.italic),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

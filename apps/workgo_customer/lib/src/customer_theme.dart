@@ -8,38 +8,41 @@ class CX {
   CX._();
 
   // Canvas — warm off-white light surfaces
-  static const Color canvas = Color(0xFFFFFBF2);     // App background
+  static const Color canvas = Color(0xFFFFFBF2); // App background
   static const Color canvasCard = Color(0xFFFFFFFF); // Card surface
-  static const Color canvasMid = Color(0xFFFFF8EE);  // Mid surface
+  static const Color canvasMid = Color(0xFFFFF8EE); // Mid surface
   static const Color canvasElevated = Color(0xFFFFF3D6); // Accent tint surface
-  static const Color dividerLight = Color(0xFFF0EDE6);   // Subtle divider
+  static const Color dividerLight = Color(0xFFF0EDE6); // Subtle divider
 
   // Primary accent — confident amber yellow
-  static const Color violet = Color(0xFFFFB800);      // Remapped: amber as primary
+  static const Color violet = Color(0xFFFFB800); // Remapped: amber as primary
   static const Color violetLight = Color(0xFFFFCD4A); // Lighter amber
-  static const Color cyan = Color(0xFF3B82F6);         // Secondary: blue for info
+  static const Color cyan = Color(0xFF3B82F6); // Secondary: blue for info
   static const Color cyanLight = Color(0xFF93C5FD);
-  static const Color amber = Color(0xFFF59E0B);        // Warning / warm orange
+  static const Color amber = Color(0xFFF59E0B); // Warning / warm orange
   static const Color amberDark = Color(0xFFD97706);
-  static const Color emerald = Color(0xFF10B981);      // Success green
-  static const Color rose = Color(0xFFEF4444);         // Danger / emergency
-  static const Color indigo = Color(0xFF6366F1);       // Tertiary accent
+  static const Color emerald = Color(0xFF10B981); // Success green
+  static const Color rose = Color(0xFFEF4444); // Danger / emergency
+  static const Color indigo = Color(0xFF6366F1); // Tertiary accent
 
   // Tint fills
-  static const Color accentTint = Color(0xFFFFF3D6);  // Soft yellow tint
+  static const Color accentTint = Color(0xFFFFF3D6); // Soft yellow tint
   static const Color accentTint2 = Color(0xFFFFE3C2); // Soft peach/orange tint
-  static const Color darkCard = Color(0xFF1C1C1E);    // Dark hero card
+  static const Color darkCard = Color(0xFF1C1C1E); // Dark hero card
 
   // Glass / surface helpers (light-aware)
-  static Color glass(double opacity) => Colors.black.withValues(alpha: opacity * 0.04);
+  static Color glass(double opacity) =>
+      Colors.black.withValues(alpha: opacity * 0.04);
   static Color glassCard = const Color(0xFFFFF3D6).withValues(alpha: 0.6);
   static Color glassBorder = const Color(0xFFFFB800).withValues(alpha: 0.20);
-  static Color glassBorderBright = const Color(0xFFFFB800).withValues(alpha: 0.40);
+  static Color glassBorderBright = const Color(
+    0xFFFFB800,
+  ).withValues(alpha: 0.40);
 
   // Text — dark on warm white
-  static const Color textPrimary = Color(0xFF1A1A1A);    // Near-black headers
-  static const Color textSecondary = Color(0xFF6B6B6B);  // Medium gray body
-  static const Color textMuted = Color(0xFFB0B0B0);      // Disabled / captions
+  static const Color textPrimary = Color(0xFF1A1A1A); // Near-black headers
+  static const Color textSecondary = Color(0xFF6B6B6B); // Medium gray body
+  static const Color textMuted = Color(0xFFB0B0B0); // Disabled / captions
 
   // Semantic
   static const Color success = Color(0xFF10B981);
@@ -138,7 +141,10 @@ class AuroraCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         border: borderColor != null
             ? Border.all(color: borderColor!, width: 1.2)
-            : Border.all(color: const Color(0xFFF0EDE6), width: 1), // warm divider
+            : Border.all(
+                color: const Color(0xFFF0EDE6),
+                width: 1,
+              ), // warm divider
         boxShadow: glow != null
             ? [
                 BoxShadow(
@@ -182,7 +188,11 @@ class AuroraCard extends StatelessWidget {
 }
 
 class _TappableCard extends StatefulWidget {
-  const _TappableCard({required this.child, required this.onTap, required this.borderRadius});
+  const _TappableCard({
+    required this.child,
+    required this.onTap,
+    required this.borderRadius,
+  });
   final Widget child;
   final VoidCallback onTap;
   final double borderRadius;
@@ -191,17 +201,22 @@ class _TappableCard extends StatefulWidget {
   State<_TappableCard> createState() => _TappableCardState();
 }
 
-class _TappableCardState extends State<_TappableCard> with SingleTickerProviderStateMixin {
+class _TappableCardState extends State<_TappableCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 120));
-    _scale = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
     );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
   }
 
   @override
@@ -221,7 +236,8 @@ class _TappableCardState extends State<_TappableCard> with SingleTickerProviderS
       onTapCancel: () => _ctrl.reverse(),
       child: AnimatedBuilder(
         animation: _scale,
-        builder: (_, child) => Transform.scale(scale: _scale.value, child: child),
+        builder: (_, child) =>
+            Transform.scale(scale: _scale.value, child: child),
         child: widget.child,
       ),
     );
@@ -261,17 +277,22 @@ class GlowButton extends StatefulWidget {
   State<GlowButton> createState() => _GlowButtonState();
 }
 
-class _GlowButtonState extends State<GlowButton> with SingleTickerProviderStateMixin {
+class _GlowButtonState extends State<GlowButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 130));
-    _scale = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 130),
     );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
   }
 
   @override
@@ -284,7 +305,8 @@ class _GlowButtonState extends State<GlowButton> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     // Default gradient = amber yellow — premium warm CTA
     final effectiveGradient = widget.gradient == CX.auroraVioletCyan
-        ? CX.auroraVioletCyan  // keep as-is (already remapped to amber)
+        ? CX
+              .auroraVioletCyan // keep as-is (already remapped to amber)
         : widget.gradient;
     final glow = widget.glowColor ?? CX.amber;
     return AnimatedBuilder(
@@ -300,10 +322,14 @@ class _GlowButtonState extends State<GlowButton> with SingleTickerProviderStateM
         child: Container(
           height: widget.height,
           width: widget.isFullWidth ? double.infinity : null,
-          padding: widget.isFullWidth ? null : const EdgeInsets.symmetric(horizontal: 20),
+          padding: widget.isFullWidth
+              ? null
+              : const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             gradient: effectiveGradient,
-            borderRadius: BorderRadius.circular(widget.borderRadius == 16.0 ? 999 : widget.borderRadius),
+            borderRadius: BorderRadius.circular(
+              widget.borderRadius == 16.0 ? 999 : widget.borderRadius,
+            ),
             boxShadow: [
               BoxShadow(
                 color: glow.withValues(alpha: 0.28),
@@ -327,7 +353,11 @@ class _GlowButtonState extends State<GlowButton> with SingleTickerProviderStateM
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.icon != null) ...[
-                        Icon(widget.icon, color: const Color(0xFF1A1A1A), size: 18),
+                        Icon(
+                          widget.icon,
+                          color: const Color(0xFF1A1A1A),
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                       ],
                       Text(
@@ -352,7 +382,11 @@ class _GlowButtonState extends State<GlowButton> with SingleTickerProviderStateM
 //  PULSING DOT — animated live indicator
 // ─────────────────────────────────────────────
 class PulsingDot extends StatefulWidget {
-  const PulsingDot({super.key, this.color = const Color(0xFF22C55E), this.size = 10.0});
+  const PulsingDot({
+    super.key,
+    this.color = const Color(0xFF22C55E),
+    this.size = 10.0,
+  });
   final Color color;
   final double size;
 
@@ -360,18 +394,22 @@ class PulsingDot extends StatefulWidget {
   State<PulsingDot> createState() => _PulsingDotState();
 }
 
-class _PulsingDotState extends State<PulsingDot> with SingleTickerProviderStateMixin {
+class _PulsingDotState extends State<PulsingDot>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _pulse;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
-    _pulse = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _pulse = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -453,29 +491,34 @@ class AuroraOrb extends StatelessWidget {
 enum AuroraBadgeStyle { violet, cyan, amber, emerald, rose, info }
 
 class AuroraBadge extends StatelessWidget {
-  const AuroraBadge({super.key, required this.label, this.style = AuroraBadgeStyle.violet, this.fontSize = 10.0});
+  const AuroraBadge({
+    super.key,
+    required this.label,
+    this.style = AuroraBadgeStyle.violet,
+    this.fontSize = 10.0,
+  });
   final String label;
   final AuroraBadgeStyle style;
   final double fontSize;
 
   // Light-theme badge colors — legible dark text on tinted backgrounds
   Color get _bg => switch (style) {
-        AuroraBadgeStyle.violet => const Color(0xFFFFF3D6),  // soft yellow
-        AuroraBadgeStyle.cyan => const Color(0xFFDBEAFE),    // soft blue
-        AuroraBadgeStyle.amber => const Color(0xFFFEF3C7),   // soft amber
-        AuroraBadgeStyle.emerald => const Color(0xFFD1FAE5), // soft green
-        AuroraBadgeStyle.rose => const Color(0xFFFEE2E2),    // soft red
-        AuroraBadgeStyle.info => const Color(0xFFDBEAFE),    // soft blue
-      };
+    AuroraBadgeStyle.violet => const Color(0xFFFFF3D6), // soft yellow
+    AuroraBadgeStyle.cyan => const Color(0xFFDBEAFE), // soft blue
+    AuroraBadgeStyle.amber => const Color(0xFFFEF3C7), // soft amber
+    AuroraBadgeStyle.emerald => const Color(0xFFD1FAE5), // soft green
+    AuroraBadgeStyle.rose => const Color(0xFFFEE2E2), // soft red
+    AuroraBadgeStyle.info => const Color(0xFFDBEAFE), // soft blue
+  };
 
   Color get _fg => switch (style) {
-        AuroraBadgeStyle.violet => const Color(0xFF92400E),  // dark amber text
-        AuroraBadgeStyle.cyan => const Color(0xFF1E40AF),    // dark blue text
-        AuroraBadgeStyle.amber => const Color(0xFF92400E),   // dark amber text
-        AuroraBadgeStyle.emerald => const Color(0xFF065F46), // dark green text
-        AuroraBadgeStyle.rose => const Color(0xFF991B1B),    // dark red text
-        AuroraBadgeStyle.info => const Color(0xFF1E40AF),    // dark blue text
-      };
+    AuroraBadgeStyle.violet => const Color(0xFF92400E), // dark amber text
+    AuroraBadgeStyle.cyan => const Color(0xFF1E40AF), // dark blue text
+    AuroraBadgeStyle.amber => const Color(0xFF92400E), // dark amber text
+    AuroraBadgeStyle.emerald => const Color(0xFF065F46), // dark green text
+    AuroraBadgeStyle.rose => const Color(0xFF991B1B), // dark red text
+    AuroraBadgeStyle.info => const Color(0xFF1E40AF), // dark blue text
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -494,6 +537,8 @@ class AuroraBadge extends StatelessWidget {
           fontWeight: FontWeight.w900,
           letterSpacing: 0.6,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -503,7 +548,12 @@ class AuroraBadge extends StatelessWidget {
 //  SHIMMER LOADER — animated skeleton shimmer
 // ─────────────────────────────────────────────
 class AuroraShimmer extends StatefulWidget {
-  const AuroraShimmer({super.key, required this.height, this.borderRadius = 16.0, this.width});
+  const AuroraShimmer({
+    super.key,
+    required this.height,
+    this.borderRadius = 16.0,
+    this.width,
+  });
   final double height;
   final double? width;
   final double borderRadius;
@@ -512,15 +562,22 @@ class AuroraShimmer extends StatefulWidget {
   State<AuroraShimmer> createState() => _AuroraShimmerState();
 }
 
-class _AuroraShimmerState extends State<AuroraShimmer> with SingleTickerProviderStateMixin {
+class _AuroraShimmerState extends State<AuroraShimmer>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _anim;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat();
-    _anim = Tween<double>(begin: -1.5, end: 2.5).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+    _anim = Tween<double>(
+      begin: -1.5,
+      end: 2.5,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -543,8 +600,8 @@ class _AuroraShimmerState extends State<AuroraShimmer> with SingleTickerProvider
               begin: Alignment(_anim.value - 1, 0),
               end: Alignment(_anim.value, 0),
               colors: [
-                const Color(0xFFFFF3D6),  // #FFF3D6 — warm yellow tint base
-                const Color(0xFFFFF8E8),  // shimmer highlight
+                const Color(0xFFFFF3D6), // #FFF3D6 — warm yellow tint base
+                const Color(0xFFFFF8E8), // shimmer highlight
                 const Color(0xFFFFF3D6),
               ],
             ),
@@ -566,6 +623,7 @@ class AuroraScaffold extends StatelessWidget {
     this.bottomNavigationBar,
     this.floatingActionButton,
     this.resizeToAvoidBottomInset = true,
+    this.extendBody = false,
   });
 
   final PreferredSizeWidget? appBar;
@@ -573,33 +631,45 @@ class AuroraScaffold extends StatelessWidget {
   final Widget? bottomNavigationBar;
   final Widget? floatingActionButton;
   final bool resizeToAvoidBottomInset;
+  final bool extendBody;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CX.canvas,  // #FFFBF2 warm off-white
+      backgroundColor: CX.canvas, // #FFFBF2 warm off-white
       extendBodyBehindAppBar: true,
+      extendBody: extendBody,
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       appBar: appBar,
       bottomNavigationBar: bottomNavigationBar,
       floatingActionButton: floatingActionButton,
       body: Stack(
+        fit: StackFit.expand,
         children: [
           // Warm ambient blobs — subtle warm yellow/peach tints instead of neon
           Positioned(
             top: -80,
             left: -60,
-            child: _AuroraBlob(color: const Color(0xFFFFB800).withValues(alpha: 0.06), size: 280),
+            child: _AuroraBlob(
+              color: const Color(0xFFFFB800).withValues(alpha: 0.06),
+              size: 280,
+            ),
           ),
           Positioned(
             top: 200,
             right: -80,
-            child: _AuroraBlob(color: const Color(0xFFF59E0B).withValues(alpha: 0.05), size: 220),
+            child: _AuroraBlob(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.05),
+              size: 220,
+            ),
           ),
           Positioned(
             bottom: 80,
             left: -40,
-            child: _AuroraBlob(color: const Color(0xFFFFE3C2).withValues(alpha: 0.10), size: 180),
+            child: _AuroraBlob(
+              color: const Color(0xFFFFE3C2).withValues(alpha: 0.10),
+              size: 180,
+            ),
           ),
           body,
         ],
@@ -620,12 +690,7 @@ class _AuroraBlob extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            color,
-            Colors.transparent,
-          ],
-        ),
+        gradient: RadialGradient(colors: [color, Colors.transparent]),
       ),
     );
   }
@@ -635,7 +700,12 @@ class _AuroraBlob extends StatelessWidget {
 //  AURORA APPBAR
 // ─────────────────────────────────────────────
 class AuroraAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const AuroraAppBar({super.key, required this.title, this.actions, this.leading});
+  const AuroraAppBar({
+    super.key,
+    required this.title,
+    this.actions,
+    this.leading,
+  });
   final String title;
   final List<Widget>? actions;
   final Widget? leading;
@@ -684,7 +754,8 @@ class SlideFadeIn extends StatefulWidget {
   State<SlideFadeIn> createState() => _SlideFadeInState();
 }
 
-class _SlideFadeInState extends State<SlideFadeIn> with SingleTickerProviderStateMixin {
+class _SlideFadeInState extends State<SlideFadeIn>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _opacity;
   late Animation<Offset> _slide;
@@ -694,11 +765,15 @@ class _SlideFadeInState extends State<SlideFadeIn> with SingleTickerProviderStat
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: CAnim.slow);
     _opacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: const Interval(0.0, 0.75, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _ctrl,
+        curve: const Interval(0.0, 0.75, curve: Curves.easeOut),
+      ),
     );
-    _slide = Tween<Offset>(begin: Offset(0, widget.offsetY / 100), end: Offset.zero).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _slide = Tween<Offset>(
+      begin: Offset(0, widget.offsetY / 100),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
 
     if (widget.delay == Duration.zero) {
       _ctrl.forward();
@@ -728,7 +803,12 @@ class _SlideFadeInState extends State<SlideFadeIn> with SingleTickerProviderStat
 //  STAR ROW WIDGET — display-only
 // ─────────────────────────────────────────────
 class AuroraStarRow extends StatelessWidget {
-  const AuroraStarRow({super.key, required this.rating, this.starSize = 14.0, this.showValue = true});
+  const AuroraStarRow({
+    super.key,
+    required this.rating,
+    this.starSize = 14.0,
+    this.showValue = true,
+  });
   final double rating;
   final double starSize;
   final bool showValue;
@@ -744,8 +824,8 @@ class AuroraStarRow extends StatelessWidget {
             fill >= 0.75
                 ? Icons.star_rounded
                 : fill >= 0.25
-                    ? Icons.star_half_rounded
-                    : Icons.star_border_rounded,
+                ? Icons.star_half_rounded
+                : Icons.star_border_rounded,
             size: starSize,
             color: CX.amber,
           );
@@ -770,7 +850,12 @@ class AuroraStarRow extends StatelessWidget {
 //  ANIMATED COUNTER — smooth number change
 // ─────────────────────────────────────────────
 class AnimatedCounter extends StatefulWidget {
-  const AnimatedCounter({super.key, required this.value, this.prefix = '₹', this.style});
+  const AnimatedCounter({
+    super.key,
+    required this.value,
+    this.prefix = '₹',
+    this.style,
+  });
   final double value;
   final String prefix;
   final TextStyle? style;
@@ -779,7 +864,8 @@ class AnimatedCounter extends StatefulWidget {
   State<AnimatedCounter> createState() => _AnimatedCounterState();
 }
 
-class _AnimatedCounterState extends State<AnimatedCounter> with SingleTickerProviderStateMixin {
+class _AnimatedCounterState extends State<AnimatedCounter>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _anim;
 
@@ -787,18 +873,20 @@ class _AnimatedCounterState extends State<AnimatedCounter> with SingleTickerProv
   void initState() {
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: CAnim.slow);
-    _anim = Tween<double>(begin: widget.value, end: widget.value).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _anim = Tween<double>(
+      begin: widget.value,
+      end: widget.value,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
   void didUpdateWidget(AnimatedCounter old) {
     super.didUpdateWidget(old);
     if (old.value != widget.value) {
-      _anim = Tween<double>(begin: old.value, end: widget.value).animate(
-        CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-      );
+      _anim = Tween<double>(
+        begin: old.value,
+        end: widget.value,
+      ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
       _ctrl
         ..reset()
         ..forward();
@@ -817,7 +905,8 @@ class _AnimatedCounterState extends State<AnimatedCounter> with SingleTickerProv
       animation: _anim,
       builder: (_, __) => Text(
         '${widget.prefix}${_anim.value.toStringAsFixed(0)}',
-        style: widget.style ??
+        style:
+            widget.style ??
             WorkGoFonts.numeric(
               color: CX.textPrimary, // dark text on light background
               fontSize: 24,
@@ -982,4 +1071,3 @@ CategoryStyle categoryStyle(String name) =>
       startingPrice: "From ₹149",
       badge: "VERIFIED",
     );
-

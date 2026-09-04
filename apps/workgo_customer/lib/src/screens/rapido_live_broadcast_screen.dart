@@ -1,7 +1,9 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
+import '../services/ml_translation_service.dart';
 import 'live_booking_tracker_screen.dart';
 
 class RapidoLiveBroadcastScreen extends StatefulWidget {
@@ -58,7 +60,13 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
             children: [
               const Icon(Icons.bolt_rounded, color: CX.amber, size: 20),
               const SizedBox(width: 8),
-              Text("Fare boosted by +₹${extraBonus.toInt()}! Nearby Artisans alerted."),
+              Expanded(
+                child: Text(
+                  'fare_boosted_toast'.tr(args: [extraBonus.toInt().toString()]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           backgroundColor: const Color(0xFF1E1035),
@@ -121,7 +129,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
         if (address.toLowerCase().contains("mumbai") ||
             address.toLowerCase().contains("bombay") ||
             address.trim().isEmpty) {
-          address = "Current Live Location";
+          address = 'current_live_location'.tr();
         }
         final custLat = booking?.customerLatitude;
         final custLng = booking?.customerLongitude;
@@ -134,7 +142,9 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
 
         return AuroraScaffold(
           appBar: AuroraAppBar(
-            title: "Finding Nearby ${widget.serviceCategory} Artisan",
+            title: 'finding_nearby_artisan'.tr(args: [
+              widget.serviceCategory.toLocalizedTrade(),
+            ]),
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -185,26 +195,38 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    onlineWorkers.isNotEmpty
-                                        ? "⚡ ${onlineWorkers.length} active ${widget.serviceCategory} artisan${onlineWorkers.length > 1 ? 's' : ''} online nearby"
-                                        : "⚡ Broadcasting live to nearest artisans",
-                                    style: WorkGoFonts.heading(
-                                      color: CX.emerald,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
+                                  Flexible(
+                                    child: Text(
+                                      onlineWorkers.isNotEmpty
+                                          ? 'active_artisans_online_nearby'.tr(args: [
+                                              onlineWorkers.length.toString(),
+                                              widget.serviceCategory.toLocalizedTrade(),
+                                            ])
+                                          : 'broadcasting_live_nearest'.tr(),
+                                      style: WorkGoFonts.heading(
+                                        color: CX.emerald,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                "Scanning 10 km live radius around ${address.split(',').first.trim()} for verified ${widget.serviceCategory} Artisans...",
+                                'scanning_radius_for_artisans'.tr(args: [
+                                  address.split(',').first.trim(),
+                                  widget.serviceCategory.toLocalizedTrade(),
+                                ]),
                                 style: WorkGoFonts.body(
                                   color: CX.textSecondary,
                                   fontSize: 12.5,
                                 ),
                                 textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 10),
                               ClipRRect(
@@ -245,12 +267,14 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                     },
                     icon: const Icon(Icons.close_rounded, color: CX.rose, size: 18),
                     label: Text(
-                      "Cancel Broadcast",
+                      'cancel_broadcast'.tr(),
                       style: WorkGoFonts.heading(
                         color: CX.rose,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -276,12 +300,14 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Artisan Service Fare",
+                    'artisan_service_fare'.tr(),
                     style: WorkGoFonts.body(
                       color: CX.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -305,7 +331,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            "+₹${currentBonus.toInt()} TIP INCLUDED",
+                            'tip_included_badge'.tr(args: [currentBonus.toInt().toString()]),
                             style: WorkGoFonts.badge(
                               color: CX.emerald,
                               fontSize: 10,
@@ -331,7 +357,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                     const Icon(Icons.verified_user_rounded, color: CX.emerald, size: 14),
                     const SizedBox(width: 5),
                     Text(
-                      "0% Commission",
+                      'zero_commission_badge'.tr(),
                       style: WorkGoFonts.badge(
                         color: CX.emerald,
                         fontSize: 11,
@@ -356,12 +382,14 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    "Direct to Artisan • Transparent Transit & Base Allowance",
+                    'direct_to_artisan_transit'.tr(),
                     style: WorkGoFonts.body(
                       color: CX.textMuted,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -382,20 +410,26 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
             children: [
               const Icon(Icons.bolt_rounded, color: CX.amber, size: 20),
               const SizedBox(width: 8),
-              Text(
-                "Need an Artisan Faster? Boost Fare",
-                style: WorkGoFonts.heading(
-                  color: CX.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  'boost_fare_title'.tr(),
+                  style: WorkGoFonts.heading(
+                    color: CX.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            "Add an optional urgency tip to incentivize immediate acceptance by nearby trade artisans.",
+            'boost_fare_desc'.tr(),
             style: WorkGoFonts.body(color: CX.textSecondary, fontSize: 11.5),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 14),
           Row(
@@ -454,7 +488,11 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final artisanName = booking.acceptedWorkerName ?? "Certified Artisan";
+    final rawArtisanName = booking.acceptedWorkerName ?? 'verified_pro'.tr();
+    final artisanName = MlTranslationService.instance.translateSync(
+      rawArtisanName,
+      context.locale.languageCode,
+    );
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -495,26 +533,30 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            "⚡ Artisan Assigned!",
+            'artisan_assigned_title'.tr(),
             style: WorkGoFonts.display(
               color: CX.textPrimary,
               fontSize: 22,
               fontWeight: FontWeight.w900,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Text(
-            "Artisan $artisanName has accepted your request and is en route.",
+            'artisan_accepted_en_route'.tr(args: [artisanName]),
             style: WorkGoFonts.body(
               color: CX.textSecondary,
               fontSize: 13,
               height: 1.4,
             ),
             textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 22),
           GlowButton(
-            label: "Track Artisan Live & View OTP",
+            label: 'track_artisan_and_otp'.tr(),
             icon: Icons.navigation_rounded,
             onPressed: onContinue,
             gradient: CX.auroraSuccess,

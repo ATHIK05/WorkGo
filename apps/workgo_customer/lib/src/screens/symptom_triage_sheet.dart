@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
 import '../services/voice_recognition_service.dart';
+import '../widgets/translated_text.dart';
 import 'live_booking_tracker_screen.dart';
 import 'rapido_live_broadcast_screen.dart';
 
@@ -150,7 +152,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
     HapticFeedback.mediumImpact();
     setState(() {
       _isListeningVoice = true;
-      _voiceStatusMsg = 'Listening... Speak your household problem clearly';
+      _voiceStatusMsg = 'listening_speak_clearly'.tr();
       _voiceSoundLevel = 0.0;
     });
 
@@ -180,7 +182,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
     if (!available && mounted) {
       setState(() {
         _isListeningVoice = false;
-        _voiceStatusMsg = 'Microphone speech recognition unavailable on this device';
+        _voiceStatusMsg = 'mic_unavailable'.tr();
       });
     }
   }
@@ -277,7 +279,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
         acceptedWorkerName: preferredWorker?.name,
         workerLatitude: preferredWorker?.latitude,
         workerLongitude: preferredWorker?.longitude,
-        customerAddressText: widget.customerAddress ?? 'Registered Home Address',
+        customerAddressText: widget.customerAddress ?? 'registered_home_address'.tr(),
         customerLatitude: widget.customerLat,
         customerLongitude: widget.customerLng,
         diagnosticFee: _diagnosis!.diagnosticFee,
@@ -303,7 +305,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
               bookingId: bookingId,
               serviceCategory: _diagnosis!.primaryCategory,
               initialAmount: _diagnosis!.diagnosticFee,
-              pickupAddress: widget.customerAddress ?? 'Home Location',
+              pickupAddress: widget.customerAddress ?? 'home_location'.tr(),
             ),
           ),
         );
@@ -313,7 +315,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
         setState(() => _isDispatching = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not initialize dispatch: $e'),
+            content: Text('dispatch_init_error'.tr(args: [e.toString()])),
             backgroundColor: CX.error,
           ),
         );
@@ -373,7 +375,9 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'AI Symptom Triage',
+                        'ai_symptom_triage'.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: WorkGoFonts.heading(
                           color: CX.textPrimary,
                           fontSize: 18,
@@ -381,7 +385,9 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                         ),
                       ),
                       Text(
-                        'Describe the problem · We diagnose the right craft trade',
+                        'describe_problem_diagnose'.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: WorkGoFonts.body(
                           color: CX.textSecondary,
                           fontSize: 12,
@@ -414,7 +420,9 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                   // Quick symptom chips when empty or analyzing
                   if (_diagnosis == null && !_isAnalyzing) ...[
                     Text(
-                      'Common Household Problems',
+                      'common_household_problems'.tr(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: WorkGoFonts.heading(
                         color: CX.textSecondary,
                         fontSize: 13,
@@ -526,7 +534,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  '100% Credited',
+                                  'credited_100'.tr(),
                                   style: WorkGoFonts.body(
                                     color: CX.emerald,
                                     fontSize: 11,
@@ -537,7 +545,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                             ],
                           ),
                           Text(
-                            'Smart Diagnostic Inspection',
+                            'smart_diagnostic_inspection'.tr(),
                             style: WorkGoFonts.body(
                               color: CX.textSecondary,
                               fontSize: 11,
@@ -572,7 +580,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                             )
                           : const Icon(Icons.flash_on_rounded, size: 18),
                       label: Text(
-                        _isDispatching ? 'Dispatching...' : 'Book Diagnostic',
+                        _isDispatching ? 'dispatching_ellipsis'.tr() : 'book_diagnostic'.tr(),
                         style: WorkGoFonts.body(
                           color: const Color(0xFF141416),
                           fontWeight: FontWeight.w800,
@@ -620,7 +628,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
               fontWeight: FontWeight.w600,
             ),
             decoration: InputDecoration(
-              hintText: 'e.g. Water motor humming sound or AC blowing room air...',
+              hintText: 'symptom_search_hint'.tr(),
               hintStyle: WorkGoFonts.body(
                 color: CX.textMuted,
                 fontSize: 13,
@@ -715,9 +723,9 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: _stopVoiceListening,
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(
+                  child: Text(
+                    'done'.tr(),
+                    style: const TextStyle(
                       color: CX.amberDark,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
@@ -774,7 +782,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AI Cross-Trade Diagnosis Running...',
+                  'ai_cross_trade_diagnosis_running'.tr(),
                   style: WorkGoFonts.heading(
                     color: CX.textPrimary,
                     fontSize: 14,
@@ -783,7 +791,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Evaluating electrical, plumbing, and mechanical fault trees',
+                  'evaluating_fault_trees'.tr(),
                   style: WorkGoFonts.body(
                     color: CX.textSecondary,
                     fontSize: 12,
@@ -834,7 +842,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                     const Icon(Icons.handyman_rounded, color: CX.amberDark, size: 14),
                     const SizedBox(width: 5),
                     Text(
-                      'Primary: ${diag.primaryCategory}',
+                      'primary_category_badge'.tr(args: [diag.primaryCategory.toLocalizedTrade()]),
                       style: WorkGoFonts.body(
                         color: CX.textPrimary,
                         fontSize: 12,
@@ -857,7 +865,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                       const Icon(Icons.swap_horiz_rounded, color: CX.textSecondary, size: 14),
                       const SizedBox(width: 4),
                       Text(
-                        'Relay: ${diag.secondaryCategory}',
+                        'relay_category_badge'.tr(args: [diag.secondaryCategory?.toLocalizedTrade() ?? '']),
                         style: WorkGoFonts.body(
                           color: CX.textSecondary,
                           fontSize: 11,
@@ -874,7 +882,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '${(diag.confidence * 100).round()}% Confidence',
+                  'confidence_percentage'.tr(args: [(diag.confidence * 100).round().toString()]),
                   style: WorkGoFonts.body(
                     color: CX.emerald,
                     fontSize: 11,
@@ -886,8 +894,8 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
           ),
           const SizedBox(height: 12),
 
-          // Diagnostic Summary
-          Text(
+          // Diagnostic Summary (Translated at view layer)
+          TranslatedText(
             diag.equipmentTag,
             style: WorkGoFonts.heading(
               color: CX.textPrimary,
@@ -896,7 +904,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          TranslatedText(
             diag.summary,
             style: WorkGoFonts.body(
               color: CX.textSecondary,
@@ -909,7 +917,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
             const Divider(height: 1, color: CX.dividerLight),
             const SizedBox(height: 10),
             Text(
-              'Suspected Root Causes:',
+              'suspected_root_causes'.tr(),
               style: WorkGoFonts.heading(
                 color: CX.textPrimary,
                 fontSize: 12,
@@ -928,7 +936,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                           child: Icon(Icons.circle, size: 6, color: CX.amberDark),
                         ),
                         Expanded(
-                          child: Text(
+                          child: TranslatedText(
                             cause,
                             style: WorkGoFonts.body(
                               color: CX.textSecondary,
@@ -964,7 +972,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
               const Icon(Icons.help_outline_rounded, color: CX.amberDark, size: 18),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
+                child: TranslatedText(
                   question.questionText,
                   style: WorkGoFonts.heading(
                     color: CX.textPrimary,
@@ -1002,7 +1010,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
+                        child: TranslatedText(
                           opt.label,
                           style: WorkGoFonts.body(
                             color: isSelected ? CX.textPrimary : CX.textSecondary,
@@ -1051,7 +1059,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Specific Signs or Observations',
+                  'specific_signs_observations'.tr(),
                   style: WorkGoFonts.heading(
                     color: CX.textPrimary,
                     fontSize: 13,
@@ -1062,7 +1070,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Optional',
+                'optional'.tr(),
                 style: WorkGoFonts.body(
                   color: CX.textMuted,
                   fontSize: 11,
@@ -1081,7 +1089,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
-              hintText: 'e.g. Water dripping from bottom right corner, unusual humming, or trips breaker...',
+              hintText: 'observations_hint'.tr(),
               hintStyle: WorkGoFonts.body(
                 color: CX.textMuted,
                 fontSize: 12,
@@ -1162,7 +1170,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Smart Diagnostic Visit (₹${diag.diagnosticFee.round()})',
+                  'smart_diagnostic_visit_fee_arg'.tr(args: [diag.diagnosticFee.round().toString()]),
                   style: WorkGoFonts.heading(
                     color: const Color(0xFF78350F),
                     fontSize: 14,
@@ -1171,7 +1179,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '100% credited against your final repair bill. Our certified artisan tests line voltage, pipe pressures, and windings on-site.',
+                  'diagnostic_visit_guarantee_detail'.tr(),
                   style: WorkGoFonts.body(
                     color: const Color(0xFF92400E),
                     fontSize: 12,
@@ -1194,7 +1202,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
           children: [
             Expanded(
               child: Text(
-                'Specialists Ready to Inspect',
+                'specialists_ready_inspect'.tr(),
                 style: WorkGoFonts.heading(
                   color: CX.textPrimary,
                   fontSize: 15,
@@ -1206,7 +1214,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Co-op Certified',
+              'coop_certified'.tr(),
               style: WorkGoFonts.body(
                 color: CX.emerald,
                 fontSize: 11,
@@ -1251,7 +1259,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Dispatch will broadcast to nearest available verified artisans in your sector.',
+                        'dispatch_broadcast_sector'.tr(),
                         style: WorkGoFonts.body(color: CX.textSecondary, fontSize: 12),
                       ),
                     ),
@@ -1304,7 +1312,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
+                                  TranslatedText(
                                     worker.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -1349,7 +1357,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                '${(worker.diagnosticAccuracyScore * 100).round()}% Accuracy',
+                                'accuracy_percentage'.tr(args: [(worker.diagnosticAccuracyScore * 100).round().toString()]),
                                 style: WorkGoFonts.body(
                                   color: CX.emerald,
                                   fontSize: 10,
@@ -1375,7 +1383,7 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                               ),
                             ),
                             child: Text(
-                              'Book Specialist',
+                              'book_specialist'.tr(),
                               style: WorkGoFonts.body(
                                 color: const Color(0xFF141416),
                                 fontSize: 12,
