@@ -28,6 +28,61 @@ void main() {
       expect(res.suggestedToolsNeeded, isNotEmpty);
     });
 
+    test("Matches 'my fan is not working properly' to Ceiling Fan / Home Appliance and never Air Conditioner", () {
+      final res = SymptomCatalog.matchSymptom("my fan is not working properly");
+      expect(res.equipmentTag, anyOf("Ceiling Fan / Home Appliance", "Ceiling Fan"));
+      expect(res.primaryCategory, anyOf("Electrician", "Appliance Repair"));
+      expect(res.equipmentTag, isNot("Air Conditioner"));
+      expect(res.likelyCauses, isNotEmpty);
+    });
+
+    test("Matches Refrigerator cooling issue to Appliance Repair", () {
+      final res = SymptomCatalog.matchSymptom("fridge is not cooling and excess ice in freezer");
+      expect(res.primaryCategory, "Appliance Repair");
+      expect(res.equipmentTag, "Refrigerator / Fridge");
+      expect(res.likelyCauses, isNotEmpty);
+    });
+
+    test("Matches Mixer Grinder smoke or jam to Appliance Repair", () {
+      final res = SymptomCatalog.matchSymptom("mixer grinder stopped with burning smell");
+      expect(res.primaryCategory, "Appliance Repair");
+      expect(res.equipmentTag, "Mixer Grinder / Home Appliance");
+      expect(res.suggestedToolsNeeded, contains("Coupler Puller"));
+    });
+
+    test("Matches clogged kitchen drain or choked toilet to Plumber", () {
+      final res = SymptomCatalog.matchSymptom("kitchen sink drain is completely blocked and water standing");
+      expect(res.primaryCategory, "Plumber");
+      expect(res.equipmentTag, "Drainage & Sewerage");
+      expect(res.suggestedToolsNeeded, contains("Drain Cleaning Snake Wire"));
+    });
+
+    test("Matches door lock jammed or key stuck to Carpenter", () {
+      final res = SymptomCatalog.matchSymptom("main door lock key is stuck and cylinder jammed");
+      expect(res.primaryCategory, "Carpenter");
+      expect(res.equipmentTag, "Doors, Locks & Woodwork");
+      expect(res.suggestedToolsNeeded, contains("Wood Planer"));
+    });
+
+    test("Matches wall paint peeling to Painter with waterproofing triage", () {
+      final res = SymptomCatalog.matchSymptom("wall paint peeling and damp patches near bathroom");
+      expect(res.primaryCategory, anyOf("Painter", "Plumber"));
+      expect(res.equipmentTag, "Painting & Waterproofing");
+    });
+
+    test("Matches kitchen chimney degreasing or tile descaling to Cleaning", () {
+      final res = SymptomCatalog.matchSymptom("kitchen chimney grease cleaning and bathroom acid wash");
+      expect(res.primaryCategory, "Cleaning");
+      expect(res.equipmentTag, "Deep Cleaning & Descaling");
+    });
+
+    test("Matches broken gate hinge or grill repair to Welder / Metal", () {
+      final res = SymptomCatalog.matchSymptom("iron gate hinge broken and railing loose");
+      expect(res.primaryCategory, "Welder / Metal");
+      expect(res.equipmentTag, "Metal Fabrication & Welding");
+      expect(res.suggestedToolsNeeded, contains("Portable Arc Welder"));
+    });
+
     test("Matches Geyser cold water to Electrician or Appliances", () {
       final res = SymptomCatalog.matchSymptom("geyser not heating water");
       expect(res.primaryCategory, anyOf("Electrician", "Plumber", "Appliance Repair"));
@@ -41,11 +96,104 @@ void main() {
       expect(res.confidence, greaterThanOrEqualTo(0.85));
     });
 
-    test("Fallback gracefully provides general diagnostic for ambiguous queries", () {
-      final res = SymptomCatalog.matchSymptom("random unknown household defect");
-      expect(res.primaryCategory, isNotEmpty);
-      expect(res.suggestedToolsNeeded, isNotEmpty);
-      expect(res.requiresSmartDiagnosticVisit, true);
+    test("Matches Masonry & Tile repair correctly", () {
+      final res = SymptomCatalog.matchSymptom("floor tiles broken and cement hollow sound");
+      expect(res.primaryCategory, "Masonry");
+      expect(res.equipmentTag, "Masonry & Tile Works");
+      expect(res.isOutOfScope, false);
+      expect(res.confidence, greaterThanOrEqualTo(0.8));
+    });
+
+    test("Matches Gas Stove & Hob burner issue to Appliance Repair", () {
+      final res = SymptomCatalog.matchSymptom("kitchen gas stove burner low flame and smelling gas");
+      expect(res.primaryCategory, "Appliance Repair");
+      expect(res.equipmentTag, "Kitchen Gas Stove & Hob");
+      expect(res.isOutOfScope, false);
+      expect(res.suggestedToolsNeeded, contains("Nozzle Jet Pin Cleaner"));
+    });
+
+    test("Disambiguates fridge water leak from plumbing leak", () {
+      final res = SymptomCatalog.matchSymptom("water leaking from fridge onto floor");
+      expect(res.primaryCategory, "Appliance Repair");
+      expect(res.equipmentTag, "Refrigerator / Fridge");
+      expect(res.equipmentTag, isNot("Plumbing & Concealed Piping"));
+    });
+
+    test("Disambiguates AC indoor water drip from plumbing leak", () {
+      final res = SymptomCatalog.matchSymptom("water dripping from ac unit");
+      expect(res.primaryCategory, "Appliance Repair");
+      expect(res.equipmentTag, "Air Conditioner");
+      expect(res.equipmentTag, isNot("Plumbing & Concealed Piping"));
+    });
+  });
+
+  group("Negative Test Cases & Out-of-Scope Guardrail Tests", () {
+    test("Correctly rejects 'my pen broken' as Out of Scope with zero confidence", () {
+      final res = SymptomCatalog.matchSymptom("my pen broken");
+      expect(res.isOutOfScope, true);
+      expect(res.isValidHouseholdService, false);
+      expect(res.primaryCategory, "Out of Scope");
+      expect(res.confidence, 0.0);
+      expect(res.requiresSmartDiagnosticVisit, false);
+      expect(res.diagnosticFee, 0.0);
+      expect(res.suggestedToolsNeeded, isEmpty);
+    });
+
+    test("Correctly rejects personal electronics (laptop, mobile, phone)", () {
+      final res1 = SymptomCatalog.matchSymptom("my laptop screen is cracked");
+      expect(res1.isOutOfScope, true);
+      expect(res1.confidence, 0.0);
+
+      final res2 = SymptomCatalog.matchSymptom("iphone battery draining mobile broken");
+      expect(res2.isOutOfScope, true);
+      expect(res2.confidence, 0.0);
+    });
+
+    test("Correctly rejects automobiles (car, bike, tyre puncture)", () {
+      final res = SymptomCatalog.matchSymptom("car tyre puncture on the road");
+      expect(res.isOutOfScope, true);
+      expect(res.confidence, 0.0);
+      expect(res.primaryCategory, "Out of Scope");
+    });
+
+    test("Correctly rejects food delivery & restaurant requests", () {
+      final res = SymptomCatalog.matchSymptom("order chicken biryani swiggy pizza delivery");
+      expect(res.isOutOfScope, true);
+      expect(res.confidence, 0.0);
+    });
+
+    test("Correctly rejects healthcare & medicines", () {
+      final res = SymptomCatalog.matchSymptom("fever cough medicine doctor prescription");
+      expect(res.isOutOfScope, true);
+      expect(res.confidence, 0.0);
+    });
+
+    test("Correctly rejects pets & veterinary care", () {
+      final res = SymptomCatalog.matchSymptom("my dog has fever and need pet clinic");
+      expect(res.isOutOfScope, true);
+      expect(res.confidence, 0.0);
+    });
+
+    test("Correctly rejects clothing & tailoring requests", () {
+      final res = SymptomCatalog.matchSymptom("t-shirt stitch and jeans alteration tailor");
+      expect(res.isOutOfScope, true);
+      expect(res.confidence, 0.0);
+    });
+
+    test("Correctly rejects beauty & salon requests", () {
+      final res = SymptomCatalog.matchSymptom("haircut and facial at salon");
+      expect(res.isOutOfScope, true);
+      expect(res.confidence, 0.0);
+    });
+
+    test("Zero blind fallback: Unrecognized queries strictly return Out of Scope, never guessing Electrician", () {
+      final res = SymptomCatalog.matchSymptom("completely random unknown gibberish text xyz123");
+      expect(res.isOutOfScope, true);
+      expect(res.confidence, 0.0);
+      expect(res.primaryCategory, "Out of Scope");
+      expect(res.equipmentTag, "Unrecognized / Non-Household Service");
+      expect(res.requiresSmartDiagnosticVisit, false);
+      expect(res.suggestedToolsNeeded, isEmpty);
     });
   });
 

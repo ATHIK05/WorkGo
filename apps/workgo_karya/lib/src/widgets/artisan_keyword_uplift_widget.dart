@@ -9,12 +9,45 @@ import '../karya_theme.dart';
 class ArtisanKeywordUpliftWidget extends StatefulWidget {
   final Worker worker;
   final VoidCallback? onKeywordsUpdated;
+  final bool isOffcanvasMode;
 
   const ArtisanKeywordUpliftWidget({
     super.key,
     required this.worker,
     this.onKeywordsUpdated,
+    this.isOffcanvasMode = false,
   });
+
+  /// Calculates real profile match strength (0.0 to 1.0)
+  static double calculateMatchStrength(Worker worker) {
+    double score = 0.25; // Base registration
+    if (worker.isApproved) score += 0.25;
+    if (worker.skills.isNotEmpty) score += 0.15;
+    final tagBonus = (worker.equipmentTags.length * 0.05).clamp(0.0, 0.20);
+    score += tagBonus;
+    final kwBonus = (worker.serviceKeywords.length * 0.05).clamp(0.0, 0.15);
+    score += kwBonus;
+    return score.clamp(0.0, 1.0);
+  }
+
+  /// Opens an offcanvas bottom sheet for managing equipment tags & service keywords
+  static Future<void> showOffcanvas({
+    required BuildContext context,
+    required Worker worker,
+    VoidCallback? onKeywordsUpdated,
+  }) {
+    HapticFeedback.mediumImpact();
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: const Color(0x66000000),
+      builder: (ctx) => _ArtisanKeywordOffcanvasSheet(
+        worker: worker,
+        onKeywordsUpdated: onKeywordsUpdated,
+      ),
+    );
+  }
 
   @override
   State<ArtisanKeywordUpliftWidget> createState() => _ArtisanKeywordUpliftWidgetState();
@@ -215,63 +248,67 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
     final suggestions = _availableSuggestions;
 
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: KX.dividerLight),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 12,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
+      padding: widget.isOffcanvasMode ? EdgeInsets.zero : const EdgeInsets.all(18),
+      decoration: widget.isOffcanvasMode
+          ? null
+          : BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: KX.dividerLight),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x06000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with AI icon
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: KX.violet.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+          if (!widget.isOffcanvasMode) ...[
+            // Header with AI icon
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: KX.violet.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.psychology_rounded,
+                    color: KX.amber,
+                    size: 20,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.psychology_rounded,
-                  color: KX.amber,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'AI Match Strength & Equipment Tags',
-                      style: WorkGoFonts.heading(
-                        color: KX.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI Match Strength & Equipment Tags',
+                        style: WorkGoFonts.heading(
+                          color: KX.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Tag your machinery & specialized tools to receive targeted dispatch',
-                      style: WorkGoFonts.body(
-                        color: KX.textSecondary,
-                        fontSize: 11.5,
+                      Text(
+                        'Tag your machinery & specialized tools to receive targeted dispatch',
+                        style: WorkGoFonts.body(
+                          color: KX.textSecondary,
+                          fontSize: 11.5,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
 
           // Strength Bar & Percentage
           Row(
@@ -480,3 +517,124 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
     );
   }
 }
+
+/// Offcanvas Bottom Sheet for managing Artisan Equipment Tags & Service Keywords
+class _ArtisanKeywordOffcanvasSheet extends StatelessWidget {
+  final Worker worker;
+  final VoidCallback? onKeywordsUpdated;
+
+  const _ArtisanKeywordOffcanvasSheet({
+    required this.worker,
+    this.onKeywordsUpdated,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (ctx, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFFFAF9F6),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 24,
+                offset: Offset(0, -6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Subtle Drag Handle
+              const SizedBox(height: 12),
+              Container(
+                width: 44,
+                height: 4.5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Offcanvas Top Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141416),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.psychology_rounded,
+                        color: KX.gold,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Specializations & Tools",
+                            style: WorkGoFonts.heading(
+                              color: KX.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            "Offcanvas Equipment & Triage Manager",
+                            style: WorkGoFonts.body(
+                              color: KX.textSecondary,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: KX.textSecondary, size: 20),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: Color(0xFFE2E8F0)),
+
+              // Scrollable Uplift Widget with keyboard safe padding
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: EdgeInsets.fromLTRB(
+                    18,
+                    16,
+                    18,
+                    MediaQuery.of(ctx).viewInsets.bottom + 28,
+                  ),
+                  child: ArtisanKeywordUpliftWidget(
+                    worker: worker,
+                    isOffcanvasMode: true,
+                    onKeywordsUpdated: () {
+                      onKeywordsUpdated?.call();
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+

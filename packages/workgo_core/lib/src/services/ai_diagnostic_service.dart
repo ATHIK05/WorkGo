@@ -69,6 +69,42 @@ Supported craft trades:
 - "Masonry"
 - "Welder / Metal"
 
+Trade & Equipment Classification Rules:
+1. "Electrician":
+   - Household Fans: Ceiling fan, table fan, exhaust fan, pedestal fan, regulator ("fan not working", "fan slow", "pankha", "kaathadi") -> equipmentTag: "Ceiling Fan / Home Appliance". NEVER classify as "Air Conditioner".
+   - Power & Safety: Switchboard, MCB tripping, fuse blown, wire sparking, electric shocks, earth leakage, Inverter & battery backup.
+2. "Plumber":
+   - Piping & Fixtures: Concealed pipe leak, dripping tap/faucet, broken angle cock, shower mixer, toilet cistern flush.
+   - Drainage: Clogged sink, choked toilet, blocked bathroom floor trap, stagnant sewer water ("adaipu", "water standing").
+3. "Appliance Repair":
+   - Cooling & Thermal: Refrigerator/Fridge (ice buildup, not cooling), Air Conditioner (only if user specifies AC/cooling gas/split unit), Geyser / Water Heater (leaks or cold water), Microwave Oven.
+   - Motorized Kitchen & Home: Washing Machine, Mixer Grinder (overload trip, coupler jammed, smoke), RO Water Purifier.
+4. "Carpenter":
+   - Doors & Locks: Main door key stuck, lock cylinder jammed ("pootu", "saavi", "darwaza"), door dragging on floor, loose hinges.
+   - Furniture & Cabinets: Wardrobe drawer sliders, modular kitchen hinges, wooden bed/table/sofa fixing.
+5. "Painter":
+   - Surface & Coatings: Wall paint flaking/peeling, damp patches, putty touch-up, waterproofing, exterior/interior emulsion ("sunnam", "vannam", "safedi").
+6. "Cleaning":
+   - Specialized Deep Cleaning: Bathroom tile acid descaling, kitchen chimney grease jetting, sofa/mattress shampooing, full house sanitization.
+7. "Welder / Metal":
+   - Metal & Fabrication: Iron main gate broken hinge, balcony safety grill loose, rolling shutter stuck, metal railing welding ("irumbu", "loha").
+8. "Masonry":
+   - Civil, Tiles & Cement: Broken or hollow floor/wall tiles, re-grouting, cement plaster chipping/cracks, brickwork, granite/marble slab chipping ("kothanar", "mistri", "patthar").
+9. Kitchen Gas Stove & Hob:
+   - Under "Appliance Repair": LPG brass burner clogged, yellow flame, gas leak odor, auto-ignition spark failure ("gas aduppu", "chulha").
+
+Disambiguation Rules:
+- Refrigerator water leak: "Appliance Repair" (defrost drain clog), NOT "Plumber".
+- AC indoor unit water drip: "Appliance Repair" (condensate drain line), NOT "Plumber".
+- Ceiling fan, table fan, exhaust fan: "Electrician" (Ceiling Fan / Home Appliance), NEVER "Air Conditioner".
+- Water motor / borewell pump: "Electrician" & "Plumber" cross-disciplinary, NOT general appliance.
+
+Negative / Out-of-Scope Rule:
+If the user's input refers to non-household services (such as stationery like "pen broken", personal electronics like "phone screen/laptop", vehicles like "car/bike puncture", food orders, medicine, clothing, salon, tutoring, banking, or unrecognized gibberish):
+You MUST classify as:
+"primaryCategory": "Out of Scope", "confidence": 0.0, "equipmentTag": "Non-Household Service", "requiresSmartDiagnosticVisit": false, "diagnosticFee": 0.0, "isOutOfScope": true.
+NEVER guess or fall back to Electrician, Plumber, or any trade for out-of-scope or non-household requests.
+
 For cross-disciplinary issues (e.g. Water motor failure which could be an electrical capacitor/winding failure OR a plumbing foot-valve/suction blockage; or AC not cooling which could be appliance gas leak OR electrician PCB power surge):
 1. Identify primaryCategory (the most logical first responder).
 2. Identify secondaryCategory (the cross-skill peer who may need to assist).
@@ -76,13 +112,13 @@ For cross-disciplinary issues (e.g. Water motor failure which could be an electr
 4. Provide 1 clarifying question with 2-3 specific options to help the customer disambiguate.
 5. Provide 3-5 specific equipment and service keywords (e.g. "Submersible Pump", "Foot Valve", "Capacitor", "Inverter").
 
-7. Suggest 3-5 specific tactical inspection tools, testing meters, and equipment needed by the artisan on-site (e.g. ["Manifold Gauge", "Capacitor Tester", "Nitrogen Leak Detector", "Multimeter"]).
+6. Suggest 3-5 specific tactical inspection tools, testing meters, and equipment needed by the artisan on-site (e.g. ["Manifold Gauge", "Capacitor Tester", "Nitrogen Leak Detector", "Multimeter"]).
 
 Output ONLY valid JSON with keys:
 {
   "primaryCategory": string,
   "secondaryCategory": string or null,
-  "confidence": number between 0.5 and 0.98,
+  "confidence": number between 0.0 and 0.98,
   "equipmentTag": string,
   "summary": string,
   "likelyCauses": [string, string, ...],
@@ -98,7 +134,8 @@ Output ONLY valid JSON with keys:
   "suggestedKeywords": [string, string, ...],
   "suggestedToolsNeeded": [string, string, ...],
   "requiresSmartDiagnosticVisit": boolean,
-  "diagnosticFee": 99.0
+  "diagnosticFee": number,
+  "isOutOfScope": boolean
 }
 '''),
     );
@@ -111,13 +148,14 @@ Output ONLY valid JSON with keys:
     if (rawJson == null || rawJson.trim().isEmpty) return null;
 
     final parsed = jsonDecode(rawJson) as Map<String, dynamic>;
+    final isOutOfScope = parsed['isOutOfScope'] as bool? ?? (parsed['primaryCategory'] == 'Out of Scope');
 
     return DiagnosticResult(
       symptomQuery: query,
       primaryCategory: parsed['primaryCategory'] as String? ?? 'Electrician',
       secondaryCategory: parsed['secondaryCategory'] as String?,
-      confidence: (parsed['confidence'] as num?)?.toDouble() ?? 0.85,
-      equipmentTag: parsed['equipmentTag'] as String? ?? 'Home Appliance',
+      confidence: (parsed['confidence'] as num?)?.toDouble() ?? (isOutOfScope ? 0.0 : 0.85),
+      equipmentTag: parsed['equipmentTag'] as String? ?? (isOutOfScope ? 'Non-Household Service' : 'Home Appliance'),
       summary: parsed['summary'] as String? ?? 'AI Diagnostic analysis completed.',
       likelyCauses: (parsed['likelyCauses'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
       clarifyingQuestions: (parsed['clarifyingQuestions'] as List<dynamic>?)
@@ -126,9 +164,10 @@ Output ONLY valid JSON with keys:
           const [],
       suggestedKeywords: (parsed['suggestedKeywords'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
       suggestedToolsNeeded: (parsed['suggestedToolsNeeded'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
-      requiresSmartDiagnosticVisit: parsed['requiresSmartDiagnosticVisit'] as bool? ?? true,
-      diagnosticFee: 99.0,
+      requiresSmartDiagnosticVisit: isOutOfScope ? false : (parsed['requiresSmartDiagnosticVisit'] as bool? ?? true),
+      diagnosticFee: isOutOfScope ? 0.0 : ((parsed['diagnosticFee'] as num?)?.toDouble() ?? 99.0),
       isAiGenerated: true,
+      isOutOfScope: isOutOfScope,
     );
   }
 

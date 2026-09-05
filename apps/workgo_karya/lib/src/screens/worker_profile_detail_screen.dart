@@ -215,12 +215,11 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   _buildMetricStatsRow(worker),
                   const SizedBox(height: 18),
 
-                  // AI Match Strength & Equipment Specializations Hub
-                  ArtisanKeywordUpliftWidget(
-                    worker: worker,
-                    onKeywordsUpdated: () => setState(() {}),
-                  ),
-                  const SizedBox(height: 20),
+                  // AI Match Strength & Equipment Specializations Card (Exclusive to Profile when match score >= 85%)
+                  if (ArtisanKeywordUpliftWidget.calculateMatchStrength(worker) >= 0.85) ...[
+                    _buildAiMatchStrengthProfileCard(worker),
+                    const SizedBox(height: 18),
+                  ],
 
                   // Menu Matrix List Cards
                   _buildMenuMatrix(worker),
@@ -501,10 +500,194 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     );
   }
 
+  Widget _buildAiMatchStrengthProfileCard(Worker worker) {
+    final matchScore = ArtisanKeywordUpliftWidget.calculateMatchStrength(worker);
+    final matchPercent = (matchScore * 100).round();
+    final tags = worker.equipmentTags;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.35), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A10B981),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD1FAE5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.psychology_rounded,
+                  color: Color(0xFF065F46),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            "AI Match Strength",
+                            style: WorkGoFonts.heading(
+                              color: KX.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            "$matchPercent% ELITE",
+                            style: const TextStyle(
+                              color: Color(0xFF065F46),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "Priority Symptom Triage Active",
+                      style: WorkGoFonts.body(
+                        color: KX.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => ArtisanKeywordUpliftWidget.showOffcanvas(
+                  context: context,
+                  worker: worker,
+                  onKeywordsUpdated: () => setState(() {}),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141416),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.tune_rounded, size: 13, color: KX.gold),
+                      SizedBox(width: 4),
+                      Text(
+                        "Manage",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (tags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                ...tags.take(3).map(
+                  (tag) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF10B981)),
+                        const SizedBox(width: 4),
+                        Text(
+                          tag,
+                          style: WorkGoFonts.body(
+                            color: KX.textPrimary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (tags.length > 3)
+                  GestureDetector(
+                    onTap: () => ArtisanKeywordUpliftWidget.showOffcanvas(
+                      context: context,
+                      worker: worker,
+                      onKeywordsUpdated: () => setState(() {}),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAF5FF),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE9D5FF)),
+                      ),
+                      child: Text(
+                        "+${tags.length - 3} more",
+                        style: WorkGoFonts.body(
+                          color: const Color(0xFF7E22CE),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildMenuMatrix(Worker worker) {
     final area = worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : (worker.baseArea ?? "Erode Central");
     final skillsStr = worker.skills.isNotEmpty ? worker.skills.take(2).join(', ') : "General Trades";
     final isKycApproved = worker.verificationStatus == VerificationStatus.approved;
+    final matchScore = ArtisanKeywordUpliftWidget.calculateMatchStrength(worker);
+    final matchPercent = (matchScore * 100).round();
 
     return Container(
       decoration: BoxDecoration(
@@ -543,6 +726,22 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   onProfileUpdated: () => setState(() {}),
                 ),
               ),
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
+          _buildMenuItem(
+            icon: Icons.psychology_rounded,
+            title: "Equipment & Specializations",
+            subtitle: matchPercent >= 85
+                ? "$matchPercent% Strength · Priority Triage Active"
+                : "$matchPercent% Strength · Add equipment to reach 85%+",
+            badgeColor: matchPercent >= 85 ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
+            badgeTextColor: matchPercent >= 85 ? const Color(0xFF065F46) : const Color(0xFF92400E),
+            badgeText: matchPercent >= 85 ? "$matchPercent% ELITE" : "$matchPercent%",
+            onTap: () => ArtisanKeywordUpliftWidget.showOffcanvas(
+              context: context,
+              worker: worker,
+              onKeywordsUpdated: () => setState(() {}),
             ),
           ),
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),

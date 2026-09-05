@@ -1,4 +1,4 @@
-﻿import "package:auto_size_text/auto_size_text.dart";
+import "package:auto_size_text/auto_size_text.dart";
 import "package:flutter/material.dart";
 
 /// The ONLY text widget to use across all WorkGo apps.
@@ -14,6 +14,7 @@ class SafeText extends StatelessWidget {
     this.enableAutoShrink = false,
     this.textAlign,
     this.minFontSize = 10.0,
+    this.stepGranularity = 1.0,
   });
 
   final String text;
@@ -26,6 +27,7 @@ class SafeText extends StatelessWidget {
   final bool enableAutoShrink;
   final TextAlign? textAlign;
   final double minFontSize;
+  final double stepGranularity;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class SafeText extends StatelessWidget {
         maxLines: maxLines,
         overflow: overflow,
         minFontSize: minFontSize,
+        stepGranularity: stepGranularity,
         textAlign: textAlign,
       );
     }

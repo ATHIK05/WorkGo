@@ -1200,6 +1200,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       fontWeight: FontWeight.w800,
                       fontSize: 11.5,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF141416),
@@ -1854,12 +1856,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
-                                      'book_pro_now'.tr(),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
+                                    Flexible(
+                                      child: Text(
+                                        'book_pro_now'.tr(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     const SizedBox(width: 4),

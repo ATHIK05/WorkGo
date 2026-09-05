@@ -463,26 +463,30 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
 
                   // Diagnostic Result View
                   if (_diagnosis != null && !_isAnalyzing) ...[
-                    _buildDiagnosticReportCard(_diagnosis!),
-                    const SizedBox(height: 16),
-
-                    // Micro-Triage Clarifying Questions (if present)
-                    if (_diagnosis!.clarifyingQuestions.isNotEmpty) ...[
-                      _buildClarifyingQuestionsSection(_diagnosis!),
+                    if (_diagnosis!.isOutOfScope) ...[
+                      _buildOutOfScopeReportCard(_diagnosis!),
+                    ] else ...[
+                      _buildDiagnosticReportCard(_diagnosis!),
                       const SizedBox(height: 16),
+
+                      // Micro-Triage Clarifying Questions (if present)
+                      if (_diagnosis!.clarifyingQuestions.isNotEmpty) ...[
+                        _buildClarifyingQuestionsSection(_diagnosis!),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Detailed Observations & Problem Notes
+                      _buildDetailedObservationsInput(),
+                      const SizedBox(height: 16),
+
+                      // ₹99 Smart Diagnostic Guarantee Card
+                      _buildDiagnosticGuaranteeCard(_diagnosis!),
+                      const SizedBox(height: 20),
+
+                      // Curated Top Recommended Specialists Carousel
+                      _buildRecommendedSpecialistsSection(_diagnosis!),
+                      const SizedBox(height: 24),
                     ],
-
-                    // Detailed Observations & Problem Notes
-                    _buildDetailedObservationsInput(),
-                    const SizedBox(height: 16),
-
-                    // ₹99 Smart Diagnostic Guarantee Card
-                    _buildDiagnosticGuaranteeCard(_diagnosis!),
-                    const SizedBox(height: 20),
-
-                    // Curated Top Recommended Specialists Carousel
-                    _buildRecommendedSpecialistsSection(_diagnosis!),
-                    const SizedBox(height: 24),
                   ],
                 ],
               ),
@@ -491,107 +495,117 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
 
           // Bottom Action Bar
           if (_diagnosis != null)
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: const Border(top: BorderSide(color: CX.dividerLight)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+            _diagnosis!.isOutOfScope
+                ? _buildOutOfScopeBottomBar()
+                : Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: const Border(top: BorderSide(color: CX.dividerLight)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                '₹99',
-                                style: WorkGoFonts.heading(
-                                  color: CX.textPrimary,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      '₹99',
+                                      style: WorkGoFonts.heading(
+                                        color: CX.textPrimary,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: CX.emerald.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          'credited_100'.tr(),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: WorkGoFonts.body(
+                                            color: CX.emerald,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: CX.emerald.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'credited_100'.tr(),
+                                Text(
+                                  'smart_diagnostic_inspection'.tr(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: WorkGoFonts.body(
-                                    color: CX.emerald,
+                                    color: CX.textSecondary,
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                          Text(
-                            'smart_diagnostic_inspection'.tr(),
-                            style: WorkGoFonts.body(
-                              color: CX.textSecondary,
-                              fontSize: 11,
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: _isDispatching ? null : () => _bookDiagnosticVisit(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: CX.violet,
+                              foregroundColor: const Color(0xFF141416),
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 13,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            icon: _isDispatching
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF141416),
+                                    ),
+                                  )
+                                : const Icon(Icons.flash_on_rounded, size: 18),
+                            label: Text(
+                              _isDispatching ? 'dispatching_ellipsis'.tr() : 'book_diagnostic'.tr(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: WorkGoFonts.body(
+                                color: const Color(0xFF141416),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13.5,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    ElevatedButton.icon(
-                      onPressed: _isDispatching ? null : () => _bookDiagnosticVisit(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: CX.violet,
-                        foregroundColor: const Color(0xFF141416),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: _isDispatching
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF141416),
-                              ),
-                            )
-                          : const Icon(Icons.flash_on_rounded, size: 18),
-                      label: Text(
-                        _isDispatching ? 'dispatching_ellipsis'.tr() : 'book_diagnostic'.tr(),
-                        style: WorkGoFonts.body(
-                          color: const Color(0xFF141416),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                  ),
         ],
       ),
     );
@@ -801,6 +815,230 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildOutOfScopeReportCard(DiagnosticResult diag) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.info_outline_rounded,
+                  color: Color(0xFFD97706),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Request Outside Service Scope',
+                      style: WorkGoFonts.heading(
+                        color: const Color(0xFF92400E),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'WorkGo connects verified local artisans exclusively for residential & facility trades.',
+                      style: WorkGoFonts.body(
+                        color: const Color(0xFFB45309),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.highlight_off_rounded, color: Color(0xFFEF4444), size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Query: "${diag.symptomQuery}"',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: WorkGoFonts.body(
+                          color: CX.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  diag.summary,
+                  style: WorkGoFonts.body(
+                    color: CX.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'Supported Residential Trades:',
+            style: WorkGoFonts.heading(
+              color: const Color(0xFF92400E),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: const [
+              'Electrician',
+              'Plumber',
+              'Appliance Repair',
+              'Carpenter',
+              'Painter',
+              'Cleaning',
+              'Welder / Metal',
+              'Masonry',
+            ].map((trade) {
+              return ActionChip(
+                backgroundColor: Colors.white,
+                side: BorderSide(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                avatar: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFFD97706), size: 14),
+                label: Text(
+                  trade,
+                  style: WorkGoFonts.body(
+                    color: const Color(0xFF78350F),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onPressed: () {
+                  final queryMap = {
+                    'Electrician': 'Fan not working, tripping MCB',
+                    'Plumber': 'Pipe leaking, tap dripping',
+                    'Appliance Repair': 'Fridge not cooling, washing machine not draining',
+                    'Carpenter': 'Door lock jammed, key stuck',
+                    'Painter': 'Wall paint peeling, damp patches',
+                    'Cleaning': 'Bathroom tile cleaning, chimney descaling',
+                    'Welder / Metal': 'Gate hinge broken, grill loose',
+                    'Masonry': 'Floor tile broken, plaster cracking',
+                  };
+                  final sample = queryMap[trade] ?? trade;
+                  _searchCtrl.text = sample;
+                  _triggerDiagnosis(sample);
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOutOfScopeBottomBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: CX.dividerLight)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  const Icon(Icons.block_rounded, color: Color(0xFFEF4444), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Dispatch Unavailable for this Item',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: WorkGoFonts.body(
+                        color: CX.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                _searchCtrl.clear();
+                setState(() {
+                  _diagnosis = null;
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: CX.amberDark,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: Text(
+                'Try Another Search',
+                style: WorkGoFonts.body(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

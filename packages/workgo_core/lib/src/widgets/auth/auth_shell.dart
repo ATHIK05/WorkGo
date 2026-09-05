@@ -378,7 +378,7 @@ class _AuthShellState extends State<AuthShell>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               enableAutoShrink: true,
-                              minFontSize: 9.5,
+                              minFontSize: 9.0,
                             ),
                           ),
                         ],

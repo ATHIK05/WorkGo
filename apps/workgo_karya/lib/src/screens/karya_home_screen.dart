@@ -13,7 +13,6 @@ import 'worker_earnings_screen.dart';
 import 'worker_profile_detail_screen.dart';
 import 'daily_face_verification_screen.dart';
 import '../widgets/karya_spotlight_tour.dart';
-import '../widgets/artisan_keyword_uplift_widget.dart';
 import '../widgets/handoff_acknowledgment_dialog.dart';
 
 class KaryaHomeScreen extends StatefulWidget {
@@ -42,9 +41,14 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   final WorkerService _workerService = WorkerService();
   final BookingService _bookingService = BookingService();
   int _currentNavIndex = 0;
-  int _selectedDayIndex = 3; // Today default
+  int _weekOffset = 0;
+  DateTime _selectedDate = DateTime.now();
   late AnimationController _radarCtrl;
   static bool _hasPromptedThisSession = false;
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
 
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _keyQuickShiftBar = GlobalKey();
@@ -888,18 +892,6 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                 child: _buildTacticalActionGrid(context, worker),
               ),
             ),
-            const SizedBox(height: 18),
-
-            // ── 7. Artisan AI Match Strength & Equipment Tagging Hub
-            KSlideFadeIn(
-              delay: const Duration(milliseconds: 110),
-              child: ArtisanKeywordUpliftWidget(
-                worker: worker,
-                onKeywordsUpdated: () {
-                  setState(() {});
-                },
-              ),
-            ),
           ],
         ),
       ),
@@ -1240,13 +1232,43 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         final completed =
             jobs.where((b) => b.status == BookingStatus.completed).toList();
 
-        final todayEarnings = completed.fold<double>(
+        // Dynamically filter jobs for the selected calendar date
+        final isToday = _isSameDay(_selectedDate, DateTime.now());
+        final isYesterday = _isSameDay(_selectedDate, DateTime.now().subtract(const Duration(days: 1)));
+        final isTomorrow = _isSameDay(_selectedDate, DateTime.now().add(const Duration(days: 1)));
+        final isFuture = _selectedDate.isAfter(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
+
+        final selectedDayCompleted = completed.where((b) {
+          final dt = b.completedAt ?? b.scheduledAt;
+          if (dt != null) {
+            return _isSameDay(dt, _selectedDate);
+          }
+          return isToday;
+        }).toList();
+
+        final selectedDayEarnings = selectedDayCompleted.fold<double>(
           0.0,
           (total, b) => total + (b.totalAmount * 0.98),
         );
 
         const dailyGoal = 2000.0;
-        final goalProgress = (todayEarnings / dailyGoal).clamp(0.0, 1.0);
+        final goalProgress = (selectedDayEarnings / dailyGoal).clamp(0.0, 1.0);
+
+        final cardTitle = isToday
+            ? "Daily challenge"
+            : isYesterday
+                ? "Yesterday's earnings"
+                : isTomorrow
+                    ? "Tomorrow's target"
+                    : isFuture
+                        ? "Forecast · ${DateFormat('EEE, d MMM').format(_selectedDate)}"
+                        : "Earnings · ${DateFormat('EEE, d MMM').format(_selectedDate)}";
+
+        final cardSubtitle = isToday
+            ? "Payout target: ₹2,000 today"
+            : isFuture
+                ? "Target: ₹2,000 · Planned shift"
+                : "Target: ₹2,000 · Shift log";
 
         return Container(
           width: double.infinity,
@@ -1274,7 +1296,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Daily challenge",
+                      cardTitle,
                       style: GoogleFonts.plusJakartaSans(
                         color: const Color(0xFF1E1035),
                         fontSize: 22,
@@ -1284,7 +1306,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      "Payout target: ₹2,000 today",
+                      cardSubtitle,
                       style: GoogleFonts.plusJakartaSans(
                         color: const Color(0xFF5B4D7A),
                         fontSize: 12.5,
@@ -1295,7 +1317,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     Row(
                       children: [
                         Text(
-                          "₹${todayEarnings.toInt()}",
+                          "₹${selectedDayEarnings.toInt()}",
                           style: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFF1E1035),
                             fontSize: 28,
@@ -1311,7 +1333,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            "${(goalProgress * 100).toInt()}% Done",
+                            "${(goalProgress * 100).toInt()}% ${isFuture ? 'Target' : 'Done'}",
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -1381,98 +1403,231 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   }
 
   // ──────────────────────────────────────────────────────────────
-  //  WEEKLY 7-DAY CALENDAR STRIP (Exact Reference Match)
+  //  WEEKLY 7-DAY CALENDAR STRIP (Dynamic Shifting & Interactive)
   // ──────────────────────────────────────────────────────────────
   Widget _buildWeeklyCalendarStrip() {
     final now = DateTime.now();
-    final sunday = now.subtract(Duration(days: now.weekday % 7));
+    final anchor = now.add(Duration(days: _weekOffset * 7));
+    final sunday = DateTime(anchor.year, anchor.month, anchor.day).subtract(Duration(days: anchor.weekday % 7));
     final weekDays = List.generate(7, (i) => sunday.add(Duration(days: i)));
     final dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    final monthLabel = DateFormat('MMMM yyyy').format(weekDays[3]);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(7, (index) {
-          final date = weekDays[index];
-          final isToday = date.day == now.day && date.month == now.month && date.year == now.year;
-          final isSelected = _selectedDayIndex == index;
-
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() => _selectedDayIndex = index);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected ? KX.dockBlack : Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: isSelected
-                      ? null
-                      : Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
-                  boxShadow: isSelected
-                      ? const [
-                          BoxShadow(
-                            color: Color(0x2B000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ]
-                      : const [
-                          BoxShadow(
-                            color: Color(0x06000000),
-                            blurRadius: 6,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Calendar Navigation Header (Month & Shifts)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10, left: 2, right: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected
-                            ? Colors.white
-                            : (isToday ? KX.gold : Colors.transparent),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
                     Text(
-                      dayNames[index],
+                      monthLabel,
                       style: GoogleFonts.plusJakartaSans(
-                        color: isSelected ? Colors.white70 : const Color(0xFF8E8E93),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "${date.day}",
-                      style: GoogleFonts.plusJakartaSans(
-                        color: isSelected ? Colors.white : KX.textPrimary,
-                        fontSize: 14,
+                        color: KX.textPrimary,
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (_weekOffset != 0) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            _weekOffset = 0;
+                            _selectedDate = DateTime.now();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: KX.dockBlack,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.today_rounded, size: 11, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text(
+                                "Today",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                // Navigation Chevrons
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          _weekOffset--;
+                          _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+                        });
+                      },
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 1)),
+                          ],
+                        ),
+                        child: const Icon(Icons.chevron_left_rounded, size: 18, color: KX.textPrimary),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          _weekOffset++;
+                          _selectedDate = _selectedDate.add(const Duration(days: 7));
+                        });
+                      },
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 1)),
+                          ],
+                        ),
+                        child: const Icon(Icons.chevron_right_rounded, size: 18, color: KX.textPrimary),
                       ),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-          );
-        }),
+          ),
+
+          // 7-Day Capsule Strip with Horizontal Gesture Swiping
+          GestureDetector(
+            onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity != null) {
+                if (details.primaryVelocity! < -180) {
+                  HapticFeedback.lightImpact();
+                  setState(() {
+                    _weekOffset++;
+                    _selectedDate = _selectedDate.add(const Duration(days: 7));
+                  });
+                } else if (details.primaryVelocity! > 180) {
+                  HapticFeedback.lightImpact();
+                  setState(() {
+                    _weekOffset--;
+                    _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+                  });
+                }
+              }
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(7, (index) {
+                final date = weekDays[index];
+                final isToday = _isSameDay(date, now);
+                final isSelected = _isSameDay(date, _selectedDate);
+
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _selectedDate = date);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? KX.dockBlack : Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: isSelected
+                            ? null
+                            : Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+                        boxShadow: isSelected
+                            ? const [
+                                BoxShadow(
+                                  color: Color(0x2B000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ]
+                            : const [
+                                BoxShadow(
+                                  color: Color(0x06000000),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isToday ? KX.gold : Colors.transparent),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            dayNames[index],
+                            style: GoogleFonts.plusJakartaSans(
+                              color: isSelected ? Colors.white70 : const Color(0xFF8E8E93),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "${date.day}",
+                            style: GoogleFonts.plusJakartaSans(
+                              color: isSelected ? Colors.white : KX.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // ──────────────────────────────────────────────────────────────
-  //  "YOUR PLAN" BENTO GRID SECTION (Inspired by Reference Image 1 & 2)
+  //  "YOUR PLAN" BENTO GRID SECTION (Dynamic Selected Date)
   // ──────────────────────────────────────────────────────────────
   Widget _buildYourPlanSection(BuildContext context, Worker worker) {
     return StreamBuilder<List<Booking>>(
@@ -1485,6 +1640,33 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         final hasRequest = requests.isNotEmpty;
         final topReq = hasRequest ? requests.first : null;
 
+        final isToday = _isSameDay(_selectedDate, DateTime.now());
+        final isTomorrow = _isSameDay(_selectedDate, DateTime.now().add(const Duration(days: 1)));
+        final isYesterday = _isSameDay(_selectedDate, DateTime.now().subtract(const Duration(days: 1)));
+        final isFuture = _selectedDate.isAfter(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
+
+        final planDateLabel = isToday
+            ? "Today"
+            : isTomorrow
+                ? "Tomorrow"
+                : isYesterday
+                    ? "Yesterday"
+                    : DateFormat('EEE, d MMM').format(_selectedDate);
+
+        final planTag = isToday
+            ? (hasRequest ? "Priority" : "Standby")
+            : isFuture
+                ? "Scheduled"
+                : "Shift Log";
+
+        final planTitle = isToday
+            ? (hasRequest
+                ? topReq!.serviceType.toLocalizedTrade()
+                : (worker.skills.isNotEmpty ? "${worker.skills.first} Shift" : "Artisan Standby"))
+            : isFuture
+                ? (worker.skills.isNotEmpty ? "${worker.skills.first} Shift" : "Planned Standby")
+                : (worker.skills.isNotEmpty ? "${worker.skills.first} Completed" : "Shift Logged");
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1492,7 +1674,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Your plan",
+                  "Your plan · $planDateLabel",
                   style: GoogleFonts.plusJakartaSans(
                     color: KX.textPrimary,
                     fontSize: 20,
@@ -1500,7 +1682,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     letterSpacing: -0.4,
                   ),
                 ),
-                if (hasRequest)
+                if (hasRequest && isToday)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
@@ -1556,7 +1738,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
-                                  hasRequest ? "Priority" : "Standby",
+                                  planTag,
                                   style: GoogleFonts.plusJakartaSans(
                                     color: const Color(0xFF92400E),
                                     fontSize: 10,
@@ -1568,7 +1750,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
                               // Title
                               Text(
-                                hasRequest ? topReq!.serviceType.toLocalizedTrade() : (worker.skills.isNotEmpty ? "${worker.skills.first} Shift" : "Artisan Standby"),
+                                planTitle,
                                 style: GoogleFonts.plusJakartaSans(
                                   color: const Color(0xFF1E1035),
                                   fontSize: 17,
@@ -1582,7 +1764,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
                               // Date & Time
                               Text(
-                                "${DateFormat('d MMM').format(DateTime.now())} · ${worker.workingHoursStart.to12HourTime()} - ${worker.workingHoursEnd.to12HourTime()}",
+                                "${DateFormat('EEE, d MMM').format(_selectedDate)} · ${worker.workingHoursStart.to12HourTime()} - ${worker.workingHoursEnd.to12HourTime()}",
                                 style: GoogleFonts.plusJakartaSans(
                                   color: const Color(0xFF78350F),
                                   fontSize: 11.5,
