@@ -104,7 +104,10 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
       final coords = await LocationService.instance.getCurrentCoordinates();
       final hardwareLat = (coords["latitude"] as num?)?.toDouble();
       final hardwareLng = (coords["longitude"] as num?)?.toDouble();
-      if (hardwareLat != null && hardwareLng != null && hardwareLat > 1.0 && mounted) {
+      if (hardwareLat != null &&
+          hardwareLng != null &&
+          !LocationService.isEmulatorOrOutOfBounds(hardwareLat, hardwareLng) &&
+          mounted) {
         setState(() {
           _customerLat = hardwareLat;
           _customerLng = hardwareLng;
@@ -112,8 +115,11 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
         return;
       }
 
-      // If already have valid coordinates from parent, retain them
-      if (_customerLat != null && _customerLng != null && _customerLat! > 1.0 && _customerLng! > 1.0) {
+      // If already have valid coordinates from parent, retain them if they are not emulator/Mumbai artifacts
+      if (_customerLat != null &&
+          _customerLng != null &&
+          !LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng) &&
+          !LocationService.isMumbaiGatewayArtifact(_customerLat, _customerLng)) {
         return;
       }
 
@@ -129,10 +135,19 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             (currAddr is Map ? (currAddr["latitude"] as num?)?.toDouble() : null);
         final lng = (data["longitude"] as num?)?.toDouble() ??
             (currAddr is Map ? (currAddr["longitude"] as num?)?.toDouble() : null);
-        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+        final addrText = (data["address"] as String?) ??
+            (currAddr is Map ? (currAddr["formattedAddress"] as String?) : null) ?? "";
+
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: addrText,
+          latitude: lat,
+          longitude: lng,
+        );
+
+        if (mounted) {
           setState(() {
-            _customerLat = lat;
-            _customerLng = lng;
+            _customerLat = sanitized["latitude"];
+            _customerLng = sanitized["longitude"];
           });
           return;
         }
@@ -149,27 +164,35 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
         final d = addrSnap.docs.first.data();
         final lat = (d["latitude"] as num?)?.toDouble();
         final lng = (d["longitude"] as num?)?.toDouble();
-        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+        final addrText = (d["formattedAddress"] as String?) ?? "";
+
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: addrText,
+          latitude: lat,
+          longitude: lng,
+        );
+
+        if (mounted) {
           setState(() {
-            _customerLat = lat;
-            _customerLng = lng;
+            _customerLat = sanitized["latitude"];
+            _customerLng = sanitized["longitude"];
           });
           return;
         }
       }
 
-      // 4. Default cooperative regional hub fallback
-      if ((_customerLat == null || _customerLat! <= 1.0) && mounted) {
+      // 4. Fallback to regional cooperative hub
+      if ((_customerLat == null || LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng)) && mounted) {
         setState(() {
-          _customerLat = 11.3445;
-          _customerLng = 77.7327;
+          _customerLat = 11.3410;
+          _customerLng = 77.7172;
         });
       }
     } catch (_) {
-      if ((_customerLat == null || _customerLat! <= 1.0) && mounted) {
+      if ((_customerLat == null || LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng)) && mounted) {
         setState(() {
-          _customerLat = 11.3445;
-          _customerLng = 77.7327;
+          _customerLat = 11.3410;
+          _customerLng = 77.7172;
         });
       }
     }
@@ -607,7 +630,6 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
           workers = workers.where((w) {
             return w.name.toLowerCase().contains(query) ||
                 w.skills.any((s) => s.toLowerCase().contains(query)) ||
-                (w.phoneForCalling?.contains(query) ?? false) ||
                 w.id.toLowerCase().contains(query);
           }).toList();
         }

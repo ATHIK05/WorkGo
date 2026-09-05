@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
@@ -22,6 +24,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
   late double _experience;
   late double _serviceRadius;
   late Set<String> _selectedSkills;
+  late TextEditingController _phoneController;
   bool _isSaving = false;
 
   final List<String> _availableSkills = [
@@ -55,6 +58,15 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     _selectedSkills = widget.worker.skills.isNotEmpty
         ? widget.worker.skills.toSet()
         : {"Plumbing", "Carpentry"};
+    _phoneController = TextEditingController(
+      text: widget.worker.phoneForCalling?.replaceFirst('+91', '') ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> _saveProfile() async {
@@ -72,13 +84,38 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     setState(() => _isSaving = true);
     final workerService = WorkerService();
 
+    final phoneRaw = _phoneController.text.trim();
+    final normalizedPhone = phoneRaw.startsWith('+91')
+        ? phoneRaw
+        : (phoneRaw.isNotEmpty ? '+91$phoneRaw' : null);
+
     final updated = widget.worker.copyWith(
       skills: _selectedSkills.toList(),
       experienceYears: _experience.toInt(),
       serviceRadiusKm: _serviceRadius,
+      phoneForCalling: normalizedPhone,
     );
 
     await workerService.upsertWorkerProfile(updated);
+
+    if (normalizedPhone != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.worker.userId)
+            .set({
+          'phoneNumber': normalizedPhone,
+        }, SetOptions(merge: true));
+        await FirebaseFirestore.instance
+            .collection('workers')
+            .doc(widget.worker.id)
+            .set({
+          'phoneForCalling': normalizedPhone,
+          'phone': normalizedPhone,
+          'phoneNumber': normalizedPhone,
+        }, SetOptions(merge: true));
+      } catch (_) {}
+    }
 
     if (mounted) {
       setState(() => _isSaving = false);
@@ -179,7 +216,105 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                     onChanged: (val) => setState(() => _serviceRadius = val),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
+
+                // Contact Phone Number Card
+                KSlideFadeIn(
+                  delay: const Duration(milliseconds: 120),
+                  child: KaryaCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.phone_android_rounded,
+                              color: Color(0xFFD97706),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'contact_phone'.tr(),
+                                style: WorkGoFonts.heading(
+                                  color: KX.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: KX.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                              child: Text(
+                                "+91",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: KX.textPrimary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            hintText: 'phone_number_hint'.tr(),
+                            hintStyle: TextStyle(
+                              color: KX.textMuted.withValues(alpha: 0.8),
+                              fontSize: 13,
+                            ),
+                            filled: true,
+                            fillColor: KX.canvas,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFD97706),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) {
+                              return 'error_phone_empty'.tr();
+                            }
+                            final digits = val.replaceAll(RegExp(r'\D'), '');
+                            if (digits.length != 10) {
+                              return 'error_phone_invalid'.tr();
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // Save CTA
                 KSlideFadeIn(

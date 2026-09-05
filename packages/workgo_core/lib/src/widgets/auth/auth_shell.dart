@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -135,8 +136,9 @@ class _AuthShellState extends State<AuthShell>
   Future<void> _handleSignUp(
     String name,
     String email,
-    String password,
-  ) async {
+    String password, [
+    String? phone,
+  ]) async {
     final currentLang = context.locale.languageCode;
     setState(() {
       _isLoading = true;
@@ -155,6 +157,7 @@ class _AuthShellState extends State<AuthShell>
         uid: uid,
         email: email,
         displayName: name,
+        phoneNumber: phone,
         photoUrl: cred.user?.photoURL,
         role: widget.role,
         preferredLanguage: currentLang,
@@ -162,6 +165,19 @@ class _AuthShellState extends State<AuthShell>
       );
 
       await _authService.upsertUser(appUser);
+
+      // If signing up as artisan, persist phoneForCalling to worker document as well
+      if (widget.role == UserRole.worker && phone != null && phone.isNotEmpty) {
+        try {
+          await FirebaseFirestore.instance.collection('workers').doc(uid).set({
+            'userId': uid,
+            'name': name,
+            'phoneForCalling': phone,
+            'phone': phone,
+            'phoneNumber': phone,
+          }, SetOptions(merge: true));
+        } catch (_) {}
+      }
 
       if (mounted) {
         widget.onSuccess(appUser);
@@ -661,6 +677,8 @@ class _AuthShellState extends State<AuthShell>
                   key: const ValueKey('signUpForm'),
                   isLoading: _isLoading,
                   onSignUp: _handleSignUp,
+                  onSignUpWithPhone: (name, email, pwd, phone) =>
+                      _handleSignUp(name, email, pwd, phone),
                   onSwitchToSignIn: () {
                     setState(() {
                       _mode = AuthMode.signIn;

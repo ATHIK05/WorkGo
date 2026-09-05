@@ -94,7 +94,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
       if (hardwareLat != null &&
           hardwareLng != null &&
-          hardwareLat > 1.0 &&
+          !LocationService.isEmulatorOrOutOfBounds(hardwareLat, hardwareLng) &&
           mounted) {
         setState(() {
           _customerLat = hardwareLat;
@@ -132,10 +132,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             (currAddr is Map
                 ? (currAddr["longitude"] as num?)?.toDouble()
                 : null);
-        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+        final addrText = (data["address"] as String?) ??
+            (currAddr is Map ? (currAddr["formattedAddress"] as String?) : null) ?? "";
+
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: addrText,
+          latitude: lat,
+          longitude: lng,
+        );
+
+        if (mounted) {
           setState(() {
-            _customerLat = lat;
-            _customerLng = lng;
+            _customerLat = sanitized["latitude"];
+            _customerLng = sanitized["longitude"];
           });
           return;
         }
@@ -152,15 +161,38 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         final d = addrSnap.docs.first.data();
         final lat = (d["latitude"] as num?)?.toDouble();
         final lng = (d["longitude"] as num?)?.toDouble();
-        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+        final addrText = (d["formattedAddress"] as String?) ?? "";
+
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: addrText,
+          latitude: lat,
+          longitude: lng,
+        );
+
+        if (mounted) {
           setState(() {
-            _customerLat = lat;
-            _customerLng = lng;
+            _customerLat = sanitized["latitude"];
+            _customerLng = sanitized["longitude"];
           });
           return;
         }
       }
-    } catch (_) {}
+
+      // 4. Default cooperative regional hub fallback
+      if ((_customerLat == null || LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng)) && mounted) {
+        setState(() {
+          _customerLat = 11.3410;
+          _customerLng = 77.7172;
+        });
+      }
+    } catch (_) {
+      if ((_customerLat == null || LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng)) && mounted) {
+        setState(() {
+          _customerLat = 11.3410;
+          _customerLng = 77.7172;
+        });
+      }
+    }
   }
 
   Future<void> _checkAndPromptLocation() async {
@@ -3977,17 +4009,58 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   ],
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  user.email.isNotEmpty
-                      ? user.email
-                      : (user.phoneNumber ?? "verified_patron".tr()),
-                  style: const TextStyle(
-                    color: Color(0xFF6B7280),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                if (user.email.isNotEmpty) ...[
+                  Text(
+                    user.email,
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 3),
+                ],
+                InkWell(
+                  onTap: () => _showEditPhoneDialog(context, user),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.phone_iphone_rounded,
+                          color: Color(0xFF10B981),
+                          size: 13,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            user.phoneNumber?.isNotEmpty == true
+                                ? user.phoneNumber!
+                                : 'add_phone_number'.tr(),
+                            style: TextStyle(
+                              color: user.phoneNumber?.isNotEmpty == true
+                                  ? const Color(0xFF374151)
+                                  : const Color(0xFF2563EB),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.edit_outlined,
+                          color: Color(0xFF9CA3AF),
+                          size: 12,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -4016,6 +4089,174 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _showEditPhoneDialog(BuildContext context, AppUser user) {
+    final phoneCtrl = TextEditingController(
+      text: user.phoneNumber?.replaceFirst('+91', '') ?? '',
+    );
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'edit_phone_number'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'contact_phone'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827),
+                    ),
+                    decoration: InputDecoration(
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        child: Text(
+                          "+91",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827),
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      hintText: 'phone_number_hint'.tr(),
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                      ),
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'error_phone_empty'.tr();
+                      }
+                      final digits = val.replaceAll(RegExp(r'\D'), '');
+                      if (digits.length != 10) {
+                        return 'error_phone_invalid'.tr();
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (formKey.currentState?.validate() ?? false) {
+                        final raw = phoneCtrl.text.trim();
+                        final normalized = raw.startsWith('+91') ? raw : '+91$raw';
+                        try {
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .update({
+                            'phoneNumber': normalized,
+                          });
+                        } catch (_) {}
+                        if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'profile_updated_toast'.tr(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFF059669),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(
+                      'save_phone_number'.tr(),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -5569,97 +5810,94 @@ class _BookingListTile extends StatelessWidget {
                   ),
                 )
               else if (isCompleted)
-                Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Invoice & Receipt Button
-                      Flexible(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            HapticFeedback.lightImpact();
-                            final receiptWorker =
-                                (booking.acceptedWorkerName?.isNotEmpty ==
-                                        true &&
-                                    booking.acceptedWorkerName!.toLowerCase() !=
-                                        'artisan')
-                                ? booking.acceptedWorkerName!
-                                : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => PaymentReceiptScreen(
-                                  booking: booking,
-                                  workerName: receiptWorker,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(
-                            Icons.receipt_long_rounded,
-                            color: Color(0xFF2563EB),
-                            size: 13,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Invoice & Receipt Button
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        final receiptWorker =
+                            (booking.acceptedWorkerName?.isNotEmpty ==
+                                    true &&
+                                booking.acceptedWorkerName!.toLowerCase() !=
+                                    'artisan')
+                            ? booking.acceptedWorkerName!
+                            : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PaymentReceiptScreen(
+                              booking: booking,
+                              workerName: receiptWorker,
+                              isReceiptOnly: true,
+                            ),
                           ),
-                          label: Text(
-                            "receipt".tr(),
-                            style: const TextStyle(
-                              color: Color(0xFF2563EB),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.receipt_long_rounded,
+                        color: Color(0xFF2563EB),
+                        size: 13,
+                      ),
+                      label: Text(
+                        "receipt".tr(),
+                        style: const TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFBFDBFE)),
+                        backgroundColor: const Color(0xFFEFF6FF),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        minimumSize: const Size(0, 34),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    if (onBookAgain != null) ...[
+                      const SizedBox(width: 6),
+                      ElevatedButton.icon(
+                        onPressed: onBookAgain,
+                        icon: const Icon(
+                          Icons.replay_rounded,
+                          color: Colors.white,
+                          size: 13,
+                        ),
+                        label: Text(
+                          "book_again".tr(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
                           ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFBFDBFE)),
-                            backgroundColor: const Color(0xFFEFF6FF),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 6,
-                            ),
-                            minimumSize: const Size(0, 36),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF141416),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          minimumSize: const Size(0, 34),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
-                      if (onBookAgain != null) ...[
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: ElevatedButton.icon(
-                            onPressed: onBookAgain,
-                            icon: const Icon(
-                              Icons.replay_rounded,
-                              color: Colors.white,
-                              size: 13,
-                            ),
-                            label: Text(
-                              "book_again".tr(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF141416),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              minimumSize: const Size(0, 36),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
             ],
           ),

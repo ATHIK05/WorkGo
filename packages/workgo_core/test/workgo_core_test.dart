@@ -314,6 +314,48 @@ void main() {
     expect(completedBooking.startedAt, startedTime);
     expect(completedBooking.completedAt, completedTime);
   });
+
+  test("Booking model stores and retrieves proofPhotoBase64 and c2paManifest", () {
+    const testBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    final manifestMap = {
+      "manifestId": "c2pa_test_123",
+      "workerId": "w_test_01",
+      "artisanName": "Karthik Raja",
+      "trade": "Plumbing",
+      "assetSha256": "c9a70718b825c27655a97e11b64827888c56e604d51d247e233ccc1ac210fe3d",
+      "signature": "RSA-PSS-SHA256:TEST_SIG",
+      "signedAt": DateTime.now().toIso8601String(),
+      "signingAuthority": "WorkGo Platform Hardware KMS · SIH2026",
+      "isAuthentic": true,
+    };
+
+    final booking = Booking(
+      id: "b_proof_01",
+      customerId: "c_01",
+      workerId: "w_01",
+      organizationId: "org_01",
+      serviceType: "Plumbing",
+      status: BookingStatus.completed,
+      proofPhotoBase64: testBase64,
+      c2paManifest: manifestMap,
+    );
+
+    expect(booking.hasProofPhoto, isTrue);
+    expect(booking.proofPhotoBase64, testBase64);
+    expect(booking.c2paManifest, isNotNull);
+    expect(booking.parsedC2paManifest, isNotNull);
+    expect(booking.parsedC2paManifest!.manifestId, "c2pa_test_123");
+    expect(booking.parsedC2paManifest!.artisanName, "Karthik Raja");
+    expect(booking.parsedC2paManifest!.assetSha256, "c9a70718b825c27655a97e11b64827888c56e604d51d247e233ccc1ac210fe3d");
+
+    final firestoreMap = booking.toFirestore();
+    expect(firestoreMap["proofPhotoBase64"], testBase64);
+    expect(firestoreMap["c2paManifest"], manifestMap);
+
+    final copied = booking.copyWith(proofPhotoBase64: "new_base_64");
+    expect(copied.proofPhotoBase64, "new_base_64");
+    expect(copied.c2paManifest, manifestMap);
+  });
 }
 
 

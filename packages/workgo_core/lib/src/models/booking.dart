@@ -1,4 +1,5 @@
 import "package:cloud_firestore/cloud_firestore.dart";
+import "c2pa_manifest_model.dart";
 
 enum BookingStatus { pending, accepted, inProgress, completed, cancelled }
 enum PaymentStatus { unpaid, paid, refunded }
@@ -29,9 +30,14 @@ class Booking {
   final String? customerAddressText;
   final double? customerLatitude;
   final double? customerLongitude;
+  final String? customerName;
+  final String? customerPhone;
+  final String? workerPhone;
   final bool deletedByCustomer;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final String? proofPhotoBase64;
+  final Map<String, dynamic>? c2paManifest;
 
   // AI Diagnostic & Specialist Handoff extensions
   final String bookingType; // 'direct', 'broadcast', 'diagnostic'
@@ -78,9 +84,14 @@ class Booking {
     this.customerAddressText,
     this.customerLatitude,
     this.customerLongitude,
+    this.customerName,
+    this.customerPhone,
+    this.workerPhone,
     this.deletedByCustomer = false,
     this.startedAt,
     this.completedAt,
+    this.proofPhotoBase64,
+    this.c2paManifest,
     this.bookingType = 'direct',
     this.symptomDescription,
     this.customerIssueDetails,
@@ -103,6 +114,9 @@ class Booking {
   double get totalAmount => amount + urgencyBonus;
   bool get isDiagnosticVisit => bookingType == 'diagnostic' || diagnosticFee > 0;
   bool get hasActiveHandoff => handoffStatus == 'requested' || handoffStatus == 'accepted';
+  bool get hasProofPhoto => proofPhotoBase64 != null && proofPhotoBase64!.isNotEmpty;
+  C2paManifestRecord? get parsedC2paManifest =>
+      c2paManifest != null ? C2paManifestRecord.fromMap(c2paManifest!) : null;
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
@@ -138,9 +152,14 @@ class Booking {
       customerAddressText: d["customerAddressText"],
       customerLatitude: (d["customerLatitude"] as num?)?.toDouble(),
       customerLongitude: (d["customerLongitude"] as num?)?.toDouble(),
+      customerName: d["customerName"] ?? d["userName"] ?? d["name"],
+      customerPhone: d["customerPhone"] ?? d["userPhone"] ?? d["phone"],
+      workerPhone: d["workerPhone"] ?? d["artisanPhone"] ?? d["phoneForCalling"],
       deletedByCustomer: d["deletedByCustomer"] ?? d["hiddenForCustomer"] ?? false,
       startedAt: (d["startedAt"] as Timestamp?)?.toDate(),
       completedAt: (d["completedAt"] as Timestamp?)?.toDate(),
+      proofPhotoBase64: d["proofPhotoBase64"] ?? d["completionPhotoBase64"] ?? d["photoBase64"],
+      c2paManifest: d["c2paManifest"] != null ? Map<String, dynamic>.from(d["c2paManifest"] as Map) : null,
       bookingType: d["bookingType"] ?? 'direct',
       symptomDescription: d["symptomDescription"],
       customerIssueDetails: d["customerIssueDetails"] ?? d["issueNotes"] ?? d["customerNotes"],
@@ -190,8 +209,13 @@ class Booking {
     "customerAddressText": customerAddressText,
     "customerLatitude": customerLatitude,
     "customerLongitude": customerLongitude,
+    "customerName": customerName,
+    "customerPhone": customerPhone,
+    "workerPhone": workerPhone,
     "startedAt": startedAt != null ? Timestamp.fromDate(startedAt!) : null,
     "completedAt": completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+    "proofPhotoBase64": proofPhotoBase64,
+    "c2paManifest": c2paManifest,
     "bookingType": bookingType,
     "symptomDescription": symptomDescription,
     "customerIssueDetails": customerIssueDetails,
@@ -237,9 +261,14 @@ class Booking {
     String? customerAddressText,
     double? customerLatitude,
     double? customerLongitude,
+    String? customerName,
+    String? customerPhone,
+    String? workerPhone,
     bool? deletedByCustomer,
     DateTime? startedAt,
     DateTime? completedAt,
+    String? proofPhotoBase64,
+    Map<String, dynamic>? c2paManifest,
     String? bookingType,
     String? symptomDescription,
     String? customerIssueDetails,
@@ -284,9 +313,14 @@ class Booking {
       customerAddressText: customerAddressText ?? this.customerAddressText,
       customerLatitude: customerLatitude ?? this.customerLatitude,
       customerLongitude: customerLongitude ?? this.customerLongitude,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      workerPhone: workerPhone ?? this.workerPhone,
       deletedByCustomer: deletedByCustomer ?? this.deletedByCustomer,
       startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
+      proofPhotoBase64: proofPhotoBase64 ?? this.proofPhotoBase64,
+      c2paManifest: c2paManifest ?? this.c2paManifest,
       bookingType: bookingType ?? this.bookingType,
       symptomDescription: symptomDescription ?? this.symptomDescription,
       customerIssueDetails: customerIssueDetails ?? this.customerIssueDetails,

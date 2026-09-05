@@ -35,6 +35,7 @@ dependencies:
   flutter_image_compress: ^2.4.0
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.1
+  flutter_tts: ^4.2.2
 
   # Biometric 3D Multi-Angle Liveness & Screen Flash Booster
   camera: ^0.11.1

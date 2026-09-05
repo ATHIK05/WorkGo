@@ -9,10 +9,12 @@ class PaymentReceiptScreen extends StatefulWidget {
     super.key,
     required this.booking,
     this.workerName = "Cooperative Artisan",
+    this.isReceiptOnly,
   });
 
   final Booking booking;
   final String workerName;
+  final bool? isReceiptOnly;
 
   @override
   State<PaymentReceiptScreen> createState() => _PaymentReceiptScreenState();
@@ -22,6 +24,25 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
   String _selectedMethod = "upi";
   bool _isProcessing = false;
   bool _isPaid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isPaid = widget.isReceiptOnly == true ||
+        widget.booking.paymentStatus == PaymentStatus.paid ||
+        (widget.booking.invoiceId != null && widget.booking.invoiceId!.isNotEmpty);
+  }
+
+  String _getLocalizedPaymentMode(String method) {
+    final m = method.trim().toLowerCase();
+    if (m.contains('cash')) {
+      return 'payment_mode_cash'.tr();
+    } else if (m.contains('card') || m.contains('netbanking')) {
+      return 'payment_mode_card'.tr();
+    } else {
+      return 'payment_mode_upi'.tr();
+    }
+  }
 
   Future<void> _processPayment() async {
     setState(() => _isProcessing = true);
@@ -161,16 +182,18 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.handshake_outlined, size: 14, color: Color(0xFF34D399)),
+                  const Icon(Icons.handshake_outlined, size: 14, color: Color(0xFF059669)),
                   const SizedBox(width: 6),
                   Expanded(
                     child: SafeText(
                       'cooperative_dividend_note'.tr(),
                       style: const TextStyle(
-                        color: Color(0xFF34D399),
+                        color: Color(0xFF059669),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -211,7 +234,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
           title: 'cash_payment_title'.tr(),
           subtitle: 'cash_payment_sub'.tr(),
           icon: Icons.money_rounded,
-          color: const Color(0xFF34D399),
+          color: const Color(0xFF10B981),
         ),
         const SizedBox(height: WorkGoSpacing.xl),
 
@@ -261,6 +284,8 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 SafeText(
                   subtitle,
@@ -268,17 +293,39 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                     color: WorkGoColors.textSecondary.withValues(alpha: 0.65),
                     fontSize: 12,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          Container(width: 22, height: 22, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: isSelected ? color : const Color(0xFFE5E0D8), width: 2), color: isSelected ? color : Colors.transparent), child: isSelected ? const Icon(Icons.check, size: 14, color: Color(0xFF1C1B2E)) : null),
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected ? color : const Color(0xFFE5E0D8),
+                width: 2,
+              ),
+              color: isSelected ? color : Colors.transparent,
+            ),
+            child: isSelected
+                ? const Icon(Icons.check, size: 14, color: Color(0xFF1C1B2E))
+                : null,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCostRow(String label, String value, {bool isHighlight = false, bool isBold = false}) {
+  Widget _buildCostRow(
+    String label,
+    String value, {
+    bool isHighlight = false,
+    bool isBold = false,
+    Color? valueColor,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -287,7 +334,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
             label,
             style: TextStyle(
               color: isHighlight
-                  ? const Color(0xFFF87171)
+                  ? const Color(0xFFDC2626)
                   : (isBold ? WorkGoColors.textPrimary : WorkGoColors.textSecondary),
               fontSize: isBold ? 15 : 13,
               fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
@@ -297,14 +344,19 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        SafeText(
-          value,
-          style: TextStyle(
-            color: isHighlight
-                ? const Color(0xFFF87171)
-                : (isBold ? WorkGoColors.accent : WorkGoColors.textPrimary),
-            fontSize: isBold ? 16 : 14,
-            fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
+        Flexible(
+          child: SafeText(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: isHighlight
+                  ? const Color(0xFFDC2626)
+                  : (valueColor ?? (isBold ? WorkGoColors.accent : WorkGoColors.textPrimary)),
+              fontSize: isBold ? 16 : 14,
+              fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -312,24 +364,43 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
   }
 
   Widget _buildReceiptView(BuildContext context, double totalAmount, double coopDividend) {
+    final deterministicTxnId = (widget.booking.invoiceId != null && widget.booking.invoiceId!.isNotEmpty)
+        ? widget.booking.invoiceId!
+        : "TXN-${widget.booking.id.toUpperCase().replaceAll('-', '').padRight(12, '0').substring(0, 12)}";
+
+    final safeBookingId = widget.booking.id.length >= 8
+        ? widget.booking.id.substring(0, 8).toUpperCase()
+        : widget.booking.id.toUpperCase();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Success Header
         GlassCard(
-          padding: const EdgeInsets.all(WorkGoSpacing.xl),
+          padding: const EdgeInsets.symmetric(horizontal: WorkGoSpacing.lg, vertical: WorkGoSpacing.xl),
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                width: 84,
+                height: 84,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: WorkGoColors.success.withValues(alpha: 0.2),
+                  color: const Color(0xFF10B981).withValues(alpha: 0.16),
                 ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: WorkGoColors.success,
-                  size: 56,
+                child: Center(
+                  child: Container(
+                    width: 58,
+                    height: 58,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF10B981),
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size: 34,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: WorkGoSpacing.md),
@@ -339,15 +410,22 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                   color: WorkGoColors.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               SafeText(
-                'booking_id'.tr(args: [widget.booking.id.substring(0, 8).toUpperCase()]),
+                'booking_id'.tr(args: [safeBookingId]),
                 style: TextStyle(
-                  color: WorkGoColors.textSecondary.withValues(alpha: 0.7),
+                  color: WorkGoColors.textSecondary.withValues(alpha: 0.8),
                   fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -380,7 +458,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               ),
               const Divider(color: Color(0xFFF0EDE6), height: 24),
               _buildCostRow('service_category_label'.tr(), widget.booking.serviceType.toLocalizedTrade()),
-              const SizedBox(height: 6),
+              const SizedBox(height: 10),
               _buildCostRow(
                 'assigned_artisan_label'.tr(),
                 MlTranslationService.instance.translateSync(
@@ -388,24 +466,42 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                   context.locale.languageCode,
                 ),
               ),
-              const SizedBox(height: 6),
-              _buildCostRow('payment_mode_label'.tr(), _selectedMethod.toUpperCase()),
-              const SizedBox(height: 6),
-              _buildCostRow('transaction_id_label'.tr(), "TXN-${DateTime.now().millisecondsSinceEpoch}"),
+              const SizedBox(height: 10),
+              _buildCostRow(
+                'payment_mode_label'.tr(),
+                _getLocalizedPaymentMode(_selectedMethod),
+              ),
+              const SizedBox(height: 10),
+              _buildCostRow('transaction_id_label'.tr(), deterministicTxnId),
               const Divider(color: Color(0xFFF0EDE6), height: 24),
-              _buildCostRow('amount_paid_label'.tr(), "₹${totalAmount.toStringAsFixed(0)}", isBold: true),
-              const SizedBox(height: 8),
+              _buildCostRow(
+                'amount_paid_label'.tr(),
+                "₹${totalAmount.toStringAsFixed(0)}",
+                isBold: true,
+                valueColor: const Color(0xFFD97706),
+              ),
+              const SizedBox(height: 14),
+
+              // Cooperative Worker Welfare Fund Callout
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF047857).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.4)),
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.shield_outlined, size: 16, color: Color(0xFF34D399)),
-                    const SizedBox(width: 8),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.verified_user_rounded,
+                        size: 18,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: SafeText(
                         'coop_welfare_contribution'.tr(args: [
@@ -416,10 +512,13 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                           ),
                         ]),
                         style: const TextStyle(
-                          color: Color(0xFF34D399),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF065F46),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          height: 1.4,
                         ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

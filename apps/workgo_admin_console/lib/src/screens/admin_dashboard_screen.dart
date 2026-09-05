@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -146,6 +147,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 children: [
                   // Top Global Glass Navigation Bar
                   _buildTopAppBar(context, isDesktop: isDesktop),
+
+                  // Global Real-Time SOS Emergency Beacon Stream
+                  _buildGlobalSosEmergencyBanner(context),
 
                   // Active Module Content Area
                   Expanded(
@@ -581,8 +585,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             
             // STRICT PAYMENT STATUS VERIFICATION:
             final settledBookings = bookings.where((b) => b.paymentStatus == PaymentStatus.paid).toList();
-            final realizedVolume = settledBookings.fold<double>(0.0, (sum, b) => sum + b.amount);
-            final pendingVolume = bookings.where((b) => b.paymentStatus != PaymentStatus.paid).fold<double>(0.0, (sum, b) => sum + b.amount);
+            final realizedVolume = settledBookings.fold<double>(0.0, (total, b) => total + b.amount);
+            final pendingVolume = bookings.where((b) => b.paymentStatus != PaymentStatus.paid).fold<double>(0.0, (total, b) => total + b.amount);
             
             // 2% Cooperative Welfare Fund strictly from settled payments
             final welfareCorpus = realizedVolume * 0.02;
@@ -1073,5 +1077,421 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ],
       ),
     );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  //  GLOBAL REAL-TIME SOS EMERGENCY BEACON ALERT BANNER
+  // ───────────────────────────────────────────────────────────────────────────
+  Widget _buildGlobalSosEmergencyBanner(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('emergency_beacons')
+          .where('status', isEqualTo: 'active')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: Color(0xFFFEF2F2),
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFFCA5A5), width: 1.5),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>? ?? {};
+              final workerName = (data['workerName'] as String?)?.trim().isNotEmpty == true
+                  ? (data['workerName'] as String).trim()
+                  : 'Artisan in Distress';
+              final workerPhone = (data['workerPhone'] as String?)?.trim() ?? '';
+              final address = (data['address'] as String?)?.trim().isNotEmpty == true
+                  ? (data['address'] as String).trim()
+                  : 'Location not reported';
+              final lat = (data['latitude'] as num?)?.toDouble();
+              final lng = (data['longitude'] as num?)?.toDouble();
+
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFEF4444), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 700;
+                    return isCompact
+                        ? _buildCompactSosCard(context, doc.id, workerName, workerPhone, address, lat, lng)
+                        : _buildWideSosCard(context, doc.id, workerName, workerPhone, address, lat, lng);
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWideSosCard(
+    BuildContext context,
+    String docId,
+    String workerName,
+    String workerPhone,
+    String address,
+    double? lat,
+    double? lng,
+  ) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEF4444),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.emergency_rounded, color: Colors.white, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'sos_admin_beacon_title'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFF991B1B),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.4,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      workerName,
+                      style: const TextStyle(
+                        color: Color(0xFF1F2937),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  const Icon(Icons.location_on_rounded, size: 12, color: Color(0xFF6B7280)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      address,
+                      style: const TextStyle(
+                        color: Color(0xFF4B5563),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _buildCallButton(workerPhone),
+            _buildMapButton(address, lat, lng),
+            _buildResolveButton(context, docId, workerName),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactSosCard(
+    BuildContext context,
+    String docId,
+    String workerName,
+    String workerPhone,
+    String address,
+    double? lat,
+    double? lng,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.emergency_rounded, color: Colors.white, size: 16),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'sos_admin_beacon_title'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF991B1B),
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    workerName,
+                    style: const TextStyle(
+                      color: Color(0xFF1F2937),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Icon(Icons.location_on_rounded, size: 12, color: Color(0xFF6B7280)),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                address,
+                style: const TextStyle(
+                  color: Color(0xFF4B5563),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: _buildCallButton(workerPhone)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildMapButton(address, lat, lng)),
+            const SizedBox(width: 8),
+            _buildResolveButton(context, docId, workerName),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCallButton(String workerPhone) {
+    final hasPhone = workerPhone.trim().isNotEmpty;
+    return ElevatedButton.icon(
+      onPressed: hasPhone
+          ? () async {
+              final uri = Uri.parse('tel:${workerPhone.trim()}');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+            }
+          : null,
+      icon: const Icon(Icons.phone_in_talk_rounded, size: 14),
+      label: Text(
+        hasPhone ? workerPhone.trim() : 'call_artisan'.tr(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFEF4444),
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: const Color(0xFFFCA5A5),
+        disabledForegroundColor: Colors.white70,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+      ),
+    );
+  }
+
+  Widget _buildMapButton(String address, double? lat, double? lng) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        Uri? uri;
+        if (lat != null && lng != null) {
+          uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+        } else if (address.isNotEmpty) {
+          uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}');
+        }
+        if (uri != null && await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      icon: const Icon(Icons.near_me_rounded, size: 14),
+      label: Text(
+        'sos_admin_open_maps'.tr(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF991B1B),
+        side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  Widget _buildResolveButton(BuildContext context, String docId, String workerName) {
+    return OutlinedButton.icon(
+      onPressed: () => _confirmResolveBeacon(context, docId, workerName),
+      icon: const Icon(Icons.check_circle_rounded, size: 14),
+      label: Text(
+        'sos_resolve'.tr(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF047857),
+        side: const BorderSide(color: Color(0xFF6EE7B7), width: 1.2),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  Future<void> _confirmResolveBeacon(BuildContext context, String docId, String workerName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFECFDF5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.verified_rounded, color: Color(0xFF059669), size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'sos_admin_resolved_confirm'.tr(),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'sos_admin_resolved_body'.tr(args: [workerName]),
+          style: const TextStyle(fontSize: 13.5, color: Color(0xFF4B5563)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'cancel_btn'.tr().isNotEmpty ? 'cancel_btn'.tr() : 'Cancel',
+              style: const TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF059669),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            child: Text(
+              'sos_resolve'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await FirebaseFirestore.instance.collection('emergency_beacons').doc(docId).update({
+          'status': 'resolved',
+          'resolvedAt': FieldValue.serverTimestamp(),
+          'resolvedBy': widget.user.uid,
+        });
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Emergency beacon marked resolved for $workerName.'),
+              backgroundColor: const Color(0xFF059669),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error resolving beacon: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }

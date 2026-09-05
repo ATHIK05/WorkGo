@@ -189,10 +189,17 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
         setState(() => _targetRect = rect);
       }
     } else {
-      if (_retryCount < 5) {
+      if (_retryCount < 15) {
         _retryCount++;
-        await Future.delayed(const Duration(milliseconds: 70));
+        await Future.delayed(const Duration(milliseconds: 80));
         if (mounted) _calculateCurrentTargetPosition();
+      } else {
+        // Widget still not rendered — auto-skip to avoid blank overlay
+        if (mounted && _currentIndex < widget.targets.length - 1) {
+          _activateTarget(_currentIndex + 1);
+        } else if (mounted) {
+          _finishTour();
+        }
       }
     }
   }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +27,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
   String _selectedCity = "Chennai";
   final TextEditingController _streetAreaCtrl = TextEditingController();
   final TextEditingController _pincodeCtrl = TextEditingController();
+  late final TextEditingController _phoneCtrl;
   double _latitude = 13.0827;
   double _longitude = 80.2707;
   String _formattedAddress = "";
@@ -85,6 +87,9 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
     _serviceRadiusKm = widget.worker.serviceRadiusKm.clamp(1.0, 30.0);
     _workingHoursStart = widget.worker.workingHoursStart;
     _workingHoursEnd = widget.worker.workingHoursEnd;
+    _phoneCtrl = TextEditingController(
+      text: widget.worker.phoneForCalling?.replaceFirst('+91', '') ?? '',
+    );
 
     // Detect GPS location on screen launch
     _autoDetectGps();
@@ -94,6 +99,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
   void dispose() {
     _streetAreaCtrl.dispose();
     _pincodeCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
   }
 
@@ -173,9 +179,15 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
         createdAt: DateTime.now(),
       );
 
+      final phoneRaw = _phoneCtrl.text.trim();
+      final normalizedPhone = phoneRaw.startsWith('+91')
+          ? phoneRaw
+          : (phoneRaw.isNotEmpty ? '+91$phoneRaw' : widget.worker.phoneForCalling);
+
       final updated = widget.worker.copyWith(
         skills: _selectedSkills.toList(),
         serviceRadiusKm: _serviceRadiusKm,
+        phoneForCalling: normalizedPhone,
         preferredAreas: [_selectedCity, detailedAreaSummary],
         baseArea: detailedAreaSummary,
         baseAddress: defaultBaseAddress,
@@ -190,6 +202,17 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
       await _workerService.upsertWorkerProfile(updated);
 
+      if (normalizedPhone != null) {
+        try {
+          await FirebaseFirestore.instance
+              .collection("users")
+              .doc(widget.worker.userId)
+              .set({
+            "phoneNumber": normalizedPhone,
+          }, SetOptions(merge: true));
+        } catch (_) {}
+      }
+
       // Save complete address to subcollection and top-level fields
       final locationService = LocationService();
       await locationService.saveAddress(widget.worker.userId, defaultBaseAddress, collection: "workers");
@@ -202,6 +225,9 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
       await FirebaseFirestore.instance.collection("workers").doc(widget.worker.id).set({
         "hasCompletedOnboarding": true,
         "skills": _selectedSkills.toList(),
+        "phoneForCalling": normalizedPhone,
+        "phone": normalizedPhone,
+        "phoneNumber": normalizedPhone,
         "serviceLocation": detailedAreaSummary,
         "primaryArea": detailedAreaSummary,
         "baseAddress": defaultBaseAddress.toMap(),
@@ -541,6 +567,49 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                       decoration: InputDecoration(
                         hintText: "e.g. 638001",
+                        hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
+                        filled: true,
+                        fillColor: KX.canvasElevated,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: KX.glassBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: KX.glassBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: KX.gold, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Calling Phone Number Input
+                    Text(
+                      'contact_phone'.tr(),
+                      style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _phoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                      decoration: InputDecoration(
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          child: Text(
+                            "+91",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: KX.textPrimary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        hintText: 'phone_number_hint'.tr(),
                         hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
                         filled: true,
                         fillColor: KX.canvasElevated,

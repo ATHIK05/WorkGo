@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
+import '../services/karya_tts_service.dart';
 import 'active_job_screen.dart';
 
 class IncomingRequestsScreen extends StatefulWidget {
@@ -869,8 +870,11 @@ class _LuminaRequestCard extends StatelessWidget {
                     await service.acceptBooking(
                       booking.id,
                       worker.id,
-                      workerName: worker.phoneForCalling ?? "Artisan",
+                      workerName: worker.name,
+                      workerPhone: worker.phoneForCalling,
                     );
+                    // Voice guidance announcement
+                    KaryaTtsService.instance.announceJobAccepted(booking);
                     if (context.mounted) {
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(

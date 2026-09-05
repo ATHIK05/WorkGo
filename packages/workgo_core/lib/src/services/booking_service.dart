@@ -55,6 +55,8 @@ class BookingService {
     String? customerAddressText,
     double? customerLatitude,
     double? customerLongitude,
+    String? customerName,
+    String? customerPhone,
     String? customerIssueDetails,
   }) async {
     final docRef = _db.collection("bookings").doc();
@@ -84,6 +86,8 @@ class BookingService {
       customerAddressText: customerAddressText,
       customerLatitude: customerLatitude,
       customerLongitude: customerLongitude,
+      customerName: customerName,
+      customerPhone: customerPhone,
       customerIssueDetails: customerIssueDetails,
     );
 
@@ -210,6 +214,7 @@ class BookingService {
     String bookingId,
     String workerId, {
     String? workerName,
+    String? workerPhone,
     double? initialWorkerLat,
     double? initialWorkerLng,
   }) async {
@@ -218,6 +223,9 @@ class BookingService {
       "acceptedWorkerName": workerName,
       "status": BookingStatus.accepted.name,
     };
+    if (workerPhone != null && workerPhone.isNotEmpty) {
+      updateData["workerPhone"] = workerPhone;
+    }
     if (initialWorkerLat != null && initialWorkerLng != null) {
       updateData["workerLatitude"] = initialWorkerLat;
       updateData["workerLongitude"] = initialWorkerLng;
@@ -296,6 +304,21 @@ class BookingService {
     } else if (status == BookingStatus.completed) {
       updateData["completedAt"] = FieldValue.serverTimestamp();
     }
+    await _db.collection("bookings").doc(bookingId).update(updateData);
+  }
+
+  /// Completes the booking with C2PA photographic proof and cryptographic manifest.
+  Future<void> completeBookingWithProof({
+    required String bookingId,
+    required String proofPhotoBase64,
+    required Map<String, dynamic> c2paManifest,
+  }) async {
+    final Map<String, dynamic> updateData = {
+      "status": BookingStatus.completed.name,
+      "completedAt": FieldValue.serverTimestamp(),
+      "proofPhotoBase64": proofPhotoBase64,
+      "c2paManifest": c2paManifest,
+    };
     await _db.collection("bookings").doc(bookingId).update(updateData);
   }
 

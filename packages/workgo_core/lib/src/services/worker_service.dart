@@ -6,6 +6,7 @@ import '../api_client/workgo_api_client.dart';
 import '../models/worker.dart';
 import '../models/verification_audit_model.dart';
 import 'aadhaar_offline_parser.dart';
+import 'location_service.dart';
 
 class WorkerService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -110,6 +111,10 @@ class WorkerService {
 
   /// Update worker's live GPS coordinates in Firestore.
   Future<void> updateWorkerLocation(String workerId, double latitude, double longitude) async {
+    if (LocationService.isEmulatorOrOutOfBounds(latitude, longitude)) {
+      debugPrint("WorkerService: Suppressing out-of-bounds/emulator coordinates ($latitude, $longitude) for worker $workerId");
+      return;
+    }
     await _db.collection("workers").doc(workerId).update({
       "latitude": latitude,
       "longitude": longitude,

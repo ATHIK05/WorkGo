@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -340,6 +341,61 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+
+            // Contact Mobile Phone Row
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => WorkerProfileSetupScreen(
+                    worker: worker,
+                    onProfileUpdated: () => setState(() {}),
+                  ),
+                ),
+              ),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7).withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.phone_android_rounded,
+                      size: 13,
+                      color: Color(0xFFD97706),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        (worker.phoneForCalling?.isNotEmpty == true)
+                            ? worker.phoneForCalling!
+                            : (widget.user.phoneNumber?.isNotEmpty == true
+                                ? widget.user.phoneNumber!
+                                : 'add_phone_number'.tr()),
+                        style: const TextStyle(
+                          color: Color(0xFF92400E),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 12,
+                      color: Color(0xFFB45309),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 14),
 

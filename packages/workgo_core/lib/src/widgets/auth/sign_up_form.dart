@@ -8,11 +8,13 @@ class SignUpForm extends StatefulWidget {
   const SignUpForm({
     super.key,
     required this.onSignUp,
+    this.onSignUpWithPhone,
     required this.onSwitchToSignIn,
     required this.isLoading,
   });
 
   final Future<void> Function(String name, String email, String password) onSignUp;
+  final Future<void> Function(String name, String email, String password, String phone)? onSignUpWithPhone;
   final VoidCallback onSwitchToSignIn;
   final bool isLoading;
 
@@ -24,6 +26,7 @@ class _SignUpFormState extends State<SignUpForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -31,9 +34,21 @@ class _SignUpFormState extends State<SignUpForm> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'error_phone_empty'.tr();
+    }
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 10) {
+      return 'error_phone_invalid'.tr();
+    }
+    return null;
   }
 
   String? _validateName(String? value) {
@@ -76,11 +91,24 @@ class _SignUpFormState extends State<SignUpForm> {
 
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
-      widget.onSignUp(
-        _nameController.text.trim(),
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
+      final phoneRaw = _phoneController.text.trim();
+      final normalizedPhone = phoneRaw.startsWith('+91')
+          ? phoneRaw
+          : (phoneRaw.isNotEmpty ? '+91$phoneRaw' : '');
+      if (widget.onSignUpWithPhone != null) {
+        widget.onSignUpWithPhone!(
+          _nameController.text.trim(),
+          _emailController.text.trim(),
+          _passwordController.text,
+          normalizedPhone,
+        );
+      } else {
+        widget.onSignUp(
+          _nameController.text.trim(),
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+      }
     }
   }
 
@@ -137,6 +165,19 @@ class _SignUpFormState extends State<SignUpForm> {
             keyboardType: TextInputType.emailAddress,
             autofillHints: const [AutofillHints.email],
             validator: _validateEmail,
+            enabled: !widget.isLoading,
+          ),
+          const SizedBox(height: WorkGoSpacing.md),
+
+          // Mobile Phone Number Field
+          AuthTextField(
+            controller: _phoneController,
+            labelText: 'phone_number'.tr(),
+            hintText: 'phone_number_hint'.tr(),
+            prefixIcon: Icons.phone_android_rounded,
+            keyboardType: TextInputType.phone,
+            autofillHints: const [AutofillHints.telephoneNumber],
+            validator: _validatePhone,
             enabled: !widget.isLoading,
           ),
           const SizedBox(height: WorkGoSpacing.md),
