@@ -39,6 +39,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
   C2paManifestRecord? _c2paManifest;
   String? _capturedPhotoBase64;
   StreamSubscription<Position>? _activeJobGpsSub;
+  bool _hasAnnouncedCompletion = false;
 
   @override
   void initState() {
@@ -48,6 +49,10 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         : widget.booking.status;
     _c2paManifest = widget.booking.parsedC2paManifest;
     _capturedPhotoBase64 = widget.booking.proofPhotoBase64;
+    if (widget.booking.status == BookingStatus.completed &&
+        widget.booking.paymentStatus == PaymentStatus.paid) {
+      _hasAnnouncedCompletion = true;
+    }
 
     _pulseCtrl = AnimationController(
       vsync: this,
@@ -523,8 +528,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         base64Data: base64String,
       );
 
-      // Atomically complete booking with Base64 photo proof & C2PA manifest in Firestore
-      await _bookingService.completeBookingWithProof(
+      // Atomically submit Base64 photo proof & C2PA manifest in Firestore, transitioning to paymentPending
+      await _bookingService.submitWorkProof(
         bookingId: widget.booking.id,
         proofPhotoBase64: base64String,
         c2paManifest: manifest.toMap(),
@@ -536,12 +541,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
           _isSigningC2pa = false;
           _c2paManifest = manifest;
           _capturedPhotoBase64 = base64String;
-          _currentStatus = BookingStatus.completed;
+          _currentStatus = BookingStatus.paymentPending;
         });
-
-        // TTS: mission complete
-        final earned = widget.booking.amount * 0.98;
-        KaryaTtsService.instance.announceJobComplete(earned);
 
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -552,14 +553,14 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    "Completed • C2PA Sealed • ₹${earned.toStringAsFixed(0)} credited",
+                    "${'work_completed_payment_due'.tr()} • ₹${widget.booking.amount.toStringAsFixed(0)}",
                     style: WorkGoFonts.body(color: Colors.white),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            backgroundColor: const Color(0xFF047857),
+            backgroundColor: const Color(0xFFD97706),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
@@ -581,6 +582,157 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
     }
   }
 
+  Future<void> _showConfirmCashModal(Booking booking) async {
+    if (!mounted) return;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.payments_rounded, color: Color(0xFF059669), size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "confirm_cash_modal_title".tr(),
+                            style: WorkGoFonts.display(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF141416),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "confirm_cash_modal_desc".tr(args: [booking.totalAmount.toStringAsFixed(0)]),
+                            style: WorkGoFonts.body(
+                              fontSize: 13,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          side: const BorderSide(color: Color(0xFFD1D5DB)),
+                        ),
+                        child: Text(
+                          "cancel".tr(),
+                          style: WorkGoFonts.display(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF4B5563),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: Text(
+                          "confirm_cash_received".tr(),
+                          style: WorkGoFonts.display(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await _bookingService.markPaymentComplete(
+          booking.id,
+          paymentMethod: "cash",
+        );
+        HapticFeedback.heavyImpact();
+        if (mounted && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "cash_payment_received_snack".tr(),
+                      style: WorkGoFonts.body(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF047857),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error confirming cash: $e"), backgroundColor: Colors.redAccent),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Booking?>(
@@ -591,6 +743,16 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         final status = currentBooking.status;
         final effectiveManifest = currentBooking.parsedC2paManifest ?? _c2paManifest;
         final effectivePhoto = currentBooking.proofPhotoBase64 ?? _capturedPhotoBase64;
+
+        if (currentBooking.status == BookingStatus.completed &&
+            currentBooking.paymentStatus == PaymentStatus.paid &&
+            !_hasAnnouncedCompletion) {
+          _hasAnnouncedCompletion = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final earned = currentBooking.amount * 0.98;
+            KaryaTtsService.instance.announceJobComplete(earned);
+          });
+        }
 
         final shortId = currentBooking.id.length > 6
             ? currentBooking.id.substring(0, 6).toUpperCase()
@@ -630,6 +792,18 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                       delay: const Duration(milliseconds: 20),
                       child: _LiveJobProgressHUDCard(
                         startedAt: currentBooking.startedAt,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── Awaiting Customer Payment Card (When paymentPending)
+                  if (status == BookingStatus.paymentPending) ...[
+                    KSlideFadeIn(
+                      delay: const Duration(milliseconds: 20),
+                      child: _AwaitingPaymentCard(
+                        booking: currentBooking,
+                        onConfirmCash: () => _showConfirmCashModal(currentBooking),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -912,6 +1086,31 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
       );
     }
 
+    if (status == BookingStatus.paymentPending) {
+      return Column(
+        children: [
+          KaryaButton(
+            label: "${'confirm_cash_received'.tr()} (₹${currentBooking.totalAmount.toStringAsFixed(0)})",
+            icon: Icons.payments_rounded,
+            onPressed: () => _showConfirmCashModal(currentBooking),
+            gradient: KX.auroraAccept,
+            glowColor: const Color(0xFF10B981),
+            height: 50,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'awaiting_customer_payment'.tr(),
+            style: WorkGoFonts.body(
+              color: KX.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         KaryaButton(
@@ -965,22 +1164,31 @@ class _StatusStageBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isEnRoute = status == BookingStatus.accepted;
     final isInProgress = status == BookingStatus.inProgress;
+    final isPaymentPending = status == BookingStatus.paymentPending;
     final isCompleted = status == BookingStatus.completed;
 
+    final isEnRouteDone = isEnRoute || isInProgress || isPaymentPending || isCompleted;
+    final isInProgressDone = isInProgress || isPaymentPending || isCompleted;
+    final isPaymentDone = isPaymentPending || isCompleted;
+
     return KaryaCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       borderRadius: 16,
       child: Row(
         children: [
-          _stagePill("1. ${'status_accepted'.tr()}", isEnRoute || isInProgress || isCompleted, isEnRoute),
-          const SizedBox(width: 6),
-          _connector(isInProgress || isCompleted),
-          const SizedBox(width: 6),
-          _stagePill("2. ${'status_in_progress'.tr()}", isInProgress || isCompleted, isInProgress),
-          const SizedBox(width: 6),
+          _stagePill("1. ${'status_accepted'.tr()}", isEnRouteDone, isEnRoute),
+          const SizedBox(width: 4),
+          _connector(isInProgressDone),
+          const SizedBox(width: 4),
+          _stagePill("2. ${'status_in_progress'.tr()}", isInProgressDone, isInProgress),
+          const SizedBox(width: 4),
+          _connector(isPaymentDone),
+          const SizedBox(width: 4),
+          _stagePill("3. ${'status_payment_pending'.tr()}", isPaymentDone, isPaymentPending),
+          const SizedBox(width: 4),
           _connector(isCompleted),
-          const SizedBox(width: 6),
-          _stagePill("3. ${'status_completed'.tr()}", isCompleted, isCompleted),
+          const SizedBox(width: 4),
+          _stagePill("4. ${'status_completed'.tr()}", isCompleted, isCompleted),
         ],
       ),
     );
@@ -989,14 +1197,14 @@ class _StatusStageBar extends StatelessWidget {
   Widget _stagePill(String label, bool isDone, bool isCurrent) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
         decoration: BoxDecoration(
           color: isCurrent
               ? const Color(0xFFFEF3C7) // warm light amber
               : isDone
                   ? const Color(0xFFD1FAE5) // light emerald
                   : const Color(0xFFF3F4F6), // neutral light grey
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isCurrent
                 ? const Color(0xFFF59E0B) // amber border
@@ -1008,19 +1216,18 @@ class _StatusStageBar extends StatelessWidget {
         ),
         child: Text(
           label,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: isCurrent
                 ? const Color(0xFF92400E) // high-contrast dark amber
                 : isDone
                     ? const Color(0xFF065F46) // high-contrast dark emerald
-                    : const Color(0xFF4B5563), // high-contrast medium-dark grey
-            fontSize: 10.5,
-            fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w700,
+                    : const Color(0xFF6B7280), // neutral grey
+            fontSize: 9.5,
+            fontWeight: isCurrent || isDone ? FontWeight.w800 : FontWeight.w600,
           ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          softWrap: false,
         ),
       ),
     );
@@ -1031,6 +1238,116 @@ class _StatusStageBar extends StatelessWidget {
       width: 8,
       height: 2,
       color: active ? const Color(0xFFF59E0B) : const Color(0xFFD1D5DB),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  AWAITING CUSTOMER PAYMENT CARD (When paymentPending)
+// ──────────────────────────────────────────────────────────────
+class _AwaitingPaymentCard extends StatelessWidget {
+  const _AwaitingPaymentCard({
+    required this.booking,
+    required this.onConfirmCash,
+  });
+
+  final Booking booking;
+  final VoidCallback onConfirmCash;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: KX.canvasCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.6), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+            blurRadius: 14,
+            spreadRadius: 1,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFFD97706), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'awaiting_customer_payment'.tr(),
+                      style: WorkGoFonts.display(
+                        color: KX.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'customer_paying_digital'.tr(),
+                      style: WorkGoFonts.body(
+                        color: KX.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  "₹${booking.totalAmount.toStringAsFixed(0)}",
+                  style: WorkGoFonts.display(
+                    color: const Color(0xFF047857),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: onConfirmCash,
+            icon: const Icon(Icons.payments_rounded, color: Colors.white, size: 18),
+            label: Text(
+              'confirm_cash_received'.tr(),
+              style: WorkGoFonts.display(
+                color: Colors.white,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF059669),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1247,7 +1564,8 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     if ((widget.status == BookingStatus.accepted ||
-                            widget.status == BookingStatus.inProgress) &&
+                            widget.status == BookingStatus.inProgress ||
+                            widget.status == BookingStatus.paymentPending) &&
                         (_resolvedCustomerPhone?.isNotEmpty == true || booking.customerPhone?.isNotEmpty == true))
                       Text(
                         _resolvedCustomerPhone?.isNotEmpty == true
@@ -1265,7 +1583,8 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                 ),
               ),
               if ((widget.status == BookingStatus.accepted ||
-                      widget.status == BookingStatus.inProgress) &&
+                      widget.status == BookingStatus.inProgress ||
+                      widget.status == BookingStatus.paymentPending) &&
                   booking.customerPhone?.isNotEmpty == true) ...[
                 const SizedBox(width: 8),
                 GestureDetector(

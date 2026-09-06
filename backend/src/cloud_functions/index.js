@@ -92,8 +92,25 @@ async function handleBookingUpdated(bookingId, beforeData, afterData, db, messag
     }
   }
 
-  // 3. Worker arrived at doorstep & verified OTP (Status: accepted -> inProgress)
-  if (oldStatus === "accepted" && newStatus === "inProgress") {
+  // 3. Worker arrived at doorstep
+  if (oldStatus !== "arrived" && newStatus === "arrived") {
+    const workerName = afterData.acceptedWorkerName || "Artisan";
+    const startOtp = afterData.startOtp || "";
+    if (afterData.customerId) {
+      await engine.sendToUser(
+        afterData.customerId,
+        "WORKER_ARRIVED_DOORSTEP",
+        {
+          workerName,
+          startOtp,
+        },
+        { bookingId, startOtp }
+      );
+    }
+  }
+
+  // 4. Worker verified OTP & started work (Status: accepted/arrived -> inProgress)
+  if ((oldStatus === "accepted" || oldStatus === "arrived") && newStatus === "inProgress") {
     const workerName = afterData.acceptedWorkerName || "Artisan";
     if (afterData.customerId) {
       await engine.sendToUser(
@@ -108,7 +125,7 @@ async function handleBookingUpdated(bookingId, beforeData, afterData, db, messag
     }
   }
 
-  // 4. Job completed with C2PA hardware photo proof (Status: inProgress -> completed)
+  // 5. Job completed with C2PA hardware photo proof (Status: inProgress -> completed)
   if (oldStatus === "inProgress" && newStatus === "completed") {
     const totalAmount = (afterData.amount || 0) + (afterData.urgencyBonus || 0);
 
@@ -125,7 +142,37 @@ async function handleBookingUpdated(bookingId, beforeData, afterData, db, messag
     }
   }
 
-  // 5. Payment completed (PaymentStatus: unpaid -> paid)
+  // 6. Booking cancelled (Status -> cancelled)
+  if (oldStatus !== "cancelled" && newStatus === "cancelled") {
+    const cancelledBy = afterData.cancelledBy || "customer";
+    const reason = afterData.cancellationReason || "No reason specified";
+
+    if (cancelledBy === "customer" && afterData.workerId) {
+      // Notify Artisan that customer cancelled
+      await engine.sendToUser(
+        afterData.workerId,
+        "BOOKING_CANCELLED_BY_CUSTOMER",
+        {
+          bookingId,
+          reason,
+        },
+        { bookingId, reason }
+      );
+    } else if (cancelledBy === "worker" && afterData.customerId) {
+      // Notify Customer that artisan cancelled
+      await engine.sendToUser(
+        afterData.customerId,
+        "BOOKING_CANCELLED_BY_WORKER",
+        {
+          bookingId,
+          reason,
+        },
+        { bookingId, reason }
+      );
+    }
+  }
+
+  // 7. Payment completed (PaymentStatus: unpaid -> paid)
   if (beforeData.paymentStatus !== "paid" && afterData.paymentStatus === "paid") {
     const totalAmount = (afterData.amount || 0) + (afterData.urgencyBonus || 0);
     const dividend = (totalAmount * 0.05).toFixed(0);
@@ -214,40 +261,67 @@ async function handleWorkerVerificationUpdated(workerId, beforeData, afterData, 
 function initFirestoreNotificationListeners(db, messaging) {
   console.log("[Render CloudFunctions] Initializing real-time Firestore notification daemon...");
 
+  const lastBookingCache = new Map();
+  const lastWorkerCache = new Map();
+  let isInitialBookingsLoad = true;
+  let isInitialWorkersLoad = true;
+
   // 1. Listen to Bookings collection
-  db.collection("bookings").onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach(async (change) => {
-      const doc = change.doc;
-      const data = doc.data();
-
-      if (change.type === "added") {
-        // Only trigger if created in the last 60 seconds (prevents cold-start burst)
-        const scheduledAt = data.scheduledAt ? data.scheduledAt.toDate() : new Date();
-        const diffMs = Date.now() - scheduledAt.getTime();
-        if (diffMs < 60000 && data.status === "pending") {
-          await handleBookingCreated(doc.id, data, db, messaging);
-        }
-      }
-
-      if (change.type === "modified") {
-        // Change listener on modified bookings
-        const previousDoc = change.oldIndex !== -1 ? snapshot.docs[change.oldIndex] : null;
-        // In local daemon we inspect delta
-        await handleBookingUpdated(doc.id, { ...data, status: "previous_check" }, data, db, messaging);
-      }
-    });
-  });
-
-  // 2. Listen to Workers collection for KYC and Suspension
-  db.collection("workers").onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach(async (change) => {
-      if (change.type === "modified") {
+  db.collection("bookings").onSnapshot(
+    (snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
         const doc = change.doc;
         const data = doc.data();
-        await handleWorkerVerificationUpdated(doc.id, {}, data, db, messaging);
-      }
-    });
-  });
+
+        if (change.type === "added") {
+          if (isInitialBookingsLoad) {
+            // Cold-start seed without firing notifications
+            lastBookingCache.set(doc.id, data);
+          } else {
+            // Newly created booking while server is running
+            lastBookingCache.set(doc.id, data);
+            if (data.status === "pending") {
+              await handleBookingCreated(doc.id, data, db, messaging);
+            }
+          }
+        } else if (change.type === "modified") {
+          const beforeData = lastBookingCache.get(doc.id) || {};
+          lastBookingCache.set(doc.id, data);
+          await handleBookingUpdated(doc.id, beforeData, data, db, messaging);
+        } else if (change.type === "removed") {
+          lastBookingCache.delete(doc.id);
+        }
+      });
+      isInitialBookingsLoad = false;
+    },
+    (err) => {
+      console.error("[Render CloudFunctions] Bookings listener error:", err.message);
+    }
+  );
+
+  // 2. Listen to Workers collection for KYC and Suspension
+  db.collection("workers").onSnapshot(
+    (snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
+        const doc = change.doc;
+        const data = doc.data();
+
+        if (change.type === "added") {
+          lastWorkerCache.set(doc.id, data);
+        } else if (change.type === "modified") {
+          const beforeData = lastWorkerCache.get(doc.id) || {};
+          lastWorkerCache.set(doc.id, data);
+          await handleWorkerVerificationUpdated(doc.id, beforeData, data, db, messaging);
+        } else if (change.type === "removed") {
+          lastWorkerCache.delete(doc.id);
+        }
+      });
+      isInitialWorkersLoad = false;
+    },
+    (err) => {
+      console.error("[Render CloudFunctions] Workers listener error:", err.message);
+    }
+  );
 
   console.log("[Render CloudFunctions] Notification background triggers active.");
 }

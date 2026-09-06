@@ -74,6 +74,7 @@ export "src/models/payment_provider_model.dart";
 export "src/services/payment_service.dart";
 export "src/services/invoice_service.dart";
 export "src/services/indic_pdf_shaper.dart";
+export "src/services/push_notification_service.dart";
 
 // API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";

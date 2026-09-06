@@ -52,6 +52,8 @@ describe("NotificationEngine & Cloud Functions Test Suite", () => {
       "WORKER_ARRIVED_DOORSTEP",
       "JOB_STARTED_OTP_VERIFIED",
       "WORK_COMPLETED_C2PA_READY",
+      "BOOKING_CANCELLED_BY_CUSTOMER",
+      "BOOKING_CANCELLED_BY_WORKER",
       "PAYMENT_CONFIRMED_DIVIDEND",
       "SAFETY_FREEZE_ACKNOWLEDGED",
       "NEW_BROADCAST_REQUEST",
@@ -72,7 +74,7 @@ describe("NotificationEngine & Cloud Functions Test Suite", () => {
     }
   });
 
-  test("sendToUser formats template parameters and uses user's preferred language", async () => {
+  test("sendToUser formats template parameters, binds brand icon and color, and uses user's preferred language", async () => {
     const res = await engine.sendToUser("user_test_01", "BOOKING_ACCEPTED", {
       workerName: "Mani K.",
       category: "Plumbing",
@@ -89,6 +91,20 @@ describe("NotificationEngine & Cloud Functions Test Suite", () => {
     expect(payload.notification.title).toContain("Mani K.");
     expect(payload.notification.body).toContain("8492");
     expect(payload.android.notification.channelId).toBe("workgo_booking_channel");
+    expect(payload.android.notification.icon).toBe("ic_stat_workgo");
+    expect(payload.android.notification.color).toBe("#E8A400");
+  });
+
+  test("sendToUser handles customer cancellation template cleanly", async () => {
+    const res = await engine.sendToUser("worker_test_01", "BOOKING_CANCELLED_BY_CUSTOMER", {
+      bookingId: "b_12345",
+      reason: "Incorrect service address",
+    });
+
+    expect(res.success).toBe(true);
+    const payload = mockMessaging.sendEachForMulticast.mock.calls[0][0];
+    expect(payload.android.notification.icon).toBe("ic_stat_workgo");
+    expect(payload.android.notification.color).toBe("#E8A400");
   });
 
   test("broadcastNewBookingToNearbyWorkers targets only matching online and verified artisans", async () => {

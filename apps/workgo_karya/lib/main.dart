@@ -19,6 +19,9 @@ void main() async {
   // Pre-warm local session cache
   await SessionManager.instance.init();
 
+  // Initialize Push Notifications
+  await PushNotificationService.instance.initialize(userType: 'worker');
+
   runApp(
     EasyLocalization(
       supportedLocales: WorkGoLocale.supported,
@@ -167,6 +170,18 @@ class _KaryaRootScreenState extends State<KaryaRootScreen> {
                       });
                     },
                   );
+                }
+
+                // Sync device token to Firestore for artisan push notifications
+                PushNotificationService.instance.syncDeviceToken(
+                  effectiveUid,
+                  userType: 'worker',
+                  preferredLanguage: context.locale.languageCode,
+                );
+                if (worker != null && worker.skills.isNotEmpty) {
+                  for (final skill in worker.skills) {
+                    PushNotificationService.instance.subscribeToTradeTopic(skill);
+                  }
                 }
 
                 return KaryaHomeScreen(

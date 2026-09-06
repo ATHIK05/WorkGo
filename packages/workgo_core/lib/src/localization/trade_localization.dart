@@ -140,6 +140,8 @@ extension BookingStatusLocalization on BookingStatus {
         return 'status_accepted'.tr();
       case BookingStatus.inProgress:
         return 'status_in_progress'.tr();
+      case BookingStatus.paymentPending:
+        return 'status_payment_pending'.tr();
       case BookingStatus.completed:
         return 'status_completed'.tr();
       case BookingStatus.cancelled:

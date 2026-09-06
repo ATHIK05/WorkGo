@@ -174,6 +174,62 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                       ),
                     ),
                     const SizedBox(height: 16),
+                  ] else if (booking.status == BookingStatus.paymentPending) ...[
+                    SlideFadeIn(
+                      delay: const Duration(milliseconds: 20),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.6), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.verified_rounded, color: Color(0xFFD97706), size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'work_completed_payment_due'.tr(),
+                                    style: const TextStyle(
+                                      color: Color(0xFF141416),
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'work_completed_desc'.tr(),
+                                    style: const TextStyle(
+                                      color: Color(0xFF6B7280),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
 
                   // Status Header
@@ -186,8 +242,8 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // C2PA Cryptographic Provenance Card (If Completed)
-                  if (booking.status == BookingStatus.completed) ...[
+                  // C2PA Cryptographic Provenance Card (If Completed or PaymentPending)
+                  if (booking.status == BookingStatus.completed || booking.status == BookingStatus.paymentPending) ...[
                     SlideFadeIn(
                       delay: const Duration(milliseconds: 40),
                       child: _CompletedWorkProvenanceCard(
@@ -255,16 +311,39 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
   }
 
   Widget _buildBottomAction(BuildContext context, Booking booking) {
-    if (booking.status == BookingStatus.completed) {
-      final isPaid = booking.paymentStatus == PaymentStatus.paid ||
-          (booking.invoiceId != null && booking.invoiceId!.isNotEmpty);
+    if (booking.status == BookingStatus.paymentPending) {
       final workerName = booking.genuineArtisanName ??
           (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
               ? booking.acceptedWorkerName!
               : "");
 
       return GlowButton(
-        label: isPaid ? 'invoice_receipt'.tr() : 'pay_now'.tr(),
+        label: "${'pay_now'.tr()} • ₹${booking.totalAmount.toStringAsFixed(0)}",
+        icon: Icons.payment_rounded,
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (ctx) => PaymentReceiptScreen(
+              booking: booking,
+              workerName: workerName,
+              isReceiptOnly: false,
+            ),
+          ),
+        ),
+        gradient: CX.auroraSuccess,
+        glowColor: CX.emerald,
+        height: 54,
+      );
+    }
+
+    if (booking.status == BookingStatus.completed) {
+      final isPaid = booking.paymentStatus == PaymentStatus.paid;
+      final workerName = booking.genuineArtisanName ??
+          (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+              ? booking.acceptedWorkerName!
+              : "");
+
+      return GlowButton(
+        label: isPaid ? 'invoice_receipt'.tr() : "${'pay_now'.tr()} • ₹${booking.totalAmount.toStringAsFixed(0)}",
         icon: isPaid ? Icons.receipt_long_rounded : Icons.payment_rounded,
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(
@@ -1006,6 +1085,16 @@ class _StatusHeaderCard extends StatelessWidget {
             'status_in_progress'.tr(),
             AuroraBadgeStyle.violet,
           ),
+        BookingStatus.paymentPending => (
+            const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFFFFBEB)],
+            ),
+            CX.amber,
+            'status_payment_pending'.tr(),
+            AuroraBadgeStyle.amber,
+          ),
         BookingStatus.completed => (
             const LinearGradient(
               begin: Alignment.topLeft,
@@ -1142,6 +1231,7 @@ class _TimelineCard extends StatelessWidget {
         BookingStatus.pending => 0,
         BookingStatus.accepted => 1,
         BookingStatus.inProgress => 2,
+        BookingStatus.paymentPending => 2,
         BookingStatus.completed => 3,
         BookingStatus.cancelled => -1,
       };
@@ -1160,9 +1250,15 @@ class _TimelineCard extends StatelessWidget {
         'artisan_assigned_en_route_sub'.tr(),
       ),
       (
-        Icons.handyman_rounded,
-        'service_in_progress_title'.tr(),
-        'service_in_progress_sub'.tr(),
+        booking.status == BookingStatus.paymentPending
+            ? Icons.verified_rounded
+            : Icons.handyman_rounded,
+        booking.status == BookingStatus.paymentPending
+            ? 'work_completed_payment_due'.tr()
+            : 'service_in_progress_title'.tr(),
+        booking.status == BookingStatus.paymentPending
+            ? 'awaiting_customer_payment'.tr()
+            : 'service_in_progress_sub'.tr(),
       ),
       (
         Icons.check_circle_rounded,

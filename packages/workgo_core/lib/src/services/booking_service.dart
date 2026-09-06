@@ -253,7 +253,8 @@ class BookingService {
               .map((d) => Booking.fromFirestore(d))
               .where((b) =>
                   b.status == BookingStatus.accepted ||
-                  b.status == BookingStatus.inProgress)
+                  b.status == BookingStatus.inProgress ||
+                  b.status == BookingStatus.paymentPending)
               .toList();
           return activeJobs.isNotEmpty ? activeJobs.first : null;
         });
@@ -403,20 +404,32 @@ class BookingService {
     await _db.collection("bookings").doc(bookingId).update(updateData);
   }
 
-  /// Completes the booking with C2PA photographic proof and cryptographic manifest.
-  Future<void> completeBookingWithProof({
+  /// Submits C2PA photographic proof and cryptographic manifest, transitioning the job
+  /// to paymentPending so customer is prompted to pay before completion.
+  Future<void> submitWorkProof({
     required String bookingId,
     required String proofPhotoBase64,
     required Map<String, dynamic> c2paManifest,
   }) async {
     final Map<String, dynamic> updateData = {
-      "status": BookingStatus.completed.name,
-      "completedAt": FieldValue.serverTimestamp(),
+      "status": BookingStatus.paymentPending.name,
+      "proofSubmittedAt": FieldValue.serverTimestamp(),
       "proofPhotoBase64": proofPhotoBase64,
       "c2paManifest": c2paManifest,
     };
     await _db.collection("bookings").doc(bookingId).update(updateData);
   }
+
+  /// Backwards-compatible alias for submitWorkProof.
+  Future<void> completeBookingWithProof({
+    required String bookingId,
+    required String proofPhotoBase64,
+    required Map<String, dynamic> c2paManifest,
+  }) => submitWorkProof(
+    bookingId: bookingId,
+    proofPhotoBase64: proofPhotoBase64,
+    c2paManifest: c2paManifest,
+  );
 
   /// Update the live worker GPS coordinates and heading on an active booking in real time.
   Future<void> updateLiveWorkerLocation({
@@ -436,7 +449,7 @@ class BookingService {
     await _db.collection("bookings").doc(bookingId).update(data);
   }
 
-  /// Mark booking payment as paid with optional audit telemetry.
+  /// Mark booking payment as paid and atomically transition booking to completed.
   Future<void> markPaymentComplete(
     String bookingId, {
     String? invoiceId,
@@ -447,6 +460,8 @@ class BookingService {
     double? welfareFundAmount,
   }) async {
     final updateData = <String, dynamic>{
+      "status": BookingStatus.completed.name,
+      "completedAt": FieldValue.serverTimestamp(),
       "paymentStatus": PaymentStatus.paid.name,
       "invoiceId": invoiceId ?? "INV-${DateTime.now().millisecondsSinceEpoch}",
       "paidAt": FieldValue.serverTimestamp(),

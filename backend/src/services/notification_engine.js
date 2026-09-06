@@ -13,15 +13,15 @@ const NOTIFICATION_TEMPLATES = {
     channelId: "workgo_booking_channel",
     sound: "default",
     en: {
-      title: "📡 Broadcasting Request",
-      body: "Scanning nearby {category} Titans in your area...",
+      title: "Broadcasting Request",
+      body: "Scanning nearby {category} artisans in your area...",
     },
     hi: {
-      title: "📡 अनुरोध प्रसारित हो रहा है",
+      title: "अनुरोध प्रसारित हो रहा है",
       body: "आपके क्षेत्र में {category} कारीगरों की खोज की जा रही है...",
     },
     ta: {
-      title: "📡 கோரிக்கை ஒளிபரப்பப்படுகிறது",
+      title: "கோரிக்கை ஒளிபரப்பப்படுகிறது",
       body: "உங்கள் பகுதியில் உள்ள {category} பணியாளர்களைத் தேடுகிறது...",
     },
   },
@@ -31,15 +31,15 @@ const NOTIFICATION_TEMPLATES = {
     sound: "alert_chime.mp3",
     priority: "high",
     en: {
-      title: "⚡ Titan {workerName} Confirmed!",
+      title: "{workerName} Confirmed",
       body: "Your {category} artisan is en-route! Your Start OTP is: {startOtp}",
     },
     hi: {
-      title: "⚡ कारीगर {workerName} ने पुष्टि की!",
+      title: "कारीगर {workerName} ने पुष्टि की",
       body: "आपके {category} कारीगर रास्ते में हैं! आपका स्टार्ट OTP है: {startOtp}",
     },
     ta: {
-      title: "⚡ பணியாளர் {workerName} உறுதிசெய்தார்!",
+      title: "பணியாளர் {workerName} உறுதிசெய்தார்",
       body: "உங்கள் {category} பணியாளர் கிளம்பிவிட்டார்! உங்கள் தொடக்க OTP: {startOtp}",
     },
   },
@@ -49,15 +49,15 @@ const NOTIFICATION_TEMPLATES = {
     sound: "doorbell.mp3",
     priority: "high",
     en: {
-      title: "📍 Artisan Arrived at Doorstep!",
+      title: "Artisan Arrived at Doorstep",
       body: "Share your 4-digit OTP {startOtp} with {workerName} to begin work.",
     },
     hi: {
-      title: "📍 कारीगर आपके दरवाजे पर पहुंचे!",
+      title: "कारीगर आपके दरवाजे पर पहुंचे",
       body: "काम शुरू करने के लिए अपना 4-अंकीय OTP {startOtp} {workerName} को बताएं।",
     },
     ta: {
-      title: "📍 பணியாளர் வந்து சேர்ந்தார்!",
+      title: "பணியாளர் வந்து சேர்ந்தார்",
       body: "வேலையைத் தொடங்க உங்கள் 4-இலக்க OTP {startOtp}-ஐ {workerName}-இடம் பகிரவும்.",
     },
   },
@@ -66,15 +66,15 @@ const NOTIFICATION_TEMPLATES = {
     channelId: "workgo_booking_channel",
     sound: "default",
     en: {
-      title: "🛠️ Service In Progress",
+      title: "Service In Progress",
       body: "Artisan {workerName} verified the OTP and has started your {category} job.",
     },
     hi: {
-      title: "🛠️ सेवा प्रगति पर है",
+      title: "सेवा प्रगति पर है",
       body: "कारीगर {workerName} ने OTP सत्यापित किया और {category} कार्य शुरू किया।",
     },
     ta: {
-      title: "🛠️ சேவை தொடங்கப்பட்டது",
+      title: "சேவை தொடங்கப்பட்டது",
       body: "பணியாளர் {workerName} OTP சரிபார்த்து {category} பணியைத் தொடங்கினார்.",
     },
   },
@@ -84,16 +84,52 @@ const NOTIFICATION_TEMPLATES = {
     sound: "success.mp3",
     priority: "high",
     en: {
-      title: "✅ Work Completed & C2PA Verified!",
+      title: "Work Completed & C2PA Verified",
       body: "Artisan completed work. Tap to inspect verified cryptographic proof & pay ₹{amount}.",
     },
     hi: {
-      title: "✅ कार्य पूर्ण और C2PA सत्यापित!",
+      title: "कार्य पूर्ण और C2PA सत्यापित",
       body: "कारीगर ने काम पूरा किया। फोटो प्रमाण जांचें और ₹{amount} का भुगतान करें।",
     },
     ta: {
-      title: "✅ வேலை முடிந்தது & C2PA சரிபார்க்கப்பட்டது!",
+      title: "வேலை முடிந்தது & C2PA சரிபார்க்கப்பட்டது",
       body: "வேலை முடிந்தது. சான்றளிக்கப்பட்ட புகைப்படத்தைப் பார்த்து ₹{amount} செலுத்தவும்.",
+    },
+  },
+
+  BOOKING_CANCELLED_BY_CUSTOMER: {
+    channelId: "workgo_booking_channel",
+    sound: "default",
+    priority: "high",
+    en: {
+      title: "Booking Cancelled by Customer",
+      body: "Customer cancelled Booking #{bookingId}. Reason: {reason}",
+    },
+    hi: {
+      title: "ग्राहक द्वारा बुकिंग रद्द",
+      body: "ग्राहक ने बुकिंग #{bookingId} रद्द कर दी। कारण: {reason}",
+    },
+    ta: {
+      title: "வாடிக்கையாளரால் முன்பதிவு ரத்து செய்யப்பட்டது",
+      body: "வாடிக்கையாளர் முன்பதிவு #{bookingId}-ஐ ரத்து செய்தார். காரணம்: {reason}",
+    },
+  },
+
+  BOOKING_CANCELLED_BY_WORKER: {
+    channelId: "workgo_booking_channel",
+    sound: "default",
+    priority: "high",
+    en: {
+      title: "Booking Cancelled by Artisan",
+      body: "Artisan had to cancel Booking #{bookingId}. Searching for replacement artisans...",
+    },
+    hi: {
+      title: "कारीगर द्वारा बुकिंग रद्द",
+      body: "कारीगर ने बुकिंग #{bookingId} रद्द की। अन्य कारीगरों की खोज की जा रही है...",
+    },
+    ta: {
+      title: "பணியாளரால் முன்பதிவு ரத்து செய்யப்பட்டது",
+      body: "பணியாளர் முன்பதிவு #{bookingId}-ஐ ரத்து செய்தார். மாற்று பணியாளர் தேடப்படுகிறது...",
     },
   },
 
@@ -101,15 +137,15 @@ const NOTIFICATION_TEMPLATES = {
     channelId: "workgo_booking_channel",
     sound: "cash_register.mp3",
     en: {
-      title: "🧾 Payment Confirmed (₹{amount})",
+      title: "Payment Confirmed (₹{amount})",
       body: "₹{dividend} welfare dividend deposited to artisan cooperative fund. Thank you!",
     },
     hi: {
-      title: "🧾 भुगतान सफल (₹{amount})",
+      title: "भुगतान सफल (₹{amount})",
       body: "₹{dividend} कल्याण लाभांश सहकारी कोष में जमा हुआ। धन्यवाद!",
     },
     ta: {
-      title: "🧾 கட்டணம் வெற்றிகரமானது (₹{amount})",
+      title: "கட்டணம் வெற்றிகரமானது (₹{amount})",
       body: "₹{dividend} நல நிதி கூட்டுறவு கணக்கில் வரவு வைக்கப்பட்டது. நன்றி!",
     },
   },
@@ -118,15 +154,15 @@ const NOTIFICATION_TEMPLATES = {
     channelId: "workgo_emergency_channel",
     sound: "default",
     en: {
-      title: "🛡️ Safety Dispute Logged",
+      title: "Safety Dispute Logged",
       body: "The artisan has been temporarily suspended pending governance board investigation.",
     },
     hi: {
-      title: "🛡️ सुरक्षा शिकायत दर्ज की गई",
+      title: "सुरक्षा शिकायत दर्ज की गई",
       body: "सहकारी समिति जांच लंबित रहने तक कारीगर को अस्थायी रूप से निलंबित कर दिया गया है।",
     },
     ta: {
-      title: "🛡️ பாதுகாப்பு புகார் பதிவு செய்யப்பட்டது",
+      title: "பாதுகாப்பு புகார் பதிவு செய்யப்பட்டது",
       body: "கூட்டுறவு குழு விசாரணை முடியும் வரை பணியாளர் தற்காலிகமாக இடைநீக்கம் செய்யப்பட்டுள்ளார்.",
     },
   },
@@ -137,15 +173,15 @@ const NOTIFICATION_TEMPLATES = {
     sound: "rapido_horn.mp3",
     priority: "high",
     en: {
-      title: "🚨 New {category} Request Nearby!",
+      title: "New {category} Request Nearby",
       body: "₹{amount} (Earn ₹{netEarnings}) · {distanceKm} km away at {address}. Tap to accept!",
     },
     hi: {
-      title: "🚨 नया {category} कार्य पास में उपलब्ध!",
+      title: "नया {category} कार्य पास में उपलब्ध",
       body: "₹{amount} (कमाई ₹{netEarnings}) · {distanceKm} किमी दूर {address} पर। स्वीकार करने के लिए टैप करें!",
     },
     ta: {
-      title: "🚨 புதிய {category} வேலை அருகில் உள்ளது!",
+      title: "புதிய {category} வேலை அருகில் உள்ளது",
       body: "₹{amount} (வருமானம் ₹{netEarnings}) · {distanceKm} கிமீ தொலைவில் {address}-இல். ஏற்க தட்டவும்!",
     },
   },
@@ -155,15 +191,15 @@ const NOTIFICATION_TEMPLATES = {
     sound: "emergency_alarm.mp3",
     priority: "high",
     en: {
-      title: "🔥 EMERGENCY {category} SOS (+₹150 Bonus)!",
+      title: "EMERGENCY {category} SOS (+₹150 Bonus)",
       body: "Immediate repair needed at {address}! Earn ₹{amount}. Rapid dispatch required.",
     },
     hi: {
-      title: "🔥 आपातकालीन {category} SOS (+₹150 बोनस)!",
+      title: "आपातकालीन {category} SOS (+₹150 बोनस)",
       body: "{address} पर तत्काल मरम्मत की आवश्यकता! ₹{amount} कमाएं। तुरंत जाएं।",
     },
     ta: {
-      title: "🔥 அவசர {category} SOS (+₹150 போனஸ்)!",
+      title: "அவசர {category} SOS (+₹150 போனஸ்)",
       body: "{address}-இல் உடனடி பழுது தேவை! ₹{amount} சம்பாதிக்கவும். உடனே செல்லவும்.",
     },
   },
@@ -173,15 +209,15 @@ const NOTIFICATION_TEMPLATES = {
     sound: "bonus_ping.mp3",
     priority: "high",
     en: {
-      title: "💰 Customer Boosted Fare (+₹{bonus})!",
+      title: "Customer Boosted Fare (+₹{bonus})",
       body: "Total payout is now ₹{amount} for {category} job at {address}. Accept now!",
     },
     hi: {
-      title: "💰 ग्राहक ने किराया बढ़ाया (+₹{bonus})!",
+      title: "ग्राहक ने किराया बढ़ाया (+₹{bonus})",
       body: "{address} पर {category} कार्य के लिए कुल राशि अब ₹{amount} है। अभी स्वीकार करें!",
     },
     ta: {
-      title: "💰 கட்டணத்தை வாடிக்கையாளர் உயர்த்தினார் (+₹{bonus})!",
+      title: "கட்டணத்தை வாடிக்கையாளர் உயர்த்தினார் (+₹{bonus})",
       body: "{address}-இல் {category} வேலைக்கு மொத்த தொகை ₹{amount}. உடனே ஏற்கவும்!",
     },
   },
@@ -190,15 +226,15 @@ const NOTIFICATION_TEMPLATES = {
     channelId: "workgo_broadcast_channel",
     sound: "alert_chime.mp3",
     en: {
-      title: "🤝 Peer Job Forwarded by {senderName}",
+      title: "Peer Job Forwarded by {senderName}",
       body: "Artisan {senderName} referred a {category} job (₹{amount}) to you!",
     },
     hi: {
-      title: "🤝 {senderName} द्वारा कार्य भेजा गया",
+      title: "{senderName} द्वारा कार्य भेजा गया",
       body: "कारीगर {senderName} ने आपके लिए {category} कार्य (₹{amount}) भेजा है!",
     },
     ta: {
-      title: "🤝 {senderName} அனுப்பிய வேலை",
+      title: "{senderName} அனுப்பிய வேலை",
       body: "பணியாளர் {senderName} உங்களுக்கு ஒரு {category} வேலையை (₹{amount}) அனுப்பியுள்ளார்!",
     },
   },
@@ -207,15 +243,15 @@ const NOTIFICATION_TEMPLATES = {
     channelId: "workgo_kyc_channel",
     sound: "default",
     en: {
-      title: "🎉 Verification Step Approved: {stageTitle}",
+      title: "Verification Step Approved: {stageTitle}",
       body: "Your {stageTitle} passed UIDAI/Co-op validation. Proceed to next step.",
     },
     hi: {
-      title: "🎉 सत्यापन चरण स्वीकृत: {stageTitle}",
+      title: "सत्यापन चरण स्वीकृत: {stageTitle}",
       body: "आपका {stageTitle} सफलतापूर्वक सत्यापित हुआ। अगले चरण पर जाएं।",
     },
     ta: {
-      title: "🎉 சரிபார்ப்பு படி அங்கீகரிக்கப்பட்டது: {stageTitle}",
+      title: "சரிபார்ப்பு படி அங்கீகரிக்கப்பட்டது: {stageTitle}",
       body: "உங்கள் {stageTitle} வெற்றிகரமாக முடிந்தது. அடுத்த படிக்கு செல்லவும்.",
     },
   },
@@ -224,15 +260,15 @@ const NOTIFICATION_TEMPLATES = {
     channelId: "workgo_kyc_channel",
     sound: "default",
     en: {
-      title: "📅 Live Video KYC Scheduled",
+      title: "Live Video KYC Scheduled",
       body: "Slot confirmed for {slotTime}. Keep physical Aadhaar ready with challenge phrase.",
     },
     hi: {
-      title: "📅 लाइव वीडियो KYC निर्धारित",
+      title: "लाइव वीडियो KYC निर्धारित",
       body: "{slotTime} के लिए समय तय हुआ। अपना आधार कार्ड साथ रखें।",
     },
     ta: {
-      title: "📅 நேரலை வீடியோ KYC திட்டமிடப்பட்டது",
+      title: "நேரலை வீடியோ KYC திட்டமிடப்பட்டது",
       body: "{slotTime}-க்கு நேரம் உறுதி செய்யப்பட்டது. ஆதார் அட்டையை தயாராக வைக்கவும்.",
     },
   },
@@ -242,15 +278,15 @@ const NOTIFICATION_TEMPLATES = {
     sound: "success.mp3",
     priority: "high",
     en: {
-      title: "🌟 Congratulations! Certified Co-op Artisan",
+      title: "Congratulations! Certified Co-op Artisan",
       body: "Police Clearance verified. Your profile is now PUBLIC on customer radar!",
     },
     hi: {
-      title: "🌟 बधाई! प्रमाणित सहकारी कारीगर",
+      title: "बधाई! प्रमाणित सहकारी कारीगर",
       body: "पुलिस क्लीयरेंस सत्यापित। आपकी प्रोफाइल अब ग्राहकों के रडार पर लाइव है!",
     },
     ta: {
-      title: "🌟 வாழ்த்துகள்! சான்றளிக்கப்பட்ட கூட்டுறவு பணியாளர்",
+      title: "வாழ்த்துகள்! சான்றளிக்கப்பட்ட கூட்டுறவு பணியாளர்",
       body: "போலீஸ் சான்றிதழ் சரிபார்க்கப்பட்டது. உங்கள் சுயவிவரம் வாடிக்கையாளர் ரேடாரில் நேரலையில் உள்ளது!",
     },
   },
@@ -260,15 +296,15 @@ const NOTIFICATION_TEMPLATES = {
     sound: "emergency_alarm.mp3",
     priority: "high",
     en: {
-      title: "⚠️ Account Temporarily Suspended",
+      title: "Account Temporarily Suspended",
       body: "A safety complaint was logged regarding Booking #{bookingId}. Contact co-op admin.",
     },
     hi: {
-      title: "⚠️ खाता अस्थायी रूप से निलंबित",
+      title: "खाता अस्थायी रूप से निलंबित",
       body: "बुकिंग #{bookingId} के संबंध में सुरक्षा शिकायत दर्ज की गई। व्यवस्थापक से संपर्क करें।",
     },
     ta: {
-      title: "⚠️ கணக்கு தற்காலிகமாக இடைநீக்கம் செய்யப்பட்டது",
+      title: "கணக்கு தற்காலிகமாக இடைநீக்கம் செய்யப்பட்டது",
       body: "முன்பதிவு #{bookingId} தொடர்பாக புகார் வந்துள்ளது. கூட்டுறவு நிர்வாகியைத் தொடர்பு கொள்ளவும்.",
     },
   },
@@ -283,14 +319,13 @@ class NotificationEngine {
   }
 
   /**
-   * Helper to format template strings with dynamic parameters
+   * Helper: replace {paramName} with value in template strings
    */
-  _formatTemplate(text, params = {}) {
-    let result = text;
-    for (const [key, value] of Object.entries(params)) {
-      result = result.replace(new RegExp(`\\{${key}\\}`, "g"), value ?? "");
-    }
-    return result;
+  _formatTemplate(text, params) {
+    if (!text) return "";
+    return text.replace(/{(\w+)}/g, (match, key) => {
+      return params[key] !== undefined ? params[key] : match;
+    });
   }
 
   /**
@@ -333,6 +368,8 @@ class NotificationEngine {
             channelId: template.channelId || "workgo_booking_channel",
             sound: template.sound || "default",
             clickAction: "FLUTTER_NOTIFICATION_CLICK",
+            icon: "ic_stat_workgo",
+            color: "#E8A400",
             priority: template.priority === "high" ? "max" : "default",
           },
         },
@@ -383,6 +420,8 @@ class NotificationEngine {
           notification: {
             channelId: template.channelId || "workgo_broadcast_channel",
             sound: template.sound || "default",
+            icon: "ic_stat_workgo",
+            color: "#E8A400",
           },
         },
       };
@@ -400,7 +439,7 @@ class NotificationEngine {
    */
   async broadcastNewBookingToNearbyWorkers(booking) {
     try {
-      const { serviceType, amount, urgencyBonus, isEmergency, id, customerAddressText, location } = booking;
+      const { serviceType, amount, urgencyBonus, isEmergency, id, customerAddressText } = booking;
       const totalAmount = (amount || 0) + (urgencyBonus || 0);
       const netEarnings = (totalAmount * 0.90).toFixed(0); // 90% artisan payout
 

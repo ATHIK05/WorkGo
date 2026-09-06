@@ -5434,6 +5434,7 @@ class _BookingListTile extends StatelessWidget {
 
   AuroraBadgeStyle get _badgeStyle => switch (booking.status) {
     BookingStatus.completed => AuroraBadgeStyle.emerald,
+    BookingStatus.paymentPending => AuroraBadgeStyle.amber,
     BookingStatus.inProgress => AuroraBadgeStyle.amber,
     BookingStatus.accepted => AuroraBadgeStyle.cyan,
     BookingStatus.cancelled => AuroraBadgeStyle.rose,
@@ -5443,6 +5444,7 @@ class _BookingListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = categoryStyle(booking.serviceType);
+    final isPaymentPending = booking.status == BookingStatus.paymentPending;
     final isLive =
         booking.status == BookingStatus.inProgress ||
         booking.status == BookingStatus.accepted;
@@ -5837,7 +5839,54 @@ class _BookingListTile extends StatelessWidget {
               ),
               const SizedBox(width: 8),
 
-              if (isLive || isPending)
+              if (isPaymentPending)
+                Flexible(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      final receiptWorker = booking.genuineArtisanName ??
+                          (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                              ? booking.acceptedWorkerName!
+                              : "");
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PaymentReceiptScreen(
+                            booking: booking,
+                            workerName: receiptWorker.isNotEmpty ? receiptWorker : "Cooperative Artisan",
+                            isReceiptOnly: false,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.payment_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                    label: Text(
+                      "${'pay_now'.tr()} • ₹${booking.totalAmount.toStringAsFixed(0)}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                )
+              else if (isLive || isPending)
                 Flexible(
                   child: ElevatedButton.icon(
                     onPressed: onTap,
@@ -5874,8 +5923,8 @@ class _BookingListTile extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // If unrated, offer quick-action Rate button
-                      if (!booking.isRated && booking.rating == null) ...[
+                      // If unrated and paid, offer quick-action Rate button
+                      if (booking.paymentStatus == PaymentStatus.paid && !booking.isRated && booking.rating == null) ...[
                         Flexible(
                           child: OutlinedButton.icon(
                             onPressed: () {
@@ -5926,9 +5975,10 @@ class _BookingListTile extends StatelessWidget {
                         const SizedBox(width: 4),
                       ],
 
-                      // Invoice & Receipt Button
-                      Flexible(
-                        child: OutlinedButton.icon(
+                      // Invoice & Receipt Button (Only for paid bookings)
+                      if (booking.paymentStatus == PaymentStatus.paid)
+                        Flexible(
+                          child: OutlinedButton.icon(
                           onPressed: () {
                             HapticFeedback.lightImpact();
                             final receiptWorker = booking.genuineArtisanName ??

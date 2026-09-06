@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- WorkGo Signature Artisan Emblem: Stylized W with Cooperative Trust Accent -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3,4 L6.5,16 C6.8,17.1 7.8,17.9 9,17.9 C9.9,17.9 10.8,17.3 11.2,16.4 L12,14.5 L12.8,16.4 C13.2,17.3 14.1,17.9 15,17.9 C16.2,17.9 17.2,17.1 17.5,16 L21,4 H17.8 L15.7,14 C15.6,14.5 15.2,14.8 14.7,14.8 C14.3,14.8 13.9,14.5 13.7,14 L12.6,11.2 C12.3,10.5 11.7,10.5 11.4,11.2 L10.3,14 C10.1,14.5 9.7,14.8 9.3,14.8 C8.8,14.8 8.4,14.5 8.3,14 L6.2,4 H3 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,19.2 C11.3,19.2 10.7,19.8 10.7,20.5 C10.7,21.2 11.3,21.8 12,21.8 C12.7,21.8 13.3,21.2 13.3,20.5 C13.3,19.8 12.7,19.2 12,19.2 Z" />
+</vector>

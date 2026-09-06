@@ -1,0 +1,23 @@
+# Render Infrastructure-as-Code (IaC) Blueprint for WorkGo API & Notification Daemon
+# Deployable to Render (Web Service) with 1-click GitHub integration
+
+services:
+  - type: web
+    name: workgo-api
+    runtime: node
+    plan: starter
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FIREBASE_PROJECT_ID
+        value: workgo-sih2026
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false # Set securely in the Render Environment Dashboard (paste service account JSON string)
+      - key: SELF_PING_URL
+        value: https://workgo-api.onrender.com/api/health

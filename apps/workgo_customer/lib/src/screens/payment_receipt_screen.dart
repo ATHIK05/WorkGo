@@ -41,9 +41,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
   @override
   void initState() {
     super.initState();
-    _isPaid = widget.isReceiptOnly == true ||
-        widget.booking.paymentStatus == PaymentStatus.paid ||
-        (widget.booking.invoiceId != null && widget.booking.invoiceId!.isNotEmpty);
+    _isPaid = widget.booking.paymentStatus == PaymentStatus.paid;
 
     _effectiveWorkerName = (widget.booking.genuineArtisanName ??
         (!Booking.isGenericArtisanName(widget.workerName) ? widget.workerName : "")).trim();

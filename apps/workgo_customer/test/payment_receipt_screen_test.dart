@@ -76,7 +76,7 @@ void main() {
     expect(find.textContaining('TXN-1788625675505'), findsOneWidget);
   });
 
-  testWidgets('PaymentReceiptScreen opens Receipt when isReceiptOnly is true even if unpaid status in memory', (tester) async {
+  testWidgets('PaymentReceiptScreen requires payment and renders payment form when unpaid even if isReceiptOnly is passed', (tester) async {
     final booking = createBooking(paymentStatus: PaymentStatus.unpaid);
 
     await tester.pumpWidget(
@@ -90,9 +90,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Should render receipt view
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.verified_user_rounded), findsOneWidget);
+    // Should render payment form elements because booking is unpaid
+    expect(find.byIcon(Icons.qr_code_2_rounded), findsWidgets);
+    expect(find.byIcon(Icons.payments_rounded), findsWidgets);
+    // Should NOT render success checkmark when unpaid
+    expect(find.byIcon(Icons.check_rounded), findsNothing);
   });
 
   testWidgets('PaymentReceiptScreen displays dynamic Direct UPI and Cash options when unpaid', (tester) async {

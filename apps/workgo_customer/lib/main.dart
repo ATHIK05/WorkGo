@@ -34,6 +34,9 @@ void main() async {
   // Pre-warm local session cache
   await SessionManager.instance.init();
 
+  // Initialize Push Notifications
+  await PushNotificationService.instance.initialize(userType: 'customer');
+
   runApp(
     EasyLocalization(
       supportedLocales: WorkGoLocale.supported,
@@ -175,6 +178,13 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
                   role: UserRole.customer,
                   region: "Tamil Nadu",
                 );
+
+            // Sync device token to Firestore for customer push notifications
+            PushNotificationService.instance.syncDeviceToken(
+              appUser.uid,
+              userType: 'customer',
+              preferredLanguage: context.locale.languageCode,
+            );
 
             return CustomerHomeScreen(
               user: appUser,

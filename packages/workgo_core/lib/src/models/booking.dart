@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import "package:cloud_firestore/cloud_firestore.dart";
 import "c2pa_manifest_model.dart";
 
-enum BookingStatus { pending, accepted, inProgress, completed, cancelled }
+enum BookingStatus { pending, accepted, inProgress, paymentPending, completed, cancelled }
 enum PaymentStatus { unpaid, paid, refunded }
 
 class Booking {
@@ -42,6 +42,7 @@ class Booking {
   final bool deletedByCustomer;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final DateTime? proofSubmittedAt;
   final String? proofPhotoBase64;
   final Map<String, dynamic>? c2paManifest;
 
@@ -108,6 +109,7 @@ class Booking {
     this.deletedByCustomer = false,
     this.startedAt,
     this.completedAt,
+    this.proofSubmittedAt,
     this.proofPhotoBase64,
     this.c2paManifest,
     this.bookingType = 'direct',
@@ -231,6 +233,7 @@ class Booking {
       deletedByCustomer: d["deletedByCustomer"] ?? d["hiddenForCustomer"] ?? false,
       startedAt: (d["startedAt"] as Timestamp?)?.toDate(),
       completedAt: (d["completedAt"] as Timestamp?)?.toDate(),
+      proofSubmittedAt: (d["proofSubmittedAt"] as Timestamp?)?.toDate(),
       proofPhotoBase64: d["proofPhotoBase64"] ?? d["completionPhotoBase64"] ?? d["photoBase64"],
       c2paManifest: d["c2paManifest"] != null ? Map<String, dynamic>.from(d["c2paManifest"] as Map) : null,
       bookingType: d["bookingType"] ?? 'direct',
@@ -297,6 +300,7 @@ class Booking {
     "workerPhone": workerPhone,
     "startedAt": startedAt != null ? Timestamp.fromDate(startedAt!) : null,
     "completedAt": completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+    "proofSubmittedAt": proofSubmittedAt != null ? Timestamp.fromDate(proofSubmittedAt!) : null,
     "proofPhotoBase64": proofPhotoBase64,
     "c2paManifest": c2paManifest,
     "bookingType": bookingType,
@@ -360,6 +364,7 @@ class Booking {
     bool? deletedByCustomer,
     DateTime? startedAt,
     DateTime? completedAt,
+    DateTime? proofSubmittedAt,
     String? proofPhotoBase64,
     Map<String, dynamic>? c2paManifest,
     String? bookingType,
@@ -422,6 +427,7 @@ class Booking {
       deletedByCustomer: deletedByCustomer ?? this.deletedByCustomer,
       startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
+      proofSubmittedAt: proofSubmittedAt ?? this.proofSubmittedAt,
       proofPhotoBase64: proofPhotoBase64 ?? this.proofPhotoBase64,
       c2paManifest: c2paManifest ?? this.c2paManifest,
       bookingType: bookingType ?? this.bookingType,
