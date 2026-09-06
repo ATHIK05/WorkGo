@@ -72,6 +72,7 @@ class _KaryaRootScreenState extends State<KaryaRootScreen> {
   AppUser? _cachedUser;
   bool _isLoadingCache = true;
   bool _forceSkipOnboarding = false;
+  String? _lastSyncedTokenUid;
 
   @override
   void initState() {
@@ -172,16 +173,21 @@ class _KaryaRootScreenState extends State<KaryaRootScreen> {
                   );
                 }
 
-                // Sync device token to Firestore for artisan push notifications
-                PushNotificationService.instance.syncDeviceToken(
-                  effectiveUid,
-                  userType: 'worker',
-                  preferredLanguage: context.locale.languageCode,
-                );
-                if (worker != null && worker.skills.isNotEmpty) {
-                  for (final skill in worker.skills) {
-                    PushNotificationService.instance.subscribeToTradeTopic(skill);
-                  }
+                // Sync device token to Firestore for artisan push notifications (idempotent, outside build)
+                if (_lastSyncedTokenUid != effectiveUid) {
+                  _lastSyncedTokenUid = effectiveUid;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PushNotificationService.instance.syncDeviceToken(
+                      effectiveUid,
+                      userType: 'worker',
+                      preferredLanguage: context.locale.languageCode,
+                    );
+                    if (worker != null && worker.skills.isNotEmpty) {
+                      for (final skill in worker.skills) {
+                        PushNotificationService.instance.subscribeToTradeTopic(skill);
+                      }
+                    }
+                  });
                 }
 
                 return KaryaHomeScreen(

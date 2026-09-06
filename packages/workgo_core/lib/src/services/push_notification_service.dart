@@ -87,6 +87,11 @@ class PushNotificationService {
     }
   }
 
+  String? _lastSyncedUserId;
+  String? _lastSyncedToken;
+  String? _lastSyncedLanguage;
+  String? _lastSyncedUserType;
+
   /// Synchronize the device FCM token with Firestore users and workers collections
   Future<void> syncDeviceToken(
     String userId, {
@@ -101,14 +106,27 @@ class PushNotificationService {
       final token = await _fcm.getToken();
       if (token == null || token.isEmpty) return;
 
+      if (userId == _lastSyncedUserId &&
+          token == _lastSyncedToken &&
+          preferredLanguage == _lastSyncedLanguage &&
+          effectiveUserType == _lastSyncedUserType) {
+        return;
+      }
+
       debugPrint('[WorkGo Push] Device token obtained: ${token.substring(0, 12)}...');
       await _saveTokenToFirestore(userId, token, effectiveUserType, preferredLanguage);
+
+      _lastSyncedUserId = userId;
+      _lastSyncedToken = token;
+      _lastSyncedLanguage = preferredLanguage;
+      _lastSyncedUserType = effectiveUserType;
 
       // Cancel previous subscription and listen to token rotations
       await _tokenRefreshSub?.cancel();
       _tokenRefreshSub = _fcm.onTokenRefresh.listen((newToken) async {
         debugPrint('[WorkGo Push] Device token refreshed');
         await _saveTokenToFirestore(userId, newToken, effectiveUserType, preferredLanguage);
+        _lastSyncedToken = newToken;
       });
     } catch (e) {
       debugPrint('[WorkGo Push] Token sync error: $e');

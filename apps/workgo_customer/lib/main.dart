@@ -101,6 +101,7 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
   final AuthService _authService = AuthService();
   AppUser? _cachedUser;
   bool _isLoadingCache = true;
+  String? _lastSyncedTokenUid;
 
   @override
   void initState() {
@@ -179,12 +180,17 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
                   region: "Tamil Nadu",
                 );
 
-            // Sync device token to Firestore for customer push notifications
-            PushNotificationService.instance.syncDeviceToken(
-              appUser.uid,
-              userType: 'customer',
-              preferredLanguage: context.locale.languageCode,
-            );
+            // Sync device token to Firestore for customer push notifications (idempotent, outside build)
+            if (_lastSyncedTokenUid != appUser.uid) {
+              _lastSyncedTokenUid = appUser.uid;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PushNotificationService.instance.syncDeviceToken(
+                  appUser.uid,
+                  userType: 'customer',
+                  preferredLanguage: context.locale.languageCode,
+                );
+              });
+            }
 
             return CustomerHomeScreen(
               user: appUser,

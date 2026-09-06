@@ -4,8 +4,11 @@ import "../localization/trade_localization.dart";
 import "user_address.dart";
 
 enum VerificationStatus { pending, approved, rejected }
+
 enum AvailabilityStatus { online, offline, busy }
+
 enum VisibilityStatus { hidden, pending, public, suspended }
+
 enum VerificationStage {
   signup,
   consent,
@@ -150,7 +153,8 @@ class VerificationDetails {
       isAiSuspicious: map["isAiSuspicious"] as bool?,
       aiFlags: (map["aiFlags"] as List?)?.map((e) => e.toString()).toList(),
       biometricConsentVersion: map["biometricConsentVersion"] as String?,
-      biometricConsentTimestamp: _parseDateTime(map["biometricConsentTimestamp"]),
+      biometricConsentTimestamp:
+          _parseDateTime(map["biometricConsentTimestamp"]),
       c2paProfileManifestId: map["c2paProfileManifestId"] as String?,
       lastFaceCheckInAt: _parseDateTime(map["lastFaceCheckInAt"]),
       lastFaceCheckInBase64: map["lastFaceCheckInBase64"] as String?,
@@ -158,49 +162,62 @@ class VerificationDetails {
   }
 
   Map<String, dynamic> toMap() => {
-    "aadhaarVerifiedName": aadhaarVerifiedName,
-    "aadhaarMaskedNumber": aadhaarMaskedNumber,
-    "aadhaarVerifiedAt": aadhaarVerifiedAt != null ? Timestamp.fromDate(aadhaarVerifiedAt!) : null,
-    "aadhaarZipBase64": aadhaarZipBase64,
-    "aadhaarShareCode": aadhaarShareCode,
-    "aadhaarPhotoBase64": aadhaarPhotoBase64,
-    "aadhaarFileName": aadhaarFileName,
-    "aadhaarDob": aadhaarDob,
-    "aadhaarGender": aadhaarGender,
-    "aadhaarAddress": aadhaarAddress,
-    "aadhaarSignatureValid": aadhaarSignatureValid,
-    "aadhaarReferenceId": aadhaarReferenceId,
-    "livenessPassedAt": livenessPassedAt != null ? Timestamp.fromDate(livenessPassedAt!) : null,
-    "livenessScore": livenessScore,
-    "selfieBase64": selfieBase64,
-    "selfieHash": selfieHash,
-    "selfieCenterBase64": selfieCenterBase64,
-    "selfieLeftBase64": selfieLeftBase64,
-    "selfieRightBase64": selfieRightBase64,
-    "selfieCenterHash": selfieCenterHash,
-    "selfieLeftHash": selfieLeftHash,
-    "selfieRightHash": selfieRightHash,
-    "livenessMethod": livenessMethod,
-    "lightingBoosted": lightingBoosted,
-    "videoCallScheduledAt": videoCallScheduledAt != null ? Timestamp.fromDate(videoCallScheduledAt!) : null,
-    "videoCallCompletedAt": videoCallCompletedAt != null ? Timestamp.fromDate(videoCallCompletedAt!) : null,
-    "videoCallStaffId": videoCallStaffId,
-    "videoCallPhrase": videoCallPhrase,
-    "videoCallRoomUrl": videoCallRoomUrl,
-    "videoCallBookingId": videoCallBookingId,
-    "pccDocumentId": pccDocumentId,
-    "pccReviewedAt": pccReviewedAt != null ? Timestamp.fromDate(pccReviewedAt!) : null,
-    "pccReviewedBy": pccReviewedBy,
-    "pccRejectionReason": pccRejectionReason,
-    "aiRiskScore": aiRiskScore,
-    "isAiSuspicious": isAiSuspicious,
-    "aiFlags": aiFlags,
-    "biometricConsentVersion": biometricConsentVersion,
-    "biometricConsentTimestamp": biometricConsentTimestamp != null ? Timestamp.fromDate(biometricConsentTimestamp!) : null,
-    "c2paProfileManifestId": c2paProfileManifestId,
-    "lastFaceCheckInAt": lastFaceCheckInAt != null ? Timestamp.fromDate(lastFaceCheckInAt!) : null,
-    "lastFaceCheckInBase64": lastFaceCheckInBase64,
-  };
+        "aadhaarVerifiedName": aadhaarVerifiedName,
+        "aadhaarMaskedNumber": aadhaarMaskedNumber,
+        "aadhaarVerifiedAt": aadhaarVerifiedAt != null
+            ? Timestamp.fromDate(aadhaarVerifiedAt!)
+            : null,
+        "aadhaarZipBase64": aadhaarZipBase64,
+        "aadhaarShareCode": aadhaarShareCode,
+        "aadhaarPhotoBase64": aadhaarPhotoBase64,
+        "aadhaarFileName": aadhaarFileName,
+        "aadhaarDob": aadhaarDob,
+        "aadhaarGender": aadhaarGender,
+        "aadhaarAddress": aadhaarAddress,
+        "aadhaarSignatureValid": aadhaarSignatureValid,
+        "aadhaarReferenceId": aadhaarReferenceId,
+        "livenessPassedAt": livenessPassedAt != null
+            ? Timestamp.fromDate(livenessPassedAt!)
+            : null,
+        "livenessScore": livenessScore,
+        "selfieBase64": selfieBase64,
+        "selfieHash": selfieHash,
+        "selfieCenterBase64": selfieCenterBase64,
+        "selfieLeftBase64": selfieLeftBase64,
+        "selfieRightBase64": selfieRightBase64,
+        "selfieCenterHash": selfieCenterHash,
+        "selfieLeftHash": selfieLeftHash,
+        "selfieRightHash": selfieRightHash,
+        "livenessMethod": livenessMethod,
+        "lightingBoosted": lightingBoosted,
+        "videoCallScheduledAt": videoCallScheduledAt != null
+            ? Timestamp.fromDate(videoCallScheduledAt!)
+            : null,
+        "videoCallCompletedAt": videoCallCompletedAt != null
+            ? Timestamp.fromDate(videoCallCompletedAt!)
+            : null,
+        "videoCallStaffId": videoCallStaffId,
+        "videoCallPhrase": videoCallPhrase,
+        "videoCallRoomUrl": videoCallRoomUrl,
+        "videoCallBookingId": videoCallBookingId,
+        "pccDocumentId": pccDocumentId,
+        "pccReviewedAt":
+            pccReviewedAt != null ? Timestamp.fromDate(pccReviewedAt!) : null,
+        "pccReviewedBy": pccReviewedBy,
+        "pccRejectionReason": pccRejectionReason,
+        "aiRiskScore": aiRiskScore,
+        "isAiSuspicious": isAiSuspicious,
+        "aiFlags": aiFlags,
+        "biometricConsentVersion": biometricConsentVersion,
+        "biometricConsentTimestamp": biometricConsentTimestamp != null
+            ? Timestamp.fromDate(biometricConsentTimestamp!)
+            : null,
+        "c2paProfileManifestId": c2paProfileManifestId,
+        "lastFaceCheckInAt": lastFaceCheckInAt != null
+            ? Timestamp.fromDate(lastFaceCheckInAt!)
+            : null,
+        "lastFaceCheckInBase64": lastFaceCheckInBase64,
+      };
 
   VerificationDetails copyWith({
     String? aadhaarVerifiedName,
@@ -257,7 +274,8 @@ class VerificationDetails {
       aadhaarDob: aadhaarDob ?? this.aadhaarDob,
       aadhaarGender: aadhaarGender ?? this.aadhaarGender,
       aadhaarAddress: aadhaarAddress ?? this.aadhaarAddress,
-      aadhaarSignatureValid: aadhaarSignatureValid ?? this.aadhaarSignatureValid,
+      aadhaarSignatureValid:
+          aadhaarSignatureValid ?? this.aadhaarSignatureValid,
       aadhaarReferenceId: aadhaarReferenceId ?? this.aadhaarReferenceId,
       livenessPassedAt: livenessPassedAt ?? this.livenessPassedAt,
       livenessScore: livenessScore ?? this.livenessScore,
@@ -284,11 +302,15 @@ class VerificationDetails {
       aiRiskScore: aiRiskScore ?? this.aiRiskScore,
       isAiSuspicious: isAiSuspicious ?? this.isAiSuspicious,
       aiFlags: aiFlags ?? this.aiFlags,
-      biometricConsentVersion: biometricConsentVersion ?? this.biometricConsentVersion,
-      biometricConsentTimestamp: biometricConsentTimestamp ?? this.biometricConsentTimestamp,
-      c2paProfileManifestId: c2paProfileManifestId ?? this.c2paProfileManifestId,
+      biometricConsentVersion:
+          biometricConsentVersion ?? this.biometricConsentVersion,
+      biometricConsentTimestamp:
+          biometricConsentTimestamp ?? this.biometricConsentTimestamp,
+      c2paProfileManifestId:
+          c2paProfileManifestId ?? this.c2paProfileManifestId,
       lastFaceCheckInAt: lastFaceCheckInAt ?? this.lastFaceCheckInAt,
-      lastFaceCheckInBase64: lastFaceCheckInBase64 ?? this.lastFaceCheckInBase64,
+      lastFaceCheckInBase64:
+          lastFaceCheckInBase64 ?? this.lastFaceCheckInBase64,
     );
   }
 
@@ -396,8 +418,10 @@ class Worker {
     this.diagnosticAccuracyScore = 0.92,
   });
 
-  bool get isTitan => isCheckedIn && availabilityStatus == AvailabilityStatus.online;
-  bool get isOnlineOrCheckedIn => isCheckedIn || availabilityStatus == AvailabilityStatus.online;
+  bool get isTitan =>
+      isCheckedIn && availabilityStatus == AvailabilityStatus.online;
+  bool get isOnlineOrCheckedIn =>
+      isCheckedIn || availabilityStatus == AvailabilityStatus.online;
   bool get isApproved => verificationStatus == VerificationStatus.approved;
   bool get isPubliclyVisible => visibilityStatus == VisibilityStatus.public;
 
@@ -408,12 +432,18 @@ class Worker {
 
   /// Calculate real-time geodesic distance in kilometers to a given customer coordinate.
   double calculateDistanceKm(double? custLat, double? custLng) {
-    if (custLat == null || custLng == null || custLat.abs() <= 0.0001 || custLng.abs() <= 0.0001) {
+    if (custLat == null ||
+        custLng == null ||
+        custLat.abs() <= 0.0001 ||
+        custLng.abs() <= 0.0001) {
       return distanceKm > 0 ? distanceKm : 1.0;
     }
     final wLat = latitude;
     final wLng = longitude;
-    if (wLat == null || wLng == null || wLat.abs() <= 0.0001 || wLng.abs() <= 0.0001) {
+    if (wLat == null ||
+        wLng == null ||
+        wLat.abs() <= 0.0001 ||
+        wLng.abs() <= 0.0001) {
       return distanceKm > 0 ? distanceKm : 1.0;
     }
 
@@ -421,10 +451,7 @@ class Worker {
     const p = 0.017453292519943295; // Math.PI / 180
     final a = 0.5 -
         cos((wLat - custLat) * p) / 2 +
-        cos(custLat * p) *
-            cos(wLat * p) *
-            (1 - cos((wLng - custLng) * p)) /
-            2;
+        cos(custLat * p) * cos(wLat * p) * (1 - cos((wLng - custLng) * p)) / 2;
     final clampedA = a.clamp(0.0, 1.0);
     final dist = 12742.0 * asin(sqrt(clampedA)); // 2 * R; R = 6371 km
     return double.parse(dist.toStringAsFixed(2));
@@ -432,12 +459,19 @@ class Worker {
 
   /// Formatted distance string (e.g. "45 m away", "1.4 km away", "At your doorstep").
   String formattedDistanceString(double? custLat, double? custLng) {
-    final hasCustCoords = custLat != null && custLng != null && custLat.abs() > 0.0001 && custLng.abs() > 0.0001;
-    final hasWorkerCoords = latitude != null && longitude != null && latitude!.abs() > 0.0001 && longitude!.abs() > 0.0001;
+    final hasCustCoords = custLat != null &&
+        custLng != null &&
+        custLat.abs() > 0.0001 &&
+        custLng.abs() > 0.0001;
+    final hasWorkerCoords = latitude != null &&
+        longitude != null &&
+        latitude!.abs() > 0.0001 &&
+        longitude!.abs() > 0.0001;
 
     if (!hasCustCoords || !hasWorkerCoords) {
       return (distanceKm > 0 && distanceKm != 2.4 && distanceKm != 1.0)
-          ? 'km_away'.trSafe('${distanceKm.toStringAsFixed(1)} km away', [distanceKm.toStringAsFixed(1)])
+          ? 'km_away'.trSafe('${distanceKm.toStringAsFixed(1)} km away',
+              [distanceKm.toStringAsFixed(1)])
           : 'nearby'.trSafe('Nearby');
     }
 
@@ -448,14 +482,21 @@ class Worker {
       final meters = (km * 1000).round();
       return 'meters_away'.trSafe('$meters m away', [meters.toString()]);
     } else {
-      return 'km_away'.trSafe('${km.toStringAsFixed(1)} km away', [km.toStringAsFixed(1)]);
+      return 'km_away'
+          .trSafe('${km.toStringAsFixed(1)} km away', [km.toStringAsFixed(1)]);
     }
   }
 
   /// Creates a copy of Worker with distanceKm updated to the real-time distance from customer.
   Worker withCalculatedDistance(double? custLat, double? custLng) {
-    if (custLat == null || custLng == null || custLat.abs() <= 0.0001 || custLng.abs() <= 0.0001 ||
-        latitude == null || longitude == null || latitude!.abs() <= 0.0001 || longitude!.abs() <= 0.0001) {
+    if (custLat == null ||
+        custLng == null ||
+        custLat.abs() <= 0.0001 ||
+        custLng.abs() <= 0.0001 ||
+        latitude == null ||
+        longitude == null ||
+        latitude!.abs() <= 0.0001 ||
+        longitude!.abs() <= 0.0001) {
       return this;
     }
     final km = calculateDistanceKm(custLat, custLng);
@@ -465,12 +506,16 @@ class Worker {
   factory Worker.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     final totalRatings = (d["totalRatings"] as num?)?.toInt() ?? 0;
-    final totalReviews = (d["totalReviews"] as num?)?.toInt() ?? (totalRatings > 0 ? (totalRatings * 0.8).round() : 0);
-    final homesServiced = (d["homesServiced"] as num?)?.toInt() ?? (totalRatings > 0 ? totalRatings * 2 + 5 : 0);
+    final totalReviews = (d["totalReviews"] as num?)?.toInt() ??
+        (totalRatings > 0 ? (totalRatings * 0.8).round() : 0);
+    final homesServiced = (d["homesServiced"] as num?)?.toInt() ??
+        (totalRatings > 0 ? totalRatings * 2 + 5 : 0);
     final expYears = (d["experienceYears"] as num?)?.toInt() ?? 2;
     final rawName = d["name"] ?? d["displayName"] ?? d["artisanName"];
-    final defaultName = d["isProxy"] == true ? "Artisan Partner" : "Co-op Artisan";
-    final rawVerStatus = d["verificationStatus"] ?? (d["verified"] == true ? "approved" : "pending");
+    final defaultName =
+        d["isProxy"] == true ? "Artisan Partner" : "Co-op Artisan";
+    final rawVerStatus = d["verificationStatus"] ??
+        (d["verified"] == true ? "approved" : "pending");
     final verStatus = VerificationStatus.values.firstWhere(
       (v) => v.name == rawVerStatus,
       orElse: () => VerificationStatus.pending,
@@ -480,24 +525,34 @@ class Worker {
       orElse: () => VisibilityStatus.pending,
     );
     final verStage = VerificationStage.values.firstWhere(
-      (s) => s.name == (d["verificationStage"] ?? (verStatus == VerificationStatus.approved ? "approved" : "signup")),
+      (s) =>
+          s.name ==
+          (d["verificationStage"] ??
+              (verStatus == VerificationStatus.approved
+                  ? "approved"
+                  : "signup")),
       orElse: () => VerificationStage.signup,
     );
     final verDetails = d["verificationDetails"] != null
-        ? VerificationDetails.fromMap(Map<String, dynamic>.from(d["verificationDetails"]))
+        ? VerificationDetails.fromMap(
+            Map<String, dynamic>.from(d["verificationDetails"]))
         : null;
 
     final addrList = (d["addresses"] as List<dynamic>?)
-            ?.map((a) => a is Map ? UserAddress.fromMap(Map<String, dynamic>.from(a)) : null)
+            ?.map((a) => a is Map
+                ? UserAddress.fromMap(Map<String, dynamic>.from(a))
+                : null)
             .whereType<UserAddress>()
             .toList() ??
         const [];
 
     UserAddress? baseAddr;
     if (d["baseAddress"] != null && d["baseAddress"] is Map) {
-      baseAddr = UserAddress.fromMap(Map<String, dynamic>.from(d["baseAddress"] as Map));
+      baseAddr = UserAddress.fromMap(
+          Map<String, dynamic>.from(d["baseAddress"] as Map));
     } else if (d["currentAddress"] != null && d["currentAddress"] is Map) {
-      baseAddr = UserAddress.fromMap(Map<String, dynamic>.from(d["currentAddress"] as Map));
+      baseAddr = UserAddress.fromMap(
+          Map<String, dynamic>.from(d["currentAddress"] as Map));
     }
 
     double? parseCoord(dynamic val) {
@@ -513,7 +568,8 @@ class Worker {
       if (loc is Map) {
         final m = Map<String, dynamic>.from(loc);
         final mLat = parseCoord(m["latitude"] ?? m["lat"] ?? m["_latitude"]);
-        final mLng = parseCoord(m["longitude"] ?? m["lng"] ?? m["lon"] ?? m["_longitude"]);
+        final mLng = parseCoord(
+            m["longitude"] ?? m["lng"] ?? m["lon"] ?? m["_longitude"]);
         if (mLat != null && mLng != null && (mLat != 0.0 || mLng != 0.0)) {
           return GeoPoint(mLat, mLng);
         }
@@ -539,19 +595,31 @@ class Worker {
         baseAddr?.longitude ??
         (addrList.isNotEmpty ? addrList.first.longitude : null);
 
-    final rawBaseArea = (d["baseArea"] ?? baseAddr?.shortSummary ?? (d["baseAddress"] is String ? d["baseAddress"] as String : ""))
+    final rawBaseArea = (d["baseArea"] ??
+            baseAddr?.shortSummary ??
+            (d["baseAddress"] is String ? d["baseAddress"] as String : ""))
         .toString()
         .toLowerCase();
 
     // Detect Android Emulator default coordinates (e.g. Mountain View: lat 36..38, lng -122)
     // or out-of-bounds coordinates (India bounding box roughly lat: 6.0 to 38.0, lng: 68.0 to 98.0)
-    final bool isEmulatorOrOutOfBounds = (lat != null && lng != null) && (
-      lng < 0 || // Western hemisphere (e.g. US emulator -122.084)
-      (lat >= 36.0 && lat <= 39.0 && lng >= -124.0 && lng <= -120.0) || // Android emulator Mountain View
-      lat < 6.0 || lat > 38.0 || lng < 68.0 || lng > 98.0 // Outside India operational boundaries
-    );
+    final bool isEmulatorOrOutOfBounds = (lat != null && lng != null) &&
+        (lng < 0 || // Western hemisphere (e.g. US emulator -122.084)
+            (lat >= 36.0 &&
+                lat <= 39.0 &&
+                lng >= -124.0 &&
+                lng <= -120.0) || // Android emulator Mountain View
+            lat < 6.0 ||
+            lat > 38.0 ||
+            lng < 68.0 ||
+            lng > 98.0 // Outside India operational boundaries
+        );
 
-    if (lat == null || lng == null || lat.abs() <= 0.0001 || lng.abs() <= 0.0001 || isEmulatorOrOutOfBounds) {
+    if (lat == null ||
+        lng == null ||
+        lat.abs() <= 0.0001 ||
+        lng.abs() <= 0.0001 ||
+        isEmulatorOrOutOfBounds) {
       if (rawBaseArea.contains("perundurai")) {
         lat = 11.2743;
         lng = 77.5866;
@@ -589,17 +657,24 @@ class Worker {
 
     List<String> parsedSkills = [];
     if (d["skills"] is List) {
-      parsedSkills = List<String>.from((d["skills"] as List).map((e) => e.toString()));
-    } else if (d["skills"] is String && (d["skills"] as String).trim().isNotEmpty) {
+      parsedSkills =
+          List<String>.from((d["skills"] as List).map((e) => e.toString()));
+    } else if (d["skills"] is String &&
+        (d["skills"] as String).trim().isNotEmpty) {
       parsedSkills = [(d["skills"] as String).trim()];
-    } else if (d["skill"] is String && (d["skill"] as String).trim().isNotEmpty) {
+    } else if (d["skill"] is String &&
+        (d["skill"] as String).trim().isNotEmpty) {
       parsedSkills = [(d["skill"] as String).trim()];
-    } else if (d["trade"] is String && (d["trade"] as String).trim().isNotEmpty) {
+    } else if (d["trade"] is String &&
+        (d["trade"] as String).trim().isNotEmpty) {
       parsedSkills = [(d["trade"] as String).trim()];
     }
 
-    final bool isOnlineOrChecked = (d["availabilityStatus"] == "online") || (d["isCheckedIn"] == true);
-    final availStatus = isOnlineOrChecked ? AvailabilityStatus.online : AvailabilityStatus.offline;
+    final bool isOnlineOrChecked =
+        (d["availabilityStatus"] == "online") || (d["isCheckedIn"] == true);
+    final availStatus = isOnlineOrChecked
+        ? AvailabilityStatus.online
+        : AvailabilityStatus.offline;
 
     final equipTags = (d["equipmentTags"] as List<dynamic>?)
             ?.map((e) => e.toString().trim())
@@ -611,18 +686,25 @@ class Worker {
             .where((e) => e.isNotEmpty)
             .toList() ??
         const <String>[];
-    final diagAccuracy = (d["diagnosticAccuracyScore"] as num?)?.toDouble() ?? 0.92;
+    final diagAccuracy =
+        (d["diagnosticAccuracyScore"] as num?)?.toDouble() ?? 0.92;
 
     return Worker(
       id: doc.id,
       userId: d["userId"] ?? doc.id,
-      name: (rawName != null && rawName.toString().isNotEmpty) ? rawName : defaultName,
+      name: (rawName != null && rawName.toString().isNotEmpty)
+          ? rawName
+          : defaultName,
       organizationId: d["organizationId"] ?? "coop_tn_01",
       skills: parsedSkills,
       experienceYears: expYears,
       isProxy: d["isProxy"] ?? false,
       proxyReferrerId: d["proxyReferrerId"],
-      phoneForCalling: d["phoneForCalling"] ?? d["phone"] ?? d["phoneNumber"] ?? d["mobile"] ?? d["contactPhone"],
+      phoneForCalling: d["phoneForCalling"] ??
+          d["phone"] ??
+          d["phoneNumber"] ??
+          d["mobile"] ??
+          d["contactPhone"],
       verificationStatus: verStatus,
       visibilityStatus: visStatus,
       verificationStage: verStage,
@@ -636,7 +718,8 @@ class Worker {
       distanceKm: (d["distanceKm"] as num?)?.toDouble() ?? 1.0,
       baseRate: (d["baseRate"] ?? 149.0).toDouble(),
       perKmRate: (d["perKmRate"] ?? 12.0).toDouble(),
-      verificationBadge: d["verificationBadge"] ?? (rawVerStatus == "approved" ? "Co-op Certified" : ""),
+      verificationBadge: d["verificationBadge"] ??
+          (rawVerStatus == "approved" ? "Co-op Certified" : ""),
       availabilityStatus: availStatus,
       insuranceStatus: d["insuranceStatus"] ?? false,
       welfareSchemeId: d["welfareSchemeId"],
@@ -646,7 +729,8 @@ class Worker {
       preferredAreas: List<String>.from(d["preferredAreas"] ?? []),
       referralCount: d["referralCount"] ?? 0,
       referralEarnings: (d["referralEarnings"] ?? 0.0).toDouble(),
-      secondLineReferralIds: List<String>.from(d["secondLineReferralIds"] ?? []),
+      secondLineReferralIds:
+          List<String>.from(d["secondLineReferralIds"] ?? []),
       engagementMode: d["engagementMode"] ?? "passion",
       isCheckedIn: isOnlineOrChecked,
       checkedInAt: (d["checkedInAt"] as Timestamp?)?.toDate(),
@@ -655,7 +739,9 @@ class Worker {
       baseAddress: baseAddr,
       latitude: lat,
       longitude: lng,
-      baseArea: d["baseArea"] ?? baseAddr?.shortSummary ?? (d["baseAddress"] is String ? d["baseAddress"] as String : null),
+      baseArea: d["baseArea"] ??
+          baseAddr?.shortSummary ??
+          (d["baseAddress"] is String ? d["baseAddress"] as String : null),
       equipmentTags: equipTags,
       serviceKeywords: srvKeywords,
       diagnosticAccuracyScore: diagAccuracy,
@@ -663,51 +749,53 @@ class Worker {
   }
 
   Map<String, dynamic> toFirestore() => {
-    "userId": userId,
-    "name": name,
-    "organizationId": organizationId,
-    "skills": skills,
-    "experienceYears": experienceYears,
-    "isProxy": isProxy,
-    "proxyReferrerId": proxyReferrerId,
-    "phoneForCalling": phoneForCalling,
-    "verificationStatus": verificationStatus.name,
-    "visibilityStatus": visibilityStatus.name,
-    "verificationStage": verificationStage.name,
-    if (verificationDetails != null) "verificationDetails": verificationDetails!.toMap(),
-    "avgRating": avgRating,
-    "totalRatings": totalRatings,
-    "totalReviews": totalReviews,
-    "homesServiced": homesServiced,
-    "location": location,
-    "serviceRadiusKm": serviceRadiusKm,
-    "distanceKm": distanceKm,
-    "baseRate": baseRate,
-    "perKmRate": perKmRate,
-    "verificationBadge": verificationBadge,
-    "availabilityStatus": availabilityStatus.name,
-    "insuranceStatus": insuranceStatus,
-    "welfareSchemeId": welfareSchemeId,
-    "workingHoursStart": workingHoursStart,
-    "workingHoursEnd": workingHoursEnd,
-    "totalHoursWorked": totalHoursWorked,
-    "preferredAreas": preferredAreas,
-    "referralCount": referralCount,
-    "referralEarnings": referralEarnings,
-    "secondLineReferralIds": secondLineReferralIds,
-    "engagementMode": engagementMode,
-    "isCheckedIn": isCheckedIn,
-    "checkedInAt": checkedInAt != null ? Timestamp.fromDate(checkedInAt!) : null,
-    "passionBio": passionBio,
-    "addresses": addresses.map((a) => a.toMap()).toList(),
-    "baseAddress": baseAddress?.toMap(),
-    "latitude": latitude ?? baseAddress?.latitude,
-    "longitude": longitude ?? baseAddress?.longitude,
-    "baseArea": baseArea ?? baseAddress?.shortSummary,
-    "equipmentTags": equipmentTags,
-    "serviceKeywords": serviceKeywords,
-    "diagnosticAccuracyScore": diagnosticAccuracyScore,
-  };
+        "userId": userId,
+        "name": name,
+        "organizationId": organizationId,
+        "skills": skills,
+        "experienceYears": experienceYears,
+        "isProxy": isProxy,
+        "proxyReferrerId": proxyReferrerId,
+        "phoneForCalling": phoneForCalling,
+        "verificationStatus": verificationStatus.name,
+        "visibilityStatus": visibilityStatus.name,
+        "verificationStage": verificationStage.name,
+        if (verificationDetails != null)
+          "verificationDetails": verificationDetails!.toMap(),
+        "avgRating": avgRating,
+        "totalRatings": totalRatings,
+        "totalReviews": totalReviews,
+        "homesServiced": homesServiced,
+        "location": location,
+        "serviceRadiusKm": serviceRadiusKm,
+        "distanceKm": distanceKm,
+        "baseRate": baseRate,
+        "perKmRate": perKmRate,
+        "verificationBadge": verificationBadge,
+        "availabilityStatus": availabilityStatus.name,
+        "insuranceStatus": insuranceStatus,
+        "welfareSchemeId": welfareSchemeId,
+        "workingHoursStart": workingHoursStart,
+        "workingHoursEnd": workingHoursEnd,
+        "totalHoursWorked": totalHoursWorked,
+        "preferredAreas": preferredAreas,
+        "referralCount": referralCount,
+        "referralEarnings": referralEarnings,
+        "secondLineReferralIds": secondLineReferralIds,
+        "engagementMode": engagementMode,
+        "isCheckedIn": isCheckedIn,
+        "checkedInAt":
+            checkedInAt != null ? Timestamp.fromDate(checkedInAt!) : null,
+        "passionBio": passionBio,
+        "addresses": addresses.map((a) => a.toMap()).toList(),
+        "baseAddress": baseAddress?.toMap(),
+        "latitude": latitude ?? baseAddress?.latitude,
+        "longitude": longitude ?? baseAddress?.longitude,
+        "baseArea": baseArea ?? baseAddress?.shortSummary,
+        "equipmentTags": equipmentTags,
+        "serviceKeywords": serviceKeywords,
+        "diagnosticAccuracyScore": diagnosticAccuracyScore,
+      };
 
   Worker copyWith({
     String? id,
@@ -789,7 +877,8 @@ class Worker {
       preferredAreas: preferredAreas ?? this.preferredAreas,
       referralCount: referralCount ?? this.referralCount,
       referralEarnings: referralEarnings ?? this.referralEarnings,
-      secondLineReferralIds: secondLineReferralIds ?? this.secondLineReferralIds,
+      secondLineReferralIds:
+          secondLineReferralIds ?? this.secondLineReferralIds,
       engagementMode: engagementMode ?? this.engagementMode,
       isCheckedIn: isCheckedIn ?? this.isCheckedIn,
       checkedInAt: checkedInAt ?? this.checkedInAt,
@@ -801,7 +890,8 @@ class Worker {
       baseArea: baseArea ?? this.baseArea,
       equipmentTags: equipmentTags ?? this.equipmentTags,
       serviceKeywords: serviceKeywords ?? this.serviceKeywords,
-      diagnosticAccuracyScore: diagnosticAccuracyScore ?? this.diagnosticAccuracyScore,
+      diagnosticAccuracyScore:
+          diagnosticAccuracyScore ?? this.diagnosticAccuracyScore,
     );
   }
 }

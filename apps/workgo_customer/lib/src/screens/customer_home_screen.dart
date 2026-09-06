@@ -996,6 +996,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         final activeList = bookings
             .where(
               (b) =>
+                  b.status == BookingStatus.paymentPending ||
                   b.status == BookingStatus.inProgress ||
                   b.status == BookingStatus.accepted ||
                   b.status == BookingStatus.pending,
@@ -2921,6 +2922,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           final activeBookings = allBookings
               .where(
                 (b) =>
+                    b.status == BookingStatus.paymentPending ||
                     b.status == BookingStatus.inProgress ||
                     b.status == BookingStatus.accepted ||
                     b.status == BookingStatus.pending,
@@ -2940,7 +2942,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
           final filteredBookings = allBookings.where((b) {
             if (_bookingFilter == "active") {
-              return b.status == BookingStatus.inProgress ||
+              return b.status == BookingStatus.paymentPending ||
+                  b.status == BookingStatus.inProgress ||
                   b.status == BookingStatus.accepted ||
                   b.status == BookingStatus.pending;
             }
