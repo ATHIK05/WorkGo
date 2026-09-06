@@ -19,13 +19,12 @@ class WorkerEarningsScreen extends StatefulWidget {
 
 class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
   int _selectedPeriodIndex = 0; // 0: Today, 1: This Week, 2: This Month, 3: All Time
-  final List<String> _periods = ["Today", "This Week", "This Month", "All Time"];
 
   @override
   Widget build(BuildContext context) {
     final bookingService = BookingService();
     final now = DateTime.now();
-    final dateSubtitle = "${DateFormat('EEEE, d MMM').format(now)} · Direct Co-op Ledger";
+    final dateSubtitle = "${DateFormat('EEEE, d MMM', context.locale.languageCode).format(now)} · ${'direct_coop_escrow'.tr()}";
 
     return Scaffold(
       backgroundColor: KX.canvas,
@@ -154,7 +153,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Job Ledger History",
+                        'job_ledger_history'.tr(),
                         style: WorkGoFonts.display(
                           color: KX.textPrimary,
                           fontSize: 16,
@@ -168,7 +167,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          "${allJobs.length} RECORDED",
+                          'recorded_badge'.tr(args: ['${allJobs.length}']),
                           style: const TextStyle(
                             color: Color(0xFF4B5563),
                             fontSize: 9.5,
@@ -188,7 +187,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                       final job = allJobs[i];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: _LedgerTile(job: job),
+                        child: _LedgerTile(job: job, worker: widget.worker),
                       );
                     }),
                   ],
@@ -212,8 +211,8 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
       children: [
         Expanded(
           child: _bentoSpec(
-            "Jobs Done",
-            "$completedCount Done",
+            'jobs_done'.tr(),
+            'done_count'.tr(args: ['$completedCount']),
             const Color(0xFFD1FAE5),
             const Color(0xFF065F46),
             Icons.task_alt_rounded,
@@ -222,7 +221,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
         const SizedBox(width: 8),
         Expanded(
           child: _bentoSpec(
-            "Avg. Ticket",
+            'avg_ticket'.tr(),
             "₹${avgPerJob.toStringAsFixed(0)}",
             const Color(0xFFD6EBFF),
             const Color(0xFF1E3A8A),
@@ -232,8 +231,8 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
         const SizedBox(width: 8),
         Expanded(
           child: _bentoSpec(
-            "Comm. Rate",
-            "0% Co-op",
+            'comm_rate'.tr(),
+            'zero_coop'.tr(),
             const Color(0xFFFFE0A3),
             const Color(0xFF92400E),
             Icons.percent_rounded,
@@ -278,6 +277,13 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
   }
 
   Widget _buildPeriodFilterRow() {
+    final periods = [
+      'period_today'.tr(),
+      'period_this_week'.tr(),
+      'period_this_month'.tr(),
+      'period_all_time'.tr(),
+    ];
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -285,7 +291,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
-        children: List.generate(_periods.length, (index) {
+        children: List.generate(periods.length, (index) {
           final isSelected = _selectedPeriodIndex == index;
           return Expanded(
             child: GestureDetector(
@@ -311,7 +317,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _periods[index],
+                    periods[index],
                     style: TextStyle(
                       color: isSelected ? const Color(0xFF141416) : const Color(0xFF6B7280),
                       fontSize: 11,
@@ -354,7 +360,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            "No Completed Jobs Today",
+            'no_completed_jobs_today'.tr(),
             style: WorkGoFonts.heading(
               color: KX.textPrimary,
               fontSize: 15,
@@ -363,7 +369,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            "Accept live customer broadcasts from the Radar to generate instant direct payouts.",
+            'accept_broadcasts_hint'.tr(),
             style: WorkGoFonts.body(
               color: const Color(0xFF6B6B6B),
               fontSize: 12,
@@ -378,7 +384,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
   Widget _buildLinkedBankCard(Worker worker) {
     final accountDisplay = worker.phoneForCalling != null && worker.phoneForCalling!.length >= 4
         ? "UPI: ${worker.phoneForCalling!.substring(worker.phoneForCalling!.length - 4)}****@okhdfc"
-        : "Direct Co-op Escrow Account";
+        : 'direct_coop_escrow'.tr();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -408,9 +414,9 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Settlement Target",
-                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+                Text(
+                  'settlement_target'.tr(),
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -427,14 +433,14 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 12),
-                SizedBox(width: 4),
+                const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 12),
+                const SizedBox(width: 4),
                 Text(
-                  "VERIFIED",
-                  style: TextStyle(color: Color(0xFF10B981), fontSize: 9.5, fontWeight: FontWeight.w900),
+                  'verified_caps'.tr(),
+                  style: const TextStyle(color: Color(0xFF10B981), fontSize: 9.5, fontWeight: FontWeight.w900),
                 ),
               ],
             ),
@@ -489,7 +495,7 @@ class _HeroEarningMasterCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Accumulated Net Payout",
+                'accumulated_net_payout'.tr(),
                 style: GoogleFonts.plusJakartaSans(
                   color: const Color(0xFF5B4D7A),
                   fontSize: 12,
@@ -502,12 +508,12 @@ class _HeroEarningMasterCard extends StatelessWidget {
                   color: const Color(0xFF1E1035),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.account_balance_wallet_rounded, color: Color(0xFFFFB800), size: 11),
-                    SizedBox(width: 4),
+                    const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFFFFB800), size: 11),
+                    const SizedBox(width: 4),
                     Text(
-                      "DIRECT CO-OP PAY",
+                      'direct_coop_pay'.tr(),
                       style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900),
                     ),
                   ],
@@ -533,7 +539,7 @@ class _HeroEarningMasterCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                "NET",
+                'net_label'.tr(),
                 style: GoogleFonts.plusJakartaSans(
                   color: const Color(0xFF047857),
                   fontSize: 13,
@@ -551,7 +557,7 @@ class _HeroEarningMasterCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Gross Billed: ₹${gross.toStringAsFixed(0)}",
+                'gross_billed_amount'.tr(args: [gross.toStringAsFixed(0)]),
                 style: GoogleFonts.plusJakartaSans(
                   color: const Color(0xFF5B4D7A),
                   fontSize: 11.5,
@@ -559,7 +565,7 @@ class _HeroEarningMasterCard extends StatelessWidget {
                 ),
               ),
               Text(
-                "Co-op Fund (2%): ₹${welfare.toStringAsFixed(0)}",
+                'coop_fund_amount'.tr(args: [welfare.toStringAsFixed(0)]),
                 style: GoogleFonts.plusJakartaSans(
                   color: const Color(0xFF047857),
                   fontSize: 11.5,
@@ -578,8 +584,9 @@ class _HeroEarningMasterCard extends StatelessWidget {
 //  LEDGER TILE (20px Modern Card)
 // ──────────────────────────────────────────────────────────────
 class _LedgerTile extends StatelessWidget {
-  const _LedgerTile({required this.job});
+  const _LedgerTile({required this.job, required this.worker});
   final Booking job;
+  final Worker worker;
 
   @override
   Widget build(BuildContext context) {
@@ -590,82 +597,124 @@ class _LedgerTile extends StatelessWidget {
 
     final tradeTitle = job.serviceType.toLocalizedTrade();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isCompleted ? const Color(0xFFD1FAE5) : const Color(0xFFFFF3D6),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              isCompleted ? Icons.check_circle_rounded : Icons.pending_rounded,
-              color: isCompleted ? const Color(0xFF047857) : const Color(0xFFD97706),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tradeTitle,
-                  style: WorkGoFonts.heading(
-                    color: KX.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
+        onTap: isCompleted
+            ? () async {
+                HapticFeedback.lightImpact();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('generating_invoice'.tr()),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: const Color(0xFF141416),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  "$dateStr · ${job.status.name.toUpperCase()}",
-                  style: WorkGoFonts.body(
-                    color: const Color(0xFF6B6B6B),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                "₹${job.totalAmount.toStringAsFixed(0)}",
-                style: WorkGoFonts.numeric(
-                  color: const Color(0xFF141416),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                "Net: ₹${(job.totalAmount * 0.98).toStringAsFixed(0)}",
-                style: const TextStyle(
-                  color: Color(0xFF047857),
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                ),
+                );
+                try {
+                  await InvoiceService.exportInvoicePdf(
+                    booking: job,
+                    workerName: worker.name,
+                    paymentMethod: "UPI",
+                    context: context,
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('invoice_export_error'.tr(args: ['$e'])),
+                        backgroundColor: const Color(0xFFEF4444),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              }
+            : null,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 10,
+                offset: Offset(0, 2),
               ),
             ],
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isCompleted ? const Color(0xFFD1FAE5) : const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isCompleted ? Icons.receipt_long_rounded : Icons.pending_rounded,
+                  color: isCompleted ? const Color(0xFF047857) : const Color(0xFFD97706),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tradeTitle,
+                      style: WorkGoFonts.heading(
+                        color: KX.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "$dateStr · ${'status_${job.status.name}'.trSafe(job.status.name.toUpperCase())}${isCompleted ? " · ${'tap_for_receipt'.tr()}" : ''}",
+                      style: WorkGoFonts.body(
+                        color: isCompleted ? const Color(0xFF047857) : const Color(0xFF6B6B6B),
+                        fontSize: 11,
+                        fontWeight: isCompleted ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "₹${job.totalAmount.toStringAsFixed(0)}",
+                    style: WorkGoFonts.numeric(
+                      color: const Color(0xFF141416),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'net_amount'.tr(args: [(job.totalAmount * 0.98).toStringAsFixed(0)]),
+                    style: const TextStyle(
+                      color: Color(0xFF047857),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              if (isCompleted) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF9CA3AF)),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

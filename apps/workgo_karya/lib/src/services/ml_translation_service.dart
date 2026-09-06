@@ -1,0 +1,459 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/widgets.dart';
+import 'package:google_mlkit_translation/google_mlkit_translation.dart';
+
+/// On-device and resilient multi-tier translation service for dynamic Firebase
+/// content, customer locations, service requests, and triage symptoms in WorkGo Karya.
+///
+/// Multi-Tier Pipeline:
+///   1. Synchronous Session Cache (0ms instant return)
+///   2. Smart Regional & Diagnostic Dictionary (0ms instant address & triage translation)
+///   3. On-Device Google ML Kit Translator (offline, zero-latency inference)
+///   4. Resilient Cloud Translation Fallback (when on-device model is pending download or fails)
+
+typedef MLTranslationService = MlTranslationService;
+
+class MlTranslationService {
+  MlTranslationService._();
+  static final MlTranslationService instance = MlTranslationService._();
+
+  final _modelManager = OnDeviceTranslatorModelManager();
+  final Map<String, OnDeviceTranslator> _translators = {};
+  final Map<String, String> _cache = {};
+
+  static const _supportedTargets = {
+    'hi': TranslateLanguage.hindi,
+    'ta': TranslateLanguage.tamil,
+  };
+
+  // ──────────────────────────────────────────────────────────────────────────
+  //  SMART REGIONAL & DIAGNOSTIC DICTIONARY
+  // ──────────────────────────────────────────────────────────────────────────
+
+  static const Map<String, Map<String, String>> _phraseDictionary = {
+    'hi': {
+      // Address & Location terms
+      'home': 'घर',
+      'office': 'कार्यालय',
+      'work': 'कार्यस्थल',
+      'near': 'के पास',
+      'near to': 'के पास',
+      'nearby': 'आसपास',
+      'opposite': 'के सामने',
+      'opp': 'के सामने',
+      'behind': 'के पीछे',
+      'road': 'मार्ग',
+      'rd': 'मार्ग',
+      'street': 'गली',
+      'st': 'गली',
+      'main road': 'मुख्य मार्ग',
+      'cross': 'क्रॉस',
+      'nagar': 'नगर',
+      'colony': 'कॉलोनी',
+      'apartment': 'अपार्टमेंट',
+      'apt': 'अपार्टमेंट',
+      'layout': 'लेआउट',
+      'sector': 'सेक्टर',
+      'block': 'ब्लॉक',
+      'floor': 'मंजिल',
+      'tamil nadu': 'तमिलनाडु',
+      'tamilnadu': 'तमिलनाडु',
+      'erode': 'इरोड',
+      'nadarmedu': 'नाडारमेडु',
+      'chennai': 'चेन्नई',
+      'coimbatore': 'कोयंबटूर',
+      'salem': 'सेलम',
+      'madurai': 'मदुरै',
+      'tirupur': 'तिरुपुर',
+      'perundurai': 'पेरुंदुरै',
+      'bangalore': 'बेंगलुरु',
+      'bengaluru': 'बेंगलुरु',
+      'mumbai': 'मुंबई',
+      'delhi': 'दिल्ली',
+      'hyderabad': 'हैदराबाद',
+      'pune': 'पुणे',
+      'kolkata': 'कोलकाता',
+      'kerala': 'केरल',
+      'karnataka': 'कर्नाटक',
+      'maharashtra': 'महाराष्ट्र',
+      'thanjavur': 'तंजावुर',
+      'trichy': 'त्रिची',
+      'tiruchirappalli': 'तिरुचिरापल्ली',
+      'vellore': 'वेल्लोर',
+      'hosur': 'होसुर',
+      'e main st': 'ईस्ट मेन स्ट्रीट',
+      'main st': 'मेन स्ट्रीट',
+      'east': 'पूर्व',
+      'west': 'पश्चिम',
+      'north': 'उत्तर',
+      'south': 'दक्षिण',
+      'current live location': 'वर्तमान लाइव स्थान',
+      'customer premises · in zone': 'ग्राहक परिसर · कार्यक्षेत्र में',
+      'customer premises': 'ग्राहक परिसर',
+      'customer doorstep address': 'ग्राहक का घर/पता',
+      'direct service dispatch to verified customer': 'सत्यापित ग्राहक को सीधी सेवा डिस्पैच',
+
+      // AI Symptom Triage & Equipment common terms
+      'ceiling fan / home appliance': 'सीलिंग फैन / घरेलू उपकरण',
+      'ceiling fan': 'सीलिंग फैन',
+      'fan': 'पंखा',
+      'home appliance': 'घरेलू उपकरण',
+      'refrigerator / fridge': 'रेफ्रिजरेटर / फ्रिज',
+      'fridge': 'फ्रिज',
+      'mixer grinder / home appliance': 'मिक्सर ग्राइंडर / घरेलू उपकरण',
+      'mixer grinder': 'मिक्सर ग्राइंडर',
+      'mixie': 'मिक्सर',
+      'microwave oven': 'माइक्रोवेव ओवन',
+      'drainage & sewerage': 'जल निकासी और सीवरेज',
+      'doors, locks & woodwork': 'दरवाजे, ताले और लकड़ी का काम',
+      'painting & waterproofing': 'पेंटिंग और वॉटरप्रूफिंग',
+      'deep cleaning & descaling': 'डीप क्लीनिंग और डीस्केलिंग',
+      'metal fabrication & welding': 'धातु निर्माण और वेल्डिंग',
+      'masonry & tile works': 'चिनाई और टाइल का काम',
+      'masonry': 'चिनाई (राजमिस्त्री)',
+      'kitchen gas stove & hob': 'रसोई गैस चूल्हा और हॉब',
+      'out of scope': 'सेवा कार्यक्षेत्र से बाहर',
+      'non-household service': 'गैर-घरेलू सेवा',
+      'electrical fixture': 'विद्युत उपकरण',
+      'wiring short circuit': 'वायरिंग शॉर्ट सर्किट',
+      'loose connection': 'ढीला कनेक्शन',
+      'switch/fuse malfunction': 'स्विच/फ्यूज खराबी',
+      'pipe wrench': 'पाइप रिंच',
+      'teflon tape': 'टेफ्लॉन टेप',
+      'screw driver': 'पेचकस',
+      'multimeter': 'मल्टीमीटर',
+      'drill machine': 'ड्रिल मशीन',
+      'safety gloves': 'सुरक्षा दस्ताने',
+      'insulation tape': 'इंसुलेशन टेप',
+
+      // Roles & Status
+      'artisan': 'कारीगर',
+      'coop artisan': 'सहकारी कारीगर',
+      'artisan partner': 'कारीगर पार्टनर',
+      'peer artisan': 'साथी कारीगर',
+    },
+    'ta': {
+      // Address & Location terms
+      'home': 'வீடு',
+      'office': 'அலுவலகம்',
+      'work': 'வேலை இடம்',
+      'near': 'அருகில்',
+      'near to': 'அருகில்',
+      'nearby': 'அருகில்',
+      'opposite': 'எதிரில்',
+      'opp': 'எதிரில்',
+      'behind': 'பின்புறம்',
+      'road': 'சாலை',
+      'rd': 'சாலை',
+      'street': 'தெரு',
+      'st': 'தெரு',
+      'main road': 'பிரதான சாலை',
+      'cross': 'குறுக்குத் தெரு',
+      'nagar': 'நகர்',
+      'colony': 'காலனி',
+      'apartment': 'அபார்ட்மெண்ட்',
+      'apt': 'அபார்ட்மெண்ட்',
+      'layout': 'லேஅவுட்',
+      'sector': 'செக்டார்',
+      'block': 'பிளாக்',
+      'floor': 'தளம்',
+      'tamil nadu': 'தமிழ்நாடு',
+      'tamilnadu': 'தமிழ்நாடு',
+      'erode': 'ஈரோடு',
+      'nadarmedu': 'நாடார்மேடு',
+      'chennai': 'சென்னை',
+      'coimbatore': 'கோயம்புத்தூர்',
+      'salem': 'சேலம்',
+      'madurai': 'மதுரை',
+      'tirupur': 'திருப்பூர்',
+      'perundurai': 'பெருந்துறை',
+      'bangalore': 'பெங்களூரு',
+      'bengaluru': 'பெங்களூரு',
+      'mumbai': 'மும்பை',
+      'delhi': 'டெல்லி',
+      'hyderabad': 'ஹைதராபாத்',
+      'pune': 'புனே',
+      'kolkata': 'கொல்கத்தா',
+      'kerala': 'கேரளா',
+      'karnataka': 'கர்நாடகா',
+      'maharashtra': 'மகாராஷ்டிரா',
+      'thanjavur': 'தஞ்சாவூர்',
+      'trichy': 'திருச்சி',
+      'tiruchirappalli': 'திருச்சிராப்பள்ளி',
+      'vellore': 'வேலூர்',
+      'hosur': 'ஓசூர்',
+      'e main st': 'கிழக்கு பிரதான சாலை',
+      'main st': 'பிரதான சாலை',
+      'east': 'கிழக்கு',
+      'west': 'மேற்கு',
+      'north': 'வடக்கு',
+      'south': 'தெற்கு',
+      'current live location': 'தற்போதைய நேரடி இருப்பிடம்',
+      'customer premises · in zone': 'வாடிக்கையாளர் வளாகம் · மண்டலத்திற்குள்',
+      'customer premises': 'வாடிக்கையாளர் வளாகம்',
+      'customer doorstep address': 'வாடிக்கையாளர் முகவரி',
+      'direct service dispatch to verified customer': 'சரிபார்க்கப்பட்ட வாடிக்கையாளருக்கு நேரடி சேவை அனுப்புதல்',
+
+      // AI Symptom Triage & Equipment common terms
+      'ceiling fan / home appliance': 'சீலிங் ஃபேன் / வீட்டு உபகரணம்',
+      'ceiling fan': 'சீலிங் ஃபேன்',
+      'fan': 'ஃபேன்',
+      'home appliance': 'வீட்டு உபகரணம்',
+      'refrigerator / fridge': 'குளிர்சாதனப் பெட்டி / ஃப்ரிட்ஜ்',
+      'fridge': 'ஃப்ரிட்ஜ்',
+      'mixer grinder / home appliance': 'மிக்ஸி கிரைண்டர் / வீட்டு உபகரணம்',
+      'mixer grinder': 'மிக்ஸி கிரைண்டர்',
+      'mixie': 'மிக்ஸி',
+      'microwave oven': 'மைக்ரோவேவ் ஓவன்',
+      'drainage & sewerage': 'வடிகால் மற்றும் கழிவுநீர் பழுது',
+      'doors, locks & woodwork': 'கதவுகள், பூட்டுகள் மற்றும் மரவேலை',
+      'painting & waterproofing': 'பெயிண்டிங் மற்றும் நீர்ப்புகாப்பு',
+      'deep cleaning & descaling': 'ஆழ்ந்த தூய்மைப்பணி மற்றும் கறை நீக்கம்',
+      'metal fabrication & welding': 'உலோக தயாரிப்பு மற்றும் வெல்டிங்',
+      'masonry & tile works': 'கட்டிட வேலை மற்றும் டைல்ஸ் பழுது',
+      'masonry': 'கொத்தனார் வேலை',
+      'kitchen gas stove & hob': 'சமையலறை கேஸ் அடுப்பு பழுது',
+      'out of scope': 'சேவை வரம்பிற்கு வெளியே',
+      'non-household service': 'வீட்டு உபயோகமல்லாத சேவை',
+      'electrical fixture': 'மின் சாதனங்கள்',
+      'wiring short circuit': 'வயரிங் ஷார்ட் சர்க்யூட்',
+      'loose connection': 'தளர்வான இணைப்பு',
+      'switch/fuse malfunction': 'சுவிட்ச்/ஃபியூஸ் கோளாறு',
+      'pipe wrench': 'பைப் ரெஞ்ச்',
+      'teflon tape': 'டெஃப்லான் டேப்',
+      'screw driver': 'திருப்புளி (ஸ்க்ரூ டிரைவர்)',
+      'multimeter': 'மல்டிமீட்டர்',
+      'drill machine': 'துளையிடும் இயந்திரம் (டிரில்)',
+      'safety gloves': 'பாதுகாப்பு கையுறைகள்',
+      'insulation tape': 'மின் காப்பு நாடா (இன்சுலேஷன் டேப்)',
+
+      // Roles & Status
+      'artisan': 'கைவினைஞர்',
+      'coop artisan': 'கூட்டுறவு கைவினைஞர்',
+      'artisan partner': 'கைவினைஞர் பங்குதாரர்',
+      'peer artisan': 'சக கைவினைஞர்',
+    },
+  };
+
+  // ──────────────────────────────────────────────────────────────────────────
+  //  CORE TRANSLATION METHODS
+  // ──────────────────────────────────────────────────────────────────────────
+
+  String _extractLocale(dynamic contextOrLocale) {
+    if (contextOrLocale is BuildContext) {
+      return contextOrLocale.locale.languageCode;
+    } else if (contextOrLocale is Locale) {
+      return contextOrLocale.languageCode;
+    } else if (contextOrLocale is String && contextOrLocale.isNotEmpty) {
+      return contextOrLocale;
+    }
+    return 'en';
+  }
+
+  /// Instant synchronous translation lookup (Cache -> Dictionary -> Fallback to original text).
+  /// Perfect for initial build frame to prevent UI flicker.
+  String translateSync(String text, dynamic contextOrLocale, {bool isAddress = false}) {
+    if (text.trim().isEmpty) return text;
+    final locale = _extractLocale(contextOrLocale);
+    if (locale == 'en') return text;
+
+    // If text already contains target language script, it is already localized
+    if (locale == 'ta' && RegExp(r'[\u0B80-\u0BFF]').hasMatch(text)) return text;
+    if (locale == 'hi' && RegExp(r'[\u0900-\u097F]').hasMatch(text)) return text;
+
+    final cacheKey = '$locale:$text';
+    if (_cache.containsKey(cacheKey)) return _cache[cacheKey]!;
+
+    if (isAddress) {
+      return translateAddressSync(text, locale);
+    }
+
+    final dict = _phraseDictionary[locale];
+    if (dict != null) {
+      final normalized = text.trim().toLowerCase();
+      if (dict.containsKey(normalized)) {
+        return dict[normalized]!;
+      }
+    }
+
+    return text;
+  }
+
+  /// Cleans up common phonetic misspellings in machine-translated addresses
+  String _postProcessAddress(String text, String locale) {
+    if (locale == 'ta') {
+      return text
+          .replaceAll('ஒரோடு', 'ஈரோடு')
+          .replaceAll('ஓரோடு', 'ஈரோடு')
+          .replaceAll(RegExp(r'\bErode\b', caseSensitive: false), 'ஈரோடு')
+          .replaceAll(RegExp(r'\bNadarmedu\b', caseSensitive: false), 'நாடார்மேடு')
+          .replaceAll('நாடார் மேடு', 'நாடார்மேடு');
+    } else if (locale == 'hi') {
+      return text
+          .replaceAll(RegExp(r'\bErode\b', caseSensitive: false), 'इरोड')
+          .replaceAll(RegExp(r'\bNadarmedu\b', caseSensitive: false), 'नाडारमेडु');
+    }
+    return text;
+  }
+
+  /// Translates address strings synchronously using dictionary tokens.
+  String translateAddressSync(String address, dynamic contextOrLocale) {
+    if (address.trim().isEmpty) return address;
+    final locale = _extractLocale(contextOrLocale);
+    if (locale == 'en') return address;
+
+    final dict = _phraseDictionary[locale];
+    if (dict == null) return _postProcessAddress(address, locale);
+
+    String result = address;
+    // Replace multi-word and single-word landmark tokens, matching longer phrases first
+    final sortedKeys = dict.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
+    for (final key in sortedKeys) {
+      final val = dict[key]!;
+      final regex = RegExp(r'\b' + RegExp.escape(key) + r'\b', caseSensitive: false);
+      result = result.replaceAllMapped(regex, (m) => val);
+    }
+    return _postProcessAddress(result, locale);
+  }
+
+  /// Translate [text] from English into the target locale.
+  /// Uses multi-tier strategy: Cache -> Smart Dict -> On-Device ML Kit -> Cloud Fallback.
+  Future<String> translate(
+    String text,
+    dynamic contextOrLocale, {
+    bool isAddress = false,
+  }) async {
+    if (text.trim().isEmpty) return text;
+    final locale = _extractLocale(contextOrLocale);
+    if (locale == 'en') return text;
+
+    // If text already contains target language script, it is already localized
+    if (locale == 'ta' && RegExp(r'[\u0B80-\u0BFF]').hasMatch(text)) {
+      return isAddress ? _postProcessAddress(text, locale) : text;
+    }
+    if (locale == 'hi' && RegExp(r'[\u0900-\u097F]').hasMatch(text)) {
+      return isAddress ? _postProcessAddress(text, locale) : text;
+    }
+
+    final targetLang = _supportedTargets[locale];
+    if (targetLang == null) return text;
+
+    final cacheKey = '$locale:$text';
+    if (_cache.containsKey(cacheKey)) return _cache[cacheKey]!;
+
+    // 1. Check Smart Dictionary
+    final dict = _phraseDictionary[locale];
+    if (dict != null) {
+      final normalized = text.trim().toLowerCase();
+      if (dict.containsKey(normalized)) {
+        final translated = dict[normalized]!;
+        _cache[cacheKey] = translated;
+        return translated;
+      }
+    }
+
+    // If it's an address, try token-based translation first
+    String candidateText = text;
+    if (isAddress) {
+      candidateText = translateAddressSync(text, locale);
+      if (candidateText != text) {
+        _cache[cacheKey] = candidateText;
+      }
+    }
+
+    // 2. Try On-Device Google ML Kit
+    try {
+      final modelReady = await _ensureModel(targetLang);
+      if (modelReady) {
+        final translator = _translators[locale] ??= OnDeviceTranslator(
+          sourceLanguage: TranslateLanguage.english,
+          targetLanguage: targetLang,
+        );
+        final translated = await translator.translateText(candidateText);
+        if (translated.trim().isNotEmpty && translated != candidateText) {
+          final processed = isAddress ? _postProcessAddress(translated, locale) : translated;
+          _cache[cacheKey] = processed;
+          return processed;
+        }
+      }
+    } catch (_) {}
+
+    // 3. Fallback: Lightweight Cloud Google Translate API
+    try {
+      final cloudResult = await _fetchCloudTranslation(candidateText, locale);
+      if (cloudResult != null && cloudResult.isNotEmpty) {
+        final processed = isAddress ? _postProcessAddress(cloudResult, locale) : cloudResult;
+        _cache[cacheKey] = processed;
+        return processed;
+      }
+    } catch (_) {}
+
+    // 4. Return candidate from dictionary or original text
+    final processed = isAddress ? _postProcessAddress(candidateText, locale) : candidateText;
+    _cache[cacheKey] = processed;
+    return processed;
+  }
+
+  /// Specialized address translation combining dictionary and async translation.
+  Future<String> translateAddress(String address, dynamic contextOrLocale) async {
+    return translate(address, contextOrLocale, isAddress: true);
+  }
+
+  Future<bool> _ensureModel(TranslateLanguage lang) async {
+    try {
+      final code = lang.bcpCode;
+      final ready = await _modelManager.isModelDownloaded(code);
+      if (ready) return true;
+      return await _modelManager.downloadModel(
+        code,
+        isWifiRequired: false,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Cloud Google Translate public endpoint fallback (zero dependency via dart:io)
+  Future<String?> _fetchCloudTranslation(String text, String targetLang) async {
+    try {
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
+      final url = Uri.parse(
+        'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encodeComponent(text)}',
+      );
+      final request = await client.getUrl(url);
+      final response = await request.close();
+      if (response.statusCode == 200) {
+        final responseBody = await response.transform(utf8.decoder).join();
+        final decoded = jsonDecode(responseBody);
+        if (decoded is List && decoded.isNotEmpty && decoded[0] is List) {
+          final buffer = StringBuffer();
+          for (final item in decoded[0]) {
+            if (item is List && item.isNotEmpty && item[0] != null) {
+              buffer.write(item[0].toString());
+            }
+          }
+          final res = buffer.toString().trim();
+          if (res.isNotEmpty) return res;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Pre-warm models for the given locale.
+  Future<void> prewarmModel(String languageCode) async {
+    final targetLang = _supportedTargets[languageCode];
+    if (targetLang == null) return;
+    await _ensureModel(targetLang);
+  }
+
+  void dispose() {
+    for (final t in _translators.values) {
+      t.close();
+    }
+    _translators.clear();
+    _cache.clear();
+  }
+}

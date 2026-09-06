@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
-import '../widgets/translated_text.dart';
 import 'live_booking_tracker_screen.dart';
 import 'rapido_live_broadcast_screen.dart';
 
@@ -40,6 +40,10 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
   String _selectedSlot = "slot_morning";
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
+  final _phoneController = TextEditingController();
+  String? _customerName;
+  String? _customerPhone;
+  String? _customerEmail;
   UserAddress? _selectedAddress;
   bool _isSubmitting = false;
 
@@ -71,8 +75,54 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     _loadUserDefaultAddress();
   }
 
+  @override
+  void dispose() {
+    _addressController.dispose();
+    _notesController.dispose();
+    _phoneController.dispose();
+    _emergencyCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadUserDefaultAddress() async {
     try {
+      // 0. Load customer phone & name from user document
+      final userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.customerId)
+          .get();
+      if (userDoc.exists) {
+        final ud = userDoc.data() ?? {};
+        _customerName = ud["displayName"] ?? ud["name"];
+        _customerPhone = ud["phoneNumber"] ?? ud["phone"] ?? ud["mobile"];
+        _customerEmail = ud["email"] ?? ud["mail"];
+        if (_customerPhone != null &&
+            _customerPhone!.isNotEmpty &&
+            _phoneController.text.isEmpty &&
+            mounted) {
+          setState(() {
+            _phoneController.text = _customerPhone!;
+          });
+        }
+      }
+
+      // Fallback to FirebaseAuth currentUser if user doc fields were empty
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (_customerName == null || _customerName!.isEmpty) {
+        _customerName = currentUser?.displayName;
+      }
+      if (_customerPhone == null || _customerPhone!.isEmpty) {
+        _customerPhone = currentUser?.phoneNumber;
+        if (_customerPhone != null && _customerPhone!.isNotEmpty && _phoneController.text.isEmpty && mounted) {
+          setState(() {
+            _phoneController.text = _customerPhone!;
+          });
+        }
+      }
+      if (_customerEmail == null || _customerEmail!.isEmpty) {
+        _customerEmail = currentUser?.email;
+      }
+
       // 1. Try user's saved addresses subcollection (UserAddress)
       final addrSnap = await FirebaseFirestore.instance
           .collection("users")
@@ -84,9 +134,30 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       if (addrSnap.docs.isNotEmpty && mounted) {
         final list = addrSnap.docs.map((d) => UserAddress.fromMap(d.data())).toList();
         final defaultAddr = list.firstWhere((a) => a.isDefault, orElse: () => list.first);
-        final validLat = defaultAddr.latitude > 1.0 ? defaultAddr.latitude : (widget.customerLat ?? defaultAddr.latitude);
-        final validLng = defaultAddr.longitude > 1.0 ? defaultAddr.longitude : (widget.customerLng ?? defaultAddr.longitude);
+
+        // Sanitize coordinates: detect Mumbai cellular gateway APN or emulator coordinates
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: defaultAddr.fullDisplayAddress,
+          latitude: defaultAddr.latitude,
+          longitude: defaultAddr.longitude,
+          fallbackLat: widget.customerLat,
+          fallbackLng: widget.customerLng,
+        );
+        final validLat = sanitized["latitude"] ?? defaultAddr.latitude;
+        final validLng = sanitized["longitude"] ?? defaultAddr.longitude;
         final effectiveAddr = defaultAddr.copyWith(latitude: validLat, longitude: validLng);
+
+        // Self-heal: If coordinates were corrupted in Firestore, update the document
+        if (LocationService.isMumbaiGatewayArtifact(defaultAddr.latitude, defaultAddr.longitude, defaultAddr.fullDisplayAddress) ||
+            LocationService.isEmulatorOrOutOfBounds(defaultAddr.latitude, defaultAddr.longitude)) {
+          FirebaseFirestore.instance
+              .collection("users")
+              .doc(widget.customerId)
+              .collection("addresses")
+              .doc(defaultAddr.id)
+              .update({"latitude": validLat, "longitude": validLng}).catchError((_) {});
+        }
+
         setState(() {
           _selectedAddress = effectiveAddr;
           _addressController.text = effectiveAddr.fullDisplayAddress;
@@ -100,8 +171,15 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       final currentAddrObj = data["currentAddressObj"] as Map<String, dynamic>?;
       if (currentAddrObj != null && mounted) {
         final addr = UserAddress.fromMap(currentAddrObj);
-        final validLat = addr.latitude > 1.0 ? addr.latitude : (widget.customerLat ?? addr.latitude);
-        final validLng = addr.longitude > 1.0 ? addr.longitude : (widget.customerLng ?? addr.longitude);
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: addr.fullDisplayAddress,
+          latitude: addr.latitude,
+          longitude: addr.longitude,
+          fallbackLat: widget.customerLat,
+          fallbackLng: widget.customerLng,
+        );
+        final validLat = sanitized["latitude"] ?? addr.latitude;
+        final validLng = sanitized["longitude"] ?? addr.longitude;
         final effectiveAddr = addr.copyWith(latitude: validLat, longitude: validLng);
         setState(() {
           _selectedAddress = effectiveAddr;
@@ -161,14 +239,6 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     } catch (_) {}
   }
 
-  @override
-  void dispose() {
-    _addressController.dispose();
-    _notesController.dispose();
-    _emergencyCtrl.dispose();
-    super.dispose();
-  }
-
   void _setEmergency(bool val) {
     setState(() {
       _isEmergency = val;
@@ -219,18 +289,19 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         addressText = _selectedAddress?.fullDisplayAddress ?? "";
       }
 
-      // If coordinates are missing (<= 1.0), read live device hardware GPS first
-      if (custLat <= 1.0 || custLng <= 1.0) {
-        try {
-          final coords = await LocationService.instance.getCurrentCoordinates();
-          if (coords["latitude"] != null && coords["latitude"]! > 1.0) {
-            custLat = (coords["latitude"] as num).toDouble();
-            custLng = (coords["longitude"] as num).toDouble();
-            if (addressText.isEmpty || addressText.toLowerCase().contains("mumbai")) {
-              addressText = coords["address"]?.toString() ?? "current_location".tr();
-            }
-          }
-        } catch (_) {}
+      // Ensure coordinates are authentic real coordinates (not Mumbai cellular gateway or emulator)
+      if (LocationService.isEmulatorOrOutOfBounds(custLat, custLng) ||
+          LocationService.isMumbaiGatewayArtifact(custLat, custLng, addressText) ||
+          custLat <= 1.0) {
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: addressText,
+          latitude: custLat,
+          longitude: custLng,
+          fallbackLat: widget.customerLat,
+          fallbackLng: widget.customerLng,
+        );
+        custLat = sanitized["latitude"] ?? custLat;
+        custLng = sanitized["longitude"] ?? custLng;
       }
 
       // Only if still missing coordinates and user typed a custom address, forward geocode
@@ -250,6 +321,10 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         addressText = "current_location".tr();
       }
 
+      final contactPhone = _phoneController.text.trim().isNotEmpty
+          ? _phoneController.text.trim()
+          : _customerPhone;
+
       final bookingId = await bookingService.createBooking(
         customerId: widget.customerId,
         serviceType: widget.serviceCategory,
@@ -264,6 +339,9 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         customerAddressText: addressText,
         customerLatitude: custLat,
         customerLongitude: custLng,
+        customerName: _customerName,
+        customerPhone: contactPhone,
+        customerEmail: _customerEmail,
       );
 
       if (mounted) {
@@ -311,12 +389,24 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
   @override
   Widget build(BuildContext context) {
     final worker = widget.worker;
-    final custLat = (_selectedAddress != null && _selectedAddress!.latitude > 1.0)
+    double? custLat = (_selectedAddress != null && _selectedAddress!.latitude > 1.0)
         ? _selectedAddress!.latitude
         : widget.customerLat;
-    final custLng = (_selectedAddress != null && _selectedAddress!.longitude > 1.0)
+    double? custLng = (_selectedAddress != null && _selectedAddress!.longitude > 1.0)
         ? _selectedAddress!.longitude
         : widget.customerLng;
+
+    // Safety guard: if coordinates are Mumbai cellular artifacts or emulator, fallback to live caller coords or regional hub
+    if (LocationService.isMumbaiGatewayArtifact(custLat, custLng, _selectedAddress?.fullDisplayAddress) ||
+        LocationService.isEmulatorOrOutOfBounds(custLat, custLng)) {
+      custLat = (widget.customerLat != null && !LocationService.isEmulatorOrOutOfBounds(widget.customerLat, widget.customerLng))
+          ? widget.customerLat
+          : 11.3410;
+      custLng = (widget.customerLng != null && !LocationService.isEmulatorOrOutOfBounds(widget.customerLat, widget.customerLng))
+          ? widget.customerLng
+          : 77.7172;
+    }
+
     final realDist = worker?.calculateDistanceKm(custLat, custLng) ?? (worker?.distanceKm ?? 1.2);
     final fare = CooperativePricingEngine.instance.calculateFare(
       category: widget.serviceCategory,
@@ -464,7 +554,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
               ),
               const SizedBox(height: 20),
 
-              // Address with 1-Tap Swiggy/Zomato Switcher
+              // Dedicated Service Address Card with 1-Tap Switcher
               SlideFadeIn(
                 delay: const Duration(milliseconds: 180),
                 child: Column(
@@ -475,8 +565,9 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                       children: [
                         Flexible(child: _sectionLabel('address'.tr())),
                         Flexible(
-                          child: TextButton.icon(
-                            onPressed: () async {
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () async {
                               final chosen = await showAddressManagementSheet(
                                 context,
                                 userId: widget.customerId,
@@ -484,31 +575,159 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                                 selectedAddress: _selectedAddress,
                               );
                               if (chosen != null && mounted) {
+                                final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+                                  addressText: chosen.fullDisplayAddress,
+                                  latitude: chosen.latitude,
+                                  longitude: chosen.longitude,
+                                  fallbackLat: widget.customerLat,
+                                  fallbackLng: widget.customerLng,
+                                );
+                                final validLat = sanitized["latitude"] ?? chosen.latitude;
+                                final validLng = sanitized["longitude"] ?? chosen.longitude;
+                                final effectiveAddr = chosen.copyWith(latitude: validLat, longitude: validLng);
                                 setState(() {
-                                  _selectedAddress = chosen;
-                                  _addressController.text = chosen.fullDisplayAddress;
+                                  _selectedAddress = effectiveAddr;
+                                  _addressController.text = effectiveAddr.fullDisplayAddress;
                                 });
                               }
                             },
-                            icon: const Icon(Icons.swap_horiz_rounded, color: CX.amber, size: 16),
-                            label: Text(
-                              _selectedAddress != null
-                                  ? "change_address".tr(args: [_selectedAddress!.displayTitle])
-                                  : "select_saved_address".tr(),
-                              style: const TextStyle(color: CX.amber, fontSize: 12, fontWeight: FontWeight.w800),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.swap_horiz_rounded, color: Color(0xFFD97706), size: 15),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      _selectedAddress != null
+                                          ? "change_address".tr(args: [_selectedAddress!.displayTitle])
+                                          : "select_saved_address".tr(),
+                                      style: const TextStyle(
+                                        color: Color(0xFFB45309),
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    _AuroraTextField(
-                      controller: _addressController,
-                      prefixIcon: _selectedAddress?.label.icon ?? Icons.location_on_rounded,
-                      prefixIconColor: CX.rose,
-                      hintText: "address_field_hint".tr(),
+                    const SizedBox(height: 8),
+                    _ServiceAddressCard(
+                      address: _selectedAddress,
+                      onChangePressed: () async {
+                        final chosen = await showAddressManagementSheet(
+                          context,
+                          userId: widget.customerId,
+                          userRole: "customer",
+                          selectedAddress: _selectedAddress,
+                        );
+                        if (chosen != null && mounted) {
+                          final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+                            addressText: chosen.fullDisplayAddress,
+                            latitude: chosen.latitude,
+                            longitude: chosen.longitude,
+                            fallbackLat: widget.customerLat,
+                            fallbackLng: widget.customerLng,
+                          );
+                          final validLat = sanitized["latitude"] ?? chosen.latitude;
+                          final validLng = sanitized["longitude"] ?? chosen.longitude;
+                          final effectiveAddr = chosen.copyWith(latitude: validLat, longitude: validLng);
+                          setState(() {
+                            _selectedAddress = effectiveAddr;
+                            _addressController.text = effectiveAddr.fullDisplayAddress;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Contact Phone
+              SlideFadeIn(
+                delay: const Duration(milliseconds: 195),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel('contact_phone'.tr()),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x06000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.phone_android_rounded, color: Color(0xFF059669), size: 16),
+                                SizedBox(width: 4),
+                                Text(
+                                  "+91",
+                                  style: TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              style: const TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'phone_number_hint'.tr(),
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -522,13 +741,40 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _sectionLabel('problem_notes'.tr()),
-                    const SizedBox(height: 10),
-                    _AuroraTextField(
-                      controller: _notesController,
-                      hintText: "notes_field_hint".tr(),
-                      prefixIcon: Icons.notes_rounded,
-                      prefixIconColor: CX.violetLight,
-                      maxLines: 3,
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x06000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _notesController,
+                        maxLines: 3,
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "notes_field_hint".tr(),
+                          hintStyle: const TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -628,22 +874,37 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         },
         child: AnimatedContainer(
           duration: CAnim.fast,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: isSelected ? CX.amber.withValues(alpha: 0.25) : CX.canvasMid,
-            borderRadius: BorderRadius.circular(10),
+            color: isSelected ? const Color(0xFF141416) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? CX.amber : CX.glassBorder,
-              width: isSelected ? 1.4 : 1.0,
+              color: isSelected ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+              width: isSelected ? 1.5 : 1.0,
             ),
+            boxShadow: isSelected
+                ? const [
+                    BoxShadow(
+                      color: Color(0x1F000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ]
+                : const [
+                    BoxShadow(
+                      color: Color(0x04000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
           ),
           child: Center(
             child: Text(
               label,
-              style: WorkGoFonts.heading(
-                color: isSelected ? CX.amber : CX.textSecondary,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFFF59E0B) : const Color(0xFF334155),
                 fontSize: 11.5,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -658,10 +919,135 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     return Text(
       text,
       style: const TextStyle(
-        color: CX.textPrimary,
+        color: Color(0xFF0F172A),
         fontSize: 15,
         fontWeight: FontWeight.w800,
         letterSpacing: -0.2,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────
+//  SERVICE ADDRESS CARD — Swiggy/Uber Dedicated Style
+// ──────────────────────────────────────────────────────
+class _ServiceAddressCard extends StatelessWidget {
+  const _ServiceAddressCard({
+    required this.address,
+    required this.onChangePressed,
+  });
+
+  final UserAddress? address;
+  final VoidCallback onChangePressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = address != null && address!.displayTitle.isNotEmpty
+        ? address!.displayTitle
+        : "current_location".tr();
+    final fullText = address != null && address!.fullDisplayAddress.isNotEmpty
+        ? address!.fullDisplayAddress
+        : "current_location".tr();
+    final icon = address?.label.icon ?? Icons.location_on_rounded;
+
+    return GestureDetector(
+      onTap: onChangePressed,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x06000000),
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+              ),
+              child: Icon(icon, color: const Color(0xFFD97706), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (address?.isDefault == true) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFA7F3D0), width: 0.8),
+                          ),
+                          child: const Text(
+                            "DEFAULT",
+                            style: TextStyle(
+                              color: Color(0xFF059669),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    fullText,
+                    style: const TextStyle(
+                      color: Color(0xFF475569),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      height: 1.35,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
+              ),
+              child: const Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B), size: 18),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -692,16 +1078,19 @@ class _ServiceHeroCard extends StatelessWidget {
     final displayName = worker != null && worker!.name.isNotEmpty ? worker!.name : null;
     final totalReviews = worker != null && worker!.totalReviews > 0 ? worker!.totalReviews : (worker?.totalRatings ?? 0);
 
-    return AuroraCard(
-      glowColor: style.glow,
-      borderColor: style.glow.withValues(alpha: 0.35),
-      gradient: LinearGradient(
-        colors: [
-          style.glow.withValues(alpha: 0.15),
-          Colors.white.withValues(alpha: 0.04),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFFDE68A).withValues(alpha: 0.7), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
         ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
       ),
       child: Column(
         children: [
@@ -722,7 +1111,7 @@ class _ServiceHeroCard extends StatelessWidget {
                   glowColor: style.glow,
                 ),
               ],
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -730,7 +1119,7 @@ class _ServiceHeroCard extends StatelessWidget {
                     Text(
                       categoryName.toLocalizedTrade(),
                       style: const TextStyle(
-                        color: CX.textPrimary,
+                        color: Color(0xFF0F172A),
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.4,
@@ -738,24 +1127,53 @@ class _ServiceHeroCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    TranslatedText(
-                      displayName != null
-                          ? "artisan_assigned_name".tr(args: [displayName])
-                          : "auto_dispatching".tr(),
-                      style: const TextStyle(
-                        color: CX.textSecondary,
-                        fontSize: 12,
-                        height: 1.3,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            displayName != null
+                                ? "artisan_assigned_name".tr(args: [displayName])
+                                : "auto_dispatching".tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF475569),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    AuroraBadge(
-                      label: worker != null ? "coop_certified_artisan".tr() : "cooperative_service".tr(),
-                      style: worker != null ? AuroraBadgeStyle.emerald : AuroraBadgeStyle.violet,
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 12),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              worker != null ? "coop_certified_artisan".tr() : "cooperative_service".tr(),
+                              style: const TextStyle(
+                                color: Color(0xFF065F46),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -764,56 +1182,120 @@ class _ServiceHeroCard extends StatelessWidget {
           ),
           if (worker != null) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Divider(color: CX.glassBorder, height: 1),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Container(height: 1, color: const Color(0xFFF1F5F9)),
             ),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.star_rounded, color: CX.amber, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        worker!.avgRating > 0
-                            ? worker!.avgRating.toStringAsFixed(1)
-                            : (worker!.totalRatings > 0 ? "5.0" : 'badge_new'.trSafe("New")),
-                        style: WorkGoFonts.numeric(
-                          color: CX.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (totalReviews > 0) ...[
+                // Rating Pill
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFDE68A), width: 0.8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.star_rounded, color: Color(0xFFD97706), size: 14),
                         const SizedBox(width: 3),
-                        Text(
-                          "($totalReviews)",
-                          style: WorkGoFonts.body(color: CX.textMuted, fontSize: 11),
+                        Flexible(
+                          child: Text(
+                            worker!.avgRating > 0
+                                ? worker!.avgRating.toStringAsFixed(1)
+                                : (worker!.totalRatings > 0 ? "5.0" : 'badge_new'.trSafe("New")),
+                            style: const TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (totalReviews > 0) ...[
+                          const SizedBox(width: 2),
+                          Flexible(
+                            child: Text(
+                              "($totalReviews)",
+                              style: const TextStyle(color: Color(0xFF64748B), fontSize: 10),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+
+                // Experience / Pro Pill (No emojis)
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFA7F3D0), width: 0.8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.handyman_rounded, color: Color(0xFF059669), size: 13),
+                        const SizedBox(width: 3),
+                        Flexible(
+                          child: Text(
+                            worker!.homesServiced > 0
+                                ? 'homes_count'.tr(args: [worker!.homesServiced.toString()])
+                                : (worker!.totalRatings > 0
+                                    ? 'jobs_count'.tr(args: [worker!.totalRatings.toString()])
+                                    : "verified_pro".tr()),
+                            style: const TextStyle(
+                              color: Color(0xFF065F46),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    worker!.homesServiced > 0
-                        ? "🏡 ${worker!.homesServiced} homes"
-                        : (worker!.totalRatings > 0 ? "🏡 ${worker!.totalRatings} jobs" : "🌟 ${"verified_pro".tr()}"),
-                    style: WorkGoFonts.body(color: const Color(0xFF6EE7B7), fontSize: 11.5, fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    "📍 ${worker!.formattedDistanceString(custLat, custLng)}",
-                    style: WorkGoFonts.body(color: CX.cyan, fontSize: 11.5, fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 6),
+
+                // Distance Pill (No emojis)
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFBFDBFE), width: 0.8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.near_me_rounded, color: Color(0xFF2563EB), size: 13),
+                        const SizedBox(width: 3),
+                        Flexible(
+                          child: Text(
+                            worker!.formattedDistanceString(custLat, custLng),
+                            style: const TextStyle(
+                              color: Color(0xFF1D4ED8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -826,7 +1308,7 @@ class _ServiceHeroCard extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────
-//  EMERGENCY TOGGLE CARD — animated
+//  EMERGENCY TOGGLE CARD — Animated Elevated Card
 // ──────────────────────────────────────────────────────
 class _EmergencyToggleCard extends StatelessWidget {
   const _EmergencyToggleCard({
@@ -845,60 +1327,91 @@ class _EmergencyToggleCard extends StatelessWidget {
       animation: controller,
       builder: (_, __) {
         final t = controller.value;
-        return AuroraCard(
-          borderColor: Color.lerp(CX.glassBorder, CX.rose.withValues(alpha: 0.6), t),
-          glowColor: isEmergency ? CX.rose : null,
-          gradient: LinearGradient(
-            colors: [
-              Color.lerp(
-                  Colors.white.withValues(alpha: 0.07),
-                  CX.rose.withValues(alpha: 0.12),
-                  t)!,
-              Colors.white.withValues(alpha: 0.03),
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Color.lerp(Colors.white, const Color(0xFFFFF1F2), t),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Color.lerp(const Color(0xFFFDE68A), const Color(0xFFF87171), t)!,
+              width: 1.3,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Color.lerp(const Color(0x06000000), const Color(0x1DEF4444), t)!,
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
             ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(11),
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color.lerp(
-                    Colors.white.withValues(alpha: 0.06),
-                    CX.rose.withValues(alpha: 0.25),
-                    t,
+                  borderRadius: BorderRadius.circular(12),
+                  color: Color.lerp(const Color(0xFFFEF3C7), const Color(0xFFFEE2E2), t),
+                  border: Border.all(
+                    color: Color.lerp(const Color(0xFFFDE68A), const Color(0xFFFCA5A5), t)!,
+                    width: 1,
                   ),
                 ),
                 child: Icon(
                   Icons.bolt_rounded,
-                  color: Color.lerp(CX.textMuted, CX.rose, t),
-                  size: 24,
+                  color: Color.lerp(const Color(0xFFD97706), const Color(0xFFEF4444), t),
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'emergency_booking'.tr(),
-                      style: const TextStyle(
-                        color: CX.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'emergency_booking'.tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: Color.lerp(const Color(0xFFFEF3C7), const Color(0xFFFEE2E2), t),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Color.lerp(const Color(0xFFFDE68A), const Color(0xFFFCA5A5), t)!,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            "+₹150",
+                            style: TextStyle(
+                              color: Color.lerp(const Color(0xFFB45309), const Color(0xFFDC2626), t),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       "emergency_dispatch_note".tr(),
                       style: const TextStyle(
-                        color: CX.textSecondary,
-                        fontSize: 11,
-                        height: 1.4,
+                        color: Color(0xFF475569),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -906,46 +1419,35 @@ class _EmergencyToggleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Custom toggle switch
+              const SizedBox(width: 10),
               GestureDetector(
                 onTap: () => onChanged(!isEmergency),
                 child: AnimatedContainer(
                   duration: CAnim.normal,
-                  width: 50,
+                  width: 48,
                   height: 28,
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
-                    gradient: isEmergency ? CX.auroraEmergency : null,
-                    color: isEmergency
-                        ? null
-                        : Colors.white.withValues(alpha: 0.12),
+                    color: isEmergency ? const Color(0xFFEF4444) : const Color(0xFFCBD5E1),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isEmergency
-                          ? CX.rose.withValues(alpha: 0.5)
-                          : CX.glassBorder,
-                    ),
-                    boxShadow: isEmergency
-                        ? [
-                            BoxShadow(
-                              color: CX.rose.withValues(alpha: 0.4),
-                              blurRadius: 12,
-                            ),
-                          ]
-                        : null,
                   ),
                   child: AnimatedAlign(
                     duration: CAnim.normal,
                     curve: Curves.easeOutCubic,
-                    alignment: isEmergency
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
+                    alignment: isEmergency ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
                       width: 22,
                       height: 22,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x28000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -960,7 +1462,7 @@ class _EmergencyToggleCard extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────
-//  DAY CHIP
+//  DAY CHIP — High-Contrast Segmented Selector
 // ──────────────────────────────────────────────────────
 class _DayChip extends StatelessWidget {
   const _DayChip({
@@ -984,44 +1486,49 @@ class _DayChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: CAnim.normal,
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
-          gradient: selected ? CX.auroraVioletCyan : null,
-          color: selected ? null : CX.glassCard,
+          color: selected ? const Color(0xFF141416) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? CX.cyan.withValues(alpha: 0.5) : CX.glassBorder,
+            color: selected ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+            width: selected ? 1.6 : 1.2,
           ),
           boxShadow: selected
-              ? [
+              ? const [
                   BoxShadow(
-                    color: CX.violet.withValues(alpha: 0.35),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
+                    color: Color(0x28000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
                   ),
                 ]
-              : null,
+              : const [
+                  BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
         ),
         child: Column(
           children: [
             Text(
               label,
               style: TextStyle(
-                color: selected ? Colors.white : CX.textPrimary,
+                color: selected ? Colors.white : const Color(0xFF1E293B),
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               sub,
               style: TextStyle(
-                color: selected
-                    ? Colors.white.withValues(alpha: 0.75)
-                    : CX.textMuted,
-                fontSize: 10,
+                color: selected ? const Color(0xFFFBBF24) : const Color(0xFF64748B),
+                fontSize: 10.5,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1034,7 +1541,7 @@ class _DayChip extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────
-//  SLOT CHIP
+//  SLOT CHIP — Clean, Non-Truncating Time Range Selector
 // ──────────────────────────────────────────────────────
 class _SlotChip extends StatelessWidget {
   const _SlotChip({
@@ -1055,57 +1562,82 @@ class _SlotChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fullLabel = slotKey.tr();
+    final cleanTitle = fullLabel.contains("(") ? fullLabel.split("(").first.trim() : fullLabel;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: CAnim.normal,
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 6),
         decoration: BoxDecoration(
-          color: selected
-              ? iconColor.withValues(alpha: 0.18)
-              : CX.glassCard,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected
-                ? iconColor.withValues(alpha: 0.6)
-                : CX.glassBorder,
+            color: selected ? iconColor : const Color(0xFFE2E8F0),
+            width: selected ? 2.0 : 1.2,
           ),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: iconColor.withValues(alpha: 0.25),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
+                    color: iconColor.withValues(alpha: 0.20),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ]
-              : null,
+              : const [
+                  BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
         ),
         child: Column(
           children: [
-            Icon(icon, color: selected ? iconColor : CX.textMuted, size: 18),
-            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? iconColor.withValues(alpha: 0.12) : const Color(0xFFF1F5F9),
+              ),
+              child: Icon(
+                icon,
+                color: selected ? iconColor : const Color(0xFF64748B),
+                size: 17,
+              ),
+            ),
+            const SizedBox(height: 6),
             Text(
-              slotKey.tr(),
+              cleanTitle,
               style: TextStyle(
-                color: selected ? CX.textPrimary : CX.textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+                color: selected ? const Color(0xFF0F172A) : const Color(0xFF1E293B),
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
-            Text(
-              timeRange,
-              style: TextStyle(
-                color: selected ? iconColor : CX.textMuted,
-                fontSize: 9.5,
+            const SizedBox(height: 3),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+              decoration: BoxDecoration(
+                color: selected ? iconColor.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(6),
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              child: Text(
+                timeRange,
+                style: TextStyle(
+                  color: selected ? iconColor : const Color(0xFF64748B),
+                  fontSize: 9.5,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -1114,87 +1646,9 @@ class _SlotChip extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────
-//  AURORA TEXT FIELD
-// ──────────────────────────────────────────────────────
-class _AuroraTextField extends StatefulWidget {
-  const _AuroraTextField({
-    required this.controller,
-    required this.hintText,
-    this.prefixIcon,
-    this.prefixIconColor,
-    this.maxLines = 1,
-  });
-
-  final TextEditingController controller;
-  final String hintText;
-  final IconData? prefixIcon;
-  final Color? prefixIconColor;
-  final int maxLines;
-
-  @override
-  State<_AuroraTextField> createState() => _AuroraTextFieldState();
-}
-
-class _AuroraTextFieldState extends State<_AuroraTextField> {
-  bool _focused = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: CAnim.normal,
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _focused
-              ? (widget.prefixIconColor ?? CX.violet).withValues(alpha: 0.6)
-              : CX.glassBorder,
-          width: 1.3,
-        ),
-        boxShadow: _focused
-            ? [
-                BoxShadow(
-                  color: (widget.prefixIconColor ?? CX.violet).withValues(alpha: 0.15),
-                  blurRadius: 16,
-                ),
-              ]
-            : null,
-      ),
-      child: TextField(
-        controller: widget.controller,
-        maxLines: widget.maxLines,
-        style: const TextStyle(color: CX.textPrimary, fontSize: 14),
-        onTap: () => setState(() => _focused = true),
-        onTapOutside: (_) => setState(() => _focused = false),
-        decoration: InputDecoration(
-          hintText: widget.hintText,
-          hintStyle: TextStyle(color: CX.textMuted.withValues(alpha: 0.8), fontSize: 13),
-          prefixIcon: widget.prefixIcon != null
-              ? Icon(widget.prefixIcon, color: widget.prefixIconColor ?? CX.violet, size: 20)
-              : null,
-          filled: true,
-          fillColor: CX.glassCard,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ──────────────────────────────────────────────────────
-//  PRICE BREAKDOWN CARD — animated counter with Rapido-style Breakdown
+//  PRICE BREAKDOWN CARD — Professional High-Contrast Card
 // ──────────────────────────────────────────────────────
 class _PriceCard extends StatelessWidget {
   const _PriceCard({
@@ -1207,20 +1661,34 @@ class _PriceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AuroraCard(
-      glowColor: CX.amber,
-      borderColor: CX.amber.withValues(alpha: 0.3),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFDE68A).withValues(alpha: 0.8), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           // Header
           Row(
             children: [
-              AuroraOrb(
-                icon: Icons.receipt_long_rounded,
-                gradient: CX.auroraVioletAmber,
-                size: 36,
-                iconSize: 18,
-                glowColor: CX.amber,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFFFEF3C7),
+                  border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+                ),
+                child: const Icon(Icons.receipt_long_rounded, color: Color(0xFFD97706), size: 18),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1230,7 +1698,7 @@ class _PriceCard extends StatelessWidget {
                     Text(
                       'fare_breakdown'.tr(),
                       style: const TextStyle(
-                        color: CX.textPrimary,
+                        color: Color(0xFF0F172A),
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                       ),
@@ -1239,7 +1707,7 @@ class _PriceCard extends StatelessWidget {
                     ),
                     Text(
                       "transparent_coop_pricing".tr(),
-                      style: TextStyle(color: CX.textSecondary.withValues(alpha: 0.8), fontSize: 11),
+                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1249,7 +1717,7 @@ class _PriceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Divider(color: CX.glassBorder, height: 1),
+          Container(height: 1, color: const Color(0xFFF1F5F9)),
           const SizedBox(height: 12),
 
           // Base Visit Fare
@@ -1259,7 +1727,7 @@ class _PriceCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   'base_visit_fare'.tr(),
-                  style: const TextStyle(color: CX.textSecondary, fontSize: 13),
+                  style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1268,9 +1736,9 @@ class _PriceCard extends StatelessWidget {
               Text(
                 fare.formattedBase,
                 style: const TextStyle(
-                  color: CX.textPrimary,
+                  color: Color(0xFF0F172A),
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -1284,7 +1752,7 @@ class _PriceCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   "${'transit_distance_fare'.tr()} (${fare.formattedDistance})",
-                  style: const TextStyle(color: CX.textSecondary, fontSize: 13),
+                  style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1293,9 +1761,9 @@ class _PriceCard extends StatelessWidget {
               Text(
                 fare.formattedTransit,
                 style: const TextStyle(
-                  color: CX.textPrimary,
+                  color: Color(0xFF0F172A),
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -1309,7 +1777,7 @@ class _PriceCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     "${'experience_bonus'.tr()} (${fare.experienceYears} yrs)",
-                    style: const TextStyle(color: CX.amber, fontSize: 13, fontWeight: FontWeight.w600),
+                    style: const TextStyle(color: Color(0xFF059669), fontSize: 13, fontWeight: FontWeight.w700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1318,9 +1786,9 @@ class _PriceCard extends StatelessWidget {
                 Text(
                   "+₹${fare.experienceBonus.toStringAsFixed(0)}",
                   style: const TextStyle(
-                    color: CX.amber,
+                    color: Color(0xFF059669),
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
@@ -1335,7 +1803,7 @@ class _PriceCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     "urgency_priority_tip".tr(),
-                    style: const TextStyle(color: CX.amber, fontSize: 13, fontWeight: FontWeight.w600),
+                    style: const TextStyle(color: Color(0xFFD97706), fontSize: 13, fontWeight: FontWeight.w700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1344,9 +1812,9 @@ class _PriceCard extends StatelessWidget {
                 Text(
                   "+₹${fare.urgencyTip.toStringAsFixed(0)}",
                   style: const TextStyle(
-                    color: CX.amber,
+                    color: Color(0xFFD97706),
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
@@ -1366,12 +1834,12 @@ class _PriceCard extends StatelessWidget {
                           Expanded(
                             child: Row(
                               children: [
-                                const Icon(Icons.bolt_rounded, color: CX.rose, size: 14),
+                                const Icon(Icons.bolt_rounded, color: Color(0xFFEF4444), size: 15),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     "emergency_rush_label".tr(),
-                                    style: const TextStyle(color: CX.rose, fontSize: 13),
+                                    style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w700),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1383,9 +1851,9 @@ class _PriceCard extends StatelessWidget {
                           const Text(
                             "₹150",
                             style: TextStyle(
-                              color: CX.rose,
+                              color: Color(0xFFEF4444),
                               fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ],
@@ -1395,34 +1863,59 @@ class _PriceCard extends StatelessWidget {
                 : const SizedBox.shrink(),
           ),
           const SizedBox(height: 12),
-          Divider(color: CX.glassBorder, height: 1),
+          Container(height: 1, color: const Color(0xFFF1F5F9)),
           const SizedBox(height: 12),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'total_amount'.tr(),
-                  style: const TextStyle(
-                    color: CX.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+          // Total Highlight Container
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'total_amount'.tr(),
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        "transparent_fare_calc".trSafe("All-inclusive total"),
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: 8),
-              AnimatedCounter(
-                value: fare.totalEstimatedFare,
-                style: const TextStyle(
-                  color: CX.amber,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+                const SizedBox(width: 8),
+                AnimatedCounter(
+                  value: fare.totalEstimatedFare,
+                  style: const TextStyle(
+                    color: Color(0xFFB45309),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

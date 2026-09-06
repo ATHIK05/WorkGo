@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +27,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
   String _selectedCity = "Chennai";
   final TextEditingController _streetAreaCtrl = TextEditingController();
   final TextEditingController _pincodeCtrl = TextEditingController();
+  late final TextEditingController _phoneCtrl;
   double _latitude = 13.0827;
   double _longitude = 80.2707;
   String _formattedAddress = "";
@@ -85,6 +87,9 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
     _serviceRadiusKm = widget.worker.serviceRadiusKm.clamp(1.0, 30.0);
     _workingHoursStart = widget.worker.workingHoursStart;
     _workingHoursEnd = widget.worker.workingHoursEnd;
+    _phoneCtrl = TextEditingController(
+      text: widget.worker.phoneForCalling?.replaceFirst('+91', '') ?? '',
+    );
 
     // Detect GPS location on screen launch
     _autoDetectGps();
@@ -94,6 +99,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
   void dispose() {
     _streetAreaCtrl.dispose();
     _pincodeCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
   }
 
@@ -142,7 +148,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
       HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Please select at least one trade skill you can do"),
+          content: Text('select_trade_error'.tr()),
           backgroundColor: KX.rose,
           behavior: SnackBarBehavior.floating,
         ),
@@ -173,9 +179,15 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
         createdAt: DateTime.now(),
       );
 
+      final phoneRaw = _phoneCtrl.text.trim();
+      final normalizedPhone = phoneRaw.startsWith('+91')
+          ? phoneRaw
+          : (phoneRaw.isNotEmpty ? '+91$phoneRaw' : widget.worker.phoneForCalling);
+
       final updated = widget.worker.copyWith(
         skills: _selectedSkills.toList(),
         serviceRadiusKm: _serviceRadiusKm,
+        phoneForCalling: normalizedPhone,
         preferredAreas: [_selectedCity, detailedAreaSummary],
         baseArea: detailedAreaSummary,
         baseAddress: defaultBaseAddress,
@@ -190,6 +202,17 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
       await _workerService.upsertWorkerProfile(updated);
 
+      if (normalizedPhone != null) {
+        try {
+          await FirebaseFirestore.instance
+              .collection("users")
+              .doc(widget.worker.userId)
+              .set({
+            "phoneNumber": normalizedPhone,
+          }, SetOptions(merge: true));
+        } catch (_) {}
+      }
+
       // Save complete address to subcollection and top-level fields
       final locationService = LocationService();
       await locationService.saveAddress(widget.worker.userId, defaultBaseAddress, collection: "workers");
@@ -202,6 +225,9 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
       await FirebaseFirestore.instance.collection("workers").doc(widget.worker.id).set({
         "hasCompletedOnboarding": true,
         "skills": _selectedSkills.toList(),
+        "phoneForCalling": normalizedPhone,
+        "phone": normalizedPhone,
+        "phoneNumber": normalizedPhone,
         "serviceLocation": detailedAreaSummary,
         "primaryArea": detailedAreaSummary,
         "baseAddress": defaultBaseAddress.toMap(),
@@ -248,7 +274,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       const Icon(Icons.verified_user_rounded, color: KX.gold, size: 16),
                       const SizedBox(width: 6),
                       Text(
-                        "COOPERATIVE ARTISAN ONBOARDING",
+                        'coop_onboarding_title'.tr(),
                         style: WorkGoFonts.badge(
                           color: KX.gold,
                           fontSize: 10.5,
@@ -262,7 +288,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
               const SizedBox(height: 14),
 
               Text(
-                "Welcome to WorkGo Karya!",
+                'welcome_karya'.tr(),
                 style: WorkGoFonts.display(
                   color: KX.textPrimary,
                   fontSize: 24,
@@ -272,7 +298,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                "Tell us what jobs you can do and where you'd like to receive incoming service requests.",
+                'onboarding_subtitle'.tr(),
                 style: WorkGoFonts.body(
                   color: KX.textSecondary,
                   fontSize: 13,
@@ -284,8 +310,8 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
               // Section 1: Jobs You Can Do
               _buildSectionCard(
-                title: "1. Jobs / Trades You Can Do",
-                subtitle: "Select all the services you are certified & ready to provide",
+                title: 'trades_you_can_do'.tr(),
+                subtitle: 'trades_select_hint'.tr(),
                 icon: Icons.handyman_rounded,
                 child: GridView.builder(
                   shrinkWrap: true,
@@ -345,7 +371,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                skill,
+                                skill.toLocalizedTrade(),
                                 style: WorkGoFonts.heading(
                                   color: isSelected ? const Color(0xFF1E1035) : KX.textSecondary,
                                   fontSize: 12.5,
@@ -368,8 +394,8 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
               // Section 2: Work Location & Coverage Radius
               _buildSectionCard(
-                title: "2. Your Location & Coverage Area",
-                subtitle: "Set your exact operating workshop/base and coverage radius",
+                title: 'location_coverage_area'.tr(),
+                subtitle: 'location_coverage_hint'.tr(),
                 icon: Icons.location_on_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,7 +438,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _isDetectingGps ? "Detecting real-time GPS..." : "Live Hardware GPS Location",
+                                  _isDetectingGps ? 'detecting_gps'.tr() : 'gps_hardware_location'.tr(),
                                   style: WorkGoFonts.heading(
                                     color: KX.textPrimary,
                                     fontSize: 12.5,
@@ -441,7 +467,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             ),
                             child: Text(
-                              "Re-detect",
+                              'redetect_gps'.tr(),
                               style: WorkGoFonts.badge(
                                 color: KX.gold,
                                 fontSize: 11,
@@ -456,7 +482,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
                     // District / City Selector Dropdown
                     Text(
-                      "Operating District / City",
+                      'operating_district_label'.tr(),
                       style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5),
                     ),
                     const SizedBox(height: 6),
@@ -500,7 +526,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
                     // Detailed Street / Area Text Input
                     Text(
-                      "Street / Area / Landmark",
+                      'street_area_label'.tr(),
                       style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5),
                     ),
                     const SizedBox(height: 6),
@@ -531,7 +557,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
                     // Pincode Input
                     Text(
-                      "Postal Pincode",
+                      'postal_pincode_label'.tr(),
                       style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5),
                     ),
                     const SizedBox(height: 6),
@@ -559,6 +585,49 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 14),
+
+                    // Calling Phone Number Input
+                    Text(
+                      'contact_phone'.tr(),
+                      style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _phoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                      decoration: InputDecoration(
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          child: Text(
+                            "+91",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: KX.textPrimary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        hintText: 'phone_number_hint'.tr(),
+                        hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
+                        filled: true,
+                        fillColor: KX.canvasElevated,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: KX.glassBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: KX.glassBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: KX.gold, width: 1.5),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
 
                     // Radius Slider
@@ -566,7 +635,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Service Dispatch Radius",
+                          'service_dispatch_radius'.tr(),
                           style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 12.5),
                         ),
                         Container(
@@ -610,13 +679,13 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
               // Section 3: Available Hours
               _buildSectionCard(
-                title: "3. Daily Available Working Hours",
-                subtitle: "When would you like to receive service requests?",
+                title: 'daily_working_hours'.tr(),
+                subtitle: 'daily_hours_hint'.tr(),
                 icon: Icons.access_time_filled_rounded,
                 child: Row(
                   children: [
                     Expanded(
-                      child: _buildTimeSlotBadge("Start Time", _workingHoursStart, () async {
+                      child: _buildTimeSlotBadge('start_time'.tr(), _workingHoursStart, () async {
                         final picked = await showTimePicker(
                           context: context,
                           initialTime: const TimeOfDay(hour: 8, minute: 0),
@@ -631,7 +700,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildTimeSlotBadge("End Time", _workingHoursEnd, () async {
+                      child: _buildTimeSlotBadge('end_time'.tr(), _workingHoursEnd, () async {
                         final picked = await showTimePicker(
                           context: context,
                           initialTime: const TimeOfDay(hour: 20, minute: 0),
@@ -651,7 +720,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
               // Complete CTA
               KaryaButton(
-                label: "Activate Artisan Cockpit",
+                label: 'activate_artisan_cockpit'.tr(),
                 icon: Icons.rocket_launch_rounded,
                 isLoading: _isSaving,
                 onPressed: _completeOnboarding,

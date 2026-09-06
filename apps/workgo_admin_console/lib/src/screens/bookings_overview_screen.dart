@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../admin_theme.dart';
@@ -30,9 +31,9 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Live Dispatch & Bookings Matrix", style: AX.display(fontSize: 20)),
+                  Text('admin_bookings_title'.trSafe("Live Dispatch & Bookings Matrix"), style: AX.display(fontSize: 20)),
                   const SizedBox(height: 2),
-                  Text("Real-time telemetry, OTP gate validations, and C2PA completion seals", style: AX.body(fontSize: 12)),
+                  Text('admin_bookings_subtitle'.trSafe("Real-time telemetry, OTP gate validations, and C2PA completion seals"), style: AX.body(fontSize: 12)),
                 ],
               ),
             ],
@@ -54,7 +55,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                 child: TextField(
                   style: const TextStyle(color: AX.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
-                    hintText: "Search ID, trade, customer...",
+                    hintText: 'admin_search_bookings_hint'.trSafe("Search ID, trade, customer..."),
                     hintStyle: const TextStyle(color: AX.textMuted, fontSize: 12),
                     prefixIcon: const Icon(Icons.search_rounded, color: AX.textSecondary, size: 18),
                     border: InputBorder.none,
@@ -68,15 +69,15 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildStatusChip("All Dispatches", "all"),
+                    _buildStatusChip('admin_filter_all_dispatches'.trSafe("All Dispatches"), "all"),
                     const SizedBox(width: 8),
-                    _buildStatusChip("Pending Broadcast", "pending"),
+                    _buildStatusChip('admin_filter_pending_broadcast'.trSafe("Pending Broadcast"), "pending"),
                     const SizedBox(width: 8),
-                    _buildStatusChip("Artisan En Route", "accepted"),
+                    _buildStatusChip('admin_filter_en_route'.trSafe("Artisan En Route"), "accepted"),
                     const SizedBox(width: 8),
-                    _buildStatusChip("In Progress", "inProgress"),
+                    _buildStatusChip('admin_filter_in_progress'.trSafe("In Progress"), "inProgress"),
                     const SizedBox(width: 8),
-                    _buildStatusChip("Completed", "completed"),
+                    _buildStatusChip('admin_filter_completed'.trSafe("Completed"), "completed"),
                     const SizedBox(width: 8),
                     _buildEmergencyToggle(),
                   ],
@@ -154,22 +155,27 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                             child: const Icon(Icons.receipt_long_rounded, color: AX.emeraldDark, size: 36),
                           ),
                           const SizedBox(height: 16),
-                          Text("No Matching Bookings Found", style: AX.display(fontSize: 16)),
+                          Text('admin_no_matching_bookings'.trSafe("No Matching Bookings Found"), style: AX.display(fontSize: 16)),
                           const SizedBox(height: 6),
-                          Text("Real-time dispatches matching your criteria will automatically show up here.", style: AX.body(fontSize: 12), textAlign: TextAlign.center),
+                          Text('admin_no_matching_hint'.trSafe("Real-time dispatches matching your criteria will automatically show up here."), style: AX.body(fontSize: 12), textAlign: TextAlign.center),
                         ],
                       ),
                     ),
                   );
                 }
 
-                return ListView.separated(
-                  itemCount: bookings.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final b = bookings[index];
-                    return _buildBookingCard(context, b);
-                  },
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1000),
+                    child: ListView.separated(
+                      itemCount: bookings.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final b = bookings[index];
+                        return _buildBookingCard(context, b);
+                      },
+                    ),
+                  ),
                 );
               },
             ),
@@ -222,7 +228,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
             Icon(Icons.bolt_rounded, color: _onlyEmergency ? const Color(0xFF991B1B) : AX.textSecondary, size: 16),
             const SizedBox(width: 6),
             Text(
-              "Emergency Only",
+              'admin_filter_emergency_only'.trSafe("Emergency Only"),
               style: TextStyle(
                 color: _onlyEmergency ? const Color(0xFF991B1B) : AX.textSecondary,
                 fontSize: 12,
@@ -275,13 +281,14 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text(b.serviceType, style: AX.display(fontSize: 15)),
-                      const SizedBox(width: 10),
+                      Text(b.serviceType.toLocalizedTrade(), style: AX.display(fontSize: 15)),
                       Text("ID: #${b.id.substring(0, b.id.length.clamp(0, 8)).toUpperCase()}", style: AX.mono(fontSize: 11, color: AX.textMuted)),
-                      if (b.isEmergency) ...[
-                        const SizedBox(width: 8),
+                      if (b.isEmergency)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
@@ -290,9 +297,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                           ),
                           child: const Text("EMERGENCY (+₹150)", style: TextStyle(fontFamily: "SpaceGrotesk", fontSize: 9, color: Color(0xFF991B1B), fontWeight: FontWeight.bold)),
                         ),
-                      ],
-                      if (b.startOtp != null) ...[
-                        const SizedBox(width: 8),
+                      if (b.startOtp != null)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
@@ -301,7 +306,6 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                           ),
                           child: Text("OTP: ${b.startOtp}", style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 9, color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
                         ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -311,7 +315,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          b.customerAddressText ?? "Thanjavur, Tamil Nadu",
+                          (b.customerAddressText ?? "Thanjavur, Tamil Nadu").toLocalizedAddress(context.locale.languageCode),
                           style: AX.body(fontSize: 12, color: AX.textSecondary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -346,7 +350,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    b.status.name.toUpperCase(),
+                    b.status.toLocalizedName().toUpperCase(),
                     style: AX.mono(fontSize: 10, color: statusColor, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -396,7 +400,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Dispatch Telemetry Dossier", style: AX.display(fontSize: 18)),
+                    Text('admin_dossier_title'.trSafe("Dispatch Telemetry Dossier"), style: AX.display(fontSize: 18)),
                     Text("Booking #${b.id.substring(0, b.id.length.clamp(0, 8)).toUpperCase()}", style: AX.mono(fontSize: 12, color: AX.emeraldDark)),
                   ],
                 ),
@@ -413,13 +417,13 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
             ),
             const Divider(color: AX.divider, height: 28),
 
-            _buildDetailRow("Trade Service", b.serviceType),
-            _buildDetailRow("Customer ID", b.customerId),
-            _buildDetailRow("Destination Address", b.customerAddressText ?? "Thanjavur, Tamil Nadu"),
-            _buildDetailRow("Start Verification OTP", b.startOtp ?? "8492"),
-            _buildDetailRow("Assigned Artisan", b.acceptedWorkerName ?? "Awaiting Pickup"),
-            _buildDetailRow("Status", b.status.name.toUpperCase()),
-            _buildDetailRow("Payment Settlement", b.paymentStatus.name.toUpperCase()),
+            _buildDetailRow('admin_trade_service'.trSafe("Trade Service"), b.serviceType.toLocalizedTrade()),
+            _buildDetailRow('admin_customer_id'.trSafe("Customer ID"), b.customerId),
+            _buildDetailRow('admin_dest_address'.trSafe("Destination Address"), (b.customerAddressText ?? "Thanjavur, Tamil Nadu").toLocalizedAddress(context.locale.languageCode)),
+            _buildDetailRow('admin_otp_label'.trSafe("Start Verification OTP"), b.startOtp ?? "8492"),
+            _buildDetailRow('admin_assigned_artisan'.trSafe("Assigned Artisan"), b.acceptedWorkerName ?? 'admin_awaiting_pickup'.trSafe("Awaiting Pickup")),
+            _buildDetailRow('status_pending'.trSafe("Status"), b.status.toLocalizedName().toUpperCase()),
+            _buildDetailRow('admin_payment_settlement'.trSafe("Payment Settlement"), b.paymentStatus.toLocalizedName().toUpperCase()),
             const SizedBox(height: 24),
 
             ElevatedButton(
@@ -431,7 +435,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                 elevation: 0,
               ),
-              child: const Text("Close Telemetry Dossier", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text('admin_close_dossier'.trSafe("Close Telemetry Dossier"), style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -444,9 +448,17 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: AX.body(fontSize: 13, color: AX.textSecondary)),
-          Text(value, style: AX.heading(fontSize: 13, color: AX.textPrimary)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: AX.heading(fontSize: 13, color: AX.textPrimary),
+              textAlign: TextAlign.right,
+            ),
+          ),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -408,8 +409,8 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Daily 3D Face Check",
+                        Text(
+                          'daily_face_check_title'.tr(),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -418,7 +419,7 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                           ),
                         ),
                         Text(
-                          "Verifying identity against approved KYC profile",
+                          'daily_face_check_desc'.tr(),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 12,
@@ -509,14 +510,14 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                                 if (_isVerifying)
                                   Container(
                                     color: Colors.black45,
-                                    child: const Center(
+                                    child: Center(
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          CircularProgressIndicator(color: Color(0xFF10B981), strokeWidth: 3),
+                                          const CircularProgressIndicator(color: Color(0xFF10B981), strokeWidth: 3),
                                           SizedBox(height: 14),
                                           Text(
-                                            "Comparing with 3D KYC...",
+                                            'comparing_kyc'.tr(),
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 13,
@@ -532,14 +533,14 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                                 if (isSuccess)
                                   Container(
                                     color: const Color(0xFF10B981).withValues(alpha: 0.85),
-                                    child: const Center(
+                                    child: Center(
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.check_circle_rounded, color: Colors.white, size: 68),
+                                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 68),
                                           SizedBox(height: 10),
                                           Text(
-                                            "IDENTITY VERIFIED ✓",
+                                            'identity_verified_badge'.tr(),
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 15,
@@ -635,8 +636,8 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
                         icon: const Icon(Icons.refresh_rounded, size: 20),
-                        label: const Text(
-                          "Try Again",
+                        label: Text(
+                          'try_again_btn'.tr(),
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -672,14 +673,14 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                         TextButton.icon(
                           onPressed: _fallbackPickAndVerify,
                           icon: const Icon(Icons.photo_library_rounded, size: 16, color: Colors.white70),
-                          label: const Text("Choose Photo", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                          label: Text('choose_photo_btn'.tr(), style: TextStyle(color: Colors.white70, fontSize: 12)),
                         ),
                         if (kDebugMode) ...[
                           const SizedBox(width: 8),
                           TextButton.icon(
                             onPressed: _bypassForTesting,
                             icon: const Icon(Icons.developer_mode_rounded, size: 16, color: KaryaColors.brandYellow),
-                            label: const Text("Bypass (Dev)", style: TextStyle(color: KaryaColors.brandYellow, fontSize: 12)),
+                            label: Text('bypass_dev_btn'.tr(), style: TextStyle(color: KaryaColors.brandYellow, fontSize: 12)),
                           ),
                         ],
                       ],

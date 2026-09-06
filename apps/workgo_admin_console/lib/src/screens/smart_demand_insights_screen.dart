@@ -35,34 +35,50 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Header ───────────────────────────────────────────────
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Market Velocity & Demand Insights", style: AX.display(fontSize: 20)),
-                            const SizedBox(height: 2),
-                            Text("Dynamic regional pricing analytics, trade velocity, and capacity forecast", style: AX.body(fontSize: 12)),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF3D6),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
+                    // ── Header (Responsive) ──────────────────────────────────
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompact = constraints.maxWidth < 700;
+                        if (isCompact) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.auto_graph_rounded, color: AX.emeraldDark, size: 16),
-                              const SizedBox(width: 6),
-                              Text("ML AGGREGATION v2", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
+                              Text('admin_demand_title'.trSafe("Market Velocity & Demand Insights"), style: AX.display(fontSize: 18)),
+                              const SizedBox(height: 2),
+                              Text('admin_demand_subtitle'.trSafe("Dynamic regional pricing analytics, trade velocity, and capacity forecast"), style: AX.body(fontSize: 11)),
                             ],
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('admin_demand_title'.trSafe("Market Velocity & Demand Insights"), style: AX.display(fontSize: 20)),
+                                const SizedBox(height: 2),
+                                Text('admin_demand_subtitle'.trSafe("Dynamic regional pricing analytics, trade velocity, and capacity forecast"), style: AX.body(fontSize: 12)),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF3D6),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.auto_graph_rounded, color: AX.emeraldDark, size: 16),
+                                  const SizedBox(width: 6),
+                                  Text("ML AGGREGATION v2", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
 
@@ -89,49 +105,144 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Macro Velocity Metric Cards ──────────────────────────
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildMetricPill(
-                            title: "Live Cluster Jobs",
-                            value: "$totalCount",
-                            subtitle: "${settledBookings.length} Settled",
-                            icon: Icons.trending_up_rounded,
-                            color: AX.emerald,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _buildMetricPill(
-                            title: "Emergency Ratio",
-                            value: "${emergencyRatio.toStringAsFixed(1)}%",
-                            subtitle: "$emergencyCount SOS calls",
-                            icon: Icons.bolt_rounded,
-                            color: AX.rose,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _buildMetricPill(
-                            title: "Avg Settled Ticket",
-                            value: "₹${avgTicket.toStringAsFixed(0)}",
-                            subtitle: "₹${settledGross.toStringAsFixed(0)} realized",
-                            icon: Icons.currency_rupee_rounded,
-                            color: const Color(0xFF1D4ED8),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: _buildMetricPill(
-                            title: "Supply Density",
-                            value: "${workers.length}",
-                            subtitle: "Active Artisans",
-                            icon: Icons.groups_rounded,
-                            color: AX.amber,
-                          ),
-                        ),
-                      ],
+                    // ── Macro Velocity Metric Cards (Responsive Grid) ────────
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final w = constraints.maxWidth;
+                        if (w >= 1000) {
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: _buildMetricPill(
+                                  title: "Live Cluster Jobs",
+                                  value: "$totalCount",
+                                  subtitle: "${settledBookings.length} Settled",
+                                  icon: Icons.trending_up_rounded,
+                                  color: AX.emerald,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: _buildMetricPill(
+                                  title: "Emergency Ratio",
+                                  value: "${emergencyRatio.toStringAsFixed(1)}%",
+                                  subtitle: "$emergencyCount SOS calls",
+                                  icon: Icons.bolt_rounded,
+                                  color: AX.rose,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: _buildMetricPill(
+                                  title: "Avg Settled Ticket",
+                                  value: "₹${avgTicket.toStringAsFixed(0)}",
+                                  subtitle: "₹${settledGross.toStringAsFixed(0)} realized",
+                                  icon: Icons.currency_rupee_rounded,
+                                  color: const Color(0xFF1D4ED8),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: _buildMetricPill(
+                                  title: "Supply Density",
+                                  value: "${workers.length}",
+                                  subtitle: "Active Artisans",
+                                  icon: Icons.groups_rounded,
+                                  color: AX.amber,
+                                ),
+                              ),
+                            ],
+                          );
+                        } else if (w >= 560) {
+                          return Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildMetricPill(
+                                      title: "Live Cluster Jobs",
+                                      value: "$totalCount",
+                                      subtitle: "${settledBookings.length} Settled",
+                                      icon: Icons.trending_up_rounded,
+                                      color: AX.emerald,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildMetricPill(
+                                      title: "Emergency Ratio",
+                                      value: "${emergencyRatio.toStringAsFixed(1)}%",
+                                      subtitle: "$emergencyCount SOS calls",
+                                      icon: Icons.bolt_rounded,
+                                      color: AX.rose,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildMetricPill(
+                                      title: "Avg Settled Ticket",
+                                      value: "₹${avgTicket.toStringAsFixed(0)}",
+                                      subtitle: "₹${settledGross.toStringAsFixed(0)} realized",
+                                      icon: Icons.currency_rupee_rounded,
+                                      color: const Color(0xFF1D4ED8),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildMetricPill(
+                                      title: "Supply Density",
+                                      value: "${workers.length}",
+                                      subtitle: "Active Artisans",
+                                      icon: Icons.groups_rounded,
+                                      color: AX.amber,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              _buildMetricPill(
+                                title: "Live Cluster Jobs",
+                                value: "$totalCount",
+                                subtitle: "${settledBookings.length} Settled",
+                                icon: Icons.trending_up_rounded,
+                                color: AX.emerald,
+                              ),
+                              const SizedBox(height: 10),
+                              _buildMetricPill(
+                                title: "Emergency Ratio",
+                                value: "${emergencyRatio.toStringAsFixed(1)}%",
+                                subtitle: "$emergencyCount SOS calls",
+                                icon: Icons.bolt_rounded,
+                                color: AX.rose,
+                              ),
+                              const SizedBox(height: 10),
+                              _buildMetricPill(
+                                title: "Avg Settled Ticket",
+                                value: "₹${avgTicket.toStringAsFixed(0)}",
+                                subtitle: "₹${settledGross.toStringAsFixed(0)} realized",
+                                icon: Icons.currency_rupee_rounded,
+                                color: const Color(0xFF1D4ED8),
+                              ),
+                              const SizedBox(height: 10),
+                              _buildMetricPill(
+                                title: "Supply Density",
+                                value: "${workers.length}",
+                                subtitle: "Active Artisans",
+                                icon: Icons.groups_rounded,
+                                color: AX.amber,
+                              ),
+                            ],
+                          );
+                        }
+                      },
                     ),
                     const SizedBox(height: 24),
 
@@ -239,6 +350,8 @@ class SmartDemandInsightsScreen extends StatelessWidget {
     final maxY = (spots.map((s) => s.y).reduce((a, b) => a > b ? a : b) + 4).clamp(8.0, 80.0);
 
     return LineChart(
+      duration: const Duration(milliseconds: 650),
+      curve: Curves.easeOutCubic,
       LineChartData(
         gridData: FlGridData(
           show: true,

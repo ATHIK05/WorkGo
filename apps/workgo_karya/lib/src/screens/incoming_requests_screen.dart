@@ -1,7 +1,10 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
+import '../services/karya_tts_service.dart';
+import '../widgets/translated_text.dart';
 import 'active_job_screen.dart';
 
 class IncomingRequestsScreen extends StatefulWidget {
@@ -64,7 +67,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Live Radar Cockpit",
+              'radar_cockpit_title'.tr(),
               style: WorkGoFonts.heading(
                 color: KX.textPrimary,
                 fontSize: 17,
@@ -72,7 +75,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
               ),
             ),
             Text(
-              "Active ~$_selectedRadiusKm km · ${widget.worker.skills.length} Trade Channels",
+              'active_radius_km'.tr(args: ['$_selectedRadiusKm', '${widget.worker.skills.length}'] ),
               style: WorkGoFonts.body(
                 color: KX.textSecondary,
                 fontSize: 11,
@@ -102,7 +105,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
               setState(() => _audioChimeEnabled = !_audioChimeEnabled);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(_audioChimeEnabled ? "Audio Broadcast Chime Enabled" : "Radar Audio Muted"),
+                  content: Text(_audioChimeEnabled ? 'audio_chime_enabled'.tr() : 'audio_chime_muted'.tr()),
                   duration: const Duration(seconds: 1),
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -156,7 +159,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
                                 : null,
                           ),
                           child: Text(
-                            filter == "All" ? "All Channels" : filter.toLocalizedTrade(),
+                            filter == "All" ? 'all_channels'.tr() : filter.toLocalizedTrade(),
                             style: TextStyle(
                               color: isSelected ? Colors.white : const Color(0xFF1A1A1A),
                               fontSize: 11.5,
@@ -274,16 +277,16 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Broadcast Listener",
-                        style: TextStyle(
+                      Text(
+                        'broadcast_listener'.tr(),
+                        style: const TextStyle(
                           color: Color(0xFF141416),
                           fontSize: 13.5,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                       Text(
-                        "Listening on ${widget.worker.skills.length} skills · Live GPS",
+                        'listening_skills_gps'.tr(args: ['${widget.worker.skills.length}']),
                         style: const TextStyle(
                           color: Color(0xFF6B6B6B),
                           fontSize: 10.5,
@@ -320,9 +323,9 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
           // Radius Selector Pills
           Row(
             children: [
-              const Text(
-                "Radius: ",
-                style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 11, fontWeight: FontWeight.w700),
+              Text(
+                'radius_label'.tr(),
+                style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 11, fontWeight: FontWeight.w700),
               ),
               const SizedBox(width: 6),
               Expanded(
@@ -407,7 +410,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  "Radar Active — Listening",
+                  'radar_active_listening'.tr(),
                   style: WorkGoFonts.display(
                     color: KX.textPrimary,
                     fontSize: 16,
@@ -416,7 +419,7 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Dispatches in ~${_selectedRadiusKm}km coverage will trigger an immediate alert with sound.",
+                  'radar_active_desc'.tr(args: ['$_selectedRadiusKm']),
                   style: WorkGoFonts.body(
                     color: const Color(0xFF6B6B6B),
                     fontSize: 11.5,
@@ -439,19 +442,19 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.local_fire_department_rounded, color: Color(0xFFD97706), size: 18),
-                    SizedBox(width: 6),
+                    const Icon(Icons.local_fire_department_rounded, color: Color(0xFFD97706), size: 18),
+                    const SizedBox(width: 6),
                     Text(
-                      "High-Demand Hotspots",
+                      'high_demand_hotspots'.tr(),
                       style: TextStyle(color: Color(0xFF92400E), fontSize: 13, fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  "Artisans positioned near Central Bazaar, Gandhipuram, & Railway Colony receive up to 3x faster dispatches.",
+                Text(
+                  'hotspot_desc'.tr(),
                   style: TextStyle(color: Color(0xFF78350F), fontSize: 11.5, height: 1.4),
                 ),
               ],
@@ -467,14 +470,14 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFD4C7FF), width: 1.2),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF5B21B6), size: 20),
-                SizedBox(width: 10),
+                const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFF5B21B6), size: 20),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    "Tip: Keep your Status as 'Online' to stay at the top of the co-op dispatch queue.",
-                    style: TextStyle(color: Color(0xFF3B1E78), fontSize: 11.5, fontWeight: FontWeight.w600),
+                    'radar_online_tip'.tr(),
+                    style: const TextStyle(color: Color(0xFF3B1E78), fontSize: 11.5, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -511,7 +514,7 @@ class _LuminaRequestCard extends StatelessWidget {
           side: const BorderSide(color: Color(0xFFF0EDE6), width: 1.2),
         ),
         title: Text(
-          "Refer Job to Peer Artisan",
+          'refer_job_peer'.tr(),
           style: WorkGoFonts.heading(
             color: KX.textPrimary,
             fontSize: 17,
@@ -523,7 +526,7 @@ class _LuminaRequestCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Unable to take this ${booking.serviceType.toLocalizedTrade()} job? Transfer the dispatch to a verified co-op peer.",
+              'transfer_job_desc'.tr(args: [booking.serviceType.toLocalizedTrade()]),
               style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 14),
@@ -531,7 +534,7 @@ class _LuminaRequestCard extends StatelessWidget {
               controller: nameCtrl,
               style: const TextStyle(color: KX.textPrimary),
               decoration: InputDecoration(
-                labelText: "Peer's Name or Contact",
+                labelText: 'peer_name_contact_hint'.tr(),
                 labelStyle: const TextStyle(color: KX.textSecondary),
                 filled: true,
                 fillColor: const Color(0xFFF9F6EE),
@@ -543,7 +546,7 @@ class _LuminaRequestCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Cancel", style: TextStyle(color: Color(0xFF6B6B6B))),
+            child: Text('cancel'.tr(), style: const TextStyle(color: Color(0xFF6B6B6B))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -556,7 +559,7 @@ class _LuminaRequestCard extends StatelessWidget {
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text("Job referred to peer! Dispatch transferred."),
+                    content: Text('job_referred_success'.tr()),
                     backgroundColor: KX.emerald,
                   ),
                 );
@@ -566,7 +569,7 @@ class _LuminaRequestCard extends StatelessWidget {
               backgroundColor: const Color(0xFF141416),
               foregroundColor: Colors.white,
             ),
-            child: const Text("Transfer Job"),
+            child: Text('transfer_job_btn'.tr()),
           ),
         ],
       ),
@@ -624,7 +627,7 @@ class _LuminaRequestCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      isEmergency ? "⚡ EMERGENCY DISPATCH" : "PRIORITY DISPATCH",
+                      isEmergency ? 'emergency_dispatch_caps'.tr() : 'priority_dispatch_caps'.tr(),
                       style: TextStyle(
                         color: isEmergency ? const Color(0xFFE11D48) : const Color(0xFF5B21B6),
                         fontSize: 9.5,
@@ -655,7 +658,7 @@ class _LuminaRequestCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    "Net: ₹${netPayout.toStringAsFixed(0)}",
+                    'net_amount'.tr(args: [netPayout.toStringAsFixed(0)]),
                     style: const TextStyle(
                       color: Color(0xFF059669),
                       fontSize: 10.5,
@@ -685,8 +688,9 @@ class _LuminaRequestCard extends StatelessWidget {
               const Icon(Icons.location_on_rounded, color: Color(0xFF6B6B6B), size: 14),
               const SizedBox(width: 4),
               Expanded(
-                child: Text(
+                child: TranslatedText(
                   address,
+                  isAddress: true,
                   style: WorkGoFonts.body(
                     color: const Color(0xFF6B6B6B),
                     fontSize: 11.5,
@@ -704,7 +708,7 @@ class _LuminaRequestCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    "+₹${booking.urgencyBonus.toInt()} BONUS",
+                    'urgency_bonus_tag'.tr(args: [booking.urgencyBonus.toInt().toString()]),
                     style: const TextStyle(color: Color(0xFF92400E), fontSize: 9.5, fontWeight: FontWeight.w900),
                   ),
                 ),
@@ -744,10 +748,10 @@ class _LuminaRequestCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
+                        child: TranslatedText(
                           booking.equipmentTag?.isNotEmpty == true
-                              ? "Target: ${booking.equipmentTag}"
-                              : "Diagnostic Dispatch",
+                              ? 'target_equipment'.tr(args: [booking.equipmentTag!])
+                              : 'diagnostic_dispatch'.tr(),
                           style: const TextStyle(
                             color: Color(0xFF78350F),
                             fontSize: 12,
@@ -765,9 +769,9 @@ class _LuminaRequestCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: const Color(0xFFFDE68A)),
                           ),
-                          child: const Text(
-                            "DIAGNOSTIC",
-                            style: TextStyle(
+                          child: Text(
+                            'diagnostic_caps'.tr(),
+                            style: const TextStyle(
                               color: Color(0xFF92400E),
                               fontSize: 9,
                               fontWeight: FontWeight.w900,
@@ -800,12 +804,12 @@ class _LuminaRequestCard extends StatelessWidget {
                   // AI Gear Advice: Recommended tools to pack
                   if (booking.suggestedToolsNeeded.isNotEmpty) ...[
                     Row(
-                      children: const [
-                        Icon(Icons.handyman_rounded, size: 12, color: Color(0xFFB45309)),
-                        SizedBox(width: 4),
+                      children: [
+                        const Icon(Icons.handyman_rounded, size: 12, color: Color(0xFFB45309)),
+                        const SizedBox(width: 4),
                         Text(
-                          "AI Gear Advice · Tools to Bring:",
-                          style: TextStyle(
+                          'ai_gear_advice_tools'.tr(),
+                          style: const TextStyle(
                             color: Color(0xFF92400E),
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
@@ -830,7 +834,7 @@ class _LuminaRequestCard extends StatelessWidget {
                             children: [
                               const Icon(Icons.build_rounded, size: 10, color: Color(0xFFB45309)),
                               const SizedBox(width: 4),
-                              Text(
+                              TranslatedText(
                                 tool,
                                 style: const TextStyle(
                                   color: Color(0xFF78350F),
@@ -855,7 +859,7 @@ class _LuminaRequestCard extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () => _showReferPeerDialog(context),
                 icon: const Icon(Icons.people_outline_rounded, size: 15, color: Color(0xFF6B6B6B)),
-                label: const Text("Refer", style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 12, fontWeight: FontWeight.w700)),
+                label: Text('refer_btn'.tr(), style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 12, fontWeight: FontWeight.w700)),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Color(0xFFF0EDE6), width: 1.2),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -869,8 +873,11 @@ class _LuminaRequestCard extends StatelessWidget {
                     await service.acceptBooking(
                       booking.id,
                       worker.id,
-                      workerName: worker.phoneForCalling ?? "Artisan",
+                      workerName: worker.name,
+                      workerPhone: worker.phoneForCalling,
                     );
+                    // Voice guidance announcement
+                    KaryaTtsService.instance.announceJobAccepted(booking);
                     if (context.mounted) {
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
@@ -884,7 +891,7 @@ class _LuminaRequestCard extends StatelessWidget {
                   },
                   icon: const Icon(Icons.flash_on_rounded, size: 16, color: Color(0xFFFFB800)),
                   label: Text(
-                    "Accept Job (₹${totalPayout.toInt()})",
+                    'accept_job_amount'.tr(args: [totalPayout.toInt().toString()]),
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                   ),
                   style: ElevatedButton.styleFrom(

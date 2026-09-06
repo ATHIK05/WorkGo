@@ -22,9 +22,9 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Proxy Artisan Voice Onboarding Queue", style: AX.display(fontSize: 20)),
+                  Text('admin_proxy_title'.trSafe("Proxy Artisan Voice Onboarding Queue"), style: AX.display(fontSize: 20)),
                   const SizedBox(height: 2),
-                  Text("Verify non-smartphone artisans referred by cooperative members via telephone bridge", style: AX.body(fontSize: 12)),
+                  Text('admin_proxy_subtitle'.trSafe("Verify non-smartphone artisans referred by cooperative members via telephone bridge"), style: AX.body(fontSize: 12)),
                 ],
               ),
               Container(

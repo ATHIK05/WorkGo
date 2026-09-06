@@ -1,6 +1,240 @@
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
+
+/// Clean, BigInt-based ZipCrypto decryptor that works identically across Dart VM and Flutter Web (JavaScript).
+/// Eliminates the 64-bit int overflow and JavaScript IEEE 754 precision bugs present in package:archive 3.6.1.
+class AadhaarZipCrypto {
+  BigInt _key0 = BigInt.from(0x12345678);
+  BigInt _key1 = BigInt.from(0x23456789);
+  BigInt _key2 = BigInt.from(0x34567890);
+
+  static final BigInt _mask32 = BigInt.from(0xFFFFFFFF);
+  static final BigInt _mult = BigInt.from(134775813);
+  static final BigInt _one = BigInt.from(1);
+  static final BigInt _byteMask = BigInt.from(0xFF);
+
+  static final List<int> _crcTable = () {
+    final table = List<int>.filled(256, 0);
+    for (var i = 0; i < 256; i++) {
+      var c = i;
+      for (var j = 0; j < 8; j++) {
+        if ((c & 1) != 0) {
+          c = 0xedb88320 ^ (c >>> 1);
+        } else {
+          c = c >>> 1;
+        }
+      }
+      table[i] = c & 0xFFFFFFFF;
+    }
+    return table;
+  }();
+
+  static int _crc32(int crc, int b) {
+    return (_crcTable[(crc ^ b) & 0xFF] ^ (crc >>> 8)) & 0xFFFFFFFF;
+  }
+
+  void init(String password) {
+    _key0 = BigInt.from(0x12345678);
+    _key1 = BigInt.from(0x23456789);
+    _key2 = BigInt.from(0x34567890);
+    for (final c in password.codeUnits) {
+      updateKeys(c);
+    }
+  }
+
+  void updateKeys(int c) {
+    _key0 = BigInt.from(_crc32(_key0.toInt(), c));
+    _key1 = (_key1 + (_key0 & _byteMask)) & _mask32;
+    _key1 = (_key1 * _mult + _one) & _mask32;
+    _key2 = BigInt.from(_crc32(_key2.toInt(), ((_key1 >> 24) & _byteMask).toInt()));
+  }
+
+  int decryptByte() {
+    final temp = ((_key2 & BigInt.from(0xFFFF)).toInt() | 2);
+    return ((temp * (temp ^ 1)) >> 8) & 0xFF;
+  }
+
+  /// Decrypts ZipCrypto payload. Returns null if password verification check byte fails.
+  Uint8List? decrypt(Uint8List encrypted, {int? expectedCheckByte}) {
+    if (encrypted.length < 12) return null;
+
+    int lastHeaderByte = 0;
+    for (var i = 0; i < 12; i++) {
+      final b = encrypted[i] ^ decryptByte();
+      updateKeys(b);
+      lastHeaderByte = b;
+    }
+
+    if (expectedCheckByte != null && lastHeaderByte != expectedCheckByte) {
+      return null; // Password mismatch
+    }
+
+    final out = Uint8List(encrypted.length - 12);
+    for (var i = 12; i < encrypted.length; i++) {
+      final b = encrypted[i] ^ decryptByte();
+      updateKeys(b);
+      out[i - 12] = b;
+    }
+    return out;
+  }
+
+  /// Encrypts plain data with ZipCrypto and 12-byte header for testing.
+  Uint8List encrypt(Uint8List plain, int checkByte) {
+    final rng = math.Random(12345);
+    final header = Uint8List(12);
+    for (var i = 0; i < 11; i++) {
+      header[i] = rng.nextInt(256);
+    }
+    header[11] = checkByte & 0xFF;
+
+    final out = Uint8List(12 + plain.length);
+    for (var i = 0; i < 12; i++) {
+      final b = header[i];
+      out[i] = b ^ decryptByte();
+      updateKeys(b);
+    }
+    for (var i = 0; i < plain.length; i++) {
+      final b = plain[i];
+      out[12 + i] = b ^ decryptByte();
+      updateKeys(b);
+    }
+    return out;
+  }
+}
+
+/// Direct ZIP central directory extractor that works seamlessly on UIDAI Offline e-KYC archives.
+/// Avoids the Unix file attribute `isFile` bug and decompressor limitations in package:archive 3.6.1.
+class AadhaarZipExtractor {
+  static String? extractXml({
+    required Uint8List rawBytes,
+    required String password,
+  }) {
+    // Look for End of Central Directory Record (0x06054b50) from the end
+    int eocdOffset = -1;
+    for (var i = rawBytes.length - 22; i >= 0 && i >= rawBytes.length - 65558; i--) {
+      if (rawBytes[i] == 0x50 &&
+          rawBytes[i + 1] == 0x4b &&
+          rawBytes[i + 2] == 0x05 &&
+          rawBytes[i + 3] == 0x06) {
+        eocdOffset = i;
+        break;
+      }
+    }
+
+    if (eocdOffset == -1) return null;
+
+    final cdEntries = rawBytes[eocdOffset + 10] | (rawBytes[eocdOffset + 11] << 8);
+    final cdOffset = rawBytes[eocdOffset + 16] |
+        (rawBytes[eocdOffset + 17] << 8) |
+        (rawBytes[eocdOffset + 18] << 16) |
+        (rawBytes[eocdOffset + 19] << 24);
+
+    int pos = cdOffset;
+    for (var i = 0; i < cdEntries; i++) {
+      if (pos + 46 > rawBytes.length) break;
+      if (rawBytes[pos] != 0x50 ||
+          rawBytes[pos + 1] != 0x4b ||
+          rawBytes[pos + 2] != 0x01 ||
+          rawBytes[pos + 3] != 0x02) {
+        break;
+      }
+
+      final flags = rawBytes[pos + 8] | (rawBytes[pos + 9] << 8);
+      final method = rawBytes[pos + 10] | (rawBytes[pos + 11] << 8);
+      final lastModTime = rawBytes[pos + 12] | (rawBytes[pos + 13] << 8);
+      final crc32 = rawBytes[pos + 16] |
+          (rawBytes[pos + 17] << 8) |
+          (rawBytes[pos + 18] << 16) |
+          (rawBytes[pos + 19] << 24);
+      final compSize = rawBytes[pos + 20] |
+          (rawBytes[pos + 21] << 8) |
+          (rawBytes[pos + 22] << 16) |
+          (rawBytes[pos + 23] << 24);
+      final fnLen = rawBytes[pos + 28] | (rawBytes[pos + 29] << 8);
+      final exLen = rawBytes[pos + 30] | (rawBytes[pos + 31] << 8);
+      final commentLen = rawBytes[pos + 32] | (rawBytes[pos + 33] << 8);
+      final localOffset = rawBytes[pos + 42] |
+          (rawBytes[pos + 43] << 8) |
+          (rawBytes[pos + 44] << 16) |
+          (rawBytes[pos + 45] << 24);
+
+      final fnBytes = rawBytes.sublist(pos + 46, pos + 46 + fnLen);
+      final fn = utf8.decode(fnBytes, allowMalformed: true);
+
+      pos += 46 + fnLen + exLen + commentLen;
+
+      // Skip directories or metadata
+      if (fn.endsWith('/') || fn.endsWith('\\')) continue;
+      final fnLower = fn.toLowerCase();
+      if (fnLower.contains('__macosx') || fnLower.startsWith('._') || fnLower.contains('/._')) {
+        continue;
+      }
+
+      // Locate payload in local header
+      if (localOffset + 30 > rawBytes.length) continue;
+      final localFnLen = rawBytes[localOffset + 26] | (rawBytes[localOffset + 27] << 8);
+      final localExLen = rawBytes[localOffset + 28] | (rawBytes[localOffset + 29] << 8);
+      final payloadOffset = localOffset + 30 + localFnLen + localExLen;
+
+      if (payloadOffset + compSize > rawBytes.length) continue;
+      final payload = rawBytes.sublist(payloadOffset, payloadOffset + compSize);
+
+      Uint8List? decompressed;
+      final isEncrypted = (flags & 0x01) != 0;
+
+      if (isEncrypted) {
+        if (method == 99) continue; // WinZip AES - let ZipDecoder handle fallback
+        final crypto = AadhaarZipCrypto()..init(password);
+        final checkByte1 = (flags & 0x08) != 0 ? ((lastModTime >> 8) & 0xFF) : ((crc32 >> 24) & 0xFF);
+        final checkByte2 = (crc32 >> 24) & 0xFF;
+        final checkByte3 = (lastModTime >> 8) & 0xFF;
+
+        // Try primary check byte, alternate check byte, or blind decrypt
+        Uint8List? decrypted = crypto.decrypt(payload, expectedCheckByte: checkByte1);
+        decrypted ??= (AadhaarZipCrypto()..init(password)).decrypt(payload, expectedCheckByte: checkByte2);
+        decrypted ??= (AadhaarZipCrypto()..init(password)).decrypt(payload, expectedCheckByte: checkByte3);
+        decrypted ??= (AadhaarZipCrypto()..init(password)).decrypt(payload);
+        if (decrypted == null) continue;
+
+        if (method == 8) {
+          try {
+            final inflated = inflateBuffer(decrypted);
+            if (inflated != null) {
+              decompressed = Uint8List.fromList(inflated);
+            }
+          } catch (_) {}
+        } else if (method == 0) {
+          decompressed = decrypted;
+        }
+      } else {
+        if (method == 8) {
+          try {
+            final inflated = inflateBuffer(payload);
+            if (inflated != null) {
+              decompressed = Uint8List.fromList(inflated);
+            }
+          } catch (_) {}
+        } else if (method == 0) {
+          decompressed = payload;
+        }
+      }
+
+      if (decompressed == null || decompressed.isEmpty) continue;
+
+      final text = utf8.decode(decompressed, allowMalformed: true);
+      if (text.contains('<OfflinePaperlessKyc') ||
+          text.contains('<UidData') ||
+          text.contains('<Poi') ||
+          text.contains('<?xml')) {
+        return text;
+      }
+    }
+    return null;
+  }
+}
 
 /// Data class holding verified demographic attributes extracted from UIDAI Offline e-KYC XML.
 class DecryptedAadhaarData {
@@ -99,16 +333,33 @@ class AadhaarOfflineParser {
 
       if (isZip) {
         final code = shareCode.trim();
-        Archive? archive;
 
-        // 1. Try decoding with share code password
+        // 1. Direct BigInt ZipCrypto Extractor (Standard UIDAI PKWARE archives, safe on 64-bit VM and Web)
+        String? extractedXml = AadhaarZipExtractor.extractXml(
+          rawBytes: rawBytes,
+          password: code,
+        );
+
+        // If not found and password was not empty, also try unencrypted extraction
+        if (extractedXml == null && code.isNotEmpty) {
+          extractedXml = AadhaarZipExtractor.extractXml(
+            rawBytes: rawBytes,
+            password: '',
+          );
+        }
+
+        if (extractedXml != null && extractedXml.trim().isNotEmpty) {
+          return parseXmlString(extractedXml, sha256Fingerprint: fileHash);
+        }
+
+        // 2. Fallback to package:archive ZipDecoder (for WinZip AES or legacy archives)
+        Archive? archive;
         if (code.isNotEmpty) {
           try {
             archive = ZipDecoder().decodeBytes(rawBytes, password: code);
           } catch (_) {}
         }
 
-        // 2. Fallback to decoding without password (if unencrypted or empty share code)
         if (archive == null || archive.isEmpty) {
           try {
             archive = ZipDecoder().decodeBytes(rawBytes);
@@ -122,16 +373,18 @@ class AadhaarOfflineParser {
         }
 
         // Search for the Aadhaar XML document across all entries in the ZIP.
-        // UIDAI XML files typically:
-        // - End with .xml (e.g. offlineaadhaar20260901065022174.xml)
-        // - Contain tags: <OfflinePaperlessKyc, <UidData, <Poi, or <?xml
+        // Avoid using `entry.isFile` because Unix/Java ZIP archives often have external attributes
+        // that cause isFile to return false in archive 3.6.1.
         String? foundXmlString;
 
         // Pass 1: Prioritize non-empty .xml files containing UIDAI XML tags
         for (final entry in archive) {
-          if (!entry.isFile) continue;
           final nameLower = entry.name.toLowerCase();
-          if (nameLower.contains('__macosx') || nameLower.startsWith('._') || nameLower.contains('/._')) {
+          if (nameLower.endsWith('/') ||
+              nameLower.endsWith('\\') ||
+              nameLower.contains('__macosx') ||
+              nameLower.startsWith('._') ||
+              nameLower.contains('/._')) {
             continue;
           }
 
@@ -152,9 +405,12 @@ class AadhaarOfflineParser {
         // Pass 2: Any non-empty file containing UIDAI XML tags (even if not named .xml)
         if (foundXmlString == null) {
           for (final entry in archive) {
-            if (!entry.isFile) continue;
             final nameLower = entry.name.toLowerCase();
-            if (nameLower.contains('__macosx') || nameLower.startsWith('._') || nameLower.contains('/._')) {
+            if (nameLower.endsWith('/') ||
+                nameLower.endsWith('\\') ||
+                nameLower.contains('__macosx') ||
+                nameLower.startsWith('._') ||
+                nameLower.contains('/._')) {
               continue;
             }
 
@@ -174,9 +430,12 @@ class AadhaarOfflineParser {
         // Pass 3: Any non-empty .xml file
         if (foundXmlString == null) {
           for (final entry in archive) {
-            if (!entry.isFile) continue;
             final nameLower = entry.name.toLowerCase();
-            if (nameLower.contains('__macosx') || nameLower.startsWith('._') || nameLower.contains('/._')) {
+            if (nameLower.endsWith('/') ||
+                nameLower.endsWith('\\') ||
+                nameLower.contains('__macosx') ||
+                nameLower.startsWith('._') ||
+                nameLower.contains('/._')) {
               continue;
             }
 
@@ -198,9 +457,12 @@ class AadhaarOfflineParser {
         // Pass 4: Fallback to any non-empty file starting with '<'
         if (foundXmlString == null) {
           for (final entry in archive) {
-            if (!entry.isFile) continue;
             final nameLower = entry.name.toLowerCase();
-            if (nameLower.contains('__macosx') || nameLower.startsWith('._') || nameLower.contains('/._')) {
+            if (nameLower.endsWith('/') ||
+                nameLower.endsWith('\\') ||
+                nameLower.contains('__macosx') ||
+                nameLower.startsWith('._') ||
+                nameLower.contains('/._')) {
               continue;
             }
 

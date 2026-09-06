@@ -35,12 +35,19 @@ dependencies:
   flutter_image_compress: ^2.4.0
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.1
+  flutter_tts: ^4.2.2
 
   # Biometric 3D Multi-Angle Liveness & Screen Flash Booster
   camera: ^0.11.1
   google_mlkit_face_detection: ^0.13.1
+  google_mlkit_translation: ^0.13.1
   screen_brightness: ^2.0.0
   local_auth: ^2.3.0
+
+  # PDF invoice generation & sharing
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  share_plus: ^10.1.2
 
 dev_dependencies:
   flutter_test:

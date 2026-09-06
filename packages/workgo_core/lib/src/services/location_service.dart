@@ -111,6 +111,9 @@ class LocationService {
 
       _positionStreamSub = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
         (Position pos) async {
+          if (isEmulatorOrOutOfBounds(pos.latitude, pos.longitude)) {
+            return;
+          }
           try {
             if (onLocationUpdate != null) {
               await onLocationUpdate(pos.latitude, pos.longitude);
@@ -173,19 +176,22 @@ class LocationService {
               timeLimit: const Duration(seconds: 4),
             ),
           );
-          debugPrint("LocationService: Fresh GPS acquired: ${freshPosition.latitude}, ${freshPosition.longitude}");
-          return {
-            "latitude": freshPosition.latitude,
-            "longitude": freshPosition.longitude,
-          };
-        } catch (freshErr) {
-          debugPrint("LocationService: Fresh fix note: $freshErr");
-          if (fastPos != null) {
+          if (!isEmulatorOrOutOfBounds(freshPosition.latitude, freshPosition.longitude)) {
+            debugPrint("LocationService: Fresh GPS acquired: ${freshPosition.latitude}, ${freshPosition.longitude}");
             return {
-              "latitude": fastPos.latitude,
-              "longitude": fastPos.longitude,
+              "latitude": freshPosition.latitude,
+              "longitude": freshPosition.longitude,
             };
           }
+        } catch (freshErr) {
+          debugPrint("LocationService: Fresh fix note: $freshErr");
+        }
+
+        if (fastPos != null && !isEmulatorOrOutOfBounds(fastPos.latitude, fastPos.longitude)) {
+          return {
+            "latitude": fastPos.latitude,
+            "longitude": fastPos.longitude,
+          };
         }
       }
     } catch (e) {
@@ -196,34 +202,159 @@ class LocationService {
     return {"latitude": 11.2743, "longitude": 77.5866};
   }
 
+  /// Checks if coordinates match the known Mumbai cellular ISP APN gateway artifact
+  /// where Indian mobile networks (Airtel, Jio, Vi) route IP queries to Mumbai.
+  static bool isMumbaiGatewayArtifact(double? lat, double? lng, [String? addressText]) {
+    if (lat == null || lng == null) return false;
+    final inMumbaiBox = (lat >= 18.5 && lat <= 20.2 && lng >= 72.5 && lng <= 73.5);
+    if (!inMumbaiBox) return false;
+    if (addressText != null) {
+      final lower = addressText.toLowerCase();
+      if (lower.contains("mumbai") || lower.contains("bombay") || lower.contains("maharashtra")) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Checks if coordinates belong to an Android Emulator or are outside operational boundaries.
+  static bool isEmulatorOrOutOfBounds(double? lat, double? lng) {
+    if (lat == null || lng == null) return true;
+    if (lat.abs() <= 0.0001 && lng.abs() <= 0.0001) return true;
+    if (lng < 0) return true; // Western hemisphere / US (Mountain View -122.084)
+    if (lat >= 36.0 && lat <= 39.0 && lng >= -124.0 && lng <= -120.0) return true;
+    if (lat < 6.0 || lat > 38.0 || lng < 68.0 || lng > 98.0) return true; // Outside India
+    return false;
+  }
+
   /// Forward geocode any address string into real-world (lat, lon) coordinates via OpenStreetMap Nominatim.
+  /// Automatically extracts clean locality components (pincode, city, state) if raw query fails due to
+  /// extraneous user labels like "Home", "Work", "Near...", etc.
   Future<Map<String, double>?> forwardGeocode(String addressText) async {
-    final query = addressText.trim();
-    if (query.isEmpty) return null;
+    final raw = addressText.trim();
+    if (raw.isEmpty) return null;
 
-    try {
-      final encoded = Uri.encodeComponent(query);
-      final url = Uri.parse("https://nominatim.openstreetmap.org/search?format=json&q=$encoded&addressdetails=1&limit=1");
-      final res = await http.get(url, headers: {
-        "User-Agent": "WorkGoCooperativeApp/1.0 (support@workgo.in)",
-        "Accept": "application/json",
-      }).timeout(const Duration(seconds: 4));
+    Future<Map<String, double>?> executeQuery(String q) async {
+      try {
+        final encoded = Uri.encodeComponent(q);
+        final url = Uri.parse("https://nominatim.openstreetmap.org/search?format=json&q=$encoded&addressdetails=1&limit=1");
+        final res = await http.get(url, headers: {
+          "User-Agent": "WorkGoCooperativeApp/1.0 (support@workgo.in)",
+          "Accept": "application/json",
+        }).timeout(const Duration(seconds: 4));
 
-      if (res.statusCode == 200) {
-        final list = jsonDecode(res.body) as List;
-        if (list.isNotEmpty) {
-          final item = list.first;
-          final lat = double.tryParse(item["lat"]?.toString() ?? "");
-          final lon = double.tryParse(item["lon"]?.toString() ?? "");
-          if (lat != null && lon != null) {
-            return {"latitude": lat, "longitude": lon};
+        if (res.statusCode == 200) {
+          final list = jsonDecode(res.body) as List;
+          if (list.isNotEmpty) {
+            final item = list.first;
+            final lat = double.tryParse(item["lat"]?.toString() ?? "");
+            final lon = double.tryParse(item["lon"]?.toString() ?? "");
+            if (lat != null && lon != null && !isEmulatorOrOutOfBounds(lat, lon)) {
+              return {"latitude": lat, "longitude": lon};
+            }
           }
         }
+      } catch (e) {
+        debugPrint("LocationService: forwardGeocode query '$q' failed: $e");
       }
-    } catch (e) {
-      debugPrint("LocationService: dynamic forwardGeocode exception: $e");
+      return null;
     }
+
+    // 1. First attempt: Raw full address query
+    final firstTry = await executeQuery(raw);
+    if (firstTry != null) return firstTry;
+
+    // 2. Second attempt: Clean locality query (strip prefixes like "Home, ", "Work, ", "Near ", etc.)
+    final pinMatch = RegExp(r'\b[1-9][0-9]{5}\b').firstMatch(raw);
+    final pincode = pinMatch?.group(0);
+
+    final lower = raw.toLowerCase();
+    String detectedCity = "";
+    if (lower.contains("erode")) {
+      detectedCity = "Erode";
+    } else if (lower.contains("perundurai")) {
+      detectedCity = "Perundurai";
+    } else if (lower.contains("coimbatore")) {
+      detectedCity = "Coimbatore";
+    } else if (lower.contains("salem")) {
+      detectedCity = "Salem";
+    } else if (lower.contains("chennai")) {
+      detectedCity = "Chennai";
+    } else if (lower.contains("tiruppur")) {
+      detectedCity = "Tiruppur";
+    } else if (lower.contains("bhavani")) {
+      detectedCity = "Bhavani";
+    } else if (lower.contains("thindal")) {
+      detectedCity = "Thindal, Erode";
+    }
+
+    if (pincode != null && detectedCity.isNotEmpty) {
+      final secondTry = await executeQuery("$pincode, $detectedCity, Tamil Nadu, India");
+      if (secondTry != null) return secondTry;
+    } else if (pincode != null) {
+      final secondTry = await executeQuery("$pincode, Tamil Nadu, India");
+      if (secondTry != null) return secondTry;
+    } else if (detectedCity.isNotEmpty) {
+      final secondTry = await executeQuery("$detectedCity, Tamil Nadu, India");
+      if (secondTry != null) return secondTry;
+    }
+
+    // 3. Third attempt: Regional hub coordinates fallback based on city / pincode
+    if (detectedCity.isNotEmpty || pincode != null) {
+      if (detectedCity == "Perundurai" || pincode == "638052") {
+        return {"latitude": 11.2743, "longitude": 77.5866};
+      } else if (detectedCity == "Bhavani" || pincode == "638301") {
+        return {"latitude": 11.4500, "longitude": 77.6833};
+      } else if (detectedCity == "Thindal" || pincode == "638012") {
+        return {"latitude": 11.3280, "longitude": 77.6890};
+      } else if (detectedCity == "Coimbatore" || (pincode != null && pincode.startsWith("641"))) {
+        return {"latitude": 11.0168, "longitude": 76.9558};
+      } else if (detectedCity == "Salem" || (pincode != null && pincode.startsWith("636"))) {
+        return {"latitude": 11.6643, "longitude": 78.1460};
+      } else if (detectedCity == "Chennai" || (pincode != null && pincode.startsWith("600"))) {
+        return {"latitude": 13.0827, "longitude": 80.2707};
+      } else if (detectedCity == "Tiruppur" || (pincode != null && pincode.startsWith("6416"))) {
+        return {"latitude": 11.1085, "longitude": 77.3411};
+      } else if (detectedCity == "Erode" || (pincode != null && pincode.startsWith("638"))) {
+        return {"latitude": 11.3410, "longitude": 77.7172};
+      }
+    }
+
     return null;
+  }
+
+  /// Sanitizes address coordinates by validating against Mumbai gateway artifacts,
+  /// emulator artifacts, or invalid values, falling back to clean forward geocoding or live hardware GPS.
+  Future<Map<String, double>> resolveSanitizedCoordinates({
+    required String addressText,
+    double? latitude,
+    double? longitude,
+    double? fallbackLat,
+    double? fallbackLng,
+  }) async {
+    final bool isInvalid = isEmulatorOrOutOfBounds(latitude, longitude) ||
+        isMumbaiGatewayArtifact(latitude, longitude, addressText);
+
+    if (!isInvalid && latitude != null && longitude != null) {
+      return {"latitude": latitude, "longitude": longitude};
+    }
+
+    // 1. If caller provided valid live hardware GPS and it's not an emulator/artifact, use it
+    if (fallbackLat != null &&
+        fallbackLng != null &&
+        !isEmulatorOrOutOfBounds(fallbackLat, fallbackLng) &&
+        !isMumbaiGatewayArtifact(fallbackLat, fallbackLng, addressText)) {
+      return {"latitude": fallbackLat, "longitude": fallbackLng};
+    }
+
+    // 2. Try forward geocoding the address
+    final geocoded = await forwardGeocode(addressText);
+    if (geocoded != null) {
+      return geocoded;
+    }
+
+    // 3. Fallback to cooperative regional hub (Erode central hub)
+    return {"latitude": 11.3410, "longitude": 77.7172};
   }
 
   /// Decode (reverse-geocode) latitude and longitude into human-readable address components.

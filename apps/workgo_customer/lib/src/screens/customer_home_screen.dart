@@ -11,6 +11,7 @@ import 'booking_creation_screen.dart';
 import 'live_booking_tracker_screen.dart';
 import 'rapido_live_broadcast_screen.dart';
 import 'payment_receipt_screen.dart';
+import 'rating_review_screen.dart';
 import 'worker_search_screen.dart';
 import 'voice_ai_triage_screen.dart';
 import '../services/ml_translation_service.dart';
@@ -94,7 +95,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
       if (hardwareLat != null &&
           hardwareLng != null &&
-          hardwareLat > 1.0 &&
+          !LocationService.isEmulatorOrOutOfBounds(hardwareLat, hardwareLng) &&
           mounted) {
         setState(() {
           _customerLat = hardwareLat;
@@ -132,10 +133,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             (currAddr is Map
                 ? (currAddr["longitude"] as num?)?.toDouble()
                 : null);
-        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+        final addrText = (data["address"] as String?) ??
+            (currAddr is Map ? (currAddr["formattedAddress"] as String?) : null) ?? "";
+
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: addrText,
+          latitude: lat,
+          longitude: lng,
+        );
+
+        if (mounted) {
           setState(() {
-            _customerLat = lat;
-            _customerLng = lng;
+            _customerLat = sanitized["latitude"];
+            _customerLng = sanitized["longitude"];
           });
           return;
         }
@@ -152,15 +162,38 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         final d = addrSnap.docs.first.data();
         final lat = (d["latitude"] as num?)?.toDouble();
         final lng = (d["longitude"] as num?)?.toDouble();
-        if (lat != null && lng != null && lat > 1.0 && lng > 1.0 && mounted) {
+        final addrText = (d["formattedAddress"] as String?) ?? "";
+
+        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+          addressText: addrText,
+          latitude: lat,
+          longitude: lng,
+        );
+
+        if (mounted) {
           setState(() {
-            _customerLat = lat;
-            _customerLng = lng;
+            _customerLat = sanitized["latitude"];
+            _customerLng = sanitized["longitude"];
           });
           return;
         }
       }
-    } catch (_) {}
+
+      // 4. Default cooperative regional hub fallback
+      if ((_customerLat == null || LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng)) && mounted) {
+        setState(() {
+          _customerLat = 11.3410;
+          _customerLng = 77.7172;
+        });
+      }
+    } catch (_) {
+      if ((_customerLat == null || LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng)) && mounted) {
+        setState(() {
+          _customerLat = 11.3410;
+          _customerLng = 77.7172;
+        });
+      }
+    }
   }
 
   Future<void> _checkAndPromptLocation() async {
@@ -963,6 +996,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         final activeList = bookings
             .where(
               (b) =>
+                  b.status == BookingStatus.paymentPending ||
                   b.status == BookingStatus.inProgress ||
                   b.status == BookingStatus.accepted ||
                   b.status == BookingStatus.pending,
@@ -2340,16 +2374,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               trailing: ElevatedButton(
                 onPressed: () {
                   Navigator.of(ctx).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text("Dialing 1800-419-WORK..."),
-                      backgroundColor: const Color(0xFF059669),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
+                  PhoneDialer.call('18004199675', context: context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF059669),
@@ -2888,14 +2913,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           final activeBookings = allBookings
               .where(
                 (b) =>
+                    b.status == BookingStatus.paymentPending ||
                     b.status == BookingStatus.inProgress ||
                     b.status == BookingStatus.accepted ||
                     b.status == BookingStatus.pending,
               )
               .toList();
           final activeCount = activeBookings.length;
-          final completedCount = allBookings
+          final completedBookings = allBookings
               .where((b) => b.status == BookingStatus.completed)
+              .toList();
+          final completedCount = completedBookings.length;
+          final unratedCount = completedBookings
+              .where((b) => !b.isRated && b.rating == null)
               .length;
           final cancelledCount = allBookings
               .where((b) => b.status == BookingStatus.cancelled)
@@ -2903,12 +2933,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
           final filteredBookings = allBookings.where((b) {
             if (_bookingFilter == "active") {
-              return b.status == BookingStatus.inProgress ||
+              return b.status == BookingStatus.paymentPending ||
+                  b.status == BookingStatus.inProgress ||
                   b.status == BookingStatus.accepted ||
                   b.status == BookingStatus.pending;
             }
             if (_bookingFilter == "completed") {
               return b.status == BookingStatus.completed;
+            }
+            if (_bookingFilter == "unrated") {
+              return b.status == BookingStatus.completed &&
+                  !b.isRated &&
+                  b.rating == null;
             }
             if (_bookingFilter == "cancelled") {
               return b.status == BookingStatus.cancelled;
@@ -3050,6 +3086,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         "completed",
                         'filter_completed'.tr(),
                         completedCount,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildBookingFilterPill(
+                        "unrated",
+                        'filter_unrated'.tr(),
+                        unratedCount,
                       ),
                       const SizedBox(width: 8),
                       _buildBookingFilterPill(
@@ -3977,17 +4019,58 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   ],
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  user.email.isNotEmpty
-                      ? user.email
-                      : (user.phoneNumber ?? "verified_patron".tr()),
-                  style: const TextStyle(
-                    color: Color(0xFF6B7280),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                if (user.email.isNotEmpty) ...[
+                  Text(
+                    user.email,
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 3),
+                ],
+                InkWell(
+                  onTap: () => _showEditPhoneDialog(context, user),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.phone_iphone_rounded,
+                          color: Color(0xFF10B981),
+                          size: 13,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            user.phoneNumber?.isNotEmpty == true
+                                ? user.phoneNumber!
+                                : 'add_phone_number'.tr(),
+                            style: TextStyle(
+                              color: user.phoneNumber?.isNotEmpty == true
+                                  ? const Color(0xFF374151)
+                                  : const Color(0xFF2563EB),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.edit_outlined,
+                          color: Color(0xFF9CA3AF),
+                          size: 12,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -4016,6 +4099,174 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _showEditPhoneDialog(BuildContext context, AppUser user) {
+    final phoneCtrl = TextEditingController(
+      text: user.phoneNumber?.replaceFirst('+91', '') ?? '',
+    );
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'edit_phone_number'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'contact_phone'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827),
+                    ),
+                    decoration: InputDecoration(
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        child: Text(
+                          "+91",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827),
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      hintText: 'phone_number_hint'.tr(),
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                      ),
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'error_phone_empty'.tr();
+                      }
+                      final digits = val.replaceAll(RegExp(r'\D'), '');
+                      if (digits.length != 10) {
+                        return 'error_phone_invalid'.tr();
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (formKey.currentState?.validate() ?? false) {
+                        final raw = phoneCtrl.text.trim();
+                        final normalized = raw.startsWith('+91') ? raw : '+91$raw';
+                        try {
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .update({
+                            'phoneNumber': normalized,
+                          });
+                        } catch (_) {}
+                        if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'profile_updated_toast'.tr(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFF059669),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(
+                      'save_phone_number'.tr(),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -5529,6 +5780,50 @@ class _BookingListTile extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (isCompleted && (booking.isRated || booking.rating != null)) ...[
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: const Color(0xFFFDE68A),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    color: Color(0xFFD97706),
+                                    size: 11,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Flexible(
+                                    child: Text(
+                                      booking.rating != null
+                                          ? "${booking.rating!.toStringAsFixed(1)} ${'rated_badge_label'.tr().toUpperCase()}"
+                                          : "rated_badge_label".tr().toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Color(0xFF92400E),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -5573,23 +5868,73 @@ class _BookingListTile extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // If unrated, offer quick-action Rate button
+                      if (!booking.isRated && booking.rating == null) ...[
+                        Flexible(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              final receiptWorker = booking.genuineArtisanName ??
+                                  (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                                      ? booking.acceptedWorkerName!
+                                      : "");
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => RatingReviewScreen(
+                                    booking: booking,
+                                    workerName: receiptWorker.isNotEmpty ? receiptWorker : "Cooperative Artisan",
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.star_rounded,
+                              color: Color(0xFFD97706),
+                              size: 13,
+                            ),
+                            label: Text(
+                              "rate_service".tr(),
+                              style: const TextStyle(
+                                color: Color(0xFFD97706),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFFDE68A)),
+                              backgroundColor: const Color(0xFFFFFBEB),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 6,
+                              ),
+                              minimumSize: const Size(0, 34),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+
                       // Invoice & Receipt Button
                       Flexible(
                         child: OutlinedButton.icon(
                           onPressed: () {
                             HapticFeedback.lightImpact();
-                            final receiptWorker =
-                                (booking.acceptedWorkerName?.isNotEmpty ==
-                                        true &&
-                                    booking.acceptedWorkerName!.toLowerCase() !=
-                                        'artisan')
-                                ? booking.acceptedWorkerName!
-                                : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
+                            final receiptWorker = booking.genuineArtisanName ??
+                                (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                                    ? booking.acceptedWorkerName!
+                                    : "");
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => PaymentReceiptScreen(
                                   booking: booking,
-                                  workerName: receiptWorker,
+                                  workerName: receiptWorker.isNotEmpty ? receiptWorker : "Cooperative Artisan",
+                                  isReceiptOnly: true,
                                 ),
                               ),
                             );
@@ -5616,15 +5961,16 @@ class _BookingListTile extends StatelessWidget {
                               horizontal: 8,
                               vertical: 6,
                             ),
-                            minimumSize: const Size(0, 36),
+                            minimumSize: const Size(0, 34),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
                       ),
                       if (onBookAgain != null) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         Flexible(
                           child: ElevatedButton.icon(
                             onPressed: onBookAgain,
@@ -5647,12 +5993,13 @@ class _BookingListTile extends StatelessWidget {
                               backgroundColor: const Color(0xFF141416),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
+                                horizontal: 8,
                                 vertical: 6,
                               ),
-                              minimumSize: const Size(0, 36),
+                              minimumSize: const Size(0, 34),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                           ),

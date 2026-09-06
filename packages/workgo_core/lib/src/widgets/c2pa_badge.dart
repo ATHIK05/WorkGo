@@ -1,9 +1,9 @@
+import "dart:convert";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:google_fonts/google_fonts.dart";
 import "../models/c2pa_manifest_model.dart";
 import "../services/c2pa_service.dart";
-import "glass_card.dart";
 import "safe_text.dart";
 
 class C2paBadge extends StatelessWidget {
@@ -14,6 +14,7 @@ class C2paBadge extends StatelessWidget {
     this.artisanName = "Verified Artisan",
     this.sha256Hash,
     this.isCompact = false,
+    this.proofPhotoBase64,
   });
 
   final String? manifestId;
@@ -21,6 +22,7 @@ class C2paBadge extends StatelessWidget {
   final String artisanName;
   final String? sha256Hash;
   final bool isCompact;
+  final String? proofPhotoBase64;
 
   void _openProvenanceSheet(BuildContext context) {
     showModalBottomSheet(
@@ -32,6 +34,7 @@ class C2paBadge extends StatelessWidget {
         initialRecord: manifestRecord,
         fallbackArtisanName: artisanName,
         fallbackHash: sha256Hash,
+        proofPhotoBase64: proofPhotoBase64,
       ),
     );
   }
@@ -104,12 +107,14 @@ class _C2paProvenanceSheet extends StatefulWidget {
     this.initialRecord,
     required this.fallbackArtisanName,
     this.fallbackHash,
+    this.proofPhotoBase64,
   });
 
   final String manifestId;
   final C2paManifestRecord? initialRecord;
   final String fallbackArtisanName;
   final String? fallbackHash;
+  final String? proofPhotoBase64;
 
   @override
   State<_C2paProvenanceSheet> createState() => _C2paProvenanceSheetState();
@@ -125,6 +130,73 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
       _future = Future.value(widget.initialRecord);
     } else {
       _future = C2paService().verifyManifest(widget.manifestId);
+    }
+  }
+
+  Widget _buildPhotoPreview(String base64Str) {
+    try {
+      final cleanBase64 = base64Str.contains(",") ? base64Str.split(",").last : base64Str;
+      final bytes = base64Decode(cleanBase64.trim());
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+              blurRadius: 14,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Image.memory(
+              bytes,
+              height: 190,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xDD0D0A1C),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified_rounded, color: Color(0xFF00E5FF), size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      "Cryptographically Sealed Photo Proof",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      return const SizedBox.shrink();
     }
   }
 
@@ -232,7 +304,7 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                           SafeText(
                             "Cryptographically Sealed & Worker Bound",
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.65),
+                              color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 12,
                             ),
                           ),
@@ -243,9 +315,21 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                 ),
                 const SizedBox(height: 20),
 
-                // Provenance Details Box
-                GlassCard(
+                // Verified Photo Proof (if captured & present)
+                if (widget.proofPhotoBase64 != null && widget.proofPhotoBase64!.isNotEmpty)
+                  _buildPhotoPreview(widget.proofPhotoBase64!),
+
+                // Provenance Details Box — Dark Cyber Container with razor-sharp contrast
+                Container(
                   padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161226),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.25),
+                      width: 1,
+                    ),
+                  ),
                   child: Column(
                     children: [
                       _buildCheckRow(
@@ -254,21 +338,21 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                         subtitle: "Hardware camera only · No gallery import",
                         verified: true,
                       ),
-                      const Divider(color: Colors.white12, height: 20),
+                      const Divider(color: Color(0x2500E5FF), height: 20),
                       _buildCheckRow(
                         icon: Icons.fingerprint_rounded,
                         title: "Author Identity Bound",
                         subtitle: "${record.artisanName} · Co-op Artisan",
                         verified: true,
                       ),
-                      const Divider(color: Colors.white12, height: 20),
+                      const Divider(color: Color(0x2500E5FF), height: 20),
                       _buildCheckRow(
                         icon: Icons.lock_clock_rounded,
                         title: "KMS Signed Timestamp",
                         subtitle: record.signedAt.toLocal().toString().split(".")[0],
                         verified: true,
                       ),
-                      const Divider(color: Colors.white12, height: 20),
+                      const Divider(color: Color(0x2500E5FF), height: 20),
                       _buildCheckRow(
                         icon: Icons.security_rounded,
                         title: "Trust Root Authority",
@@ -374,7 +458,14 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
   }) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF00E5FF), size: 20),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: const Color(0xFF00E5FF), size: 18),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -386,20 +477,21 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                   color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
                 ),
               ),
-              const SizedBox(height: 1),
+              const SizedBox(height: 2),
               SafeText(
                 subtitle,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                style: const TextStyle(
+                  color: Colors.white70,
                   fontSize: 11,
                 ),
               ),
             ],
           ),
         ),
-        const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+        const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
       ],
     );
   }

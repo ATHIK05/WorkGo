@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -99,19 +100,12 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                             booking.workerLatitude ?? liveWorker?.latitude;
                         final effectiveWorkerLng =
                             booking.workerLongitude ?? liveWorker?.longitude;
-                        String effectiveWorkerName =
-                            (booking.acceptedWorkerName?.isNotEmpty == true)
-                                ? booking.acceptedWorkerName!
-                                : (liveWorker?.name.isNotEmpty == true
-                                    ? liveWorker!.name
-                                    : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}");
-                        if (effectiveWorkerName.toLowerCase() == 'artisan' ||
-                            effectiveWorkerName.toLowerCase() == 'partner' ||
-                            effectiveWorkerName.toLowerCase() == 'worker') {
-                          effectiveWorkerName = liveWorker?.name.isNotEmpty == true
-                              ? liveWorker!.name
-                              : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
-                        }
+                        String effectiveWorkerName = booking.genuineArtisanName ??
+                            (liveWorker != null && liveWorker.name.isNotEmpty && !Booking.isGenericArtisanName(liveWorker.name)
+                                ? liveWorker.name
+                                : (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                                    ? booking.acceptedWorkerName!
+                                    : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}"));
 
                         String trackerAddress = booking.customerAddressText ?? 'current_live_location'.tr();
                         if (trackerAddress.toLowerCase().contains("mumbai") ||
@@ -262,12 +256,23 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
 
   Widget _buildBottomAction(BuildContext context, Booking booking) {
     if (booking.status == BookingStatus.completed) {
+      final isPaid = booking.paymentStatus == PaymentStatus.paid ||
+          (booking.invoiceId != null && booking.invoiceId!.isNotEmpty);
+      final workerName = booking.genuineArtisanName ??
+          (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+              ? booking.acceptedWorkerName!
+              : "");
+
       return GlowButton(
-        label: 'pay_now'.tr(),
-        icon: Icons.payment_rounded,
+        label: isPaid ? 'invoice_receipt'.tr() : 'pay_now'.tr(),
+        icon: isPaid ? Icons.receipt_long_rounded : Icons.payment_rounded,
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (ctx) => PaymentReceiptScreen(booking: booking),
+            builder: (ctx) => PaymentReceiptScreen(
+              booking: booking,
+              workerName: workerName,
+              isReceiptOnly: isPaid,
+            ),
           ),
         ),
         gradient: CX.auroraSuccess,
@@ -503,6 +508,16 @@ class _StatusHeaderCard extends StatelessWidget {
             'status_in_progress'.tr(),
             AuroraBadgeStyle.violet,
           ),
+        BookingStatus.paymentPending => (
+            const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFFFFBEB)],
+            ),
+            CX.warning,
+            'status_payment_pending'.trSafe('Payment Pending'),
+            AuroraBadgeStyle.amber,
+          ),
         BookingStatus.completed => (
             const LinearGradient(
               begin: Alignment.topLeft,
@@ -639,6 +654,7 @@ class _TimelineCard extends StatelessWidget {
         BookingStatus.pending => 0,
         BookingStatus.accepted => 1,
         BookingStatus.inProgress => 2,
+        BookingStatus.paymentPending => 2,
         BookingStatus.completed => 3,
         BookingStatus.cancelled => -1,
       };
@@ -931,7 +947,15 @@ class _ArtisanCard extends StatelessWidget {
               ? worker!.name
               : 'specialist_title'.tr(args: [booking.serviceType.toLocalizedTrade()]);
         }
-        final phone = worker?.phoneForCalling;
+        // STRICT PRIVACY & ANTI-LEAKAGE GUARD:
+        // Worker phone is ONLY revealed once the booking is formally ACCEPTED or IN-PROGRESS.
+        // While pending acceptance or unassigned, neither party's number is shared.
+        final isConfirmedJob = booking.status == BookingStatus.accepted ||
+            booking.status == BookingStatus.inProgress ||
+            booking.status == BookingStatus.paymentPending;
+        final phone = isConfirmedJob
+            ? (booking.workerPhone ?? worker?.phoneForCalling)
+            : null;
         final style = worker?.skills.isNotEmpty == true
             ? categoryStyle(worker!.skills.first)
             : categoryStyle(booking.serviceType);
@@ -1014,16 +1038,8 @@ class _ArtisanCard extends StatelessWidget {
               ),
               if (phone != null && phone.isNotEmpty) ...[
                 GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('calling_artisan'.tr(args: [phone])),
-                        backgroundColor: CX.success,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                      ),
-                    );
+                  onTap: () async {
+                    await PhoneDialer.call(phone, context: context);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(12),
@@ -1433,14 +1449,60 @@ class _CompletedWorkProvenanceCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               C2paBadge(
+                manifestRecord: booking.parsedC2paManifest,
                 artisanName: MlTranslationService.instance.translateSync(
                   booking.acceptedWorkerName ?? 'verified_artisan'.tr(),
                   context.locale.languageCode,
                 ),
+                proofPhotoBase64: booking.proofPhotoBase64,
                 isCompact: true,
               ),
             ],
           ),
+          if (booking.hasProofPhoto) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  Image.memory(
+                    base64Decode(
+                      booking.proofPhotoBase64!.contains(",")
+                          ? booking.proofPhotoBase64!.split(",").last
+                          : booking.proofPhotoBase64!,
+                    ),
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE60D0A1C),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.6)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.verified_rounded, color: Color(0xFF00E5FF), size: 12),
+                          SizedBox(width: 4),
+                          Text(
+                            "Verified In-App Photo Proof",
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Text(
             'c2pa_provenance_desc'.tr(),

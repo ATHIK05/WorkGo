@@ -538,7 +538,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     if (stage == VerificationStage.pccUpload || stage == VerificationStage.pccManualReview) activeStep = 3;
     if (isApproved || stage == VerificationStage.approved) activeStep = 4;
 
-    final steps = ["Consent", "Aadhaar", "3D Face", "PCC", "Certified"];
+    final steps = ['step_consent'.tr(), 'step_aadhaar'.tr(), 'step_face'.tr(), 'step_pcc'.tr(), 'step_pcc_cert'.tr()];
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -675,7 +675,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     ),
                     const SizedBox(height: 2),
                     SafeText(
-                      isDone ? "Consent Accepted & Timestamped ✓" : "Step 1 of 4",
+                      isDone ? 'consent_accepted_timestamped'.tr() : 'step_1_of_4'.tr(),
                       style: TextStyle(
                         color: isDone ? const Color(0xFF10B981) : const Color(0xFFB45309),
                         fontSize: 12,
@@ -827,10 +827,10 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     const SizedBox(height: 2),
                     SafeText(
                       isDone
-                          ? "Aadhaar Verified · $maskedUid ($verifiedName)"
+                          ? 'aadhaar_verified_status'.tr(args: [maskedUid, verifiedName])
                           : isCurrent
-                              ? "Step 2 of 4 · Action Required"
-                              : "Locked (Complete Step 1)",
+                              ? 'step_2_of_4_action'.tr()
+                              : 'locked_complete_step1'.tr(),
                       style: TextStyle(
                         color: isDone
                             ? const Color(0xFF10B981)
@@ -853,7 +853,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   ),
                   icon: Icon(_editingAadhaar ? Icons.close_rounded : Icons.edit_rounded, size: 14),
                   label: Text(
-                    _editingAadhaar ? "Close" : "Change",
+                    _editingAadhaar ? 'close_btn'.tr() : 'change_btn'.tr(),
                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -1021,7 +1021,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              "${_selectedAadhaarFileSize ?? 'UIDAI Zip'} · Ready for verification",
+                              'uidai_ready_verify'.tr(args: [_selectedAadhaarFileSize ?? 'UIDAI Zip']),
                               style: const TextStyle(color: Color(0xFF047857), fontSize: 11, fontWeight: FontWeight.w600),
                             ),
                           ],
@@ -1029,7 +1029,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                       ),
                       TextButton(
                         onPressed: _pickAadhaarFile,
-                        child: const Text("Change", style: TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
+                        child: Text('change_btn'.tr(), style: const TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -1046,9 +1046,9 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     icon: const Icon(Icons.folder_zip_rounded, size: 20),
-                    label: const Text(
-                      "Select UIDAI Offline Zip (.zip / .xml)",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    label: Text(
+                      'select_uidai_zip_btn'.tr(),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
                 ),
@@ -1192,10 +1192,10 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     const SizedBox(height: 2),
                     SafeText(
                       isDone
-                          ? "3D Multi-Angle Biometrics Verified ✓"
+                          ? 'biometrics_verified_check'.tr()
                           : isCurrent
-                              ? "Step 3 of 4 · Real Camera Scan"
-                              : "Locked (Complete Step 2)",
+                              ? 'step_3_of_4_scan'.tr()
+                              : 'locked_complete_step2'.tr(),
                       style: TextStyle(
                         color: isDone
                             ? const Color(0xFF10B981)
@@ -1217,7 +1217,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
                   icon: const Icon(Icons.refresh_rounded, size: 14),
-                  label: const Text("Retake", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  label: Text('retake_btn'.tr(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
             ],
           ),
@@ -1235,9 +1235,9 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildPreviewThumb("Center", _centerBytes!),
-                  _buildPreviewThumb("Left 👈", _leftBytes ?? _centerBytes!),
-                  _buildPreviewThumb("Right 👉", _rightBytes ?? _centerBytes!),
+                  _buildPreviewThumb('angle_center'.tr(), _centerBytes!),
+                  _buildPreviewThumb('angle_left'.tr(), _leftBytes ?? _centerBytes!),
+                  _buildPreviewThumb('angle_right'.tr(), _rightBytes ?? _centerBytes!),
                 ],
               ),
               const SizedBox(height: 16),
@@ -1253,7 +1253,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: const Text("Retake", style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text('retake_btn'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1270,7 +1270,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                       icon: _isLoading
                           ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check_circle_rounded, size: 18),
-                      label: const Text("Save & Continue", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                      label: Text('save_continue_btn'.tr(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                     ),
                   ),
                 ],
@@ -1386,10 +1386,10 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     const SizedBox(height: 2),
                     SafeText(
                       isDone
-                          ? "PCC Submitted · Under Staff Review ✓"
+                          ? 'pcc_submitted_review'.tr()
                           : isCurrent
-                              ? "Step 4 of 4 · Final Upload"
-                              : "Locked (Complete Step 3)",
+                              ? 'step_4_of_4_final'.tr()
+                              : 'locked_complete_step3'.tr(),
                       style: TextStyle(
                         color: isDone
                             ? const Color(0xFF10B981)

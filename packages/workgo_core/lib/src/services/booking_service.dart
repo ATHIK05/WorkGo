@@ -55,6 +55,9 @@ class BookingService {
     String? customerAddressText,
     double? customerLatitude,
     double? customerLongitude,
+    String? customerName,
+    String? customerPhone,
+    String? customerEmail,
     String? customerIssueDetails,
   }) async {
     final docRef = _db.collection("bookings").doc();
@@ -84,6 +87,9 @@ class BookingService {
       customerAddressText: customerAddressText,
       customerLatitude: customerLatitude,
       customerLongitude: customerLongitude,
+      customerName: customerName,
+      customerPhone: customerPhone,
+      customerEmail: customerEmail,
       customerIssueDetails: customerIssueDetails,
     );
 
@@ -210,14 +216,34 @@ class BookingService {
     String bookingId,
     String workerId, {
     String? workerName,
+    String? workerPhone,
     double? initialWorkerLat,
     double? initialWorkerLng,
   }) async {
+    String? resolvedName = workerName?.trim();
+    if (resolvedName == null || resolvedName.isEmpty || Booking.isGenericArtisanName(resolvedName)) {
+      try {
+        final wDoc = await _db.collection("workers").doc(workerId).get();
+        if (wDoc.exists) {
+          final wd = wDoc.data() ?? {};
+          final name = (wd["name"] ?? wd["displayName"] ?? wd["artisanName"])?.toString().trim();
+          if (name != null && name.isNotEmpty && !Booking.isGenericArtisanName(name)) {
+            resolvedName = name;
+          }
+        }
+      } catch (_) {}
+    }
+
     final Map<String, dynamic> updateData = {
       "workerId": workerId,
-      "acceptedWorkerName": workerName,
       "status": BookingStatus.accepted.name,
     };
+    if (resolvedName != null && resolvedName.isNotEmpty) {
+      updateData["acceptedWorkerName"] = resolvedName;
+    }
+    if (workerPhone != null && workerPhone.isNotEmpty) {
+      updateData["workerPhone"] = workerPhone;
+    }
     if (initialWorkerLat != null && initialWorkerLng != null) {
       updateData["workerLatitude"] = initialWorkerLat;
       updateData["workerLongitude"] = initialWorkerLng;
@@ -299,6 +325,21 @@ class BookingService {
     await _db.collection("bookings").doc(bookingId).update(updateData);
   }
 
+  /// Completes the booking with C2PA photographic proof and cryptographic manifest.
+  Future<void> completeBookingWithProof({
+    required String bookingId,
+    required String proofPhotoBase64,
+    required Map<String, dynamic> c2paManifest,
+  }) async {
+    final Map<String, dynamic> updateData = {
+      "status": BookingStatus.completed.name,
+      "completedAt": FieldValue.serverTimestamp(),
+      "proofPhotoBase64": proofPhotoBase64,
+      "c2paManifest": c2paManifest,
+    };
+    await _db.collection("bookings").doc(bookingId).update(updateData);
+  }
+
   /// Update the live worker GPS coordinates and heading on an active booking in real time.
   Future<void> updateLiveWorkerLocation({
     required String bookingId,
@@ -317,12 +358,28 @@ class BookingService {
     await _db.collection("bookings").doc(bookingId).update(data);
   }
 
-  /// Mark booking payment as paid.
-  Future<void> markPaymentComplete(String bookingId, {String? invoiceId}) async {
-    await _db.collection("bookings").doc(bookingId).update({
+  /// Mark booking payment as paid with optional audit telemetry.
+  Future<void> markPaymentComplete(
+    String bookingId, {
+    String? invoiceId,
+    String? paymentMethod,
+    String? paymentProvider,
+    String? paymentReference,
+    double? platformFeeAmount,
+    double? welfareFundAmount,
+  }) async {
+    final updateData = <String, dynamic>{
       "paymentStatus": PaymentStatus.paid.name,
       "invoiceId": invoiceId ?? "INV-${DateTime.now().millisecondsSinceEpoch}",
-    });
+      "paidAt": FieldValue.serverTimestamp(),
+    };
+    if (paymentMethod != null) updateData["paymentMethod"] = paymentMethod;
+    if (paymentProvider != null) updateData["paymentProvider"] = paymentProvider;
+    if (paymentReference != null) updateData["paymentReference"] = paymentReference;
+    if (platformFeeAmount != null) updateData["platformFeeAmount"] = platformFeeAmount;
+    if (welfareFundAmount != null) updateData["welfareFundAmount"] = welfareFundAmount;
+
+    await _db.collection("bookings").doc(bookingId).update(updateData);
   }
 
   /// Stream all bookings for cooperative console overview.

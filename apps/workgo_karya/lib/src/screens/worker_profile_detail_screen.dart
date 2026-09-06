@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -48,7 +49,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
               const SizedBox(width: 10),
               Text(
-                "Profile photo updated successfully!",
+                'profile_photo_updated'.tr(),
                 style: WorkGoFonts.body(color: Colors.white),
               ),
             ],
@@ -94,14 +95,14 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 22),
-                  SizedBox(width: 12),
+                  const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 22),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      "Account and all biometric/KYC records permanently erased under DPDP Act 2023.",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
+                      'dpdp_account_deleted'.tr(),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
                     ),
                   ),
                 ],
@@ -171,7 +172,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             ),
             centerTitle: true,
             title: Text(
-              "Profile",
+              'profile'.trSafe("Profile"),
               style: WorkGoFonts.heading(
                 color: KX.textPrimary,
                 fontSize: 18,
@@ -254,9 +255,9 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   TextButton.icon(
                     onPressed: _handleDeleteAccount,
                     icon: const Icon(Icons.delete_forever_rounded, color: Color(0xFF9CA3AF), size: 16),
-                    label: const Text(
-                      "Delete Account & Wipe Data (DPDP Act)",
-                      style: TextStyle(
+                    label: Text(
+                      'dpdp_delete_account'.tr(),
+                      style: const TextStyle(
                         color: Color(0xFF9CA3AF),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -281,7 +282,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         final avatar = liveUser.avatarBase64;
         final baseStation = worker.baseAddress?.formattedAddress ??
             worker.baseArea ??
-            (worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : "Base Station Unset");
+            (worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : 'base_station_unset'.tr());
 
         return Column(
           children: [
@@ -341,6 +342,61 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            const SizedBox(height: 8),
+
+            // Contact Mobile Phone Row
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => WorkerProfileSetupScreen(
+                    worker: worker,
+                    onProfileUpdated: () => setState(() {}),
+                  ),
+                ),
+              ),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7).withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.phone_android_rounded,
+                      size: 13,
+                      color: Color(0xFFD97706),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        (worker.phoneForCalling?.isNotEmpty == true)
+                            ? worker.phoneForCalling!
+                            : (widget.user.phoneNumber?.isNotEmpty == true
+                                ? widget.user.phoneNumber!
+                                : 'add_phone_number'.tr()),
+                        style: const TextStyle(
+                          color: Color(0xFF92400E),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 12,
+                      color: Color(0xFFB45309),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 14),
 
             // 2 Circular Action Buttons (Edit Profile & Share Referral)
@@ -349,7 +405,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               children: [
                 _buildCircularAction(
                   icon: Icons.edit_rounded,
-                  label: "Edit",
+                  label: 'btn_edit'.tr(),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (ctx) => WorkerProfileSetupScreen(
@@ -362,7 +418,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                 const SizedBox(width: 14),
                 _buildCircularAction(
                   icon: Icons.person_add_alt_1_rounded,
-                  label: "Refer",
+                  label: 'btn_refer'.tr(),
                   onTap: _showReferPeerDialog,
                 ),
               ],
@@ -420,7 +476,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         final jobs = snapshot.data ?? [];
         final completedJobs = jobs.where((b) => b.status == BookingStatus.completed).toList();
         final totalJobsCount = completedJobs.isNotEmpty ? completedJobs.length : worker.homesServiced;
-        final expYears = worker.experienceYears > 0 ? "${worker.experienceYears} Yrs" : "New";
+        final expYears = worker.experienceYears > 0 ? "${worker.experienceYears} Yrs" : 'badge_new'.tr();
         final ratingVal = worker.avgRating > 0 ? "${worker.avgRating.toStringAsFixed(1)} ★" : "5.0 ★";
 
         return Row(
@@ -428,7 +484,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             // Mint Green Card (Experience)
             Expanded(
               child: _buildBentoStatCard(
-                title: "Experience",
+                title: 'experience_label'.tr(),
                 value: expYears,
                 bgColor: const Color(0xFFD1FAE5),
                 textColor: const Color(0xFF065F46),
@@ -439,8 +495,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             // Sky Blue Card (Jobs Done)
             Expanded(
               child: _buildBentoStatCard(
-                title: "Jobs Done",
-                value: "$totalJobsCount Done",
+                title: 'jobs_done_label'.tr(),
+                value: "$totalJobsCount ${'done_label'.tr()}",
                 bgColor: const Color(0xFFD6EBFF),
                 textColor: const Color(0xFF1E3A8A),
               ),
@@ -450,7 +506,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             // Pastel Amber Card (Rating)
             Expanded(
               child: _buildBentoStatCard(
-                title: "Co-op Rating",
+                title: 'coop_rating_label'.tr(),
                 value: ratingVal,
                 bgColor: const Color(0xFFFFDE9C),
                 textColor: const Color(0xFF92400E),
@@ -545,7 +601,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            "AI Match Strength",
+                            'ai_match_strength'.tr(),
                             style: WorkGoFonts.heading(
                               color: KX.textPrimary,
                               fontSize: 14,
@@ -575,7 +631,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "Priority Symptom Triage Active",
+                      'priority_symptom_triage'.tr(),
                       style: WorkGoFonts.body(
                         color: KX.textSecondary,
                         fontSize: 11,
@@ -602,12 +658,12 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.tune_rounded, size: 13, color: KX.gold),
-                      SizedBox(width: 4),
+                    children: [
+                      const Icon(Icons.tune_rounded, size: 13, color: KX.gold),
+                      const SizedBox(width: 4),
                       Text(
-                        "Manage",
-                        style: TextStyle(
+                        'btn_manage'.tr(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -665,7 +721,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                         border: Border.all(color: const Color(0xFFE9D5FF)),
                       ),
                       child: Text(
-                        "+${tags.length - 3} more",
+                        'plus_more_count'.tr(args: ['${tags.length - 3}']),
                         style: WorkGoFonts.body(
                           color: const Color(0xFF7E22CE),
                           fontSize: 11,
@@ -684,7 +740,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
 
   Widget _buildMenuMatrix(Worker worker) {
     final area = worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : (worker.baseArea ?? "Erode Central");
-    final skillsStr = worker.skills.isNotEmpty ? worker.skills.take(2).join(', ') : "General Trades";
+    final skillsStr = worker.skills.isNotEmpty ? worker.skills.take(2).map((s) => s.toLocalizedTrade()).join(', ') : 'general_trades'.trSafe("General Trades");
     final isKycApproved = worker.verificationStatus == VerificationStatus.approved;
     final matchScore = ArtisanKeywordUpliftWidget.calculateMatchStrength(worker);
     final matchPercent = (matchScore * 100).round();
@@ -706,8 +762,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         children: [
           _buildMenuItem(
             icon: Icons.location_on_rounded,
-            title: "Operating Base Station",
-            subtitle: "$area · ${worker.serviceRadiusKm.toInt()} km Radius",
+            title: 'operating_base_station'.tr(),
+            subtitle: "$area · ${'active_range_km'.tr(args: [worker.serviceRadiusKm.toInt().toString()])}",
             onTap: () => showAddressManagementSheet(
               context,
               userId: worker.id,
@@ -717,8 +773,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.construction_rounded,
-            title: "Trade Skills & Rates",
-            subtitle: "$skillsStr · ₹${worker.baseRate.toInt()} Base",
+            title: 'trade_skills_rates'.tr(),
+            subtitle: "$skillsStr · ₹${worker.baseRate.toInt()} ${'base_fare'.trSafe('Base')}",
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (ctx) => WorkerProfileSetupScreen(
@@ -731,10 +787,10 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.psychology_rounded,
-            title: "Equipment & Specializations",
+            title: 'equipment_specializations'.tr(),
             subtitle: matchPercent >= 85
-                ? "$matchPercent% Strength · Priority Triage Active"
-                : "$matchPercent% Strength · Add equipment to reach 85%+",
+                ? 'equipment_strength_elite'.tr(args: ['$matchPercent'])
+                : 'equipment_strength_add'.tr(args: ['$matchPercent']),
             badgeColor: matchPercent >= 85 ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
             badgeTextColor: matchPercent >= 85 ? const Color(0xFF065F46) : const Color(0xFF92400E),
             badgeText: matchPercent >= 85 ? "$matchPercent% ELITE" : "$matchPercent%",
@@ -747,11 +803,11 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.verified_user_rounded,
-            title: "eKYC & Certification",
-            subtitle: isKycApproved ? "Co-op Verified ✓" : "Verification Pending",
+            title: 'ekyc_certification'.tr(),
+            subtitle: isKycApproved ? 'coop_verified'.tr() : 'verification_pending'.tr(),
             badgeColor: isKycApproved ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
             badgeTextColor: isKycApproved ? const Color(0xFF065F46) : const Color(0xFF92400E),
-            badgeText: isKycApproved ? "VERIFIED" : "PENDING",
+            badgeText: isKycApproved ? 'verified_caps'.tr() : 'pending_caps'.tr(),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (ctx) => DocumentUploadScreen(
@@ -764,8 +820,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.health_and_safety_rounded,
-            title: "₹2 Lakh Welfare Shield",
-            subtitle: worker.insuranceStatus ? "PMSBY / PMJJBY Active" : "Co-op Welfare Cover",
+            title: 'welfare_shield_title'.tr(),
+            subtitle: worker.insuranceStatus ? 'pmsby_pmjjby_active'.tr() : 'coop_welfare_cover'.tr(),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (ctx) => WorkerWelfareScreen(worker: worker)),
             ),
@@ -773,15 +829,15 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.groups_rounded,
-            title: "Peer Referral Network",
-            subtitle: "2% Bonus · ${worker.referralCount} Referred",
+            title: 'peer_referral_network'.tr(),
+            subtitle: 'referral_bonus_subtitle'.tr(args: ['${worker.referralCount}']),
             onTap: _showReferPeerDialog,
           ),
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.explore_rounded,
-            title: "Interactive App Tour",
-            subtitle: "Explore features & operational tools",
+            title: 'app_tour_title'.tr(),
+            subtitle: 'app_tour_subtitle'.tr(),
             onTap: () {
               HapticFeedback.lightImpact();
               KaryaHomeScreen.launchLiveSpotlightTour(context);
@@ -823,12 +879,16 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        title,
-                        style: WorkGoFonts.heading(
-                          color: KX.textPrimary,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: WorkGoFonts.heading(
+                            color: KX.textPrimary,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (badgeText != null) ...[
@@ -880,41 +940,49 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isCheckedIn ? "Titan Dispatch Active" : "Titan Standby",
-                    style: WorkGoFonts.heading(
-                      color: KX.textPrimary,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                    ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isCheckedIn ? 'titan_dispatch_active'.tr() : 'titan_standby'.tr(),
+                        style: WorkGoFonts.heading(
+                          color: KX.textPrimary,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        isCheckedIn ? 'receiving_broadcasts'.tr() : 'offline_tap_live'.tr(),
+                        style: WorkGoFonts.body(
+                          color: KX.textSecondary,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  Text(
-                    isCheckedIn ? "Receiving live broadcasts" : "Offline · Tap to go live",
-                    style: WorkGoFonts.body(
-                      color: KX.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 10),
           ElevatedButton(
             onPressed: () => _toggleTitanCheckIn(worker),
             style: ElevatedButton.styleFrom(
@@ -925,7 +993,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               elevation: 0,
             ),
             child: Text(
-              isCheckedIn ? "Check Out" : "Go Live",
+              isCheckedIn ? 'btn_check_out'.tr() : 'btn_go_live'.tr(),
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
             ),
           ),
@@ -946,17 +1014,17 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
 
       // 1. Native Biometric Fingerprint/Face ID verification prompt
       final authenticated = await BiometricService().authenticate(
-        reason: "Scan fingerprint or face to verify identity before checking in.",
+        reason: 'biometric_reason'.tr(),
       );
       if (!authenticated) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.fingerprint_rounded, color: Colors.white, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(child: Text("Biometric verification cancelled. Check-in aborted.")),
+                  const Icon(Icons.fingerprint_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('biometric_cancelled'.tr())),
                 ],
               ),
               backgroundColor: const Color(0xFFE11D48),
@@ -980,11 +1048,11 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Row(
+                content: Row(
                   children: [
-                    Icon(Icons.face_retouching_off_rounded, color: Colors.white, size: 20),
-                    SizedBox(width: 10),
-                    Expanded(child: Text("3D Face verification cancelled or failed. Check-in aborted.")),
+                    const Icon(Icons.face_retouching_off_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('face_verification_cancelled'.tr())),
                   ],
                 ),
                 backgroundColor: const Color(0xFFE11D48),
@@ -1067,7 +1135,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                "Identity Verification Required",
+                'identity_verification_required'.tr(),
                 textAlign: TextAlign.center,
                 style: WorkGoFonts.display(
                   color: KX.textPrimary,
@@ -1077,7 +1145,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "To guarantee transparent wage payouts and cooperative trust, complete your eKYC before going live on customer radar.",
+                'ekyc_modal_desc'.tr(),
                 textAlign: TextAlign.center,
                 style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 13, height: 1.4),
               ),
@@ -1098,19 +1166,19 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Complete Verification Now", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-                    SizedBox(width: 6),
-                    Icon(Icons.arrow_forward_rounded, size: 18),
+                    Text('complete_verification_now'.tr(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.arrow_forward_rounded, size: 18),
                   ],
                 ),
               ),
               const SizedBox(height: 10),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text("I'll do it later", style: TextStyle(color: Color(0xFF9CA3AF))),
+                child: Text('ill_do_it_later'.tr(), style: const TextStyle(color: Color(0xFF9CA3AF))),
               ),
             ],
           ),

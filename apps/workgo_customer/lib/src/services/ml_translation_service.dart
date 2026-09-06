@@ -61,6 +61,7 @@ class MlTranslationService {
       'tamil nadu': 'तमिलनाडु',
       'tamilnadu': 'तमिलनाडु',
       'erode': 'इरोड',
+      'nadarmedu': 'नाडारमेडु',
       'chennai': 'चेन्नई',
       'coimbatore': 'कोयंबटूर',
       'salem': 'सेलम',
@@ -165,6 +166,7 @@ class MlTranslationService {
       'tamil nadu': 'தமிழ்நாடு',
       'tamilnadu': 'தமிழ்நாடு',
       'erode': 'ஈரோடு',
+      'nadarmedu': 'நாடார்மேடு',
       'chennai': 'சென்னை',
       'coimbatore': 'கோயம்புத்தூர்',
       'salem': 'சேலம்',
@@ -287,6 +289,23 @@ class MlTranslationService {
     return text;
   }
 
+  /// Cleans up common phonetic misspellings in machine-translated addresses
+  String _postProcessAddress(String text, String locale) {
+    if (locale == 'ta') {
+      return text
+          .replaceAll('ஒரோடு', 'ஈரோடு')
+          .replaceAll('ஓரோடு', 'ஈரோடு')
+          .replaceAll(RegExp(r'\bErode\b', caseSensitive: false), 'ஈரோடு')
+          .replaceAll(RegExp(r'\bNadarmedu\b', caseSensitive: false), 'நாடார்மேடு')
+          .replaceAll('நாடார் மேடு', 'நாடார்மேடு');
+    } else if (locale == 'hi') {
+      return text
+          .replaceAll(RegExp(r'\bErode\b', caseSensitive: false), 'इरोड')
+          .replaceAll(RegExp(r'\bNadarmedu\b', caseSensitive: false), 'नाडारमेडु');
+    }
+    return text;
+  }
+
   /// Translates address strings synchronously using dictionary tokens.
   String translateAddressSync(String address, dynamic contextOrLocale) {
     if (address.trim().isEmpty) return address;
@@ -294,15 +313,17 @@ class MlTranslationService {
     if (locale == 'en') return address;
 
     final dict = _phraseDictionary[locale];
-    if (dict == null) return address;
+    if (dict == null) return _postProcessAddress(address, locale);
 
     String result = address;
-    // Replace multi-word and single-word landmark tokens
-    dict.forEach((key, val) {
+    // Replace multi-word and single-word landmark tokens, matching longer phrases first
+    final sortedKeys = dict.keys.toList()..sort((a, b) => b.length.compareTo(a.length));
+    for (final key in sortedKeys) {
+      final val = dict[key]!;
       final regex = RegExp(r'\b' + RegExp.escape(key) + r'\b', caseSensitive: false);
       result = result.replaceAllMapped(regex, (m) => val);
-    });
-    return result;
+    }
+    return _postProcessAddress(result, locale);
   }
 
   /// Translate [text] from English into the target locale.
@@ -317,8 +338,12 @@ class MlTranslationService {
     if (locale == 'en') return text;
 
     // If text already contains target language script, it is already localized
-    if (locale == 'ta' && RegExp(r'[\u0B80-\u0BFF]').hasMatch(text)) return text;
-    if (locale == 'hi' && RegExp(r'[\u0900-\u097F]').hasMatch(text)) return text;
+    if (locale == 'ta' && RegExp(r'[\u0B80-\u0BFF]').hasMatch(text)) {
+      return isAddress ? _postProcessAddress(text, locale) : text;
+    }
+    if (locale == 'hi' && RegExp(r'[\u0900-\u097F]').hasMatch(text)) {
+      return isAddress ? _postProcessAddress(text, locale) : text;
+    }
 
     final targetLang = _supportedTargets[locale];
     if (targetLang == null) return text;
@@ -356,8 +381,9 @@ class MlTranslationService {
         );
         final translated = await translator.translateText(candidateText);
         if (translated.trim().isNotEmpty && translated != candidateText) {
-          _cache[cacheKey] = translated;
-          return translated;
+          final processed = isAddress ? _postProcessAddress(translated, locale) : translated;
+          _cache[cacheKey] = processed;
+          return processed;
         }
       }
     } catch (_) {}
@@ -366,13 +392,16 @@ class MlTranslationService {
     try {
       final cloudResult = await _fetchCloudTranslation(candidateText, locale);
       if (cloudResult != null && cloudResult.isNotEmpty) {
-        _cache[cacheKey] = cloudResult;
-        return cloudResult;
+        final processed = isAddress ? _postProcessAddress(cloudResult, locale) : cloudResult;
+        _cache[cacheKey] = processed;
+        return processed;
       }
     } catch (_) {}
 
     // 4. Return candidate from dictionary or original text
-    return candidateText;
+    final processed = isAddress ? _postProcessAddress(candidateText, locale) : candidateText;
+    _cache[cacheKey] = processed;
+    return processed;
   }
 
   /// Specialized address translation combining dictionary and async translation.

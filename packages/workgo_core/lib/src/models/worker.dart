@@ -539,12 +539,19 @@ class Worker {
         baseAddr?.longitude ??
         (addrList.isNotEmpty ? addrList.first.longitude : null);
 
-    // If coordinates are missing or invalid, resolve regional hub coordinates based on baseArea / Tamil Nadu hub
     final rawBaseArea = (d["baseArea"] ?? baseAddr?.shortSummary ?? (d["baseAddress"] is String ? d["baseAddress"] as String : ""))
         .toString()
         .toLowerCase();
 
-    if (lat == null || lng == null || lat.abs() <= 0.0001 || lng.abs() <= 0.0001) {
+    // Detect Android Emulator default coordinates (e.g. Mountain View: lat 36..38, lng -122)
+    // or out-of-bounds coordinates (India bounding box roughly lat: 6.0 to 38.0, lng: 68.0 to 98.0)
+    final bool isEmulatorOrOutOfBounds = (lat != null && lng != null) && (
+      lng < 0 || // Western hemisphere (e.g. US emulator -122.084)
+      (lat >= 36.0 && lat <= 39.0 && lng >= -124.0 && lng <= -120.0) || // Android emulator Mountain View
+      lat < 6.0 || lat > 38.0 || lng < 68.0 || lng > 98.0 // Outside India operational boundaries
+    );
+
+    if (lat == null || lng == null || lat.abs() <= 0.0001 || lng.abs() <= 0.0001 || isEmulatorOrOutOfBounds) {
       if (rawBaseArea.contains("perundurai")) {
         lat = 11.2743;
         lng = 77.5866;
@@ -615,7 +622,7 @@ class Worker {
       experienceYears: expYears,
       isProxy: d["isProxy"] ?? false,
       proxyReferrerId: d["proxyReferrerId"],
-      phoneForCalling: d["phoneForCalling"],
+      phoneForCalling: d["phoneForCalling"] ?? d["phone"] ?? d["phoneNumber"] ?? d["mobile"] ?? d["contactPhone"],
       verificationStatus: verStatus,
       visibilityStatus: visStatus,
       verificationStage: verStage,

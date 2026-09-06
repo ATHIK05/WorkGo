@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
@@ -22,6 +24,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
   late double _experience;
   late double _serviceRadius;
   late Set<String> _selectedSkills;
+  late TextEditingController _phoneController;
   bool _isSaving = false;
 
   final List<String> _availableSkills = [
@@ -55,6 +58,15 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     _selectedSkills = widget.worker.skills.isNotEmpty
         ? widget.worker.skills.toSet()
         : {"Plumbing", "Carpentry"};
+    _phoneController = TextEditingController(
+      text: widget.worker.phoneForCalling?.replaceFirst('+91', '') ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> _saveProfile() async {
@@ -62,7 +74,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     if (_selectedSkills.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Select at least one trade skill"),
+          content: Text('select_min_skill_error'.tr()),
           backgroundColor: KX.rose,
         ),
       );
@@ -72,13 +84,38 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     setState(() => _isSaving = true);
     final workerService = WorkerService();
 
+    final phoneRaw = _phoneController.text.trim();
+    final normalizedPhone = phoneRaw.startsWith('+91')
+        ? phoneRaw
+        : (phoneRaw.isNotEmpty ? '+91$phoneRaw' : null);
+
     final updated = widget.worker.copyWith(
       skills: _selectedSkills.toList(),
       experienceYears: _experience.toInt(),
       serviceRadiusKm: _serviceRadius,
+      phoneForCalling: normalizedPhone,
     );
 
     await workerService.upsertWorkerProfile(updated);
+
+    if (normalizedPhone != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.worker.userId)
+            .set({
+          'phoneNumber': normalizedPhone,
+        }, SetOptions(merge: true));
+        await FirebaseFirestore.instance
+            .collection('workers')
+            .doc(widget.worker.id)
+            .set({
+          'phoneForCalling': normalizedPhone,
+          'phone': normalizedPhone,
+          'phoneNumber': normalizedPhone,
+        }, SetOptions(merge: true));
+      } catch (_) {}
+    }
 
     if (mounted) {
       setState(() => _isSaving = false);
@@ -90,7 +127,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
             children: [
               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
               const SizedBox(width: 10),
-              const Text("Artisan profile & skills updated!"),
+              Text('profile_skills_updated'.tr()),
             ],
           ),
           backgroundColor: const Color(0xFF047857),
@@ -104,9 +141,9 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return KaryaScaffold(
-      appBar: const KaryaAppBar(
-        title: "Artisan Skills & Coverage",
-        subtitle: "Customize your trade dispatch matrix",
+      appBar: KaryaAppBar(
+        title: 'artisan_skills_coverage_title'.tr(),
+        subtitle: 'skills_matrix_subtitle'.tr(),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -122,7 +159,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Registered Trade Skills",
+                        'registered_trade_skills'.tr(),
                         style: WorkGoFonts.display(
                           color: KX.textPrimary,
                           fontSize: 16,
@@ -132,7 +169,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "Tap trades to activate incoming dispatch alerts",
+                        'tap_trades_dispatch_desc'.tr(),
                         style: WorkGoFonts.body(
                           color: KX.textSecondary,
                           fontSize: 11.5,
@@ -149,9 +186,9 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                 KSlideFadeIn(
                   delay: const Duration(milliseconds: 60),
                   child: _SliderCard(
-                    title: "Trade Experience",
+                    title: 'trade_experience_label'.tr(),
                     value: _experience,
-                    displayValue: "${_experience.toInt()} Years",
+                    displayValue: 'years_count'.tr(args: ['${_experience.toInt()}']),
                     min: 1.0,
                     max: 30.0,
                     divisions: 29,
@@ -167,9 +204,9 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                 KSlideFadeIn(
                   delay: const Duration(milliseconds: 100),
                   child: _SliderCard(
-                    title: "Dispatch Service Radius",
+                    title: 'dispatch_service_radius'.tr(),
                     value: _serviceRadius,
-                    displayValue: "${_serviceRadius.toInt()} km",
+                    displayValue: 'km_count'.tr(args: ['${_serviceRadius.toInt()}']),
                     min: 1.0,
                     max: 25.0,
                     divisions: 24,
@@ -179,13 +216,111 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                     onChanged: (val) => setState(() => _serviceRadius = val),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
+
+                // Contact Phone Number Card
+                KSlideFadeIn(
+                  delay: const Duration(milliseconds: 120),
+                  child: KaryaCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.phone_android_rounded,
+                              color: Color(0xFFD97706),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'contact_phone'.tr(),
+                                style: WorkGoFonts.heading(
+                                  color: KX.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: KX.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                              child: Text(
+                                "+91",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: KX.textPrimary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            hintText: 'phone_number_hint'.tr(),
+                            hintStyle: TextStyle(
+                              color: KX.textMuted.withValues(alpha: 0.8),
+                              fontSize: 13,
+                            ),
+                            filled: true,
+                            fillColor: KX.canvas,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFD97706),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) {
+                              return 'error_phone_empty'.tr();
+                            }
+                            final digits = val.replaceAll(RegExp(r'\D'), '');
+                            if (digits.length != 10) {
+                              return 'error_phone_invalid'.tr();
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // Save CTA
                 KSlideFadeIn(
                   delay: const Duration(milliseconds: 140),
                   child: KaryaButton(
-                    label: "Save Artisan Matrix",
+                    label: 'save_artisan_matrix_btn'.tr(),
                     icon: Icons.save_rounded,
                     isLoading: _isSaving,
                     onPressed: _saveProfile,
@@ -262,7 +397,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                       color: KX.textMuted.withValues(alpha: 0.7), size: 20),
                 const SizedBox(height: 5),
                 Text(
-                  skill,
+                  skill.toLocalizedTradeClean(),
                   style: WorkGoFonts.heading(
                     color: isSelected ? Colors.white : KX.textSecondary,
                     fontSize: 9.5,

@@ -47,79 +47,127 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Title Bar ─────────────────────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Cooperative Welfare & Insurance Corpus", style: AX.display(fontSize: 20)),
-                          const SizedBox(height: 2),
-                          Text("PMJJBY / PMSBY micro-insurance pool auto-accumulated from 2% booking dividend", style: AX.body(fontSize: 12)),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF3D6),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 750;
+                      if (isNarrow) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.verified_rounded, color: AX.emeraldDark, size: 16),
-                            const SizedBox(width: 6),
-                            Text("GOV CORPUS v2.4", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
+                            Text('admin_welfare_title'.trSafe("Cooperative Welfare & Insurance Corpus"), style: AX.display(fontSize: 18)),
+                            const SizedBox(height: 2),
+                            Text('admin_welfare_subtitle'.trSafe("PMJJBY / PMSBY micro-insurance pool auto-accumulated from 2% booking dividend"), style: AX.body(fontSize: 11)),
                           ],
-                        ),
-                      ),
-                    ],
+                        );
+                      }
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('admin_welfare_title'.trSafe("Cooperative Welfare & Insurance Corpus"), style: AX.display(fontSize: 20)),
+                              const SizedBox(height: 2),
+                              Text('admin_welfare_subtitle'.trSafe("PMJJBY / PMSBY micro-insurance pool auto-accumulated from 2% booking dividend"), style: AX.body(fontSize: 12)),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF3D6),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.verified_rounded, color: AX.emeraldDark, size: 16),
+                                const SizedBox(width: 6),
+                                Text("GOV CORPUS v2.4", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
 
-                  // ── Welfare Pool KPI Banners ──────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildCorpusCard(
-                          title: "Accumulated Welfare Pool",
-                          value: "₹${welfareCorpus >= 1000 ? '${(welfareCorpus / 1000).toStringAsFixed(2)}k' : welfareCorpus.toStringAsFixed(0)}",
-                          subtitle: "2% of ₹${realizedGrossVolume.toStringAsFixed(0)} settled volume",
-                          icon: Icons.account_balance_wallet_rounded,
-                          color: const Color(0xFF065F46),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _buildCorpusCard(
-                          title: "Insured Artisans",
-                          value: "$insuredCount / ${workers.length}",
-                          subtitle: "${coverageRate.toStringAsFixed(0)}% membership coverage",
-                          icon: Icons.health_and_safety_rounded,
-                          color: const Color(0xFF7C3AED),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _buildCorpusCard(
-                          title: "Policy Schemes",
-                          value: "PMJJBY + PMSBY",
-                          subtitle: "₹2L Life + ₹2L Accident Cover",
-                          icon: Icons.security_rounded,
-                          color: const Color(0xFF1D4ED8),
-                        ),
-                      ),
-                    ],
+                  // ── Welfare Pool KPI Banners (Responsive Layout) ──────────
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth >= 900;
+                      if (isWide) {
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _buildCorpusCard(
+                                title: "Accumulated Welfare Pool",
+                                value: "₹${welfareCorpus >= 1000 ? '${(welfareCorpus / 1000).toStringAsFixed(2)}k' : welfareCorpus.toStringAsFixed(0)}",
+                                subtitle: "2% of ₹${realizedGrossVolume.toStringAsFixed(0)} settled volume",
+                                icon: Icons.account_balance_wallet_rounded,
+                                color: const Color(0xFF065F46),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: _buildCorpusCard(
+                                title: "Insured Artisans",
+                                value: "$insuredCount / ${workers.length}",
+                                subtitle: "${coverageRate.toStringAsFixed(0)}% membership coverage",
+                                icon: Icons.health_and_safety_rounded,
+                                color: const Color(0xFF7C3AED),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: _buildCorpusCard(
+                                title: "Policy Schemes",
+                                value: "PMJJBY + PMSBY",
+                                subtitle: "₹2L Life + ₹2L Accident Cover",
+                                icon: Icons.security_rounded,
+                                color: const Color(0xFF1D4ED8),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return Column(
+                        children: [
+                          _buildCorpusCard(
+                            title: "Accumulated Welfare Pool",
+                            value: "₹${welfareCorpus >= 1000 ? '${(welfareCorpus / 1000).toStringAsFixed(2)}k' : welfareCorpus.toStringAsFixed(0)}",
+                            subtitle: "2% of ₹${realizedGrossVolume.toStringAsFixed(0)} settled volume",
+                            icon: Icons.account_balance_wallet_rounded,
+                            color: const Color(0xFF065F46),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildCorpusCard(
+                            title: "Insured Artisans",
+                            value: "$insuredCount / ${workers.length}",
+                            subtitle: "${coverageRate.toStringAsFixed(0)}% membership coverage",
+                            icon: Icons.health_and_safety_rounded,
+                            color: const Color(0xFF7C3AED),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildCorpusCard(
+                            title: "Policy Schemes",
+                            value: "PMJJBY + PMSBY",
+                            subtitle: "₹2L Life + ₹2L Accident Cover",
+                            icon: Icons.security_rounded,
+                            color: const Color(0xFF1D4ED8),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
 
                   // ── Search & Filter Controls ──────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Artisan Insurance Roster (${workers.length})", style: AX.display(fontSize: 16)),
-                      SizedBox(
-                        width: 280,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 650;
+                      final searchField = SizedBox(
+                        width: isNarrow ? double.infinity : 280,
                         height: 38,
                         child: TextField(
                           style: const TextStyle(color: AX.textPrimary, fontSize: 12),
@@ -145,8 +193,27 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                           ),
                           onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
                         ),
-                      ),
-                    ],
+                      );
+
+                      if (isNarrow) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Artisan Insurance Roster (${workers.length})", style: AX.display(fontSize: 16)),
+                            const SizedBox(height: 10),
+                            searchField,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Artisan Insurance Roster (${workers.length})", style: AX.display(fontSize: 16)),
+                          searchField,
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
 

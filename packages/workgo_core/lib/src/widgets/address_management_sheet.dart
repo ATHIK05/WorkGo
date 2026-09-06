@@ -536,11 +536,13 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
     double saveLat = _latitude;
     double saveLng = _longitude;
     try {
-      final geo = await LocationService().forwardGeocode(fullFormatted);
-      if (geo != null) {
-        saveLat = geo["latitude"] ?? saveLat;
-        saveLng = geo["longitude"] ?? saveLng;
-      }
+      final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+        addressText: fullFormatted,
+        latitude: _latitude,
+        longitude: _longitude,
+      );
+      saveLat = sanitized["latitude"] ?? saveLat;
+      saveLng = sanitized["longitude"] ?? saveLng;
     } catch (_) {}
 
     final newAddress = UserAddress(

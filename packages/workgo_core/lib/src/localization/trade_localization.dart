@@ -42,6 +42,15 @@ extension DynamicTradeLocalization on String {
     return this;
   }
 
+  /// Returns a clean localized trade name without parenthetical English annotations
+  String toLocalizedTradeClean() {
+    final localized = toLocalizedTrade();
+    if (localized.contains(' (')) {
+      return localized.split(' (').first.trim();
+    }
+    return localized;
+  }
+
   /// Converts persona trades (e.g. 'Plumber', 'Electrician', 'Carpenter') to canonical trade categories
   /// ('Plumbing', 'Electrical', 'Carpentry', 'Appliance Repair', etc.).
   String toCanonicalTrade() {
@@ -140,6 +149,8 @@ extension BookingStatusLocalization on BookingStatus {
         return 'status_accepted'.tr();
       case BookingStatus.inProgress:
         return 'status_in_progress'.tr();
+      case BookingStatus.paymentPending:
+        return 'status_payment_pending'.trSafe('Payment Pending');
       case BookingStatus.completed:
         return 'status_completed'.tr();
       case BookingStatus.cancelled:

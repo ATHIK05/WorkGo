@@ -1,5 +1,5 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
 
@@ -41,7 +41,7 @@ class WorkerWelfareScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Welfare & Insurance",
+              'welfare_insurance_title'.tr(),
               style: WorkGoFonts.heading(
                 color: KX.textPrimary,
                 fontSize: 17,
@@ -49,7 +49,7 @@ class WorkerWelfareScreen extends StatelessWidget {
               ),
             ),
             Text(
-              "Artisan Protection & Welfare Pool",
+              'artisan_protection_pool'.tr(),
               style: WorkGoFonts.body(
                 color: KX.textSecondary,
                 fontSize: 11,
@@ -66,14 +66,14 @@ class WorkerWelfareScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.verified_user_rounded, color: Color(0xFF047857), size: 13),
-                SizedBox(width: 4),
+                const Icon(Icons.verified_user_rounded, color: Color(0xFF047857), size: 13),
+                const SizedBox(width: 4),
                 Text(
-                  "ACTIVE",
-                  style: TextStyle(
+                  'active_caps'.tr(),
+                  style: const TextStyle(
                     color: Color(0xFF065F46),
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
@@ -116,7 +116,7 @@ class WorkerWelfareScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Active Protection Schemes",
+                        'active_protection_schemes'.tr(),
                         style: WorkGoFonts.display(
                           color: KX.textPrimary,
                           fontSize: 16,
@@ -129,8 +129,8 @@ class WorkerWelfareScreen extends StatelessWidget {
                           color: const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          "GOVT. BACKED",
+                        child: Text(
+                          'govt_backed_shield'.tr(),
                           style: TextStyle(color: Color(0xFF92400E), fontSize: 9.5, fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -140,8 +140,8 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 1: Accident (PMSBY)
                   _SchemeBenefitCard(
-                    title: "Accidental Disability Cover (PMSBY)",
-                    subtitle: "24/7 on-duty emergency protection across all job dispatches",
+                    title: 'welfare_scheme_pmsby_title'.tr(),
+                    subtitle: 'welfare_scheme_pmsby_desc'.tr(),
                     amount: "₹2,00,000",
                     badgeColor: const Color(0xFFD6EBFF),
                     badgeTextColor: const Color(0xFF1E3A8A),
@@ -152,8 +152,8 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 2: Life (PMJJBY)
                   _SchemeBenefitCard(
-                    title: "Artisan Life Insurance (PMJJBY)",
-                    subtitle: "Zero-fee family security & nominee welfare disbursement",
+                    title: 'welfare_scheme_pmjjby_title'.tr(),
+                    subtitle: 'welfare_scheme_pmjjby_desc'.tr(),
                     amount: "₹2,00,000",
                     badgeColor: const Color(0xFFD1FAE5),
                     badgeTextColor: const Color(0xFF065F46),
@@ -164,8 +164,8 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 3: Medical Relief
                   _SchemeBenefitCard(
-                    title: "Medical & Emergency Micro-Relief",
-                    subtitle: "Instant 0% interest cooperative emergency advance",
+                    title: 'welfare_scheme_medical_title'.tr(),
+                    subtitle: 'welfare_scheme_medical_desc'.tr(),
                     amount: "₹25,000",
                     badgeColor: const Color(0xFFFFE0A3),
                     badgeTextColor: const Color(0xFF92400E),
@@ -190,8 +190,8 @@ class WorkerWelfareScreen extends StatelessWidget {
       children: [
         Expanded(
           child: _bentoSpec(
-            "Worker Premium",
-            "₹0 / Free",
+            'worker_premium_label'.tr(),
+            'free_zero_label'.tr(),
             const Color(0xFFD1FAE5),
             const Color(0xFF065F46),
             Icons.money_off_rounded,
@@ -200,8 +200,8 @@ class WorkerWelfareScreen extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _bentoSpec(
-            "Deductible",
-            "₹0 (Co-op)",
+            'deductible_label'.tr(),
+            'coop_zero_label'.tr(),
             const Color(0xFFD6EBFF),
             const Color(0xFF1E3A8A),
             Icons.verified_rounded,
@@ -210,8 +210,8 @@ class WorkerWelfareScreen extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _bentoSpec(
-            "Claim Time",
-            "< 24 Hours",
+            'claim_time_label'.tr(),
+            'under_24_hours'.tr(),
             const Color(0xFFFFE0A3),
             const Color(0xFF92400E),
             Icons.bolt_rounded,
@@ -315,7 +315,7 @@ class _DigitalArtisanShieldCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            worker.name.isNotEmpty ? worker.name : "Cooperative Artisan",
+                            worker.name.isNotEmpty ? worker.name : 'cooperative_artisan'.tr(),
                             style: WorkGoFonts.display(
                               color: KX.textPrimary,
                               fontSize: 15,
@@ -331,7 +331,7 @@ class _DigitalArtisanShieldCard extends StatelessWidget {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  "Policy #TN-COOP-$shortId",
+                                  'policy_number_fmt'.tr(args: [shortId]),
                                   style: const TextStyle(
                                     color: Color(0xFF6B6B6B),
                                     fontSize: 10.5,
@@ -358,7 +358,7 @@ class _DigitalArtisanShieldCard extends StatelessWidget {
                   border: Border.all(color: (isEnrolled ? const Color(0xFF10B981) : const Color(0xFFF59E0B)).withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  isEnrolled ? "COVERED ✓" : "ENROLLING",
+                  isEnrolled ? 'covered_check'.tr() : 'enrolling_status'.tr(),
                   style: TextStyle(
                     color: isEnrolled ? const Color(0xFF065F46) : const Color(0xFF92400E),
                     fontSize: 9.5,
@@ -381,7 +381,7 @@ class _DigitalArtisanShieldCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Total Protective Shield",
+                    'total_protective_shield'.tr(),
                     style: WorkGoFonts.body(
                       color: const Color(0xFF6B6B6B),
                       fontSize: 11.5,
@@ -518,9 +518,9 @@ class _SchemeBenefitCard extends StatelessWidget {
                   color: const Color(0xFFD1FAE5),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  "ACTIVE",
-                  style: TextStyle(color: Color(0xFF065F46), fontSize: 8.5, fontWeight: FontWeight.w900),
+                child: Text(
+                  'active_caps'.tr(),
+                  style: const TextStyle(color: Color(0xFF065F46), fontSize: 8.5, fontWeight: FontWeight.w900),
                 ),
               ),
             ],
@@ -565,8 +565,8 @@ class _HelplineDeskCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Cooperative Welfare Desk",
+                Text(
+                  'coop_welfare_desk'.tr(),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -574,8 +574,8 @@ class _HelplineDeskCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  "24/7 Toll-Free Claim Support",
+                Text(
+                  'toll_free_support'.tr(),
                   style: TextStyle(
                     color: Color(0xFF9CA3AF),
                     fontSize: 11,
@@ -586,18 +586,10 @@ class _HelplineDeskCard extends StatelessWidget {
           ),
           ElevatedButton.icon(
             onPressed: () {
-              HapticFeedback.selectionClick();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text("Connecting to Cooperative Claim Desk (1800-425-WORKGO)…"),
-                  backgroundColor: const Color(0xFF10B981),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              );
+              PhoneDialer.call('1800-425-WORKGO', context: context);
             },
             icon: const Icon(Icons.phone_rounded, size: 14),
-            label: const Text("Call Desk", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+            label: Text('call_desk_btn'.tr(), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFB800),
               foregroundColor: Colors.black,

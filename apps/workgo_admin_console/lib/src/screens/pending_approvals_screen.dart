@@ -21,6 +21,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
+  Worker? _selectedWorker;
 
   Key _streamKey = UniqueKey();
   bool _isReloading = false;
@@ -69,8 +70,8 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
     return Scaffold(
       backgroundColor: WorkGoColors.surfaceLight,
       appBar: AppBar(
-        title: const SafeText(
-          "Cooperative Employee Directory & KYC Dossier",
+        title: SafeText(
+          'admin_kyc_dossier_title'.trSafe("Cooperative Employee Directory & KYC Dossier"),
           style: TextStyle(
             color: WorkGoColors.textPrimary,
             fontSize: 18,
@@ -100,108 +101,151 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
           labelColor: WorkGoColors.textPrimary,
           unselectedLabelColor: WorkGoColors.textSecondary,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          tabs: const [
-            Tab(text: "Pending Review"),
-            Tab(text: "Approved Artisans"),
-            Tab(text: "All Employees"),
-            Tab(text: "Suspended"),
+          tabs: [
+            Tab(text: 'admin_tab_pending_review'.trSafe("Pending Review")),
+            Tab(text: 'admin_tab_approved_artisans'.trSafe("Approved Artisans")),
+            Tab(text: 'admin_tab_all_employees'.trSafe("All Employees")),
+            Tab(text: 'admin_tab_suspended'.trSafe("Suspended")),
           ],
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Search Box
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: WorkGoSpacing.md, vertical: 10),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 13),
-                onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
-                decoration: InputDecoration(
-                  hintText: "Search employee by name, trade, or phone...",
-                  hintStyle: const TextStyle(color: WorkGoColors.textDisabled, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search_rounded, color: WorkGoColors.primary, size: 20),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, color: WorkGoColors.textSecondary, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = "");
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: const Color(0xFFF9F6EE),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: WorkGoColors.dividerLight),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: WorkGoColors.dividerLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: WorkGoColors.primary, width: 1.5),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 900;
+            final leftPane = Column(
+              children: [
+                // Search Box
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: WorkGoSpacing.md, vertical: 10),
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 13),
+                    onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+                    decoration: InputDecoration(
+                      hintText: 'admin_search_employee_hint'.trSafe("Search employee by name, trade, or phone..."),
+                      hintStyle: const TextStyle(color: WorkGoColors.textDisabled, fontSize: 13),
+                      prefixIcon: const Icon(Icons.search_rounded, color: WorkGoColors.primary, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, color: WorkGoColors.textSecondary, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = "");
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: const Color(0xFFF9F6EE),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: WorkGoColors.dividerLight),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: WorkGoColors.dividerLight),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: WorkGoColors.primary, width: 1.5),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            // Tabs Content
-            Expanded(
-              child: StreamBuilder<List<Worker>>(
-                key: _streamKey,
-                stream: _workerService.streamAllWorkers(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: WorkGoColors.accent),
-                    );
-                  }
+                // Tabs Content
+                Expanded(
+                  child: StreamBuilder<List<Worker>>(
+                    key: _streamKey,
+                    stream: _workerService.streamAllWorkers(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(color: WorkGoColors.accent),
+                        );
+                      }
 
-                  final allWorkers = snapshot.data ?? [];
+                      final allWorkers = snapshot.data ?? [];
 
-                  final filteredWorkers = allWorkers.where((w) {
-                    if (_searchQuery.isEmpty) return true;
-                    final matchName = w.name.toLowerCase().contains(_searchQuery);
-                    final matchSkills = w.skills.any((s) => s.toLowerCase().contains(_searchQuery));
-                    final matchPhone = (w.phoneForCalling ?? "").contains(_searchQuery);
-                    return matchName || matchSkills || matchPhone;
-                  }).toList();
+                      final filteredWorkers = allWorkers.where((w) {
+                        if (_searchQuery.isEmpty) return true;
+                        final matchName = w.name.toLowerCase().contains(_searchQuery);
+                        final matchSkills = w.skills.any((s) => s.toLowerCase().contains(_searchQuery));
+                        final matchPhone = (w.phoneForCalling ?? "").contains(_searchQuery);
+                        return matchName || matchSkills || matchPhone;
+                      }).toList();
 
-                  final pendingQueue = filteredWorkers
-                      .where((w) =>
-                          !w.isProxy &&
-                          w.verificationStatus == VerificationStatus.pending &&
-                          w.visibilityStatus != VisibilityStatus.suspended)
-                      .toList();
+                      final pendingQueue = filteredWorkers
+                          .where((w) =>
+                              !w.isProxy &&
+                              w.verificationStatus == VerificationStatus.pending &&
+                              w.visibilityStatus != VisibilityStatus.suspended)
+                          .toList();
 
-                  final approvedQueue = filteredWorkers
-                      .where((w) =>
-                          w.verificationStatus == VerificationStatus.approved &&
-                          w.visibilityStatus != VisibilityStatus.suspended)
-                      .toList();
+                      final approvedQueue = filteredWorkers
+                          .where((w) =>
+                              w.verificationStatus == VerificationStatus.approved &&
+                              w.visibilityStatus != VisibilityStatus.suspended)
+                          .toList();
 
-                  final suspendedQueue = filteredWorkers
-                      .where((w) => w.visibilityStatus == VisibilityStatus.suspended)
-                      .toList();
+                      final suspendedQueue = filteredWorkers
+                          .where((w) => w.visibilityStatus == VisibilityStatus.suspended)
+                          .toList();
 
-                  return TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildWorkerList(pendingQueue, "No pending applications in queue"),
-                      _buildWorkerList(approvedQueue, "No approved artisans yet"),
-                      _buildWorkerList(filteredWorkers, "No employee records found"),
-                      _buildWorkerList(suspendedQueue, "No suspended artisans"),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
+                      // Auto-select first item in pending queue if wide and nothing selected
+                      if (isWide && _selectedWorker == null && pendingQueue.isNotEmpty) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _selectedWorker == null) {
+                            setState(() => _selectedWorker = pendingQueue.first);
+                          }
+                        });
+                      }
+
+                      return TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildWorkerList(pendingQueue, "No pending applications in queue"),
+                          _buildWorkerList(approvedQueue, "No approved artisans yet"),
+                          _buildWorkerList(filteredWorkers, "No employee records found"),
+                          _buildWorkerList(suspendedQueue, "No suspended artisans"),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+
+            if (!isWide) return leftPane;
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 4, child: leftPane),
+                Container(width: 1, color: WorkGoColors.dividerLight),
+                Expanded(
+                  flex: 6,
+                  child: _selectedWorker == null
+                      ? const Center(
+                          child: SafeText(
+                            "Select an artisan to view their dossier",
+                            style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 16),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.white,
+                          child: _WorkerDossierSheet(
+                            key: ValueKey(_selectedWorker!.id),
+                            worker: _selectedWorker!,
+                            workerService: _workerService,
+                            isEmbedded: true,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -272,9 +316,17 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
     final aiRisk = details?.aiRiskScore ?? 0.0;
     final isAiSuspicious = details?.isAiSuspicious ?? false;
 
-    return GlassCard(
-      padding: const EdgeInsets.all(WorkGoSpacing.md),
-      child: Column(
+    final isSelected = _selectedWorker?.id == worker.id;
+    return GestureDetector(
+      onTap: () => _showWorkerDossier(context, worker),
+      child: Container(
+        padding: const EdgeInsets.all(WorkGoSpacing.md),
+        decoration: BoxDecoration(
+          color: isSelected ? WorkGoColors.primary.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isSelected ? WorkGoColors.primary : Colors.white.withValues(alpha: 0.5), width: 1.5),
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -371,7 +423,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                     ),
                     const SizedBox(height: 4),
                     SafeText(
-                      worker.skills.isNotEmpty ? worker.skills.join(" · ") : "Artisan Tradesperson",
+                      worker.skills.isNotEmpty ? worker.skills.map((s) => s.toLocalizedTrade()).join(" · ") : 'artisan_partner'.trSafe("Artisan Tradesperson"),
                       style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -413,28 +465,30 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
           const SizedBox(height: 14),
 
           // Action Button -> Opens Full Forensic Dossier
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _showWorkerDossier(context, worker),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFF3D6),
-                foregroundColor: WorkGoColors.textPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: WorkGoColors.primary, width: 1),
+          if (!isSelected) // Hide button if selected in split-pane
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showWorkerDossier(context, worker),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFF3D6),
+                  foregroundColor: WorkGoColors.textPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: WorkGoColors.primary, width: 1),
+                  ),
+                ),
+                icon: const Icon(Icons.badge_rounded, color: WorkGoColors.primaryDark, size: 18),
+                label: const SafeText(
+                  "Inspect Verification Dossier",
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
                 ),
               ),
-              icon: const Icon(Icons.badge_rounded, color: WorkGoColors.primaryDark, size: 18),
-              label: const SafeText(
-                "Inspect Verification Dossier & Audit Trail",
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
-              ),
             ),
-          ),
         ],
+      ),
       ),
     );
   }
@@ -475,6 +529,12 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 
   // ── Full Forensic Dossier Dialog ────────────────────────────────────────────
   void _showWorkerDossier(BuildContext context, Worker worker) {
+    final isWide = MediaQuery.of(context).size.width >= 900;
+    if (isWide) {
+      setState(() => _selectedWorker = worker);
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -482,7 +542,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (ctx) => _WorkerDossierSheet(worker: worker, workerService: _workerService),
+      builder: (ctx) => _WorkerDossierSheet(worker: worker, workerService: _workerService, isEmbedded: false),
     );
   }
 
@@ -671,8 +731,9 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 class _WorkerDossierSheet extends StatefulWidget {
   final Worker worker;
   final WorkerService workerService;
+  final bool isEmbedded;
 
-  const _WorkerDossierSheet({required this.worker, required this.workerService});
+  const _WorkerDossierSheet({super.key, required this.worker, required this.workerService, this.isEmbedded = false});
 
   @override
   State<_WorkerDossierSheet> createState() => _WorkerDossierSheetState();
@@ -1050,17 +1111,13 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     final isAiSuspicious = details?.isAiSuspicious ?? false;
     final aiFlags = details?.aiFlags ?? [];
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      maxChildSize: 0.96,
-      minChildSize: 0.5,
-      expand: false,
-      builder: (_, scrollController) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: ListView(
-            controller: scrollController,
-            children: [
+    Widget content(ScrollController? scrollController) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: ListView(
+          controller: scrollController,
+          children: [
+            if (!widget.isEmbedded) ...[
               // Handle Bar
               Center(
                 child: Container(
@@ -1073,32 +1130,34 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                 ),
               ),
               const SizedBox(height: 16),
+            ],
 
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SafeText(
-                        worker.name,
-                        style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 2),
-                      SafeText(
-                        "${worker.skills.join(' · ')} · Worker ID: ${worker.id.substring(0, worker.id.length > 8 ? 8 : worker.id.length)}",
-                        style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SafeText(
+                      worker.name,
+                      style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 2),
+                    SafeText(
+                      "${worker.skills.join(' · ')} · Worker ID: ${worker.id.substring(0, worker.id.length > 8 ? 8 : worker.id.length)}",
+                      style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                if (!widget.isEmbedded)
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded, color: WorkGoColors.textSecondary),
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
+              ],
+            ),
+            const SizedBox(height: 20),
 
               // ── 1. 3D Biometric Multi-Angle Reel ───────────────────────────
               _buildSectionHeader(Icons.face_retouching_natural_rounded, "3D Biometric Multi-Angle Capture"),
@@ -1319,7 +1378,18 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
             ],
           ),
         );
-      },
+    }
+
+    if (widget.isEmbedded) {
+      return content(null);
+    }
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      maxChildSize: 0.96,
+      minChildSize: 0.5,
+      expand: false,
+      builder: (_, scrollController) => content(scrollController),
     );
   }
 

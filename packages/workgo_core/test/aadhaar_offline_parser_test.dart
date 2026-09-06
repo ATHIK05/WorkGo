@@ -137,5 +137,55 @@ void main() {
       );
       expect(result.isSuccess, isFalse);
     });
+
+    test('should decrypt authentic UIDAI-format ZipCrypto archive with share code 1939', () {
+      final raw = Uint8List.fromList(utf8.encode(sampleXml));
+      final crc = getCrc32(raw);
+      final fullZlib = const ZLibEncoder().encode(raw, level: 6);
+      final compressed = Uint8List.fromList(fullZlib.sublist(2, fullZlib.length - 4));
+      final checkByte = (crc >> 24) & 0xFF;
+      final crypto = AadhaarZipCrypto()..init('1939');
+      final encrypted = crypto.encrypt(compressed, checkByte);
+
+      final fnBytes = utf8.encode('offlineaadhaar20260901.xml');
+      final out = BytesBuilder();
+
+      // Local Header
+      out.add([0x50, 0x4b, 0x03, 0x04, 20, 0, 1, 0, 8, 0, 0, 0, 0, 0]);
+      out.add([crc & 0xFF, (crc >> 8) & 0xFF, (crc >> 16) & 0xFF, (crc >> 24) & 0xFF]);
+      out.add([encrypted.length & 0xFF, (encrypted.length >> 8) & 0xFF, (encrypted.length >> 16) & 0xFF, (encrypted.length >> 24) & 0xFF]);
+      out.add([raw.length & 0xFF, (raw.length >> 8) & 0xFF, (raw.length >> 16) & 0xFF, (raw.length >> 24) & 0xFF]);
+      out.add([fnBytes.length & 0xFF, (fnBytes.length >> 8) & 0xFF, 0, 0]);
+      out.add(fnBytes);
+      out.add(encrypted);
+
+      final cdStart = out.length;
+      // Central Dir
+      out.add([0x50, 0x4b, 0x01, 0x02, 20, 0, 20, 0, 1, 0, 8, 0, 0, 0, 0, 0]);
+      out.add([crc & 0xFF, (crc >> 8) & 0xFF, (crc >> 16) & 0xFF, (crc >> 24) & 0xFF]);
+      out.add([encrypted.length & 0xFF, (encrypted.length >> 8) & 0xFF, (encrypted.length >> 16) & 0xFF, (encrypted.length >> 24) & 0xFF]);
+      out.add([raw.length & 0xFF, (raw.length >> 8) & 0xFF, (raw.length >> 16) & 0xFF, (raw.length >> 24) & 0xFF]);
+      out.add([fnBytes.length & 0xFF, (fnBytes.length >> 8) & 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+      out.add(fnBytes);
+
+      final cdSize = out.length - cdStart;
+      // EOCD
+      out.add([0x50, 0x4b, 0x05, 0x06, 0, 0, 0, 0, 1, 0, 1, 0]);
+      out.add([cdSize & 0xFF, (cdSize >> 8) & 0xFF, (cdSize >> 16) & 0xFF, (cdSize >> 24) & 0xFF]);
+      out.add([cdStart & 0xFF, (cdStart >> 8) & 0xFF, (cdStart >> 16) & 0xFF, (cdStart >> 24) & 0xFF]);
+      out.add([0, 0]);
+
+      final base64Zip = base64Encode(out.toBytes());
+
+      final result = AadhaarOfflineParser.decryptAndParse(
+        base64Data: base64Zip,
+        shareCode: '1939',
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.name, equals('Athik Rathi'));
+      expect(result.dob, equals('15/08/1998'));
+      expect(result.address, contains('Anna Nagar'));
+    });
   });
 }

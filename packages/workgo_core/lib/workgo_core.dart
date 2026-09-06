@@ -70,6 +70,11 @@ export "src/services/road_routing_service.dart";
 export "src/services/face_comparison_service.dart";
 export "src/services/session_manager.dart";
 export "src/services/ai_diagnostic_service.dart";
+export "src/models/payment_provider_model.dart";
+export "src/services/payment_service.dart";
+export "src/services/invoice_service.dart";
+export "src/services/indic_pdf_shaper.dart";
+export "src/services/push_notification_service.dart";
 
 // API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";
@@ -77,3 +82,4 @@ export "package:url_launcher/url_launcher.dart";
 export "package:latlong2/latlong.dart" hide Path;
 export "package:geolocator/geolocator.dart";
 export "src/utils/workgo_time_format.dart";
+export "src/utils/phone_dialer.dart";

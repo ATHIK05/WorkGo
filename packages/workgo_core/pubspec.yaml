@@ -35,6 +35,10 @@ dependencies:
   archive: ^3.6.1
   url_launcher: ^6.3.1
   local_auth: ^2.3.0
+  # PDF invoice generation (client-side, zero cloud storage)
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  share_plus: ^10.1.2
 
 dev_dependencies:
   flutter_test:
@@ -48,3 +52,18 @@ flutter:
     - assets/lang/hi.json
     - assets/lang/ta.json
     - assets/images/crafts/
+    - assets/images/workgo_logo.png
+    - assets/fonts/NotoSans-Regular.ttf
+    - assets/fonts/NotoSansDevanagari-Regular.ttf
+    - assets/fonts/NotoSansTamil-Regular.ttf
+
+  fonts:
+    - family: NotoSansTamil
+      fonts:
+        - asset: assets/fonts/NotoSansTamil-Regular.ttf
+    - family: NotoSansDevanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf

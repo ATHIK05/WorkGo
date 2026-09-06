@@ -34,14 +34,43 @@ class _RatingReviewScreenState extends State<RatingReviewScreen>
   ];
 
   late AnimationController _successCtrl;
+  late String _effectiveWorkerName;
 
   @override
   void initState() {
     super.initState();
+    _effectiveWorkerName = (widget.booking.genuineArtisanName ??
+        (!Booking.isGenericArtisanName(widget.workerName) ? widget.workerName : "")).trim();
+    if (_effectiveWorkerName.isEmpty) {
+      _effectiveWorkerName = widget.workerName;
+    }
+    _resolveWorkerName();
+
+    if (widget.booking.isRated || widget.booking.rating != null) {
+      _rating = widget.booking.rating ?? 5.0;
+      if (widget.booking.reviewComment != null && widget.booking.reviewComment!.isNotEmpty) {
+        _commentController.text = widget.booking.reviewComment!;
+      }
+      if (widget.booking.reviewTags.isNotEmpty) {
+        _selectedTags.clear();
+        _selectedTags.addAll(widget.booking.reviewTags);
+      }
+    }
     _successCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
+  }
+
+  Future<void> _resolveWorkerName() async {
+    try {
+      final wId = widget.booking.workerId;
+      if (wId == null || wId.isEmpty) return;
+      final worker = await WorkerService().getWorker(wId);
+      if (worker != null && worker.name.isNotEmpty && !Booking.isGenericArtisanName(worker.name)) {
+        if (mounted) setState(() => _effectiveWorkerName = worker.name);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -103,7 +132,7 @@ class _RatingReviewScreenState extends State<RatingReviewScreen>
             child: ScaleTransition(scale: Tween<double>(begin: 0.92, end: 1.0).animate(anim), child: child),
           ),
           child: _isSubmitted
-              ? _SuccessView(key: const ValueKey('success'), onDone: () => Navigator.of(context).pop())
+              ? _SuccessView(key: const ValueKey('success'), onDone: () => Navigator.of(context).pop(true))
               : SingleChildScrollView(
                   key: const ValueKey('form'),
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
@@ -151,10 +180,12 @@ class _RatingReviewScreenState extends State<RatingReviewScreen>
                 const SizedBox(height: 16),
                 Text(
                   'how_was_service'.tr(args: [
-                    MlTranslationService.instance.translateSync(
-                      widget.workerName,
-                      context.locale.languageCode,
-                    ),
+                    !Booking.isGenericArtisanName(_effectiveWorkerName)
+                        ? _effectiveWorkerName
+                        : MlTranslationService.instance.translateSync(
+                            _effectiveWorkerName,
+                            context.locale.languageCode,
+                          ),
                   ]),
                   style: const TextStyle(
                     color: CX.textPrimary,
