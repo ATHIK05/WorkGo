@@ -553,7 +553,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    "${'work_completed_payment_due'.tr()} • ₹${widget.booking.amount.toStringAsFixed(0)}",
+                    "${'work_completed_payment_due'.tr()} • ₹${widget.booking.totalAmount.toStringAsFixed(0)}",
                     style: WorkGoFonts.body(color: Colors.white),
                     overflow: TextOverflow.ellipsis,
                   ),
