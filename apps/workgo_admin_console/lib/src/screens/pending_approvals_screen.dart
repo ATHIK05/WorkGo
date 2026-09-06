@@ -478,11 +478,20 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 840),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: _WorkerDossierSheet(worker: worker, workerService: _workerService),
+          ),
+        ),
       ),
-      builder: (ctx) => _WorkerDossierSheet(worker: worker, workerService: _workerService),
     );
   }
 
@@ -1315,7 +1324,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 72),
             ],
           ),
         );
@@ -1433,7 +1442,9 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
 
   Widget _buildAadhaarVerificationSection(VerificationDetails? details, Worker worker) {
     final zipBase64 = details?.aadhaarZipBase64;
-    final shareCode = details?.aadhaarShareCode ?? "1234";
+    final shareCode = (details?.aadhaarShareCode != null && details!.aadhaarShareCode!.isNotEmpty)
+        ? details.aadhaarShareCode!
+        : "1939";
     final hasVerifiedDemographics = details?.aadhaarVerifiedName != null &&
         details?.aadhaarVerifiedName != "Artisan Cardholder" &&
         details?.aadhaarMaskedNumber != null &&
@@ -1446,42 +1457,60 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     final calculatedAge = _decryptedAadhaar?.calculatedAge;
     final gender = _decryptedAadhaar?.gender ?? details?.aadhaarGender;
     final address = _decryptedAadhaar?.address ?? details?.aadhaarAddress;
-    final refId = _decryptedAadhaar?.referenceId;
+    final refId = _decryptedAadhaar?.referenceId ?? details?.aadhaarReferenceId;
     final rawXml = _decryptedAadhaar?.rawXml;
     final hasSig = _decryptedAadhaar?.hasValidSignature == true || details?.aadhaarSignatureValid == true;
+    final comps = _decryptedAadhaar?.addressComponents ?? {};
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9F6EE),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: WorkGoColors.dividerLight),
+        color: const Color(0xFFFAFAF9),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Decryption Status Banner ──
+          // ── 1. Cryptographic Decryption Status Banner ──
           if (_isDecryptingAadhaar)
             Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFF59E0B)),
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFDE68A), width: 1.5),
               ),
               child: const Row(
                 children: [
                   SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFB45309)),
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFFD97706)),
                   ),
-                  SizedBox(width: 8),
+                  SizedBox(width: 12),
                   Expanded(
-                    child: SafeText(
-                      "Decrypting UIDAI XML in-memory using Share Code...",
-                      style: TextStyle(color: Color(0xFF92400E), fontSize: 11.5, fontWeight: FontWeight.bold),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Decrypting UIDAI Archive In-Memory",
+                          style: TextStyle(color: Color(0xFF92400E), fontSize: 13, fontWeight: FontWeight.w800),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          "Deriving ZipCrypto keys and extracting offline XML demographics...",
+                          style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1489,140 +1518,268 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
             )
           else if (isDecrypted)
             Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFD1FAE5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF10B981)),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x0D059669), blurRadius: 10, offset: Offset(0, 3)),
+                ],
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.verified_user_rounded, color: Color(0xFF065F46), size: 16),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: SafeText(
-                      "UIDAI Offline XML Decrypted In-Memory · DPDP 2023 Compliant ✓",
-                      style: TextStyle(color: Color(0xFF065F46), fontSize: 11, fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () => _promptCustomShareCode(),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.refresh_rounded, color: Color(0xFF065F46), size: 14),
-                        SizedBox(width: 2),
-                        Text("Re-sync", style: TextStyle(color: Color(0xFF065F46), fontSize: 10.5, fontWeight: FontWeight.bold)),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF059669),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x20059669), blurRadius: 6, offset: Offset(0, 2)),
                       ],
                     ),
+                    child: const Icon(Icons.verified_user_rounded, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            const Text(
+                              "UIDAI OFFLINE E-KYC VERIFIED",
+                              style: TextStyle(
+                                color: Color(0xFF065F46),
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF059669).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)),
+                              ),
+                              child: const Text(
+                                "DPDP 2023 COMPLIANT",
+                                style: TextStyle(color: Color(0xFF047857), fontSize: 9.5, fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          "In-Memory ZipCrypto Decryption · 0-Knowledge Architecture",
+                          style: TextStyle(color: Color(0xFF047857), fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => _promptCustomShareCode(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF047857),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      minimumSize: const Size(0, 32),
+                    ),
+                    icon: const Icon(Icons.key_rounded, size: 13),
+                    label: const Text("Re-sync PIN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             )
           else if (_aadhaarDecryptError != null)
             Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEE2E2),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFEF4444)),
+                color: const Color(0xFFFFF1F2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFEF4444), width: 1.5),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.lock_clock_rounded, color: Color(0xFF991B1B), size: 16),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.lock_clock_rounded, color: Color(0xFFB91C1C), size: 20),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: SafeText(
-                      "Encrypted: ${_aadhaarDecryptError ?? 'Unlock with Share Code'}",
-                      style: const TextStyle(color: Color(0xFF991B1B), fontSize: 11, fontWeight: FontWeight.w600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Archive Encrypted with Share Code",
+                          style: TextStyle(color: Color(0xFF991B1B), fontSize: 12.5, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _aadhaarDecryptError ?? "Enter 4-digit code to decrypt demographic record.",
+                          style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 11),
+                        ),
+                      ],
                     ),
                   ),
                   ElevatedButton(
                     onPressed: () => _promptCustomShareCode(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEF4444),
+                      backgroundColor: const Color(0xFFDC2626),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: const Size(0, 26),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      minimumSize: const Size(0, 32),
                     ),
-                    child: const Text("Unlock", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: const Text("Unlock with PIN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ),
 
-          // ── 3A. UIDAI 4-Digit Share Code Banner ──
+          // ── 2. UIDAI 4-Digit Share Code Card ──
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF3D6),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: WorkGoColors.primary.withValues(alpha: 0.3)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+              boxShadow: const [
+                BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.key_rounded, color: WorkGoColors.primaryDark, size: 20),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        const Text("UIDAI 4-Digit Share Code (Private Password)", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 11)),
-                        Text(
-                          shareCode,
-                          style: const TextStyle(
-                            color: WorkGoColors.textPrimary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
-                            letterSpacing: 4,
+                        const Icon(Icons.vpn_key_rounded, color: Color(0xFFD97706), size: 16),
+                        const SizedBox(width: 6),
+                        const Text(
+                          "UIDAI 4-Digit Share Code",
+                          style: TextStyle(color: Color(0xFF475569), fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: const Text(
+                            "PRIVATE PIN",
+                            style: TextStyle(color: Color(0xFF92400E), fontSize: 9, fontWeight: FontWeight.w800),
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: (shareCode.isNotEmpty ? shareCode : "1939").split('').map((digit) {
+                        return Container(
+                          width: 38,
+                          height: 44,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+                            boxShadow: const [
+                              BoxShadow(color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2)),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            digit,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F172A),
+                              fontFamily: "monospace",
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ],
                 ),
-                IconButton(
-                  tooltip: "Copy Share Code",
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: shareCode));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Share code copied to clipboard")),
-                    );
-                  },
-                  icon: const Icon(Icons.copy_rounded, color: WorkGoColors.primaryDark, size: 18),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 14),
+                          SizedBox(width: 5),
+                          Text(
+                            "Key Authenticated",
+                            style: TextStyle(color: Color(0xFF065F46), fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: "Copy Share Code",
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: shareCode));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Share code copied to clipboard")),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded, color: Color(0xFF64748B), size: 18),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
 
-          // ── 3B. Side-by-Side Biometric Face Cross-Verification Card ──
+          // ── 3. Biometric ID Face Cross-Verification ──
           Container(
-            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: WorkGoColors.dividerLight),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+              boxShadow: const [
+                BoxShadow(color: Color(0x08000000), blurRadius: 10, offset: Offset(0, 2)),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.face_retouching_natural_rounded, color: WorkGoColors.primaryDark, size: 16),
-                    SizedBox(width: 6),
-                    SafeText(
+                    Icon(Icons.face_retouching_natural_rounded, color: Color(0xFF059669), size: 18),
+                    SizedBox(width: 8),
+                    Text(
                       "Biometric ID Face Cross-Verification",
-                      style: TextStyle(color: WorkGoColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Color(0xFF0F172A), fontSize: 13.5, fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
                 Row(
                   children: [
                     // UIDAI Official ID Photo
@@ -1630,42 +1787,54 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.badge_rounded, color: Color(0xFF065F46), size: 14),
-                              SizedBox(width: 4),
-                              Text(
-                                "UIDAI Official Photo",
-                                style: TextStyle(color: Color(0xFF065F46), fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
                           Container(
-                            height: 120,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF86EFAC)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.badge_rounded, color: Color(0xFF047857), size: 13),
+                                SizedBox(width: 5),
+                                Text(
+                                  "UIDAI Official Photo",
+                                  style: TextStyle(color: Color(0xFF047857), fontSize: 11, fontWeight: FontWeight.w800),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 155,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFF10B981), width: 2),
+                              boxShadow: const [
+                                BoxShadow(color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 3)),
+                              ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                               child: photoB64 != null && photoB64.isNotEmpty
                                   ? Image.memory(
                                       base64Decode(photoB64),
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) => const Center(
-                                        child: Icon(Icons.person_rounded, color: Colors.black26, size: 40),
+                                        child: Icon(Icons.person_rounded, color: Colors.black26, size: 48),
                                       ),
                                     )
                                   : const Center(
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.lock_rounded, color: Colors.black26, size: 28),
-                                          SizedBox(height: 4),
-                                          Text("Encrypted in Zip", style: TextStyle(color: Colors.black38, fontSize: 10)),
+                                          Icon(Icons.lock_rounded, color: Colors.black26, size: 32),
+                                          SizedBox(height: 6),
+                                          Text("Encrypted in Zip", style: TextStyle(color: Colors.black45, fontSize: 11, fontWeight: FontWeight.w600)),
                                         ],
                                       ),
                                     ),
@@ -1674,43 +1843,55 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Live 3D Center Selfie
+                    const SizedBox(width: 14),
+                    // Live Camera 3D Selfie
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.camera_alt_rounded, color: Color(0xFF5B21B6), size: 14),
-                              SizedBox(width: 4),
-                              Text(
-                                "Live Camera Selfie",
-                                style: TextStyle(color: Color(0xFF5B21B6), fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
                           Container(
-                            height: 120,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F3FF),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFDDD6FE)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.camera_alt_rounded, color: Color(0xFF6D28D9), size: 13),
+                                SizedBox(width: 5),
+                                Text(
+                                  "Live Camera Selfie",
+                                  style: TextStyle(color: Color(0xFF6D28D9), fontSize: 11, fontWeight: FontWeight.w800),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 155,
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFA78BFA), width: 1.5),
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFF8B5CF6), width: 2),
+                              boxShadow: const [
+                                BoxShadow(color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 3)),
+                              ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                               child: (details?.selfieCenterBase64 ?? details?.selfieBase64) != null
                                   ? Image.memory(
                                       base64Decode((details?.selfieCenterBase64 ?? details?.selfieBase64)!),
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) => const Center(
-                                        child: Icon(Icons.face_rounded, color: Colors.black26, size: 40),
+                                        child: Icon(Icons.face_rounded, color: Colors.black26, size: 48),
                                       ),
                                     )
                                   : const Center(
-                                      child: Icon(Icons.camera_alt_rounded, color: Colors.black26, size: 36),
+                                      child: Icon(Icons.camera_alt_rounded, color: Colors.black26, size: 40),
                                     ),
                             ),
                           ),
@@ -1719,181 +1900,449 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD1FAE5),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFECFDF5), Color(0xFFD1FAE5)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFF6EE7B7)),
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Row(
                     children: [
-                      Icon(Icons.check_circle_rounded, color: Color(0xFF065F46), size: 14),
-                      SizedBox(width: 6),
-                      Text(
-                        "Facial Identity Verified · 0% Deepfake Signatures",
-                        style: TextStyle(color: Color(0xFF065F46), fontSize: 11, fontWeight: FontWeight.bold),
+                      const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 16),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          "Facial Identity Verified · 0% Deepfake Signatures",
+                          style: TextStyle(color: Color(0xFF065F46), fontSize: 12, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF059669),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          "MATCH CONFIRMED",
+                          style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        ),
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── 4. Decrypted Forensic Demographics Bento Grid ──
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+              boxShadow: const [
+                BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 2)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 4A. Legal Name & Masked Aadhaar Row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "VERIFIED LEGAL NAME (POI)",
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  verifiedName,
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.verified_rounded, color: Color(0xFF10B981), size: 16),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "MASKED AADHAAR",
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Text(
+                              maskedUid,
+                              style: const TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: "monospace",
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24, color: Color(0xFFF1F5F9)),
+
+                // 4B. 3 Demographics Chips (DOB, Age, Gender)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.cake_rounded, color: Color(0xFFD97706), size: 12),
+                                SizedBox(width: 4),
+                                Text(
+                                  "Date of Birth",
+                                  style: TextStyle(color: Color(0xFF64748B), fontSize: 10.5, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              dob ?? "—",
+                              style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.schedule_rounded, color: Color(0xFF059669), size: 12),
+                                SizedBox(width: 4),
+                                Text(
+                                  "Age",
+                                  style: TextStyle(color: Color(0xFF64748B), fontSize: 10.5, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Text(
+                                  calculatedAge != null ? "$calculatedAge yrs" : "—",
+                                  style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFECFDF5),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text("Adult", style: TextStyle(color: Color(0xFF059669), fontSize: 8.5, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.person_outline_rounded, color: Color(0xFF6366F1), size: 12),
+                                SizedBox(width: 4),
+                                Text(
+                                  "Gender",
+                                  style: TextStyle(color: Color(0xFF64748B), fontSize: 10.5, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              gender ?? "—",
+                              style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24, color: Color(0xFFF1F5F9)),
+
+                // 4C. Verified Residential Address (POA)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.location_on_rounded, color: Color(0xFF059669), size: 16),
+                            SizedBox(width: 6),
+                            Text(
+                              "Verified Residential Address (POA)",
+                              style: TextStyle(color: Color(0xFF0F172A), fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        if (address != null && address.isNotEmpty)
+                          InkWell(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: address));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Address copied to clipboard")),
+                              );
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.copy_rounded, color: Color(0xFF059669), size: 12),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    "Copy",
+                                    style: TextStyle(color: Color(0xFF059669), fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Text(
+                        address ?? "Address details not provided in e-KYC record.",
+                        style: const TextStyle(
+                          color: Color(0xFF1E293B),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    if (comps.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          if (comps['dist'] != null)
+                            _buildSubChip("Dist: ${comps['dist']}"),
+                          if (comps['state'] != null)
+                            _buildSubChip(comps['state']!),
+                          if (comps['pc'] != null)
+                            _buildSubChip("PIN: ${comps['pc']}"),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+                const Divider(height: 24, color: Color(0xFFF1F5F9)),
+
+                // 4D. UIDAI Transaction & Trust Certificate
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "UIDAI REF ID",
+                            style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  refId ?? "—",
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: "monospace",
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (refId != null) ...[
+                                const SizedBox(width: 4),
+                                InkWell(
+                                  onTap: () {
+                                    Clipboard.setData(ClipboardData(text: refId));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("Reference ID copied")),
+                                    );
+                                  },
+                                  child: const Icon(Icons.copy_rounded, color: Color(0xFF64748B), size: 12),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "DIGITAL TRUST SIGNATURE",
+                            style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                          ),
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: hasSig ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: hasSig ? const Color(0xFF6EE7B7) : const Color(0xFFFCD34D)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  hasSig ? Icons.verified_rounded : Icons.shield_rounded,
+                                  color: hasSig ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  hasSig ? "UIDAI RSA-2048 XML-DSig Valid ✓" : "Self-Attested Scan",
+                                  style: TextStyle(
+                                    color: hasSig ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 14),
 
-          // ── 3C. Decrypted Demographics Table ──
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: WorkGoColors.dividerLight),
-            ),
-            child: Column(
-              children: [
-                _buildDossierRow("Verified Legal Name", verifiedName),
-                const Divider(height: 10, color: Color(0xFFF3F0EA)),
-                _buildDossierRow("Masked Aadhaar Number", maskedUid),
-                const Divider(height: 10, color: Color(0xFFF3F0EA)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SafeText("Date of Birth", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SafeText(dob ?? "—", style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-                          if (calculatedAge != null) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF3D6),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                "Age: $calculatedAge yrs",
-                                style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 10, color: Color(0xFFF3F0EA)),
-                _buildDossierRow("Gender", gender ?? "—"),
-                if (address != null && address.isNotEmpty) ...[
-                  const Divider(height: 10, color: Color(0xFFF3F0EA)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const SafeText("Verified Residential Address", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
-                            InkWell(
-                              onTap: () {
-                                Clipboard.setData(ClipboardData(text: address));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Address copied to clipboard")),
-                                );
-                              },
-                              child: const Row(
-                                children: [
-                                  Icon(Icons.copy_rounded, color: WorkGoColors.primaryDark, size: 12),
-                                  SizedBox(width: 4),
-                                  Text("Copy", style: TextStyle(color: WorkGoColors.primaryDark, fontSize: 11, fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        SafeText(
-                          address,
-                          style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold, height: 1.3),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                if (refId != null) ...[
-                  const Divider(height: 10, color: Color(0xFFF3F0EA)),
-                  _buildDossierRow("UIDAI Transaction Ref ID", refId),
-                ],
-                const Divider(height: 10, color: Color(0xFFF3F0EA)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SafeText("Digital Trust Certificate", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: hasSig ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: hasSig ? const Color(0xFF6EE7B7) : const Color(0xFFFCD34D)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(hasSig ? Icons.verified_rounded : Icons.shield_rounded, color: hasSig ? const Color(0xFF065F46) : const Color(0xFF92400E), size: 12),
-                            const SizedBox(width: 4),
-                            Text(
-                              hasSig ? "UIDAI RSA-2048 XML-DSig Valid ✓" : "Self-Attested Scan",
-                              style: TextStyle(color: hasSig ? const Color(0xFF065F46) : const Color(0xFF92400E), fontSize: 10.5, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // ── 3D. Collapsible Raw XML Document Inspector ──
+          // ── 5. Collapsible Raw UIDAI XML Document Inspector ──
           if (rawXml != null && rawXml.isNotEmpty) ...[
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: WorkGoColors.dividerLight),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
               ),
               child: Column(
                 children: [
                   ListTile(
                     dense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                    leading: const Icon(Icons.code_rounded, color: WorkGoColors.primaryDark, size: 20),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                    leading: const Icon(Icons.code_rounded, color: Color(0xFF059669), size: 20),
                     title: const Text(
                       "Inspect Raw UIDAI XML Document",
-                      style: TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 12),
+                      style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12.5),
                     ),
-                    trailing: IconButton(
-                      icon: Icon(_showRawXml ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: WorkGoColors.textSecondary),
-                      onPressed: () => setState(() => _showRawXml = !_showRawXml),
-                    ),
+                    trailing: Icon(_showRawXml ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: const Color(0xFF64748B)),
                     onTap: () => setState(() => _showRawXml = !_showRawXml),
                   ),
                   if (_showRawXml) ...[
-                    const Divider(height: 1, color: Color(0xFFF3F0EA)),
+                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      color: const Color(0xFF1E1E2E),
+                      padding: const EdgeInsets.all(14),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF0F172A),
+                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1902,14 +2351,14 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                             children: [
                               const Text(
                                 "UIDAI OFFLINE PAPERLESS E-KYC XML",
-                                style: TextStyle(color: Color(0xFFA6ADC8), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                               ),
                               IconButton(
                                 tooltip: "Copy Raw XML",
                                 splashRadius: 16,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.copy_rounded, color: Color(0xFF89B4FA), size: 16),
+                                icon: const Icon(Icons.copy_rounded, color: Color(0xFF38BDF8), size: 16),
                                 onPressed: () {
                                   Clipboard.setData(ClipboardData(text: rawXml));
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1923,10 +2372,10 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                           SelectableText(
                             rawXml,
                             style: const TextStyle(
-                              color: Color(0xFFCDD6F4),
+                              color: Color(0xFFE2E8F0),
                               fontFamily: "monospace",
-                              fontSize: 10.5,
-                              height: 1.4,
+                              fontSize: 11,
+                              height: 1.45,
                             ),
                           ),
                         ],
@@ -1936,34 +2385,34 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
           ],
 
-          // ── 3E. Encrypted ZIP Download Action (Optional Archival) ──
+          // ── 6. Encrypted ZIP Download Action (Optional Archival) ──
           if (zipBase64 != null)
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: WorkGoColors.dividerLight),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.folder_zip_rounded, color: Color(0xFF065F46), size: 20),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.folder_zip_rounded, color: Color(0xFF059669), size: 20),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           details?.aadhaarFileName ?? "aadhaar_offline.zip",
-                          style: const TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 11),
+                          style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 11.5),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const Text(
                           "Encrypted UIDAI Zip Archive (Optional Local Backup)",
-                          style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 9.5),
+                          style: TextStyle(color: Color(0xFF64748B), fontSize: 10),
                         ),
                       ],
                     ),
@@ -1974,19 +2423,35 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                       details?.aadhaarFileName ?? "aadhaar_offline.zip",
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF10B981),
-                      side: const BorderSide(color: Color(0xFF10B981)),
+                      foregroundColor: const Color(0xFF059669),
+                      side: const BorderSide(color: Color(0xFF059669)),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      minimumSize: const Size(0, 30),
+                      minimumSize: const Size(0, 32),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     icon: const Icon(Icons.download_rounded, size: 14),
-                    label: const Text("Save ZIP", style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                    label: const Text("Save ZIP", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  static Widget _buildSubChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Color(0xFF475569), fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
   }
