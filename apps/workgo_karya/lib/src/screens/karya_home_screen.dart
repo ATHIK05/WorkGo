@@ -2492,6 +2492,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       stream: _bookingService.streamWorkerIncomingRequests(
         workerId: worker.id,
         skills: worker.skills,
+        workerLat: worker.latitude,
+        workerLng: worker.longitude,
+        maxRadiusKm: worker.serviceRadiusKm,
       ),
       builder: (context, snapshot) {
         final requests = snapshot.data ?? [];

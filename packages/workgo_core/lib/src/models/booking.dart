@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import "package:cloud_firestore/cloud_firestore.dart";
 import "c2pa_manifest_model.dart";
 
@@ -19,6 +20,10 @@ class Booking {
   final double urgencyBonus;
   final double broadcastRadiusKm;
   final DateTime? broadcastExpiresAt;
+  final DateTime? acceptedAt;
+  final String? cancellationReason;
+  final DateTime? cancelledAt;
+  final String? cancelledBy;
   final String? referredByWorkerId;
   final String? acceptedWorkerName;
   final String? invoiceId;
@@ -81,6 +86,10 @@ class Booking {
     this.urgencyBonus = 0.0,
     this.broadcastRadiusKm = 5.0,
     this.broadcastExpiresAt,
+    this.acceptedAt,
+    this.cancellationReason,
+    this.cancelledAt,
+    this.cancelledBy,
     this.referredByWorkerId,
     this.acceptedWorkerName,
     this.invoiceId,
@@ -124,6 +133,28 @@ class Booking {
     this.reviewTags = const [],
     this.ratedAt,
   });
+
+  /// Real-time geodesic Haversine distance in kilometers from customer pickup location to target coordinates.
+  double distanceTo(double? targetLat, double? targetLng) {
+    final cLat = customerLatitude ?? location?.latitude;
+    final cLng = customerLongitude ?? location?.longitude;
+    if (cLat == null || cLng == null || targetLat == null || targetLng == null) {
+      return double.infinity;
+    }
+    if (cLat.abs() <= 0.0001 || cLng.abs() <= 0.0001 || targetLat.abs() <= 0.0001 || targetLng.abs() <= 0.0001) {
+      return double.infinity;
+    }
+    const p = 0.017453292519943295; // Math.PI / 180
+    final a = 0.5 -
+        math.cos((targetLat - cLat) * p) / 2 +
+        math.cos(cLat * p) *
+            math.cos(targetLat * p) *
+            (1 - math.cos((targetLng - cLng) * p)) /
+            2;
+    final clampedA = a.clamp(0.0, 1.0);
+    final dist = 12742.0 * math.asin(math.sqrt(clampedA));
+    return double.parse(dist.toStringAsFixed(2));
+  }
 
   double get totalAmount => amount + urgencyBonus;
   bool get isDiagnosticVisit => bookingType == 'diagnostic' || diagnosticFee > 0;
@@ -178,6 +209,10 @@ class Booking {
       urgencyBonus: (d["urgencyBonus"] ?? 0.0).toDouble(),
       broadcastRadiusKm: (d["broadcastRadiusKm"] ?? 5.0).toDouble(),
       broadcastExpiresAt: (d["broadcastExpiresAt"] as Timestamp?)?.toDate(),
+      acceptedAt: (d["acceptedAt"] as Timestamp?)?.toDate(),
+      cancellationReason: d["cancellationReason"],
+      cancelledAt: (d["cancelledAt"] as Timestamp?)?.toDate(),
+      cancelledBy: d["cancelledBy"],
       referredByWorkerId: d["referredByWorkerId"],
       acceptedWorkerName: d["acceptedWorkerName"],
       invoiceId: d["invoiceId"],
@@ -240,6 +275,10 @@ class Booking {
     "urgencyBonus": urgencyBonus,
     "broadcastRadiusKm": broadcastRadiusKm,
     "broadcastExpiresAt": broadcastExpiresAt != null ? Timestamp.fromDate(broadcastExpiresAt!) : null,
+    "acceptedAt": acceptedAt != null ? Timestamp.fromDate(acceptedAt!) : null,
+    "cancellationReason": cancellationReason,
+    "cancelledAt": cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+    "cancelledBy": cancelledBy,
     "referredByWorkerId": referredByWorkerId,
     "acceptedWorkerName": acceptedWorkerName,
     "invoiceId": invoiceId,
@@ -299,6 +338,10 @@ class Booking {
     double? urgencyBonus,
     double? broadcastRadiusKm,
     DateTime? broadcastExpiresAt,
+    DateTime? acceptedAt,
+    String? cancellationReason,
+    DateTime? cancelledAt,
+    String? cancelledBy,
     String? referredByWorkerId,
     String? acceptedWorkerName,
     String? invoiceId,
@@ -357,6 +400,10 @@ class Booking {
       urgencyBonus: urgencyBonus ?? this.urgencyBonus,
       broadcastRadiusKm: broadcastRadiusKm ?? this.broadcastRadiusKm,
       broadcastExpiresAt: broadcastExpiresAt ?? this.broadcastExpiresAt,
+      acceptedAt: acceptedAt ?? this.acceptedAt,
+      cancellationReason: cancellationReason ?? this.cancellationReason,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
       referredByWorkerId: referredByWorkerId ?? this.referredByWorkerId,
       acceptedWorkerName: acceptedWorkerName ?? this.acceptedWorkerName,
       invoiceId: invoiceId ?? this.invoiceId,

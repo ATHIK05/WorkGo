@@ -130,8 +130,13 @@ class BookingService {
         });
   }
 
-  /// Stream actual live online workers matching trade for map display.
-  Stream<List<Worker>> streamNearbyOnlineWorkers(String serviceType) {
+  /// Stream actual live online workers matching trade for map display, respecting 2-way radius constraints.
+  Stream<List<Worker>> streamNearbyOnlineWorkers(
+    String serviceType, {
+    double? customerLat,
+    double? customerLng,
+    double? customerSearchRadiusKm,
+  }) {
     return _db.collection("workers").snapshots().map((snap) {
       final list = <Worker>[];
       for (final doc in snap.docs) {
@@ -148,9 +153,29 @@ class BookingService {
               serviceType == "All" ||
               skills.any((s) => s.matchesTrade(serviceType));
 
-          if (isOnline && isNotRejected && isVisible && matchesSkill) {
-            list.add(Worker.fromFirestore(doc));
+          if (!isOnline || !isNotRejected || !isVisible || !matchesSkill) {
+            continue;
           }
+
+          final w = Worker.fromFirestore(doc);
+
+          // 2-WAY GEODESIC HAVERSINE RADIUS FILTER (Service Layer)
+          if (customerLat != null && customerLng != null && w.latitude != null && w.longitude != null) {
+            final dist = w.calculateDistanceKm(customerLat, customerLng);
+
+            // Constraint 1: Customer must be within worker's configured working radius
+            final withinWorkerRadius = dist <= w.serviceRadiusKm;
+
+            // Constraint 2: Worker must be within customer's current search/broadcast radius
+            final searchLimit = customerSearchRadiusKm ?? 10.0;
+            final withinCustomerSearch = dist <= searchLimit;
+
+            if (!withinWorkerRadius || !withinCustomerSearch) {
+              continue; // Not mutually reachable
+            }
+          }
+
+          list.add(w);
         } catch (_) {}
       }
       return list;
@@ -160,28 +185,51 @@ class BookingService {
   // ── Worker Streams & Operations ────────────────────────────────────────────
 
   /// Stream incoming pending requests for a worker / skill, including specialist relay requests.
+  /// Strictly filters requests to those within [maxRadiusKm] of [workerLat, workerLng].
   Stream<List<Booking>> streamWorkerIncomingRequests({
     required String workerId,
     required List<String> skills,
+    double? workerLat,
+    double? workerLng,
+    double? maxRadiusKm,
   }) {
     return _db
         .collection("bookings")
         .snapshots()
         .map((snap) {
-          return snap.docs
-              .map((d) => Booking.fromFirestore(d))
-              .where((b) {
-                // Incoming handoff relay directly targeted to this artisan
-                final isRelayTarget = b.handoffStatus == 'requested' && b.handoffToWorkerId == workerId;
-                if (isRelayTarget) return true;
+          final list = <Booking>[];
+          for (final doc in snap.docs) {
+            try {
+              final b = Booking.fromFirestore(doc);
 
-                // Standard pending requests
-                final isPending = b.status == BookingStatus.pending;
-                final isAssignedOrBroadcast = b.workerId == null || b.workerId == workerId || b.referredByWorkerId == workerId;
-                final matchesSkill = skills.isEmpty || skills.any((s) => s.matchesTrade(b.serviceType));
-                return isPending && isAssignedOrBroadcast && matchesSkill;
-              })
-              .toList();
+              // 1. Direct handoff relay targeted to this artisan
+              final isRelayTarget = b.handoffStatus == 'requested' && b.handoffToWorkerId == workerId;
+              if (isRelayTarget) {
+                list.add(b);
+                continue;
+              }
+
+              // 2. Standard pending requests & trade match
+              final isPending = b.status == BookingStatus.pending;
+              final isAssignedOrBroadcast = b.workerId == null || b.workerId == workerId || b.referredByWorkerId == workerId;
+              final matchesSkill = skills.isEmpty || skills.any((s) => s.matchesTrade(b.serviceType));
+              if (!isPending || !isAssignedOrBroadcast || !matchesSkill) {
+                continue;
+              }
+
+              // 3. STRICT GEODESIC HAVERSINE DISTANCE FILTER (Service Layer)
+              if (workerLat != null && workerLng != null && maxRadiusKm != null && maxRadiusKm > 0) {
+                final dist = b.distanceTo(workerLat, workerLng);
+                if (dist > maxRadiusKm) {
+                  // Out of working radius - reject at stream level
+                  continue;
+                }
+              }
+
+              list.add(b);
+            } catch (_) {}
+          }
+          return list;
         });
   }
 
@@ -237,6 +285,7 @@ class BookingService {
     final Map<String, dynamic> updateData = {
       "workerId": workerId,
       "status": BookingStatus.accepted.name,
+      "acceptedAt": FieldValue.serverTimestamp(),
     };
     if (resolvedName != null && resolvedName.isNotEmpty) {
       updateData["acceptedWorkerName"] = resolvedName;
@@ -250,6 +299,35 @@ class BookingService {
     }
 
     await _db.collection("bookings").doc(bookingId).update(updateData);
+  }
+
+  /// Persists updated radius in Firestore so customer-side visibility and worker reception stay in real-time sync.
+  Future<void> updateWorkerServiceRadius(String workerId, double radiusKm) async {
+    await _db.collection("workers").doc(workerId).set({
+      "serviceRadiusKm": radiusKm,
+      "radiusUpdatedAt": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Expands customer broadcast search radius dynamically when no artisans are in range.
+  Future<void> expandBroadcastRadius(String bookingId, double newRadiusKm) async {
+    await _db.collection("bookings").doc(bookingId).update({
+      "broadcastRadiusKm": newRadiusKm,
+    });
+  }
+
+  /// Structured post-acceptance cancellation recording standardized reason and timestamps.
+  Future<void> cancelBookingWithReason({
+    required String bookingId,
+    required String reason,
+    required String cancelledBy,
+  }) async {
+    await _db.collection("bookings").doc(bookingId).update({
+      "status": BookingStatus.cancelled.name,
+      "cancellationReason": reason,
+      "cancelledAt": FieldValue.serverTimestamp(),
+      "cancelledBy": cancelledBy,
+    });
   }
 
   /// Verify Start Job OTP entered by the artisan at the customer doorstep.

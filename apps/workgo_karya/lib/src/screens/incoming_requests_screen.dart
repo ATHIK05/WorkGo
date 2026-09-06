@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
 import '../services/karya_tts_service.dart';
@@ -178,6 +179,9 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
                   stream: bookingService.streamWorkerIncomingRequests(
                     workerId: widget.worker.id,
                     skills: widget.worker.skills,
+                    workerLat: widget.worker.latitude,
+                    workerLng: widget.worker.longitude,
+                    maxRadiusKm: _selectedRadiusKm.toDouble(),
                   ),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -332,9 +336,24 @@ class _IncomingRequestsScreenState extends State<IncomingRequestsScreen> {
                   children: [5, 10, 15, 25].map((rad) {
                     final isSel = _selectedRadiusKm == rad;
                     return GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         HapticFeedback.selectionClick();
                         setState(() => _selectedRadiusKm = rad);
+                        final messenger = ScaffoldMessenger.of(context);
+                        await BookingService().updateWorkerServiceRadius(
+                          widget.worker.id,
+                          rad.toDouble(),
+                        );
+                        if (!mounted) return;
+                        messenger.hideCurrentSnackBar();
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('radar_coverage_updated'.tr(args: [rad.toString()])),
+                            duration: const Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        );
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),

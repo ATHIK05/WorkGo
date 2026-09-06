@@ -362,21 +362,7 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
     if (booking.status == BookingStatus.pending || booking.status == BookingStatus.accepted) {
       return GlowButton(
         label: 'cancel_booking'.tr(),
-        onPressed: () async {
-          await _bookingService.updateBookingStatus(
-              booking.id, BookingStatus.cancelled);
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('booking_cancelled_toast'.tr()),
-                backgroundColor: CX.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-            );
-          }
-        },
+        onPressed: () => _handleCancellationRequest(context, booking),
         gradient: const LinearGradient(
           colors: [Color(0xFF4A1010), Color(0xFFEF4444)],
         ),
@@ -386,6 +372,518 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
     }
 
     return const SizedBox.shrink();
+  }
+
+  void _handleCancellationRequest(BuildContext context, Booking booking) {
+    if (booking.status == BookingStatus.pending) {
+      _showCancellationReasonSheet(context, booking);
+      return;
+    }
+
+    final acceptedAt = booking.acceptedAt ?? booking.startedAt ?? DateTime.now();
+    final elapsedMinutes = DateTime.now().difference(acceptedAt).inMinutes;
+
+    if (elapsedMinutes >= 5) {
+      _showLateTransitSheet(context, booking);
+    } else {
+      _showContactArtisanFirstSheet(context, booking, elapsedMinutes);
+    }
+  }
+
+  void _showContactArtisanFirstSheet(BuildContext context, Booking booking, int elapsedMinutes) {
+    final workerName = booking.genuineArtisanName ??
+        (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+            ? booking.acceptedWorkerName!
+            : 'verified_pro'.tr());
+    final phone = booking.workerPhone;
+    final remainingMinutes = (5 - elapsedMinutes).clamp(1, 5);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Color(0xFFECFDF5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.two_wheeler_rounded, color: Color(0xFF059669), size: 28),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'contact_artisan_title'.tr(),
+              style: WorkGoFonts.heading(
+                color: const Color(0xFF0F172A),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'contact_artisan_subtitle'.tr(args: [
+                elapsedMinutes.toString(),
+                remainingMinutes.toString(),
+              ]),
+              style: WorkGoFonts.body(
+                color: const Color(0xFF64748B),
+                fontSize: 12.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
+                    child: const Icon(Icons.handyman_rounded, color: Color(0xFF059669), size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          workerName,
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          booking.serviceType.toLocalizedTrade(),
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (phone != null && phone.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.call_rounded, color: Color(0xFF059669), size: 22),
+                      onPressed: () async {
+                        final uri = Uri.parse('tel:$phone');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 15),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'contact_artisan_hint'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF475569),
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+            GlowButton(
+              label: 'call_artisan_btn'.tr(args: [workerName]),
+              icon: Icons.phone_in_talk_rounded,
+              gradient: CX.auroraSuccess,
+              glowColor: CX.emerald,
+              height: 50,
+              onPressed: () async {
+                if (phone != null && phone.isNotEmpty) {
+                  final uri = Uri.parse('tel:$phone');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                    return;
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _showCancellationReasonSheet(context, booking);
+              },
+              child: Text(
+                'still_cancel_btn'.tr(),
+                style: const TextStyle(
+                  color: Color(0xFFEF4444),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLateTransitSheet(BuildContext context, Booking booking) {
+    final workerName = booking.genuineArtisanName ??
+        (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+            ? booking.acceptedWorkerName!
+            : 'verified_pro'.tr());
+    final phone = booking.workerPhone;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFFBEB),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.access_time_filled_rounded, color: Color(0xFFD97706), size: 28),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'artisan_in_transit_title'.tr(),
+              style: WorkGoFonts.heading(
+                color: const Color(0xFF0F172A),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'artisan_in_transit_desc'.tr(),
+              style: WorkGoFonts.body(
+                color: const Color(0xFF64748B),
+                fontSize: 13,
+                height: 1.35,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: const Color(0xFFFEF3C7),
+                    child: Text(
+                      workerName.isNotEmpty ? workerName[0].toUpperCase() : 'W',
+                      style: const TextStyle(
+                        color: Color(0xFFB45309),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          workerName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: Color(0xFF0F172A),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'verified_pro'.tr(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            GlowButton(
+              label: 'call_artisan_btn'.tr(args: [workerName]),
+              icon: Icons.phone_in_talk_rounded,
+              gradient: CX.auroraSuccess,
+              glowColor: CX.emerald,
+              height: 50,
+              onPressed: () async {
+                if (phone != null && phone.isNotEmpty) {
+                  final uri = Uri.parse('tel:$phone');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                    return;
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _showSafetyHelpModal(context, booking);
+                  },
+                  child: Text(
+                    'contact_support'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF2563EB),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const Text(" · ", style: TextStyle(color: Color(0xFF94A3B8))),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _showCancellationReasonSheet(context, booking);
+                  },
+                  child: Text(
+                    'still_cancel_btn'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCancellationReasonSheet(BuildContext context, Booking booking) {
+    final reasons = [
+      ('cancel_reason_wrong_address'.tr(), Icons.location_off_rounded),
+      ('cancel_reason_not_needed'.tr(), Icons.event_busy_rounded),
+      ('cancel_reason_emergency'.tr(), Icons.emergency_rounded),
+      ('cancel_reason_delayed'.tr(), Icons.schedule_rounded),
+      ('cancel_reason_other'.tr(), Icons.more_horiz_rounded),
+    ];
+
+    String selectedReason = reasons.first.$1;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Padding(
+            padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'cancel_reason_title'.tr(),
+                  style: WorkGoFonts.heading(
+                    color: const Color(0xFF0F172A),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'cancel_reason_subtitle'.tr(),
+                  style: WorkGoFonts.body(
+                    color: const Color(0xFF64748B),
+                    fontSize: 12.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...reasons.map((item) {
+                  final (label, iconData) = item;
+                  final isSelected = selectedReason == label;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: InkWell(
+                      onTap: () => setSheetState(() => selectedReason = label),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFFEF4444) : const Color(0xFFE2E8F0),
+                            width: isSelected ? 1.4 : 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              iconData,
+                              size: 18,
+                              color: isSelected ? const Color(0xFFDC2626) : const Color(0xFF64748B),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                label,
+                                style: TextStyle(
+                                  color: isSelected ? const Color(0xFF991B1B) : const Color(0xFF1E293B),
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+                              size: 18,
+                              color: isSelected ? const Color(0xFFDC2626) : const Color(0xFF94A3B8),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: Text(
+                          'keep_booking_btn'.tr(),
+                          style: const TextStyle(
+                            color: Color(0xFF475569),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GlowButton(
+                        label: 'confirm_cancellation_btn'.tr(),
+                        onPressed: () async {
+                          Navigator.of(ctx).pop();
+                          await _bookingService.cancelBookingWithReason(
+                            bookingId: booking.id,
+                            reason: selectedReason,
+                            cancelledBy: "customer",
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('booking_cancelled_toast'.tr()),
+                                backgroundColor: CX.error,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                            );
+                          }
+                        },
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4A1010), Color(0xFFEF4444)],
+                        ),
+                        glowColor: CX.rose,
+                        height: 48,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showSafetyHelpModal(BuildContext context, Booking booking) {
