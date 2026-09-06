@@ -16,6 +16,9 @@ void main() {
   Booking createBooking({
     PaymentStatus paymentStatus = PaymentStatus.unpaid,
     String? invoiceId,
+    bool isRated = false,
+    double? rating,
+    String? reviewComment,
   }) {
     return Booking(
       id: 'bk_1w6f4hqc',
@@ -35,6 +38,9 @@ void main() {
       suggestedToolsNeeded: const [],
       invoiceId: invoiceId,
       acceptedWorkerName: 'Plumbing Specialist',
+      isRated: isRated,
+      rating: rating,
+      reviewComment: reviewComment,
     );
   }
 
@@ -87,5 +93,114 @@ void main() {
     // Should render receipt view
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
     expect(find.byIcon(Icons.verified_user_rounded), findsOneWidget);
+  });
+
+  testWidgets('PaymentReceiptScreen displays dynamic Direct UPI and Cash options when unpaid', (tester) async {
+    final booking = createBooking(paymentStatus: PaymentStatus.unpaid);
+
+    await tester.pumpWidget(
+      createTestWidget(
+        PaymentReceiptScreen(
+          booking: booking,
+          workerName: 'Plumbing Specialist',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Should render payment form elements
+    expect(find.text('₹180'), findsWidgets);
+    expect(find.byIcon(Icons.qr_code_2_rounded), findsWidgets);
+    expect(find.byIcon(Icons.payments_rounded), findsWidgets);
+    // Should NOT have hardcoded "Pay via Razorpay"
+    expect(find.textContaining('Pay via Razorpay'), findsNothing);
+  });
+
+  testWidgets('PaymentReceiptScreen displays Rate button when booking is not rated', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final booking = createBooking(
+      paymentStatus: PaymentStatus.paid,
+      invoiceId: 'TXN-1788625675505',
+      isRated: false,
+    );
+
+    await tester.pumpWidget(
+      createTestWidget(
+        PaymentReceiptScreen(
+          booking: booking,
+          workerName: 'Plumbing Specialist',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WorkGoButton), findsOneWidget);
+    expect(find.text('rate_service'), findsOneWidget);
+    expect(find.text('experience_rated_title'), findsNothing);
+  });
+
+  testWidgets('PaymentReceiptScreen displays Experience Rated card when booking is already rated', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final booking = createBooking(
+      paymentStatus: PaymentStatus.paid,
+      invoiceId: 'TXN-1788625675505',
+      isRated: true,
+      rating: 5.0,
+      reviewComment: 'Outstanding plumbing work, fixed the pipe leak swiftly!',
+    );
+
+    await tester.pumpWidget(
+      createTestWidget(
+        PaymentReceiptScreen(
+          booking: booking,
+          workerName: 'Plumbing Specialist',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Rate button must NOT be shown
+    expect(find.text('rate_service'), findsNothing);
+
+    // Experience Rated card MUST be shown
+    expect(find.text('experience_rated_title'), findsOneWidget);
+    expect(find.text('5.0 / 5.0'), findsOneWidget);
+    expect(
+      find.text('"Outstanding plumbing work, fixed the pipe leak swiftly!"'),
+      findsOneWidget,
+    );
+    expect(find.text('edit_rating'), findsOneWidget);
+  });
+
+  testWidgets('PaymentReceiptScreen displays genuine artisan name instead of generic specialist role', (tester) async {
+    final booking = createBooking(
+      paymentStatus: PaymentStatus.paid,
+      invoiceId: 'TXN-1788625675505',
+    ).copyWith(acceptedWorkerName: 'Ramesh Kumar');
+
+    await tester.pumpWidget(
+      createTestWidget(
+        PaymentReceiptScreen(
+          booking: booking,
+          workerName: 'Ramesh Kumar',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ramesh Kumar'), findsWidgets);
+    expect(find.text('Plumbing Specialist'), findsNothing);
   });
 }

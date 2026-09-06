@@ -32,6 +32,7 @@ class Booking {
   final double? customerLongitude;
   final String? customerName;
   final String? customerPhone;
+  final String? customerEmail;
   final String? workerPhone;
   final bool deletedByCustomer;
   final DateTime? startedAt;
@@ -57,6 +58,13 @@ class Booking {
   final DateTime? handoffRequestedAt;
   final DateTime? handoffAcceptedAt;
   final List<Map<String, dynamic>> handoffLogs;
+
+  // Rating & Review metadata
+  final bool isRated;
+  final double? rating;
+  final String? reviewComment;
+  final List<String> reviewTags;
+  final DateTime? ratedAt;
 
   Booking({
     required this.id,
@@ -86,6 +94,7 @@ class Booking {
     this.customerLongitude,
     this.customerName,
     this.customerPhone,
+    this.customerEmail,
     this.workerPhone,
     this.deletedByCustomer = false,
     this.startedAt,
@@ -109,6 +118,11 @@ class Booking {
     this.handoffRequestedAt,
     this.handoffAcceptedAt,
     this.handoffLogs = const [],
+    this.isRated = false,
+    this.rating,
+    this.reviewComment,
+    this.reviewTags = const [],
+    this.ratedAt,
   });
 
   double get totalAmount => amount + urgencyBonus;
@@ -117,6 +131,29 @@ class Booking {
   bool get hasProofPhoto => proofPhotoBase64 != null && proofPhotoBase64!.isNotEmpty;
   C2paManifestRecord? get parsedC2paManifest =>
       c2paManifest != null ? C2paManifestRecord.fromMap(c2paManifest!) : null;
+
+  /// Returns true if [name] is a generic role/title or placeholder rather than an artisan's authentic personal name.
+  static bool isGenericArtisanName(String? name) {
+    if (name == null || name.trim().isEmpty) return true;
+    final lower = name.trim().toLowerCase();
+    return lower == 'artisan' ||
+        lower == 'cooperative artisan' ||
+        lower == 'co-op artisan' ||
+        lower == 'partner' ||
+        lower == 'worker' ||
+        lower == 'artisian' ||
+        lower == 'verified pro' ||
+        lower == 'verified artisan' ||
+        lower == 'specialist' ||
+        lower.contains('specialist');
+  }
+
+  /// Returns the genuine personal name of the assigned artisan if recorded and authentic, or null if placeholder/missing.
+  String? get genuineArtisanName {
+    final name = acceptedWorkerName?.trim();
+    if (name == null || name.isEmpty) return null;
+    return isGenericArtisanName(name) ? null : name;
+  }
 
   factory Booking.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
@@ -154,6 +191,7 @@ class Booking {
       customerLongitude: (d["customerLongitude"] as num?)?.toDouble(),
       customerName: d["customerName"] ?? d["userName"] ?? d["name"],
       customerPhone: d["customerPhone"] ?? d["userPhone"] ?? d["phone"],
+      customerEmail: d["customerEmail"] ?? d["userEmail"] ?? d["email"],
       workerPhone: d["workerPhone"] ?? d["artisanPhone"] ?? d["phoneForCalling"],
       deletedByCustomer: d["deletedByCustomer"] ?? d["hiddenForCustomer"] ?? false,
       startedAt: (d["startedAt"] as Timestamp?)?.toDate(),
@@ -180,6 +218,11 @@ class Booking {
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           const [],
+      isRated: d["isRated"] ?? (d["rating"] != null),
+      rating: (d["rating"] as num?)?.toDouble(),
+      reviewComment: d["reviewComment"] ?? d["comment"],
+      reviewTags: List<String>.from(d["reviewTags"] ?? d["tags"] ?? []),
+      ratedAt: (d["ratedAt"] as Timestamp?)?.toDate() ?? (d["reviewedAt"] as Timestamp?)?.toDate(),
     );
   }
 
@@ -211,6 +254,7 @@ class Booking {
     "customerLongitude": customerLongitude,
     "customerName": customerName,
     "customerPhone": customerPhone,
+    "customerEmail": customerEmail,
     "workerPhone": workerPhone,
     "startedAt": startedAt != null ? Timestamp.fromDate(startedAt!) : null,
     "completedAt": completedAt != null ? Timestamp.fromDate(completedAt!) : null,
@@ -233,6 +277,11 @@ class Booking {
     "handoffRequestedAt": handoffRequestedAt != null ? Timestamp.fromDate(handoffRequestedAt!) : null,
     "handoffAcceptedAt": handoffAcceptedAt != null ? Timestamp.fromDate(handoffAcceptedAt!) : null,
     "handoffLogs": handoffLogs,
+    "isRated": isRated,
+    "rating": rating,
+    "reviewComment": reviewComment,
+    "reviewTags": reviewTags,
+    "ratedAt": ratedAt != null ? Timestamp.fromDate(ratedAt!) : null,
   };
 
   Booking copyWith({
@@ -263,6 +312,7 @@ class Booking {
     double? customerLongitude,
     String? customerName,
     String? customerPhone,
+    String? customerEmail,
     String? workerPhone,
     bool? deletedByCustomer,
     DateTime? startedAt,
@@ -286,6 +336,11 @@ class Booking {
     DateTime? handoffRequestedAt,
     DateTime? handoffAcceptedAt,
     List<Map<String, dynamic>>? handoffLogs,
+    bool? isRated,
+    double? rating,
+    String? reviewComment,
+    List<String>? reviewTags,
+    DateTime? ratedAt,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -315,6 +370,7 @@ class Booking {
       customerLongitude: customerLongitude ?? this.customerLongitude,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
+      customerEmail: customerEmail ?? this.customerEmail,
       workerPhone: workerPhone ?? this.workerPhone,
       deletedByCustomer: deletedByCustomer ?? this.deletedByCustomer,
       startedAt: startedAt ?? this.startedAt,
@@ -338,6 +394,11 @@ class Booking {
       handoffRequestedAt: handoffRequestedAt ?? this.handoffRequestedAt,
       handoffAcceptedAt: handoffAcceptedAt ?? this.handoffAcceptedAt,
       handoffLogs: handoffLogs ?? this.handoffLogs,
+      isRated: isRated ?? this.isRated,
+      rating: rating ?? this.rating,
+      reviewComment: reviewComment ?? this.reviewComment,
+      reviewTags: reviewTags ?? this.reviewTags,
+      ratedAt: ratedAt ?? this.ratedAt,
     );
   }
 }

@@ -188,7 +188,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                       final job = allJobs[i];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: _LedgerTile(job: job),
+                        child: _LedgerTile(job: job, worker: widget.worker),
                       );
                     }),
                   ],
@@ -578,8 +578,9 @@ class _HeroEarningMasterCard extends StatelessWidget {
 //  LEDGER TILE (20px Modern Card)
 // ──────────────────────────────────────────────────────────────
 class _LedgerTile extends StatelessWidget {
-  const _LedgerTile({required this.job});
+  const _LedgerTile({required this.job, required this.worker});
   final Booking job;
+  final Worker worker;
 
   @override
   Widget build(BuildContext context) {
@@ -590,82 +591,124 @@ class _LedgerTile extends StatelessWidget {
 
     final tradeTitle = job.serviceType.toLocalizedTrade();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isCompleted ? const Color(0xFFD1FAE5) : const Color(0xFFFFF3D6),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              isCompleted ? Icons.check_circle_rounded : Icons.pending_rounded,
-              color: isCompleted ? const Color(0xFF047857) : const Color(0xFFD97706),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tradeTitle,
-                  style: WorkGoFonts.heading(
-                    color: KX.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
+        onTap: isCompleted
+            ? () async {
+                HapticFeedback.lightImpact();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('generating_invoice'.tr()),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: const Color(0xFF141416),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  "$dateStr · ${job.status.name.toUpperCase()}",
-                  style: WorkGoFonts.body(
-                    color: const Color(0xFF6B6B6B),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                "₹${job.totalAmount.toStringAsFixed(0)}",
-                style: WorkGoFonts.numeric(
-                  color: const Color(0xFF141416),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                "Net: ₹${(job.totalAmount * 0.98).toStringAsFixed(0)}",
-                style: const TextStyle(
-                  color: Color(0xFF047857),
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                ),
+                );
+                try {
+                  await InvoiceService.exportInvoicePdf(
+                    booking: job,
+                    workerName: worker.name,
+                    paymentMethod: "UPI",
+                    context: context,
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('invoice_export_error'.tr(args: ['$e'])),
+                        backgroundColor: const Color(0xFFEF4444),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              }
+            : null,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 10,
+                offset: Offset(0, 2),
               ),
             ],
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isCompleted ? const Color(0xFFD1FAE5) : const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isCompleted ? Icons.receipt_long_rounded : Icons.pending_rounded,
+                  color: isCompleted ? const Color(0xFF047857) : const Color(0xFFD97706),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tradeTitle,
+                      style: WorkGoFonts.heading(
+                        color: KX.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "$dateStr · ${job.status.name.toUpperCase()}${isCompleted ? ' · Tap for Receipt' : ''}",
+                      style: WorkGoFonts.body(
+                        color: isCompleted ? const Color(0xFF047857) : const Color(0xFF6B6B6B),
+                        fontSize: 11,
+                        fontWeight: isCompleted ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "₹${job.totalAmount.toStringAsFixed(0)}",
+                    style: WorkGoFonts.numeric(
+                      color: const Color(0xFF141416),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Net: ₹${(job.totalAmount * 0.98).toStringAsFixed(0)}",
+                    style: const TextStyle(
+                      color: Color(0xFF047857),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              if (isCompleted) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF9CA3AF)),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

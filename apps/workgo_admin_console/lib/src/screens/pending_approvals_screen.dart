@@ -1387,18 +1387,6 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     );
   }
 
-  Widget _buildDossierRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          SafeText(label, style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
-          SafeText(value, style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
 
   Widget _buildAuditItem(VerificationAuditLog log) {
     final timeStr = log.timestamp.to12HourTime();

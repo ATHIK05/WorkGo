@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
-import '../widgets/translated_text.dart';
 import 'live_booking_tracker_screen.dart';
 import 'rapido_live_broadcast_screen.dart';
 
@@ -43,6 +43,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
   final _phoneController = TextEditingController();
   String? _customerName;
   String? _customerPhone;
+  String? _customerEmail;
   UserAddress? _selectedAddress;
   bool _isSubmitting = false;
 
@@ -94,6 +95,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         final ud = userDoc.data() ?? {};
         _customerName = ud["displayName"] ?? ud["name"];
         _customerPhone = ud["phoneNumber"] ?? ud["phone"] ?? ud["mobile"];
+        _customerEmail = ud["email"] ?? ud["mail"];
         if (_customerPhone != null &&
             _customerPhone!.isNotEmpty &&
             _phoneController.text.isEmpty &&
@@ -102,6 +104,23 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
             _phoneController.text = _customerPhone!;
           });
         }
+      }
+
+      // Fallback to FirebaseAuth currentUser if user doc fields were empty
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (_customerName == null || _customerName!.isEmpty) {
+        _customerName = currentUser?.displayName;
+      }
+      if (_customerPhone == null || _customerPhone!.isEmpty) {
+        _customerPhone = currentUser?.phoneNumber;
+        if (_customerPhone != null && _customerPhone!.isNotEmpty && _phoneController.text.isEmpty && mounted) {
+          setState(() {
+            _phoneController.text = _customerPhone!;
+          });
+        }
+      }
+      if (_customerEmail == null || _customerEmail!.isEmpty) {
+        _customerEmail = currentUser?.email;
       }
 
       // 1. Try user's saved addresses subcollection (UserAddress)
@@ -322,6 +341,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         customerLongitude: custLng,
         customerName: _customerName,
         customerPhone: contactPhone,
+        customerEmail: _customerEmail,
       );
 
       if (mounted) {
@@ -1626,102 +1646,6 @@ class _SlotChip extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────
-//  AURORA TEXT FIELD
-// ──────────────────────────────────────────────────────
-class _AuroraTextField extends StatefulWidget {
-  const _AuroraTextField({
-    required this.controller,
-    required this.hintText,
-    this.prefixIcon,
-    this.prefixIconColor,
-    this.maxLines = 1,
-    this.keyboardType,
-  });
-
-  final TextEditingController controller;
-  final String hintText;
-  final IconData? prefixIcon;
-  final Color? prefixIconColor;
-  final int maxLines;
-  final TextInputType? keyboardType;
-
-  @override
-  State<_AuroraTextField> createState() => _AuroraTextFieldState();
-}
-
-class _AuroraTextFieldState extends State<_AuroraTextField> {
-  bool _focused = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: CAnim.normal,
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _focused
-              ? (widget.prefixIconColor ?? CX.violet)
-              : const Color(0xFFE2E8F0),
-          width: _focused ? 1.5 : 1.2,
-        ),
-        boxShadow: _focused
-            ? [
-                BoxShadow(
-                  color: (widget.prefixIconColor ?? CX.violet).withValues(alpha: 0.15),
-                  blurRadius: 10,
-                ),
-              ]
-            : const [
-                BoxShadow(
-                  color: Color(0x06000000),
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
-      ),
-      child: TextField(
-        controller: widget.controller,
-        maxLines: widget.maxLines,
-        keyboardType: widget.keyboardType,
-        style: const TextStyle(
-          color: Color(0xFF0F172A),
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-        onTap: () => setState(() => _focused = true),
-        onTapOutside: (_) => setState(() => _focused = false),
-        decoration: InputDecoration(
-          hintText: widget.hintText,
-          hintStyle: const TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-          prefixIcon: widget.prefixIcon != null
-              ? Icon(widget.prefixIcon, color: widget.prefixIconColor ?? CX.violet, size: 20)
-              : null,
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ──────────────────────────────────────────────────────
 //  PRICE BREAKDOWN CARD — Professional High-Contrast Card

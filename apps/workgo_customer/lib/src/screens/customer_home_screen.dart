@@ -11,6 +11,7 @@ import 'booking_creation_screen.dart';
 import 'live_booking_tracker_screen.dart';
 import 'rapido_live_broadcast_screen.dart';
 import 'payment_receipt_screen.dart';
+import 'rating_review_screen.dart';
 import 'worker_search_screen.dart';
 import 'voice_ai_triage_screen.dart';
 import '../services/ml_translation_service.dart';
@@ -2926,8 +2927,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               )
               .toList();
           final activeCount = activeBookings.length;
-          final completedCount = allBookings
+          final completedBookings = allBookings
               .where((b) => b.status == BookingStatus.completed)
+              .toList();
+          final completedCount = completedBookings.length;
+          final unratedCount = completedBookings
+              .where((b) => !b.isRated && b.rating == null)
               .length;
           final cancelledCount = allBookings
               .where((b) => b.status == BookingStatus.cancelled)
@@ -2941,6 +2946,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             }
             if (_bookingFilter == "completed") {
               return b.status == BookingStatus.completed;
+            }
+            if (_bookingFilter == "unrated") {
+              return b.status == BookingStatus.completed &&
+                  !b.isRated &&
+                  b.rating == null;
             }
             if (_bookingFilter == "cancelled") {
               return b.status == BookingStatus.cancelled;
@@ -3082,6 +3092,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         "completed",
                         'filter_completed'.tr(),
                         completedCount,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildBookingFilterPill(
+                        "unrated",
+                        'filter_unrated'.tr(),
+                        unratedCount,
                       ),
                       const SizedBox(width: 8),
                       _buildBookingFilterPill(
@@ -5770,6 +5786,50 @@ class _BookingListTile extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (isCompleted && (booking.isRated || booking.rating != null)) ...[
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: const Color(0xFFFDE68A),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    color: Color(0xFFD97706),
+                                    size: 11,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Flexible(
+                                    child: Text(
+                                      booking.rating != null
+                                          ? "${booking.rating!.toStringAsFixed(1)} ${'rated_badge_label'.tr().toUpperCase()}"
+                                          : "rated_badge_label".tr().toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Color(0xFF92400E),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -5810,94 +5870,149 @@ class _BookingListTile extends StatelessWidget {
                   ),
                 )
               else if (isCompleted)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Invoice & Receipt Button
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        final receiptWorker =
-                            (booking.acceptedWorkerName?.isNotEmpty ==
-                                    true &&
-                                booking.acceptedWorkerName!.toLowerCase() !=
-                                    'artisan')
-                            ? booking.acceptedWorkerName!
-                            : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => PaymentReceiptScreen(
-                              booking: booking,
-                              workerName: receiptWorker,
-                              isReceiptOnly: true,
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // If unrated, offer quick-action Rate button
+                      if (!booking.isRated && booking.rating == null) ...[
+                        Flexible(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              final receiptWorker = booking.genuineArtisanName ??
+                                  (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                                      ? booking.acceptedWorkerName!
+                                      : "");
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => RatingReviewScreen(
+                                    booking: booking,
+                                    workerName: receiptWorker.isNotEmpty ? receiptWorker : "Cooperative Artisan",
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.star_rounded,
+                              color: Color(0xFFD97706),
+                              size: 13,
+                            ),
+                            label: Text(
+                              "rate_service".tr(),
+                              style: const TextStyle(
+                                color: Color(0xFFD97706),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFFDE68A)),
+                              backgroundColor: const Color(0xFFFFFBEB),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 6,
+                              ),
+                              minimumSize: const Size(0, 34),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           ),
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.receipt_long_rounded,
-                        color: Color(0xFF2563EB),
-                        size: 13,
-                      ),
-                      label: Text(
-                        "receipt".tr(),
-                        style: const TextStyle(
-                          color: Color(0xFF2563EB),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFBFDBFE)),
-                        backgroundColor: const Color(0xFFEFF6FF),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        minimumSize: const Size(0, 34),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    if (onBookAgain != null) ...[
-                      const SizedBox(width: 6),
-                      ElevatedButton.icon(
-                        onPressed: onBookAgain,
-                        icon: const Icon(
-                          Icons.replay_rounded,
-                          color: Colors.white,
-                          size: 13,
-                        ),
-                        label: Text(
-                          "book_again".tr(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
+                        const SizedBox(width: 4),
+                      ],
+
+                      // Invoice & Receipt Button
+                      Flexible(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            final receiptWorker = booking.genuineArtisanName ??
+                                (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                                    ? booking.acceptedWorkerName!
+                                    : "");
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PaymentReceiptScreen(
+                                  booking: booking,
+                                  workerName: receiptWorker.isNotEmpty ? receiptWorker : "Cooperative Artisan",
+                                  isReceiptOnly: true,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.receipt_long_rounded,
+                            color: Color(0xFF2563EB),
+                            size: 13,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF141416),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
+                          label: Text(
+                            "receipt".tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF2563EB),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          minimumSize: const Size(0, 34),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFBFDBFE)),
+                            backgroundColor: const Color(0xFFEFF6FF),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            minimumSize: const Size(0, 34),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),
+                      if (onBookAgain != null) ...[
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: ElevatedButton.icon(
+                            onPressed: onBookAgain,
+                            icon: const Icon(
+                              Icons.replay_rounded,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                            label: Text(
+                              "book_again".tr(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF141416),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 6,
+                              ),
+                              minimumSize: const Size(0, 34),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
             ],
           ),

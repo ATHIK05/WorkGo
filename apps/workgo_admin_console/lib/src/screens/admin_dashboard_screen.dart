@@ -10,6 +10,7 @@ import 'pending_approvals_screen.dart';
 import 'proxy_verification_queue_screen.dart';
 import 'smart_demand_insights_screen.dart';
 import 'worker_welfare_management_screen.dart';
+import 'payment_gateways_hub_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({
@@ -160,6 +161,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       3 => const SmartDemandInsightsScreen(),
                       4 => const WorkerWelfareManagementScreen(),
                       5 => const ProxyVerificationQueueScreen(),
+                      6 => const PaymentGatewaysHubScreen(),
                       _ => _buildRealTimeOverviewCockpit(context),
                     },
                   ),
@@ -400,6 +402,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 _buildNavItem(3, Icons.insights_rounded, "Demand Insights", isCompact),
                 _buildNavItem(4, Icons.health_and_safety_rounded, "Welfare & Corpus", isCompact),
                 _buildNavItem(5, Icons.phone_forwarded_rounded, "Proxy Voice Queue", isCompact, badgeColor: AX.violet),
+                _buildNavItem(6, Icons.account_balance_wallet_rounded, "Payments & Gateways", isCompact, badgeColor: const Color(0xFF059669)),
               ],
             ),
           ),

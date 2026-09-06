@@ -266,18 +266,27 @@ class LocationService {
 
     // 2. Second attempt: Clean locality query (strip prefixes like "Home, ", "Work, ", "Near ", etc.)
     final pinMatch = RegExp(r'\b[1-9][0-9]{5}\b').firstMatch(raw);
-    final pincode = pinMatch != null ? pinMatch.group(0) : null;
+    final pincode = pinMatch?.group(0);
 
     final lower = raw.toLowerCase();
     String detectedCity = "";
-    if (lower.contains("erode")) detectedCity = "Erode";
-    else if (lower.contains("perundurai")) detectedCity = "Perundurai";
-    else if (lower.contains("coimbatore")) detectedCity = "Coimbatore";
-    else if (lower.contains("salem")) detectedCity = "Salem";
-    else if (lower.contains("chennai")) detectedCity = "Chennai";
-    else if (lower.contains("tiruppur")) detectedCity = "Tiruppur";
-    else if (lower.contains("bhavani")) detectedCity = "Bhavani";
-    else if (lower.contains("thindal")) detectedCity = "Thindal, Erode";
+    if (lower.contains("erode")) {
+      detectedCity = "Erode";
+    } else if (lower.contains("perundurai")) {
+      detectedCity = "Perundurai";
+    } else if (lower.contains("coimbatore")) {
+      detectedCity = "Coimbatore";
+    } else if (lower.contains("salem")) {
+      detectedCity = "Salem";
+    } else if (lower.contains("chennai")) {
+      detectedCity = "Chennai";
+    } else if (lower.contains("tiruppur")) {
+      detectedCity = "Tiruppur";
+    } else if (lower.contains("bhavani")) {
+      detectedCity = "Bhavani";
+    } else if (lower.contains("thindal")) {
+      detectedCity = "Thindal, Erode";
+    }
 
     if (pincode != null && detectedCity.isNotEmpty) {
       final secondTry = await executeQuery("$pincode, $detectedCity, Tamil Nadu, India");

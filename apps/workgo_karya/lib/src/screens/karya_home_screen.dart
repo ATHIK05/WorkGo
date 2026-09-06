@@ -2691,6 +2691,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                 await _bookingService.acceptBooking(
                                   topReq!.id,
                                   worker.id,
+                                  workerName: worker.name,
+                                  workerPhone: worker.phoneForCalling,
                                 );
                                 if (context.mounted) {
                                   Navigator.of(context).push(

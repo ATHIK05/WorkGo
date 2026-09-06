@@ -43,6 +43,11 @@ dependencies:
   screen_brightness: ^2.0.0
   local_auth: ^2.3.0
 
+  # PDF invoice generation & sharing
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  share_plus: ^10.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

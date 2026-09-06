@@ -100,19 +100,12 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                             booking.workerLatitude ?? liveWorker?.latitude;
                         final effectiveWorkerLng =
                             booking.workerLongitude ?? liveWorker?.longitude;
-                        String effectiveWorkerName =
-                            (booking.acceptedWorkerName?.isNotEmpty == true)
-                                ? booking.acceptedWorkerName!
-                                : (liveWorker?.name.isNotEmpty == true
-                                    ? liveWorker!.name
-                                    : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}");
-                        if (effectiveWorkerName.toLowerCase() == 'artisan' ||
-                            effectiveWorkerName.toLowerCase() == 'partner' ||
-                            effectiveWorkerName.toLowerCase() == 'worker') {
-                          effectiveWorkerName = liveWorker?.name.isNotEmpty == true
-                              ? liveWorker!.name
-                              : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
-                        }
+                        String effectiveWorkerName = booking.genuineArtisanName ??
+                            (liveWorker != null && liveWorker.name.isNotEmpty && !Booking.isGenericArtisanName(liveWorker.name)
+                                ? liveWorker.name
+                                : (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                                    ? booking.acceptedWorkerName!
+                                    : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}"));
 
                         String trackerAddress = booking.customerAddressText ?? 'current_live_location'.tr();
                         if (trackerAddress.toLowerCase().contains("mumbai") ||
@@ -265,10 +258,10 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
     if (booking.status == BookingStatus.completed) {
       final isPaid = booking.paymentStatus == PaymentStatus.paid ||
           (booking.invoiceId != null && booking.invoiceId!.isNotEmpty);
-      final workerName = (booking.acceptedWorkerName?.isNotEmpty == true &&
-              booking.acceptedWorkerName!.toLowerCase() != 'artisan')
-          ? booking.acceptedWorkerName!
-          : "${booking.serviceType.toLocalizedTrade()} ${'specialist'.tr()}";
+      final workerName = booking.genuineArtisanName ??
+          (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+              ? booking.acceptedWorkerName!
+              : "");
 
       return GlowButton(
         label: isPaid ? 'invoice_receipt'.tr() : 'pay_now'.tr(),

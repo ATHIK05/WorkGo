@@ -30,7 +30,8 @@ void main() {
     expect(firstField.style?.color, const Color(0xFF0F172A));
     expect(firstField.decoration?.fillColor, Colors.transparent);
 
-    // Verify action button is present
+    // Verify action button is present and not verified initially
     expect(find.text("Verify & Start Service"), findsOneWidget);
+    expect(verified, isFalse);
   });
 }

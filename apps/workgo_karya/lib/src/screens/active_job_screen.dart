@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -190,7 +191,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
               }
             } catch (e) {
               debugPrint("[ActiveJobScreen] Camera capture error: $e");
-              if (mounted) {
+              if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text("Camera capture error: $e"),
@@ -804,13 +805,65 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
     }
 
     if (status == BookingStatus.completed) {
-      return KaryaButton(
-        label: "hud_back_home".tr(),
-        icon: Icons.home_rounded,
-        onPressed: () => Navigator.of(context).pop(),
-        gradient: KX.luminaVioletGold,
-        glowColor: KX.gold,
-        height: 50,
+      return Column(
+        children: [
+          OutlinedButton.icon(
+            onPressed: () async {
+              HapticFeedback.lightImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('generating_invoice'.tr()),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                  backgroundColor: const Color(0xFF141416),
+                ),
+              );
+              try {
+                await InvoiceService.exportInvoicePdf(
+                  booking: currentBooking,
+                  workerName: widget.worker.name,
+                  paymentMethod: "UPI",
+                  context: context,
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('invoice_export_error'.tr(args: ['$e'])),
+                      backgroundColor: const Color(0xFFEF4444),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.receipt_long_rounded, color: KX.textPrimary, size: 18),
+            label: Text(
+              "invoice_receipt".tr(),
+              style: WorkGoFonts.display(
+                color: KX.textPrimary,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFD1D5DB), width: 1.5),
+              backgroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              minimumSize: const Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          KaryaButton(
+            label: "hud_back_home".tr(),
+            icon: Icons.home_rounded,
+            onPressed: () => Navigator.of(context).pop(),
+            gradient: KX.luminaVioletGold,
+            glowColor: KX.gold,
+            height: 50,
+          ),
+        ],
       );
     }
 
@@ -1000,6 +1053,37 @@ class _ServiceCustomerCard extends StatefulWidget {
 
 class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
   final Set<String> _verifiedTools = {};
+  String? _resolvedCustomerName;
+  String? _resolvedCustomerPhone;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedCustomerName = widget.booking.customerName;
+    _resolvedCustomerPhone = widget.booking.customerPhone;
+    if (_resolvedCustomerName == null || _resolvedCustomerName!.isEmpty || _resolvedCustomerName == "Customer Patron") {
+      _resolveCustomer();
+    }
+  }
+
+  Future<void> _resolveCustomer() async {
+    try {
+      final cId = widget.booking.customerId;
+      if (cId.isEmpty) return;
+      final uDoc = await FirebaseFirestore.instance.collection('users').doc(cId).get();
+      if (uDoc.exists) {
+        final d = uDoc.data() ?? {};
+        final name = (d['displayName'] ?? d['name'] ?? d['fullName'] ?? '').toString().trim();
+        final phone = (d['phoneNumber'] ?? d['phone'] ?? '').toString().trim();
+        if (mounted) {
+          setState(() {
+            if (name.isNotEmpty) _resolvedCustomerName = name;
+            if (phone.isNotEmpty) _resolvedCustomerPhone = phone;
+          });
+        }
+      }
+    } catch (_) {}
+  }
 
   // true when booking has no server-side tools but local AI can suggest some
   bool get _hasAiSuggestions {
@@ -1149,9 +1233,11 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      booking.customerName?.isNotEmpty == true
-                          ? booking.customerName!
-                          : "Customer Patron",
+                      _resolvedCustomerName?.isNotEmpty == true
+                          ? _resolvedCustomerName!
+                          : (booking.customerName?.isNotEmpty == true
+                              ? booking.customerName!
+                              : "Valued Customer"),
                       style: const TextStyle(
                         color: KX.textPrimary,
                         fontSize: 13,
@@ -1162,9 +1248,11 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                     ),
                     if ((widget.status == BookingStatus.accepted ||
                             widget.status == BookingStatus.inProgress) &&
-                        booking.customerPhone?.isNotEmpty == true)
+                        (_resolvedCustomerPhone?.isNotEmpty == true || booking.customerPhone?.isNotEmpty == true))
                       Text(
-                        booking.customerPhone!,
+                        _resolvedCustomerPhone?.isNotEmpty == true
+                            ? _resolvedCustomerPhone!
+                            : booking.customerPhone!,
                         style: const TextStyle(
                           color: KX.textSecondary,
                           fontSize: 11.5,

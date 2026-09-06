@@ -61,6 +61,13 @@ class WorkerService {
     });
   }
 
+  /// Fetch a single worker by ID once.
+  Future<Worker?> getWorker(String workerId) async {
+    final doc = await _db.collection("workers").doc(workerId).get();
+    if (!doc.exists) return null;
+    return Worker.fromFirestore(doc);
+  }
+
   /// Fetch worker profile by User UID.
   Future<Worker?> fetchWorkerByUserId(String userId) async {
     final snap = await _db
@@ -663,6 +670,19 @@ class WorkerService {
       "comment": comment ?? "",
       "createdAt": FieldValue.serverTimestamp(),
     });
+
+    // Update booking document with rated flag and metadata
+    try {
+      await _db.collection("bookings").doc(bookingId).update({
+        "isRated": true,
+        "rating": rating,
+        "reviewComment": comment ?? "",
+        "reviewTags": tags,
+        "ratedAt": FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      // Continue even if booking doc update encounters non-fatal issue
+    }
 
     final workerDoc = await _db.collection("workers").doc(workerId).get();
     if (workerDoc.exists) {
