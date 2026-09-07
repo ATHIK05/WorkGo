@@ -124,7 +124,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Error during erasure: $e"),
+              content: Text('error_during_erasure_arg'.tr(args: [e.toString()])),
               backgroundColor: const Color(0xFFE11D48),
             ),
           );
@@ -619,7 +619,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            "$matchPercent% ELITE",
+                            'percent_elite_arg'.tr(args: [matchPercent.toString()]),
                             style: const TextStyle(
                               color: Color(0xFF065F46),
                               fontSize: 9.5,

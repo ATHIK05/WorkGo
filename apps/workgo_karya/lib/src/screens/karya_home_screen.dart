@@ -143,61 +143,57 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyAvailabilitySwitch,
         navIndex: 0,
-        pageTitle: "Home Cockpit",
+        pageTitle: 'tour_page_home_cockpit'.tr(),
         stepNumber: "1",
-        title: "1. Autonomous Shift & Check-In Switch",
-        description:
-            "Tap here anytime to go live on customer radars across your district. Verification is required before your first check-in.",
-        badgeText: "AVAILABILITY",
+        title: 'tour_target_shift_title'.tr(),
+        description: 'tour_target_shift_desc'.tr(),
+        badgeText: 'tour_badge_availability'.tr(),
         icon: Icons.power_settings_new_rounded,
         bulletPoints: [
-          "1-Tap Check-In toggles incoming job dispatch radar",
-          "Automatic verification check protects artisan earnings",
+          'tour_bullet_shift_1'.tr(),
+          'tour_bullet_shift_2'.tr(),
         ],
       ),
       SpotlightTarget(
         key: _keyFuelGauge,
         navIndex: 0,
-        pageTitle: "Home Cockpit",
+        pageTitle: 'tour_page_home_cockpit'.tr(),
         stepNumber: "2",
-        title: "2. Daily Fuel Gauge & Earnings Cockpit",
-        description:
-            "Track today's jobs, total earnings, active hours, and performance incentives with a strict 0% commission guarantee.",
-        badgeText: "0% COMMISSION",
+        title: 'tour_target_fuel_title'.tr(),
+        description: 'tour_target_fuel_desc'.tr(),
+        badgeText: 'tour_badge_zero_commission'.tr(),
         icon: Icons.speed_rounded,
         bulletPoints: [
-          "Live progress tracker towards daily earning milestones",
-          "Instant 1-tap UPI / Bank payout settlements",
+          'tour_bullet_fuel_1'.tr(),
+          'tour_bullet_fuel_2'.tr(),
         ],
       ),
       SpotlightTarget(
         key: _keyRadar,
         navIndex: 0,
-        pageTitle: "Home Cockpit",
+        pageTitle: 'tour_page_home_cockpit'.tr(),
         stepNumber: "3",
-        title: "3. Live Dispatch Radar & Job Match",
-        description:
-            "Nearby service requests flash in real time with distance, upfront pricing, and a 30-second priority acceptance countdown.",
-        badgeText: "PRIORITY RADAR",
+        title: 'tour_target_radar_title'.tr(),
+        description: 'tour_target_radar_desc'.tr(),
+        badgeText: 'tour_badge_priority_radar'.tr(),
         icon: Icons.radar_rounded,
         bulletPoints: [
-          "30s audio chime countdown to accept before others",
-          "Upfront pricing and customer pickup distance shown",
+          'tour_bullet_radar_1'.tr(),
+          'tour_bullet_radar_2'.tr(),
         ],
       ),
       SpotlightTarget(
         key: _keyBentoGrid,
         navIndex: 0,
-        pageTitle: "Home Cockpit",
+        pageTitle: 'tour_page_home_cockpit'.tr(),
         stepNumber: "4",
-        title: "4. Tactical Action Matrix",
-        description:
-            "Quick access to government Aadhaar & Video KYC, ₹2L welfare cover, and peer referral network.",
-        badgeText: "ACTION MATRIX",
+        title: 'tour_target_matrix_title'.tr(),
+        description: 'tour_target_matrix_desc'.tr(),
+        badgeText: 'tour_badge_action_matrix'.tr(),
         icon: Icons.grid_view_rounded,
         bulletPoints: [
-          "Complete Video KYC to earn the trusted Co-op Certified badge",
-          "₹2,00,000 accidental and disability insurance coverage",
+          'tour_bullet_matrix_1'.tr(),
+          'tour_bullet_matrix_2'.tr(),
         ],
       ),
 
@@ -205,16 +201,15 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyRequestsHub,
         navIndex: 1,
-        pageTitle: "Requests & Radar",
+        pageTitle: 'tour_page_requests_radar'.tr(),
         stepNumber: "5",
-        title: "5. Real-Time Dispatch Broadcast Hub",
-        description:
-            context.tr('tour_radar_desc'),
-        badgeText: "JOB ALERTS",
+        title: 'tour_target_broadcast_title'.tr(),
+        description: 'tour_radar_desc'.tr(),
+        badgeText: 'tour_badge_job_alerts'.tr(),
         icon: Icons.cell_tower_rounded,
         bulletPoints: [
-          "30-second priority allocation before secondary dispatch",
-          "1-tap Accept to claim job and start secure turn-by-turn navigation",
+          'tour_bullet_broadcast_1'.tr(),
+          'tour_bullet_broadcast_2'.tr(),
         ],
       ),
 
@@ -222,16 +217,15 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyEarningsHero,
         navIndex: 2,
-        pageTitle: "Earnings Ledger",
+        pageTitle: 'tour_page_earnings_ledger'.tr(),
         stepNumber: "6",
-        title: "6. Direct Wage Payouts (0% Commission)",
-        description:
-            "All customer payments go 100% directly to you. WorkGo charges 0% platform commission with a tiny 2% allocated to your welfare fund.",
-        badgeText: "ZERO DEDUCTIONS",
+        title: 'tour_target_payouts_title'.tr(),
+        description: 'tour_target_payouts_desc'.tr(),
+        badgeText: 'tour_badge_zero_deductions'.tr(),
         icon: Icons.account_balance_wallet_rounded,
         bulletPoints: [
-          "Instant 1-tap UPI transfer straight into your bank account",
-          "Complete transaction receipt log for every serviced booking",
+          'tour_bullet_payouts_1'.tr(),
+          'tour_bullet_payouts_2'.tr(),
         ],
       ),
 
@@ -239,16 +233,15 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyWelfareShield,
         navIndex: 3,
-        pageTitle: "Welfare & Insurance",
+        pageTitle: 'tour_page_welfare_insurance'.tr(),
         stepNumber: "7",
-        title: "7. ₹2 Lakh Welfare Shield & Protection",
-        description:
-            "Every verified cooperative artisan receives ₹2,00,000 accidental & disability cover (PMSBY / PMJJBY) on duty.",
-        badgeText: "SAFETY SHIELD",
+        title: 'tour_target_welfare_title'.tr(),
+        description: 'tour_target_welfare_desc'.tr(),
+        badgeText: 'tour_badge_safety_shield'.tr(),
         icon: Icons.health_and_safety_rounded,
         bulletPoints: [
-          "Digital Holographic ID Card with verified policy number",
-          "24/7 Emergency SOS beacon and health claim support",
+          'tour_bullet_welfare_1'.tr(),
+          'tour_bullet_welfare_2'.tr(),
         ],
       ),
 
@@ -256,31 +249,29 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyProfileHub,
         navIndex: 3,
-        pageTitle: "Profile & Hub",
+        pageTitle: 'tour_page_profile_hub'.tr(),
         stepNumber: "8",
-        title: "8. Operating Bases & Service Radius",
-        description:
-            "Configure your workshop base, set coverage radius (1–30 km), manage trade skills, and customize working shift hours.",
-        badgeText: "BASE & RADIUS",
+        title: 'tour_target_bases_title'.tr(),
+        description: 'tour_target_bases_desc'.tr(),
+        badgeText: 'tour_badge_base_radius'.tr(),
         icon: Icons.location_on_rounded,
         bulletPoints: [
-          "Set multiple operating bases (Primary Workshop & Home)",
-          "Adjust radar dispatch radius to match your vehicle range",
+          'tour_bullet_bases_1'.tr(),
+          'tour_bullet_bases_2'.tr(),
         ],
       ),
       SpotlightTarget(
         key: _keyProfileKyc,
         navIndex: 3,
-        pageTitle: "Profile & Hub",
+        pageTitle: 'tour_page_profile_hub'.tr(),
         stepNumber: "9",
-        title: "9. Identity Verification & Language Hub",
-        description:
-            "Access your government eKYC records, trigger Video KYC reviews, and switch app language instantly (தமிழ், हिंदी, English).",
-        badgeText: "KYC & VERNACULAR",
+        title: 'tour_target_identity_title'.tr(),
+        description: 'tour_target_identity_desc'.tr(),
+        badgeText: 'tour_badge_kyc_vernacular'.tr(),
         icon: Icons.verified_user_rounded,
         bulletPoints: [
-          "Tamper-proof C2PA proof of work verification",
-          "Full vernacular audio voice support for illiterate artisans",
+          'tour_bullet_identity_1'.tr(),
+          'tour_bullet_identity_2'.tr(),
         ],
       ),
     ];
@@ -2562,7 +2553,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             ? 'tomorrow'.tr()
             : isYesterday
             ? 'yesterday'.tr()
-            : DateFormat('EEE, d MMM').format(_selectedDate);
+            : _selectedDate.toLocalizedDate(context.locale.languageCode);
 
         final planTag = isToday
             ? (hasRequest ? 'plan_priority'.tr() : 'plan_standby'.tr())
@@ -2572,16 +2563,16 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
         final planTitle = isToday
             ? (hasRequest
-                  ? topReq!.serviceType.toLocalizedTrade()
+                  ? topReq!.serviceType.toLocalizedTradeClean()
                   : (worker.skills.isNotEmpty
-                        ? "${worker.skills.first.toLocalizedTrade()} ${'shift_suffix'.tr()}"
+                        ? "${worker.skills.first.toLocalizedTradeClean()} ${'shift_suffix'.tr()}"
                         : 'artisan_standby'.tr()))
             : isFuture
             ? (worker.skills.isNotEmpty
-                  ? "${worker.skills.first.toLocalizedTrade()} ${'shift_suffix'.tr()}"
+                  ? "${worker.skills.first.toLocalizedTradeClean()} ${'shift_suffix'.tr()}"
                   : 'plan_scheduled'.tr())
             : (worker.skills.isNotEmpty
-                  ? "${worker.skills.first.toLocalizedTrade()} ${'done_label'.tr()}"
+                  ? "${worker.skills.first.toLocalizedTradeClean()} ${'done_label'.tr()}"
                   : 'plan_shift_log'.tr());
 
         return Column(
@@ -2687,7 +2678,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
                               // Date & Time
                               Text(
-                                "${DateFormat('EEE, d MMM').format(_selectedDate)} · ${worker.workingHoursStart.to12HourTime()} - ${worker.workingHoursEnd.to12HourTime()}",
+                                "${_selectedDate.toLocalizedDate(context.locale.languageCode)} · ${worker.workingHoursStart.to12HourTime()} - ${worker.workingHoursEnd.to12HourTime()}",
                                 style: GoogleFonts.plusJakartaSans(
                                   color: const Color(0xFF78350F),
                                   fontSize: 11.5,
@@ -2873,7 +2864,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                         child: Text(
                                           hasRequest
                                               ? "${requests.length} LIVE"
-                                              : "Radar",
+                                              : 'radar_tag'.trSafe('Radar'),
                                           style: GoogleFonts.plusJakartaSans(
                                             color: hasRequest
                                                 ? Colors.white
@@ -3643,71 +3634,103 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               children: [
                 if (isAccepted) ...[
                   Expanded(
-                    child: ElevatedButton.icon(
+                    flex: 5,
+                    child: ElevatedButton(
                       onPressed: () => _showStartOtpDialogForBooking(
                         context,
                         booking,
                         worker,
                       ),
-                      icon: const Icon(
-                        Icons.key_rounded,
-                        size: 17,
-                        color: Color(0xFF0F172A),
-                      ),
-                      label: Text(
-                        'enter_otp'.tr(),
-                        style: const TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFBBF24),
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => _launchMapsNavigation(
-                      booking.customerAddressText,
-                      booking.customerLatitude,
-                      booking.customerLongitude,
-                    ),
-                    icon: const Icon(
-                      Icons.near_me_rounded,
-                      size: 16,
-                      color: Color(0xFFFBBF24),
-                    ),
-                    label: Text(
-                      'hud_navigate'.tr(),
-                      style: const TextStyle(
-                        color: Color(0xFFFBBF24),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: const Color(0xFFFBBF24).withValues(alpha: 0.6),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.key_rounded,
+                            size: 16,
+                            color: Color(0xFF0F172A),
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'enter_otp'.tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFF0F172A),
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
+                  const SizedBox(width: 6),
+                  Expanded(
+                    flex: 4,
+                    child: OutlinedButton(
+                      onPressed: () => _launchMapsNavigation(
+                        booking.customerAddressText,
+                        booking.customerLatitude,
+                        booking.customerLongitude,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: const Color(0xFFFBBF24).withValues(alpha: 0.6),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.near_me_rounded,
+                            size: 15,
+                            color: Color(0xFFFBBF24),
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'hud_navigate'.tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFFFBBF24),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  OutlinedButton(
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -3716,19 +3739,6 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         ),
                       );
                     },
-                    icon: const Icon(
-                      Icons.navigation_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    label: const Text(
-                      "HUD",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.white24),
                       padding: const EdgeInsets.symmetric(
@@ -3738,6 +3748,25 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.navigation_rounded,
+                          size: 15,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          "HUD",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ] else ...[

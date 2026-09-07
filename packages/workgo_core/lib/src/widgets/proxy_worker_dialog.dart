@@ -1,4 +1,4 @@
-﻿import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../services/worker_service.dart';
 import '../theme/colors.dart';
@@ -94,7 +94,7 @@ class _ProxyWorkerDialogState extends State<ProxyWorkerDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Submission error: $e"),
+            content: Text('submission_error_arg'.tr(args: [e.toString()])),
             backgroundColor: WorkGoColors.error,
           ),
         );
@@ -167,7 +167,7 @@ class _ProxyWorkerDialogState extends State<ProxyWorkerDialog> {
                 AuthTextField(
                   controller: _nameController,
                   labelText: 'proxy_worker_name'.tr(),
-                  hintText: 'e.g. Ramesh Kumar',
+                  hintText: 'peer_name_hint'.tr(),
                   prefixIcon: Icons.person_outline_rounded,
                   validator: (v) =>
                       v == null || v.trim().isEmpty ? 'error_name_empty'.tr() : null,
@@ -239,7 +239,7 @@ class _ProxyWorkerDialogState extends State<ProxyWorkerDialog> {
                 AuthTextField(
                   controller: _experienceController,
                   labelText: 'proxy_worker_experience'.tr(),
-                  hintText: 'e.g. 5',
+                  hintText: 'experience_years_hint_example'.tr(),
                   prefixIcon: Icons.history_rounded,
                   keyboardType: TextInputType.number,
                 ),
@@ -250,7 +250,7 @@ class _ProxyWorkerDialogState extends State<ProxyWorkerDialog> {
                   children: [
                     Expanded(
                       child: WorkGoButton(
-                        label: 'Cancel',
+                        label: 'cancel'.tr(),
                         variant: WorkGoButtonVariant.secondary,
                         onPressed: () => Navigator.of(context).pop(),
                       ),

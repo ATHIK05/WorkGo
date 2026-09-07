@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/worker.dart';
@@ -98,7 +99,7 @@ class _CheckOutMotivationSheetContent extends StatelessWidget {
 
           // High Energy Headline
           Text(
-            "Stay Online, Earn More! 🚀",
+            "stay_online_earn_more".tr(),
             style: WorkGoFonts.display(
               color: Colors.white,
               fontSize: 21,
@@ -111,7 +112,7 @@ class _CheckOutMotivationSheetContent extends StatelessWidget {
 
           // Subtitle
           Text(
-            "Peak hours are live! Customers nearby are actively booking $primaryTrade experts right now.",
+            "peak_hours_booking_experts".tr(args: [primaryTrade]),
             style: WorkGoFonts.body(
               color: WorkGoColors.textSecondary,
               fontSize: 13,
@@ -156,7 +157,7 @@ class _CheckOutMotivationSheetContent extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Boost Today's Income",
+                        "boost_todays_income".tr(),
                         style: WorkGoFonts.heading(
                           color: Colors.white,
                           fontSize: 13.5,
@@ -165,7 +166,7 @@ class _CheckOutMotivationSheetContent extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "Artisans active for 1 more hour earn an average ₹450 – ₹800 extra today.",
+                        "boost_income_desc".tr(),
                         style: WorkGoFonts.body(
                           color: WorkGoColors.textSecondary,
                           fontSize: 11.5,
@@ -215,7 +216,7 @@ class _CheckOutMotivationSheetContent extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Cooperative Welfare Dividend",
+                        "coop_welfare_dividend".tr(),
                         style: WorkGoFonts.heading(
                           color: Colors.white,
                           fontSize: 13.5,
@@ -224,7 +225,7 @@ class _CheckOutMotivationSheetContent extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "Every completed job credits your 2% healthcare & emergency welfare safety net.",
+                        "coop_welfare_desc".tr(),
                         style: WorkGoFonts.body(
                           color: WorkGoColors.textSecondary,
                           fontSize: 11.5,
@@ -241,7 +242,7 @@ class _CheckOutMotivationSheetContent extends StatelessWidget {
 
           // ── Primary Action: KEEP WORKING & EARN MORE
           WorkGoButton(
-            label: "Keep Working & Earn More",
+            label: "keep_working_earn_more".tr(),
             icon: Icons.flash_on_rounded,
             variant: WorkGoButtonVariant.primary,
             onPressed: () {
@@ -264,7 +265,7 @@ class _CheckOutMotivationSheetContent extends StatelessWidget {
               size: 16,
             ),
             label: Text(
-              "Check Out for Today",
+              "checkout_for_today".tr(),
               style: WorkGoFonts.heading(
                 color: const Color(0xFFFDA4AF),
                 fontSize: 13,

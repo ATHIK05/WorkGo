@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
@@ -75,8 +76,8 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
     final notes = _notesCtrl.text.trim();
     if (notes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please provide your diagnostic findings for the specialist.'),
+        SnackBar(
+          content: Text('provide_diagnostic_findings_toast'.tr()),
           backgroundColor: KX.amberDark,
         ),
       );
@@ -85,8 +86,8 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
 
     if (_selectedSpecialist == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a specialist artisan to receive the relay.'),
+        SnackBar(
+          content: Text('select_specialist_artisan_toast'.tr()),
           backgroundColor: KX.amberDark,
         ),
       );
@@ -111,7 +112,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Relay requested to ${_selectedSpecialist!.name}. ₹50 dividend allocated upon completion.'),
+            content: Text('relay_requested_success_arg'.tr(args: [_selectedSpecialist!.name])),
             backgroundColor: KX.emerald,
           ),
         );
@@ -121,7 +122,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Handoff failed: $e'),
+            content: Text('handoff_failed_arg'.tr(args: [e.toString()])),
             backgroundColor: KX.rose,
           ),
         );
@@ -181,7 +182,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Cooperative Specialist Relay',
+                        'coop_specialist_relay_title'.tr(),
                         style: WorkGoFonts.heading(
                           color: KX.textPrimary,
                           fontSize: 17,
@@ -189,7 +190,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
                         ),
                       ),
                       Text(
-                        'Hand off job to a peer craftsman · Earn ₹50 referral dividend',
+                        'coop_specialist_relay_subtitle'.tr(),
                         style: WorkGoFonts.body(
                           color: KX.textSecondary,
                           fontSize: 11.5,
@@ -231,16 +232,16 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                '₹50 Peer Referral Dividend',
-                                style: TextStyle(
+                              Text(
+                                'peer_referral_dividend_title'.tr(),
+                                style: const TextStyle(
                                   color: Color(0xFF065F46),
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
                               Text(
-                                'Paid directly from platform reserve when peer artisan completes this job.',
+                                'peer_referral_dividend_desc'.tr(),
                                 style: TextStyle(
                                   color: const Color(0xFF047857).withValues(alpha: 0.9),
                                   fontSize: 11,
@@ -256,7 +257,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
 
                   // Diagnostic Notes Input
                   Text(
-                    'Pre-Inspection Diagnostic Notes *',
+                    'pre_inspection_diagnostic_notes_label'.tr(),
                     style: WorkGoFonts.heading(
                       color: KX.textPrimary,
                       fontSize: 13,
@@ -275,7 +276,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
                       maxLines: 3,
                       style: WorkGoFonts.body(color: KX.textPrimary, fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'e.g. Pump impeller is jammed with silt. Foot valve is okay. Needs plumbing pipe dismantling tool.',
+                        hintText: 'pre_inspection_diagnostic_notes_hint'.tr(),
                         hintStyle: WorkGoFonts.body(color: const Color(0xFF94A3B8), fontSize: 12),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.all(14),
@@ -286,7 +287,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
 
                   // Trade Selector
                   Text(
-                    'Select Specialist Craft Trade',
+                    'select_craft_trade_label'.tr(),
                     style: WorkGoFonts.heading(
                       color: KX.textPrimary,
                       fontSize: 13,
@@ -327,7 +328,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
 
                   // Real Available Artisans Stream
                   Text(
-                    'Select Available Peer Specialist',
+                    'select_peer_specialist_label'.tr(),
                     style: WorkGoFonts.heading(
                       color: KX.textPrimary,
                       fontSize: 13,
@@ -369,7 +370,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'No verified $_selectedTrade artisans currently online. Choose another trade or broadcast relay.',
+                                  'no_specialists_online_arg'.tr(args: [_selectedTrade]),
                                   style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 12),
                                 ),
                               ),
@@ -481,7 +482,7 @@ class _HandoffSpecialistSheetState extends State<HandoffSpecialistSheet> {
                         )
                       : const Icon(Icons.send_rounded, size: 18),
                   label: Text(
-                    _isSubmitting ? 'Submitting Relay...' : 'Send Relay Request (Earn ₹50)',
+                    _isSubmitting ? 'submitting_relay_btn'.tr() : 'send_relay_request_btn'.tr(),
                     style: WorkGoFonts.body(
                       color: const Color(0xFF141416),
                       fontSize: 14,

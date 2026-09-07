@@ -295,7 +295,7 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                             color: const Color(0xFFFEE2E2),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text("EMERGENCY (+₹150)", style: TextStyle(fontFamily: "SpaceGrotesk", fontSize: 9, color: Color(0xFF991B1B), fontWeight: FontWeight.bold)),
+                          child: Text('admin_emergency_badge'.trSafe("EMERGENCY (+₹150)"), style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 9, color: Color(0xFF991B1B), fontWeight: FontWeight.bold)),
                         ),
                       if (b.startOtp != null)
                         Container(
@@ -326,8 +326,8 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
                         const Icon(Icons.person_rounded, color: Color(0xFF065F46), size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          "Artisan: ${b.acceptedWorkerName}",
-                          style: AX.body(fontSize: 12, color: const Color(0xFF065F46), fontWeight: FontWeight.bold),
+                          'admin_artisan_assigned'.trSafe("Artisan: ${b.acceptedWorkerName}", [b.acceptedWorkerName!]),
+                          style: const TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ],
                     ],

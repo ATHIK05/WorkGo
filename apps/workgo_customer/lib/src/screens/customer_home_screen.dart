@@ -2429,7 +2429,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   Navigator.of(ctx).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text("Opening WorkGo WhatsApp Support..."),
+                      content: Text('opening_whatsapp_support'.trSafe('Opening WorkGo WhatsApp Support...')),
                       backgroundColor: const Color(0xFF2563EB),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(

@@ -1,10 +1,11 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_map/flutter_map.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../admin_theme.dart';
 
@@ -480,27 +481,27 @@ class _MapViewState extends State<_MapView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(r.name, style: AX.display(fontSize: 20)),
+              Text(r.name.toLocalizedRegion(context.locale.languageCode), style: AX.display(fontSize: 20)),
               const SizedBox(height: 4),
-              Text(widget.showingDistricts ? 'District' : 'State',
+              Text(widget.showingDistricts ? 'admin_geo_district_type'.trSafe('District') : 'admin_geo_state_type'.trSafe('State'),
                   style: AX.mono(fontSize: 12, color: AX.textSecondary)),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Workers', style: AX.body(fontSize: 12, color: AX.textSecondary)),
+                    Text('admin_geo_workers'.trSafe('Workers'), style: AX.body(fontSize: 12, color: AX.textSecondary)),
                     Text('${r.workers}', style: AX.display(fontSize: 18, color: AX.emerald)),
                   ]),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text('Customers', style: AX.body(fontSize: 12, color: AX.textSecondary)),
+                    Text('admin_geo_customers'.trSafe('Customers'), style: AX.body(fontSize: 12, color: AX.textSecondary)),
                     Text('${r.customers}', style: AX.display(fontSize: 18, color: AX.violet)),
                   ]),
                 ],
               ),
               if (!widget.showingDistricts) ...[
                 const SizedBox(height: 16),
-                Text('Tap to see districts', style: AX.mono(fontSize: 10, color: AX.textMuted)),
+                Text('admin_geo_tap_districts'.trSafe('Tap to see districts'), style: AX.mono(fontSize: 10, color: AX.textMuted)),
               ],
             ],
           ),
@@ -540,8 +541,8 @@ class _MapViewState extends State<_MapView> {
               ),
               child: Text(
                 widget.showingDistricts
-                    ? 'District Breakdown: ${widget.selectedStateId}'
-                    : 'National Supply Map',
+                    ? 'admin_geo_district_breakdown'.trSafe('District Breakdown: ${widget.selectedStateId.toLocalizedRegion(context.locale.languageCode)}', [widget.selectedStateId.toLocalizedRegion(context.locale.languageCode)])
+                    : 'admin_geo_national_map'.trSafe('National Supply Map'),
                 style: AX.display(fontSize: 18),
               ),
             ),
@@ -554,9 +555,9 @@ class _MapViewState extends State<_MapView> {
             ),
             padding: const EdgeInsets.all(6),
             child: Row(children: [
-              _buildToggleBtn('Workers', true, AX.emerald),
+              _buildToggleBtn('admin_geo_workers'.trSafe('Workers'), true, AX.emerald),
               const SizedBox(width: 8),
-              _buildToggleBtn('Customers', false, AX.violet),
+              _buildToggleBtn('admin_geo_customers'.trSafe('Customers'), false, AX.violet),
             ]),
           ),
         ],

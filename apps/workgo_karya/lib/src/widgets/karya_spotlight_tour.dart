@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -473,7 +474,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text("Back", style: TextStyle(fontSize: 12)),
+                  child: Text("back_btn".tr(), style: const TextStyle(fontSize: 12)),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -491,7 +492,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        isLast ? "Complete Full App Tour 🚀" : "Next Page / Feature",
+                        isLast ? "complete_full_tour_btn".tr() : "next_page_feature_btn".tr(),
                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                       ),
                       const SizedBox(width: 4),

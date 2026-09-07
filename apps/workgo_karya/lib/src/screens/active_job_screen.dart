@@ -148,9 +148,9 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         }
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("OTP Verified — Service started."),
-              backgroundColor: Color(0xFF047857),
+            SnackBar(
+              content: Text('otp_verified_service_started'.tr()),
+              backgroundColor: const Color(0xFF047857),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -195,7 +195,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("Camera capture error: $e"),
+                    content: Text('camera_capture_error_arg'.tr(args: [e.toString()])),
                     backgroundColor: Colors.redAccent,
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -573,7 +573,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         setState(() => _isSigningC2pa = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Error completing job: $e"),
+            content: Text('error_completing_job_arg'.tr(args: [e.toString()])),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -599,7 +599,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
 
         return KaryaScaffold(
           appBar: KaryaAppBar(
-            title: "Tactical Job HUD",
+            title: 'tactical_job_hud'.tr(),
             subtitle: "Booking #$shortId · ${currentBooking.serviceType}",
           ),
           body: SafeArea(
@@ -916,7 +916,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
     return Column(
       children: [
         KaryaButton(
-          label: "Capture Work & Complete Service",
+          label: 'capture_work_complete_service'.tr(),
           icon: Icons.camera_alt_rounded,
           onPressed: _advanceJob,
           gradient: KX.auroraAccept,
@@ -1820,7 +1820,7 @@ class _PayoutLedgerCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Gross Fee", style: TextStyle(color: KX.textSecondary, fontSize: 12)),
+              Text('gross_fee'.tr(), style: const TextStyle(color: KX.textSecondary, fontSize: 12)),
               Text("₹${gross.toStringAsFixed(0)}", style: const TextStyle(color: KX.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
             ],
           ),

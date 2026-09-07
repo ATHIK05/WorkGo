@@ -82,7 +82,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                               children: [
                                 const Icon(Icons.verified_rounded, color: AX.emeraldDark, size: 16),
                                 const SizedBox(width: 6),
-                                Text("GOV CORPUS v2.4", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
+                                Text('admin_welfare_gov_corpus'.trSafe("GOV CORPUS v2.4"), style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
                               ],
                             ),
                           ),
@@ -101,9 +101,9 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                           children: [
                             Expanded(
                               child: _buildCorpusCard(
-                                title: "Accumulated Welfare Pool",
+                                title: 'admin_welfare_pool_title'.trSafe("Accumulated Welfare Pool"),
                                 value: "₹${welfareCorpus >= 1000 ? '${(welfareCorpus / 1000).toStringAsFixed(2)}k' : welfareCorpus.toStringAsFixed(0)}",
-                                subtitle: "2% of ₹${realizedGrossVolume.toStringAsFixed(0)} settled volume",
+                                subtitle: 'admin_welfare_pool_subtitle'.trSafe("2% of ₹${realizedGrossVolume.toStringAsFixed(0)} settled volume", [realizedGrossVolume.toStringAsFixed(0)]),
                                 icon: Icons.account_balance_wallet_rounded,
                                 color: const Color(0xFF065F46),
                               ),
@@ -111,9 +111,9 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                             const SizedBox(width: 14),
                             Expanded(
                               child: _buildCorpusCard(
-                                title: "Insured Artisans",
+                                title: 'admin_welfare_insured_artisans'.trSafe("Insured Artisans"),
                                 value: "$insuredCount / ${workers.length}",
-                                subtitle: "${coverageRate.toStringAsFixed(0)}% membership coverage",
+                                subtitle: 'admin_welfare_coverage_subtitle'.trSafe("${coverageRate.toStringAsFixed(0)}% membership coverage", [coverageRate.toStringAsFixed(0)]),
                                 icon: Icons.health_and_safety_rounded,
                                 color: const Color(0xFF7C3AED),
                               ),
@@ -121,9 +121,9 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                             const SizedBox(width: 14),
                             Expanded(
                               child: _buildCorpusCard(
-                                title: "Policy Schemes",
+                                title: 'admin_welfare_policy_schemes'.trSafe("Policy Schemes"),
                                 value: "PMJJBY + PMSBY",
-                                subtitle: "₹2L Life + ₹2L Accident Cover",
+                                subtitle: 'admin_welfare_cover_subtitle'.trSafe("₹2L Life + ₹2L Accident Cover"),
                                 icon: Icons.security_rounded,
                                 color: const Color(0xFF1D4ED8),
                               ),
@@ -134,25 +134,25 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                       return Column(
                         children: [
                           _buildCorpusCard(
-                            title: "Accumulated Welfare Pool",
+                            title: 'admin_welfare_pool_title'.trSafe("Accumulated Welfare Pool"),
                             value: "₹${welfareCorpus >= 1000 ? '${(welfareCorpus / 1000).toStringAsFixed(2)}k' : welfareCorpus.toStringAsFixed(0)}",
-                            subtitle: "2% of ₹${realizedGrossVolume.toStringAsFixed(0)} settled volume",
+                            subtitle: 'admin_welfare_pool_subtitle'.trSafe("2% of ₹${realizedGrossVolume.toStringAsFixed(0)} settled volume", [realizedGrossVolume.toStringAsFixed(0)]),
                             icon: Icons.account_balance_wallet_rounded,
                             color: const Color(0xFF065F46),
                           ),
                           const SizedBox(height: 12),
                           _buildCorpusCard(
-                            title: "Insured Artisans",
+                            title: 'admin_welfare_insured_artisans'.trSafe("Insured Artisans"),
                             value: "$insuredCount / ${workers.length}",
-                            subtitle: "${coverageRate.toStringAsFixed(0)}% membership coverage",
+                            subtitle: 'admin_welfare_coverage_subtitle'.trSafe("${coverageRate.toStringAsFixed(0)}% membership coverage", [coverageRate.toStringAsFixed(0)]),
                             icon: Icons.health_and_safety_rounded,
                             color: const Color(0xFF7C3AED),
                           ),
                           const SizedBox(height: 12),
                           _buildCorpusCard(
-                            title: "Policy Schemes",
+                            title: 'admin_welfare_policy_schemes'.trSafe("Policy Schemes"),
                             value: "PMJJBY + PMSBY",
-                            subtitle: "₹2L Life + ₹2L Accident Cover",
+                            subtitle: 'admin_welfare_cover_subtitle'.trSafe("₹2L Life + ₹2L Accident Cover"),
                             icon: Icons.security_rounded,
                             color: const Color(0xFF1D4ED8),
                           ),
@@ -172,7 +172,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                         child: TextField(
                           style: const TextStyle(color: AX.textPrimary, fontSize: 12),
                           decoration: InputDecoration(
-                            hintText: "Search artisan name or trade...",
+                            hintText: 'admin_welfare_search_hint'.trSafe("Search artisan name or trade..."),
                             hintStyle: const TextStyle(color: AX.textMuted, fontSize: 11),
                             prefixIcon: const Icon(Icons.search_rounded, color: AX.textSecondary, size: 16),
                             filled: true,
@@ -199,7 +199,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Artisan Insurance Roster (${workers.length})", style: AX.display(fontSize: 16)),
+                            Text('admin_welfare_roster_title'.trSafe("Artisan Insurance Roster (${workers.length})", ['${workers.length}']), style: AX.display(fontSize: 16)),
                             const SizedBox(height: 10),
                             searchField,
                           ],
@@ -209,7 +209,7 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Artisan Insurance Roster (${workers.length})", style: AX.display(fontSize: 16)),
+                          Text('admin_welfare_roster_title'.trSafe("Artisan Insurance Roster (${workers.length})", ['${workers.length}']), style: AX.display(fontSize: 16)),
                           searchField,
                         ],
                       );
@@ -229,8 +229,8 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                                 children: [
                                   const Icon(Icons.people_outline_rounded, color: AX.textMuted, size: 36),
                                   const SizedBox(height: 12),
-                                  Text("No Workers Found", style: AX.display(fontSize: 15)),
-                                  Text("Artisans who register on the WorkGo network will appear here.", style: AX.body(fontSize: 12)),
+                                  Text('admin_welfare_no_workers'.trSafe("No Workers Found"), style: AX.display(fontSize: 15)),
+                                  Text('admin_welfare_no_workers_hint'.trSafe("Artisans who register on the WorkGo network will appear here."), style: AX.body(fontSize: 12)),
                                 ],
                               ),
                             ),
@@ -314,15 +314,18 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                         color: const Color(0xFFDBEAFE),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(w.skills.join(", "), style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 10, color: Color(0xFF1E40AF), fontWeight: FontWeight.w600)),
+                      child: Text(
+                        w.skills.map((s) => s.toLocalizedTradeClean()).join(", "),
+                        style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 10, color: Color(0xFF1E40AF), fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   w.insuranceStatus
-                      ? "Enrolled: PMJJBY + PMSBY Plan (₹436/yr auto-debited from welfare fund)"
-                      : "Micro-insurance inactive · Tap toggle to enroll from cooperative corpus",
+                      ? 'admin_welfare_enrolled_desc'.trSafe("Enrolled: PMJJBY + PMSBY Plan (₹436/yr auto-debited from welfare fund)")
+                      : 'admin_welfare_inactive_desc'.trSafe("Micro-insurance inactive · Tap toggle to enroll from cooperative corpus"),
                   style: AX.body(fontSize: 11, color: w.insuranceStatus ? const Color(0xFF065F46) : AX.textMuted),
                 ),
               ],

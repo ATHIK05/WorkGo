@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 import 'dart:math' as math;
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -1497,12 +1498,12 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
               ),
               const SizedBox(height: 14),
               Row(
-                children: const [
-                  Icon(Icons.layers_rounded, color: Color(0xFF4F46E5), size: 20),
-                  SizedBox(width: 8),
+                children: [
+                  const Icon(Icons.layers_rounded, color: Color(0xFF4F46E5), size: 20),
+                  const SizedBox(width: 8),
                   Text(
-                    "Map View & Layers",
-                    style: TextStyle(
+                    'map_view_and_layers'.tr(),
+                    style: const TextStyle(
                       color: Color(0xFF0F172A),
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
@@ -1515,16 +1516,16 @@ class _LiveMapViewState extends State<LiveMapView> with TickerProviderStateMixin
                 children: [
                   _buildLayerOptionCard(
                     layer: MapLayerType.street,
-                    title: "Street View",
-                    subtitle: "Crisp roads & navigation",
+                    title: 'map_layer_street'.tr(),
+                    subtitle: 'map_layer_street_sub'.tr(),
                     icon: Icons.map_rounded,
                     color: const Color(0xFF0284C7),
                   ),
                   const SizedBox(width: 12),
                   _buildLayerOptionCard(
                     layer: MapLayerType.satellite,
-                    title: "Satellite View",
-                    subtitle: "Real aerial imagery",
+                    title: 'map_layer_satellite'.tr(),
+                    subtitle: 'map_layer_satellite_sub'.tr(),
                     icon: Icons.satellite_alt_rounded,
                     color: const Color(0xFF059669),
                   ),

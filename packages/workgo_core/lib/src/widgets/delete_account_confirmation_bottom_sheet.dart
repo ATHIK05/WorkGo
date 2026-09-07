@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/colors.dart';
@@ -97,7 +98,7 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Delete Account & Wipe Data",
+                      "delete_account_wipe_title".tr(),
                       style: WorkGoFonts.display(
                         color: WorkGoColors.textPrimary,
                         fontSize: 16.5,
@@ -105,9 +106,9 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      "DPDP Act 2023 · Right to Erasure",
-                      style: TextStyle(
+                    Text(
+                      "dpdp_right_to_erasure".tr(),
+                      style: const TextStyle(
                         color: Color(0xFFE11D48),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -131,10 +132,10 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildWarningBullet(Icons.face_retouching_off_rounded, "All 3D facial biometric recordings, hashes, and liveness logs will be destroyed."),
-                _buildWarningBullet(Icons.badge_outlined, "Aadhaar e-KYC records and Police Clearance documents will be permanently purged."),
-                _buildWarningBullet(Icons.account_balance_wallet_outlined, "Earnings history, C2PA trust credentials, and artisan ratings will be irreversibly erased."),
-                _buildWarningBullet(Icons.phonelink_erase_rounded, "Your phone/email login will be unlinked from the cooperative federation."),
+                _buildWarningBullet(Icons.face_retouching_off_rounded, "dpdp_erasure_bullet_1".tr()),
+                _buildWarningBullet(Icons.badge_outlined, "dpdp_erasure_bullet_2".tr()),
+                _buildWarningBullet(Icons.account_balance_wallet_outlined, "dpdp_erasure_bullet_3".tr()),
+                _buildWarningBullet(Icons.phonelink_erase_rounded, "dpdp_erasure_bullet_4".tr()),
               ],
             ),
           ),
@@ -153,7 +154,7 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                 child: GestureDetector(
                   onTap: () => setState(() => _consentChecked = !_consentChecked),
                   child: Text(
-                    "I acknowledge that this action is permanent and cannot be undone.",
+                    "dpdp_erasure_checkbox".tr(),
                     style: TextStyle(
                       color: WorkGoColors.textPrimary,
                       fontSize: 12,
@@ -171,7 +172,7 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
             children: [
               Expanded(
                 child: WorkGoButton(
-                  label: "Cancel",
+                  label: "cancel_btn".tr(),
                   variant: WorkGoButtonVariant.secondary,
                   onPressed: () => Navigator.of(context).pop(false),
                 ),
@@ -193,9 +194,9 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   icon: const Icon(Icons.delete_forever_rounded, size: 20),
-                  label: const Text(
-                    "Permanently Delete",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                  label: Text(
+                    "permanently_delete_btn".tr(),
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
                   ),
                 ),
               ),

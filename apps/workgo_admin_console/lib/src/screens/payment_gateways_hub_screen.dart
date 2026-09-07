@@ -212,7 +212,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text("Cancel", style: AX.body(color: AX.textSecondary)),
+            child: Text('cancel'.trSafe("Cancel"), style: AX.body(color: AX.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -232,7 +232,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text("Save Credentials", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text('admin_payments_save_creds'.trSafe("Save Credentials"), style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -360,7 +360,9 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      cfg.isLiveMode ? "PRODUCTION LIVE" : "SANDBOX TEST MODE",
+                      cfg.isLiveMode
+                          ? 'admin_payments_production_live'.trSafe("PRODUCTION LIVE")
+                          : 'admin_payments_sandbox_mode'.trSafe("SANDBOX TEST MODE"),
                       style: AX.mono(
                         fontSize: 10.5,
                         color: cfg.isLiveMode ? const Color(0xFF047857) : const Color(0xFFB45309),
@@ -385,12 +387,12 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
             spacing: 12,
             runSpacing: 8,
             children: [
-              _buildMetricPill("PRIMARY PROVIDER", activeMeta.name, activeMeta.brandColor, activeMeta.icon),
-              _buildMetricPill("PLATFORM COMMISSION", "${cfg.platformFeePercent}%", const Color(0xFF3B82F6), Icons.pie_chart_rounded),
-              _buildMetricPill("WELFARE CONTRIBUTION", "${cfg.welfareFundPercent}%", const Color(0xFF8B5CF6), Icons.health_and_safety_rounded),
+              _buildMetricPill('admin_payments_primary_provider'.trSafe("PRIMARY PROVIDER"), activeMeta.name, activeMeta.brandColor, activeMeta.icon),
+              _buildMetricPill('admin_payments_platform_comm'.trSafe("PLATFORM COMMISSION"), "${cfg.platformFeePercent}%", const Color(0xFF3B82F6), Icons.pie_chart_rounded),
+              _buildMetricPill('admin_payments_welfare_contrib'.trSafe("WELFARE CONTRIBUTION"), "${cfg.welfareFundPercent}%", const Color(0xFF8B5CF6), Icons.health_and_safety_rounded),
               _buildMetricPill(
-                "SOVEREIGN UPI FALLBACK",
-                cfg.allowDirectUpiFallback ? "ENABLED" : "DISABLED",
+                'admin_payments_sovereign_fallback'.trSafe("SOVEREIGN UPI FALLBACK"),
+                cfg.allowDirectUpiFallback ? 'admin_payments_enabled'.trSafe("ENABLED") : 'admin_payments_disabled'.trSafe("DISABLED"),
                 cfg.allowDirectUpiFallback ? const Color(0xFF10B981) : const Color(0xFF6B7280),
                 Icons.alt_route_rounded,
               ),
@@ -447,7 +449,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
             children: [
               const Icon(Icons.calculate_rounded, color: AX.amberDark, size: 20),
               const SizedBox(width: 8),
-              Text("Platform Fee & Welfare Split Engine", style: AX.heading(fontSize: 15)),
+              Text('admin_payments_split_engine_title'.trSafe("Platform Fee & Welfare Split Engine"), style: AX.heading(fontSize: 15)),
             ],
           ),
           const SizedBox(height: 6),
@@ -468,7 +470,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Cooperative Platform Fee", style: AX.heading(fontSize: 13)),
+                        Text('admin_payments_coop_fee'.trSafe("Cooperative Platform Fee"), style: AX.heading(fontSize: 13)),
                         Text("${cfg.platformFeePercent.toStringAsFixed(1)}%", style: AX.mono(fontSize: 13, color: const Color(0xFF3B82F6))),
                       ],
                     ),
@@ -492,7 +494,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Artisan Welfare Fund (Medical & Safety)", style: AX.heading(fontSize: 13)),
+                        Text('admin_payments_welfare_fund'.trSafe("Artisan Welfare Fund (Medical & Safety)"), style: AX.heading(fontSize: 13)),
                         Text("${cfg.welfareFundPercent.toStringAsFixed(1)}%", style: AX.mono(fontSize: 13, color: const Color(0xFF8B5CF6))),
                       ],
                     ),
@@ -531,16 +533,16 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("LIVE JOB SIMULATION", style: AX.mono(fontSize: 9.5, color: AX.textSecondary)),
-                          Text("SAMPLE ₹500", style: AX.mono(fontSize: 9.5, color: AX.textPrimary)),
+                          Text('admin_payments_job_sim'.trSafe("LIVE JOB SIMULATION"), style: AX.mono(fontSize: 9.5, color: AX.textSecondary)),
+                          Text('admin_payments_sample'.trSafe("SAMPLE ₹500"), style: AX.mono(fontSize: 9.5, color: AX.textPrimary)),
                         ],
                       ),
                       const Divider(height: 16, color: AX.divider),
-                      _buildSimRow("Artisan Direct Earnings:", "₹${artisanTakeHome.toStringAsFixed(1)}", const Color(0xFF059669), isBold: true),
+                      _buildSimRow('admin_payments_artisan_takehome'.trSafe("Artisan Net Earnings (Direct Cash/UPI):"), "₹${artisanTakeHome.toStringAsFixed(1)}", const Color(0xFF059669), isBold: true),
                       const SizedBox(height: 6),
-                      _buildSimRow("Platform Operations (${cfg.platformFeePercent}%):", "₹${platformShare.toStringAsFixed(1)}", const Color(0xFF3B82F6)),
+                      _buildSimRow("${'admin_payments_coop_fee'.trSafe('Platform Operations')} (${cfg.platformFeePercent}%):", "₹${platformShare.toStringAsFixed(1)}", const Color(0xFF3B82F6)),
                       const SizedBox(height: 6),
-                      _buildSimRow("Welfare Fund (${cfg.welfareFundPercent}%):", "₹${welfareShare.toStringAsFixed(1)}", const Color(0xFF8B5CF6)),
+                      _buildSimRow("${'admin_nav_welfare'.trSafe('Welfare Fund')} (${cfg.welfareFundPercent}%):", "₹${welfareShare.toStringAsFixed(1)}", const Color(0xFF8B5CF6)),
                     ],
                   ),
                 ),
@@ -577,7 +579,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
             children: [
               const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF059669), size: 20),
               const SizedBox(width: 8),
-              Text("Direct Sovereign UPI & Cash Handover Policies", style: AX.heading(fontSize: 15)),
+              Text('admin_payments_sovereign_policies'.trSafe("Direct Sovereign UPI & Cash Handover Policies"), style: AX.heading(fontSize: 15)),
             ],
           ),
           const SizedBox(height: 14),
@@ -588,7 +590,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                   controller: _vpaCtrl,
                   style: AX.mono(fontSize: 13),
                   decoration: InputDecoration(
-                    labelText: "COOPERATIVE UPI VPA",
+                    labelText: 'admin_payments_upi_vpa'.trSafe("COOPERATIVE UPI VPA"),
                     labelStyle: AX.mono(fontSize: 10, color: AX.textSecondary),
                     filled: true,
                     fillColor: const Color(0xFFF9F6EE),
@@ -603,7 +605,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                   controller: _payeeCtrl,
                   style: AX.body(fontSize: 13),
                   decoration: InputDecoration(
-                    labelText: "REGISTERED PAYEE NAME",
+                    labelText: 'admin_payments_payee_name'.trSafe("REGISTERED PAYEE NAME"),
                     labelStyle: AX.mono(fontSize: 10, color: AX.textSecondary),
                     filled: true,
                     fillColor: const Color(0xFFF9F6EE),
@@ -622,7 +624,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 icon: const Icon(Icons.save_rounded, size: 16),
-                label: const Text("Update VPA", style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text('admin_payments_update_vpa'.trSafe("Update VPA"), style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -637,7 +639,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                   _saveConfig(cfg.copyWith(allowDirectUpiFallback: val ?? true));
                 },
               ),
-              Text("Allow Direct Sovereign UPI alongside commercial gateways", style: AX.body(fontSize: 12.5)),
+              Text('admin_payments_allow_sovereign'.trSafe("Allow Direct Sovereign UPI alongside commercial gateways"), style: AX.body(fontSize: 12.5)),
               const SizedBox(width: 24),
               Checkbox(
                 value: cfg.allowCashHandover,
@@ -646,7 +648,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                   _saveConfig(cfg.copyWith(allowCashHandover: val ?? true));
                 },
               ),
-              Text("Allow Cash on Delivery (Artisan Handover)", style: AX.body(fontSize: 12.5)),
+              Text('admin_payments_allow_cod'.trSafe("Allow Cash on Delivery (Artisan Handover)"), style: AX.body(fontSize: 12.5)),
             ],
           ),
         ],
@@ -682,7 +684,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Invoice Identity", style: AX.heading(fontSize: 15)),
+                    Text('admin_payments_invoice_identity'.trSafe("Invoice Identity"), style: AX.heading(fontSize: 15)),
                     Text(
                       "These fields appear on customer & worker invoices. Leave blank to omit the section.",
                       style: AX.body(fontSize: 11.5, color: AX.textSecondary),
@@ -701,7 +703,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
               Expanded(
                 child: _invField(
                   ctrl: _invWebsiteCtrl,
-                  label: "WEBSITE",
+                  label: 'admin_payments_website'.trSafe("WEBSITE"),
                   hint: "e.g. workgo.in",
                   icon: Icons.language_rounded,
                 ),
@@ -710,7 +712,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
               Expanded(
                 child: _invField(
                   ctrl: _invPhoneCtrl,
-                  label: "HELPLINE / PHONE",
+                  label: 'admin_payments_helpline'.trSafe("HELPLINE / PHONE"),
                   hint: "e.g. 1800-419-WORK",
                   icon: Icons.call_rounded,
                 ),
@@ -719,7 +721,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
               Expanded(
                 child: _invField(
                   ctrl: _invEmailCtrl,
-                  label: "SUPPORT EMAIL",
+                  label: 'admin_payments_support_email'.trSafe("SUPPORT EMAIL"),
                   hint: "e.g. support@workgo.in",
                   icon: Icons.alternate_email_rounded,
                 ),
@@ -736,7 +738,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                 flex: 3,
                 child: _invField(
                   ctrl: _invSignatoryCtrl,
-                  label: "AUTHORISED SIGNATORY NAME",
+                  label: 'admin_payments_signatory'.trSafe("AUTHORISED SIGNATORY NAME"),
                   hint: "e.g. WorkGo Trust (leave empty to omit)",
                   icon: Icons.verified_rounded,
                 ),
@@ -746,7 +748,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                 flex: 2,
                 child: _invField(
                   ctrl: _invGstCtrl,
-                  label: "GST RATE (%)",
+                  label: 'admin_payments_gst_rate'.trSafe("GST RATE (%)"),
                   hint: "e.g. 18.0 (leave empty/0 to omit)",
                   icon: Icons.percent_rounded,
                 ),
@@ -762,7 +764,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
             maxLines: 4,
             style: AX.body(fontSize: 12.5),
             decoration: InputDecoration(
-              labelText: "INVOICE TERMS",
+              labelText: 'admin_payments_invoice_terms'.trSafe("INVOICE TERMS"),
               hintText:
                   "e.g. Payment is final upon service completion. Governed by WorkGo Cooperative Terms. (Leave empty to omit)",
               hintStyle: AX.body(fontSize: 11, color: AX.textSecondary),
@@ -932,20 +934,20 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Payment Provider Registry (12 Rails)", style: AX.display(fontSize: 17)),
-                Text("Select an active provider or configure credentials for automated escrow", style: AX.body(fontSize: 12)),
+                Text('admin_payments_registry_title'.trSafe("Payment Provider Registry (12 Rails)"), style: AX.display(fontSize: 17)),
+                Text('admin_payments_registry_sub'.trSafe("Select an active provider or configure credentials for automated escrow"), style: AX.body(fontSize: 12)),
               ],
             ),
             // Category Filter Pills
             Wrap(
               spacing: 6,
               children: [
-                _buildCategoryFilterChip(null, "All (12)"),
-                _buildCategoryFilterChip(PaymentCategory.sovereignZeroFee, "Sovereign (0% Fee)"),
-                _buildCategoryFilterChip(PaymentCategory.indianGateway, "Indian Gateways"),
-                _buildCategoryFilterChip(PaymentCategory.globalGateway, "Global"),
-                _buildCategoryFilterChip(PaymentCategory.cooperativeWallet, "Wallet"),
-                _buildCategoryFilterChip(PaymentCategory.developerSandbox, "Sandbox"),
+                _buildCategoryFilterChip(null, 'admin_payments_tab_all'.trSafe("All (12)")),
+                _buildCategoryFilterChip(PaymentCategory.sovereignZeroFee, 'admin_payments_tab_sovereign'.trSafe("Sovereign (0% Fee)")),
+                _buildCategoryFilterChip(PaymentCategory.indianGateway, 'admin_payments_tab_indian'.trSafe("Indian Gateways")),
+                _buildCategoryFilterChip(PaymentCategory.globalGateway, 'admin_payments_tab_global'.trSafe("Global")),
+                _buildCategoryFilterChip(PaymentCategory.cooperativeWallet, 'admin_nav_welfare'.trSafe("Wallet")),
+                _buildCategoryFilterChip(PaymentCategory.developerSandbox, 'admin_payments_tab_sandbox'.trSafe("Sandbox")),
               ],
             ),
           ],
@@ -1017,7 +1019,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                             color: meta.brandColor,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text("ACTIVE", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)),
+                          child: Text('admin_payments_active_badge'.trSafe("ACTIVE"), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)),
                         ),
                     ],
                   ),
@@ -1044,7 +1046,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                         children: [
                           if (meta.requiresCredentials)
                             IconButton(
-                              tooltip: "Configure Credentials",
+                              tooltip: 'admin_payments_config_btn'.trSafe("Configure Credentials"),
                               splashRadius: 16,
                               icon: const Icon(Icons.settings_rounded, size: 16, color: AX.textSecondary),
                               onPressed: () => _openProviderCredentialsModal(meta),
@@ -1063,7 +1065,7 @@ class _PaymentGatewaysHubScreenState extends State<PaymentGatewaysHubScreen> {
                               minimumSize: const Size(0, 28),
                             ),
                             child: Text(
-                              isActive ? "Active" : "Activate",
+                              isActive ? 'admin_payments_active_badge'.trSafe("ACTIVE") : 'admin_payments_switch_btn'.trSafe("ACTIVATE"),
                               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                             ),
                           ),

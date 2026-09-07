@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -80,7 +81,7 @@ class ImageUploadService {
             ),
             const SizedBox(height: 18),
             Text(
-              "Update Profile Picture",
+              'update_profile_picture'.tr(),
               style: WorkGoFonts.display(
                 color: Colors.white,
                 fontSize: 18,
@@ -89,7 +90,7 @@ class ImageUploadService {
             ),
             const SizedBox(height: 6),
             Text(
-              "Select a photo to represent your profile on WorkGo",
+              'select_profile_photo_desc'.tr(),
               style: WorkGoFonts.body(
                 color: WorkGoColors.textSecondary,
                 fontSize: 12.5,
@@ -101,7 +102,7 @@ class ImageUploadService {
                 Expanded(
                   child: _buildPickerOption(
                     ctx,
-                    title: "Camera",
+                    title: 'camera_source'.tr(),
                     icon: Icons.camera_alt_rounded,
                     gradient: WorkGoColors.electricVioletGradient,
                     onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
@@ -111,7 +112,7 @@ class ImageUploadService {
                 Expanded(
                   child: _buildPickerOption(
                     ctx,
-                    title: "Gallery",
+                    title: 'gallery_source'.tr(),
                     icon: Icons.photo_library_rounded,
                     gradient: WorkGoColors.solarGoldGradient,
                     isGold: true,

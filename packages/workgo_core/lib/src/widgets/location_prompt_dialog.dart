@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../localization/trade_localization.dart';
@@ -109,7 +110,7 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Location detection failed: $e"),
+            content: Text('location_detection_failed_arg'.tr(args: [e.toString()])),
             backgroundColor: const Color(0xFFDC2626),
           ),
         );
@@ -127,7 +128,7 @@ class _LocationPromptContentState extends State<_LocationPromptContent>
     if (address != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Address saved: ${address.shortSummary}"),
+          content: Text('address_saved_arg'.tr(args: [address.shortSummary])),
           backgroundColor: const Color(0xFF047857),
           behavior: SnackBarBehavior.floating,
         ),

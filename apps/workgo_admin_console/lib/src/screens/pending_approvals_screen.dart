@@ -49,11 +49,11 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
       setState(() => _isReloading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
-              SizedBox(width: 8),
-              SafeText("Employee directory reloaded freshly from live cluster", style: TextStyle(color: WorkGoColors.textPrimary)),
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+              const SizedBox(width: 8),
+              SafeText("admin_directory_reloaded".trSafe("Employee directory reloaded freshly from live cluster"), style: const TextStyle(color: WorkGoColors.textPrimary)),
             ],
           ),
           backgroundColor: const Color(0xFFFFF3D6),
@@ -82,7 +82,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: "Fresh Reload",
+            tooltip: "admin_fresh_reload_tooltip".trSafe("Fresh Reload"),
             icon: _isReloading
                 ? const SizedBox(
                     width: 18,
@@ -385,14 +385,14 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: const Color(0xFF6EE7B7)),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.verified_rounded, color: Color(0xFF065F46), size: 13),
-                                SizedBox(width: 4),
+                                const Icon(Icons.verified_rounded, color: Color(0xFF065F46), size: 13),
+                                const SizedBox(width: 4),
                                 SafeText(
-                                  "CERTIFIED",
-                                  style: TextStyle(color: Color(0xFF065F46), fontSize: 10, fontWeight: FontWeight.w800),
+                                  'admin_certified'.trSafe("CERTIFIED"),
+                                  style: const TextStyle(color: Color(0xFF065F46), fontSize: 10, fontWeight: FontWeight.w800),
                                 ),
                               ],
                             ),
@@ -405,15 +405,15 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: const Color(0xFFFCA5A5)),
                             ),
-                            child: const SafeText(
-                              "SUSPENDED",
-                              style: TextStyle(color: Color(0xFF991B1B), fontSize: 10, fontWeight: FontWeight.w800),
+                            child: SafeText(
+                              'admin_suspended'.trSafe("SUSPENDED"),
+                              style: const TextStyle(color: Color(0xFF991B1B), fontSize: 10, fontWeight: FontWeight.w800),
                             ),
                           ),
                         const SizedBox(width: 4),
                         IconButton(
                           icon: const Icon(Icons.delete_outline_rounded, color: WorkGoColors.textDisabled, size: 20),
-                          tooltip: "Purge / Delete Worker Record",
+                          tooltip: 'admin_delete_worker_tooltip'.trSafe("Purge / Delete Worker Record"),
                           splashRadius: 18,
                           padding: const EdgeInsets.all(4),
                           constraints: const BoxConstraints(),
@@ -439,24 +439,26 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
             runSpacing: 6,
             children: [
               _buildStatusChip(
-                label: "Stage: ${_formatStage(stage)}",
+                label: 'admin_stage_label'.trSafe("Stage: ${_formatStage(stage)}", [_formatStage(stage)]),
                 color: _getStageColor(stage),
                 icon: Icons.timeline_rounded,
               ),
               if (details?.aadhaarMaskedNumber != null)
                 _buildStatusChip(
-                  label: "Aadhaar: ${details!.aadhaarMaskedNumber}",
+                  label: 'admin_aadhaar_chip'.trSafe("Aadhaar: ${details!.aadhaarMaskedNumber}", [details.aadhaarMaskedNumber!]),
                   color: const Color(0xFF065F46),
                   icon: Icons.fingerprint_rounded,
                 ),
               if (details?.selfieCenterBase64 != null)
                 _buildStatusChip(
-                  label: "3D Face: 3 Angles ✓",
+                  label: 'admin_face_chip'.trSafe("3D Face: 3 Angles ✓"),
                   color: const Color(0xFF1E40AF),
                   icon: Icons.face_retouching_natural_rounded,
                 ),
               _buildStatusChip(
-                label: isAiSuspicious ? "AI Risk: ${(aiRisk * 100).toInt()}% Flagged" : "AI Risk: ${(aiRisk * 100).toInt()}% Authentic",
+                label: isAiSuspicious 
+                    ? 'admin_ai_risk_flagged'.trSafe("AI Risk: ${(aiRisk * 100).toInt()}% Flagged", ['${(aiRisk * 100).toInt()}'])
+                    : 'admin_ai_risk_authentic'.trSafe("AI Risk: ${(aiRisk * 100).toInt()}% Authentic", ['${(aiRisk * 100).toInt()}']),
                 color: isAiSuspicious ? const Color(0xFF991B1B) : const Color(0xFF065F46),
                 icon: isAiSuspicious ? Icons.warning_amber_rounded : Icons.verified_user_rounded,
               ),
@@ -481,9 +483,9 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                   ),
                 ),
                 icon: const Icon(Icons.badge_rounded, color: WorkGoColors.primaryDark, size: 18),
-                label: const SafeText(
-                  "Inspect Verification Dossier",
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
+                label: SafeText(
+                  'admin_inspect_dossier'.trSafe("Inspect Verification Dossier"),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
                 ),
               ),
             ),
@@ -549,23 +551,23 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
   String _formatStage(VerificationStage stage) {
     switch (stage) {
       case VerificationStage.signup:
-        return "Signup";
+        return 'admin_stage_signup'.trSafe("Signup");
       case VerificationStage.consent:
-        return "Consent";
+        return 'admin_stage_consent'.trSafe("Consent");
       case VerificationStage.aadhaarOfflineEkyc:
-        return "Aadhaar eKYC";
+        return 'admin_stage_aadhaar'.trSafe("Aadhaar eKYC");
       case VerificationStage.selfieCapture:
       case VerificationStage.onDeviceLiveness:
       case VerificationStage.multiAngleLiveness:
-        return "3D Biometrics";
+        return 'admin_stage_biometrics'.trSafe("3D Biometrics");
       case VerificationStage.pccUpload:
-        return "PCC Upload";
+        return 'admin_stage_pcc_upload'.trSafe("PCC Upload");
       case VerificationStage.pccManualReview:
-        return "PCC Review";
+        return 'admin_stage_pcc_review'.trSafe("PCC Review");
       case VerificationStage.approved:
-        return "Approved";
+        return 'admin_stage_approved'.trSafe("Approved");
       case VerificationStage.rejected:
-        return "Rejected";
+        return 'admin_stage_rejected'.trSafe("Rejected");
       default:
         return stage.name;
     }
@@ -636,14 +638,14 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                 children: [
                   Row(
                     children: [
-                      const SafeText("Name: ", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
+                      SafeText("label_name".trSafe("Name: "), style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
                       SafeText(worker.name, style: const TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const SafeText("Trades: ", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
+                      SafeText("label_trades".trSafe("Trades: "), style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
                       Expanded(
                         child: SafeText(
                           worker.skills.isNotEmpty ? worker.skills.join(", ") : "None",
@@ -656,7 +658,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const SafeText("ID: ", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
+                      SafeText("label_id".trSafe("ID: "), style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
                       Expanded(
                         child: SafeText(
                           worker.id,
@@ -679,7 +681,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const SafeText("Cancel", style: TextStyle(color: WorkGoColors.textSecondary)),
+            child: SafeText("cancel".trSafe("Cancel"), style: const TextStyle(color: WorkGoColors.textSecondary)),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -689,7 +691,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             icon: const Icon(Icons.delete_forever_rounded, size: 16),
-            label: const SafeText("Delete Permanently", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            label: SafeText("admin_delete_permanently".trSafe("Delete Permanently"), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ],
       ),
@@ -705,7 +707,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                 children: [
                   const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
                   const SizedBox(width: 8),
-                  Text("Purged record for '${worker.name}'", style: const TextStyle(color: WorkGoColors.textPrimary)),
+                  Text("admin_purged_record".trSafe("Purged record for '{}'", [worker.name]), style: const TextStyle(color: WorkGoColors.textPrimary)),
                 ],
               ),
               backgroundColor: const Color(0xFFFFF3D6),
@@ -717,7 +719,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
         if (mounted) {
           messenger.showSnackBar(
             SnackBar(
-              content: Text("Failed to delete record: $e"),
+              content: Text("admin_failed_delete".trSafe("Failed to delete record: {}", [e.toString()])),
               backgroundColor: const Color(0xFFEF4444),
             ),
           );
@@ -763,9 +765,9 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     if (zipBase64 == null || zipBase64.trim().isEmpty) {
       if (showFeedback) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("No Aadhaar document payload found for this artisan."),
-            backgroundColor: Color(0xFFEF4444),
+          SnackBar(
+            content: Text("admin_no_aadhaar_payload".trSafe("No Aadhaar document payload found for this artisan.")),
+            backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }
@@ -795,7 +797,6 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
         });
 
         if (result.isSuccess) {
-          // Sync demographics back to Firestore if not already populated
           widget.workerService.syncDecryptedAadhaarDetails(
             workerId: widget.worker.id,
             data: result,
@@ -813,7 +814,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   children: [
                     const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
                     const SizedBox(width: 8),
-                    Text("Decrypted UIDAI demographics for ${result.name ?? 'Artisan'}! ✓"),
+                    Text("admin_decrypted_uidai".trSafe("Decrypted UIDAI demographics for {}! ✓", [result.name ?? "artisan".trSafe("Artisan")])),
                   ],
                 ),
                 backgroundColor: const Color(0xFF0F291E),
@@ -824,7 +825,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
         } else if (showFeedback && result.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Decryption failed: ${result.errorMessage}"),
+              content: Text("admin_decryption_failed".trSafe("Decryption failed: {}", [result.errorMessage!])),
               backgroundColor: const Color(0xFFEF4444),
               behavior: SnackBarBehavior.floating,
             ),
@@ -835,8 +836,17 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
       if (mounted) {
         setState(() {
           _isDecryptingAadhaar = false;
-          _aadhaarDecryptError = "$e";
+          _aadhaarDecryptError = e.toString();
         });
+        if (showFeedback) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("admin_decryption_failed".trSafe("Decryption failed: {}", [e.toString()])),
+              backgroundColor: const Color(0xFFEF4444),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }
@@ -850,11 +860,11 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.key_rounded, color: WorkGoColors.primaryDark, size: 20),
-            SizedBox(width: 8),
-            Text("Unlock Aadhaar Archive", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Icon(Icons.key_rounded, color: WorkGoColors.primaryDark, size: 20),
+            const SizedBox(width: 8),
+            Text("admin_unlock_aadhaar_archive".trSafe("Unlock Aadhaar Archive"), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
@@ -873,7 +883,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               maxLength: 4,
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 4),
               decoration: InputDecoration(
-                labelText: "4-Digit Share Code",
+                labelText: "admin_share_code_label".trSafe("4-Digit Share Code"),
                 counterText: "",
                 filled: true,
                 fillColor: const Color(0xFFF9F6EE),
@@ -885,7 +895,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(null),
-            child: const Text("Cancel", style: TextStyle(color: WorkGoColors.textSecondary)),
+            child: Text("cancel".trSafe("Cancel"), style: const TextStyle(color: WorkGoColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
@@ -893,7 +903,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               backgroundColor: WorkGoColors.primaryDark,
               foregroundColor: Colors.white,
             ),
-            child: const Text("Unlock & Decrypt", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text("admin_unlock_and_decrypt".trSafe("Unlock & Decrypt"), style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -915,16 +925,16 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Artisan Approved & C2PA Trust Badge Minted! ✓"),
-            backgroundColor: Color(0xFF10B981),
+          SnackBar(
+            content: Text("admin_artisan_approved_c2pa".trSafe("Artisan Approved & C2PA Trust Badge Minted! ✓")),
+            backgroundColor: const Color(0xFF10B981),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Approval failed: $e"), backgroundColor: const Color(0xFFEF4444)),
+          SnackBar(content: Text("admin_approval_failed".trSafe("Approval failed: {}", [e.toString()])), backgroundColor: const Color(0xFFEF4444)),
         );
       }
     } finally {
@@ -937,21 +947,21 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        title: const SafeText("Reject Application", style: TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold)),
+        title: SafeText("admin_reject_application".trSafe("Reject Application"), style: const TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: _rejectionReasonCtrl,
           style: const TextStyle(color: WorkGoColors.textPrimary),
-          decoration: const InputDecoration(
-            hintText: "Enter reason for rejection (e.g. Blurry ID, PCC Expired)...",
-            hintStyle: TextStyle(color: WorkGoColors.textSecondary),
+          decoration: InputDecoration(
+            hintText: "admin_reject_reason_hint".trSafe("Enter reason for rejection (e.g. Blurry ID, PCC Expired)..."),
+            hintStyle: const TextStyle(color: WorkGoColors.textSecondary),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("Cancel", style: TextStyle(color: WorkGoColors.textSecondary))),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text("cancel".trSafe("Cancel"), style: const TextStyle(color: WorkGoColors.textSecondary))),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(_rejectionReasonCtrl.text.trim()),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
-            child: const Text("Reject", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text("admin_reject_btn".trSafe("Reject"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -969,13 +979,13 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
         if (mounted) {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Application Rejected."), backgroundColor: Color(0xFFEF4444)),
+            SnackBar(content: Text("admin_application_rejected".trSafe("Application Rejected.")), backgroundColor: const Color(0xFFEF4444)),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Rejection failed: $e"), backgroundColor: const Color(0xFFEF4444)),
+            SnackBar(content: Text("admin_rejection_failed".trSafe("Rejection failed: {}", [e.toString()])), backgroundColor: const Color(0xFFEF4444)),
           );
         }
       } finally {
@@ -993,11 +1003,11 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: const Color(0xFFEF4444).withAlpha(100), width: 1.5),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.delete_forever_rounded, color: Color(0xFFEF4444), size: 22),
-            SizedBox(width: 8),
-            SafeText("Purge Worker Record?", style: TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+            const Icon(Icons.delete_forever_rounded, color: Color(0xFFEF4444), size: 22),
+            const SizedBox(width: 8),
+            SafeText("admin_purge_worker_q".trSafe("Purge Worker Record?"), style: const TextStyle(color: WorkGoColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
         content: SafeText(
@@ -1007,7 +1017,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text("Cancel", style: TextStyle(color: WorkGoColors.textSecondary)),
+            child: Text("cancel".trSafe("Cancel"), style: const TextStyle(color: WorkGoColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -1015,7 +1025,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
             ),
-            child: const Text("Purge Permanently", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text("admin_purge_permanently".trSafe("Purge Permanently"), style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1030,7 +1040,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Record for '${widget.worker.name}' permanently deleted."),
+              content: Text("admin_record_permanently_deleted".trSafe("Record for '{}' permanently deleted.", [widget.worker.name])),
               backgroundColor: const Color(0xFF1F1635),
             ),
           );
@@ -1038,7 +1048,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Delete failed: $e"), backgroundColor: const Color(0xFFEF4444)),
+            SnackBar(content: Text("admin_failed_delete".trSafe("Delete failed: {}", [e.toString()])), backgroundColor: const Color(0xFFEF4444)),
           );
         }
       } finally {
@@ -1078,7 +1088,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Aadhaar ZIP '$safeFileName' downloaded successfully!"),
+            content: Text("admin_aadhaar_zip_downloaded".trSafe("Aadhaar ZIP '{}' downloaded successfully!", [safeFileName])),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),
@@ -1088,7 +1098,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Download failed: $e"),
+            content: Text("admin_download_failed".trSafe("Download failed: {}", [e.toString()])),
             backgroundColor: const Color(0xFFEF4444),
           ),
         );
@@ -1319,7 +1329,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
-                        child: const Text("Reject", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: Text("admin_reject_btn".trSafe("Reject"), style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1578,12 +1588,12 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   ),
                   InkWell(
                     onTap: () => _promptCustomShareCode(),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.refresh_rounded, color: Color(0xFF065F46), size: 14),
-                        SizedBox(width: 2),
-                        Text("Re-sync", style: TextStyle(color: Color(0xFF065F46), fontSize: 10.5, fontWeight: FontWeight.bold)),
+                        const Icon(Icons.refresh_rounded, color: Color(0xFF065F46), size: 14),
+                        const SizedBox(width: 2),
+                        Text("admin_resync".trSafe("Re-sync"), style: const TextStyle(color: Color(0xFF065F46), fontSize: 10.5, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -1618,7 +1628,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                       minimumSize: const Size(0, 26),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text("Unlock", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: Text("admin_unlock".trSafe("Unlock"), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -1642,7 +1652,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("UIDAI 4-Digit Share Code (Private Password)", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 11)),
+                        Text("admin_uidai_share_code_title".trSafe("UIDAI 4-Digit Share Code (Private Password)"), style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 11)),
                         Text(
                           shareCode,
                           style: const TextStyle(
@@ -1657,11 +1667,11 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   ],
                 ),
                 IconButton(
-                  tooltip: "Copy Share Code",
+                  tooltip: "admin_copy_share_code_tooltip".trSafe("Copy Share Code"),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: shareCode));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Share code copied to clipboard")),
+                      SnackBar(content: Text("admin_share_code_copied".trSafe("Share code copied to clipboard"))),
                     );
                   },
                   icon: const Icon(Icons.copy_rounded, color: WorkGoColors.primaryDark, size: 18),
@@ -1729,13 +1739,13 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                                         child: Icon(Icons.person_rounded, color: Colors.black26, size: 40),
                                       ),
                                     )
-                                  : const Center(
+                                  : Center(
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.lock_rounded, color: Colors.black26, size: 28),
-                                          SizedBox(height: 4),
-                                          Text("Encrypted in Zip", style: TextStyle(color: Colors.black38, fontSize: 10)),
+                                          const Icon(Icons.lock_rounded, color: Colors.black26, size: 28),
+                                          const SizedBox(height: 4),
+                                          Text("admin_encrypted_in_zip".trSafe("Encrypted in Zip"), style: const TextStyle(color: Colors.black38, fontSize: 10)),
                                         ],
                                       ),
                                     ),
@@ -1833,7 +1843,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const SafeText("Date of Birth", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
+                      SafeText("admin_dob".trSafe("Date of Birth"), style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1869,19 +1879,19 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const SafeText("Verified Residential Address", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
+                            SafeText("admin_verified_res_address".trSafe("Verified Residential Address"), style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
                             InkWell(
                               onTap: () {
                                 Clipboard.setData(ClipboardData(text: address));
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Address copied to clipboard")),
+                                  SnackBar(content: Text("admin_address_copied".trSafe("Address copied to clipboard"))),
                                 );
                               },
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(Icons.copy_rounded, color: WorkGoColors.primaryDark, size: 12),
-                                  SizedBox(width: 4),
-                                  Text("Copy", style: TextStyle(color: WorkGoColors.primaryDark, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  const Icon(Icons.copy_rounded, color: WorkGoColors.primaryDark, size: 12),
+                                  const SizedBox(width: 4),
+                                  Text("admin_copy".trSafe("Copy"), style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 11, fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
@@ -1906,7 +1916,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const SafeText("Digital Trust Certificate", style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
+                      SafeText("admin_digital_trust_cert".trSafe("Digital Trust Certificate"), style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 12)),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
@@ -1975,7 +1985,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                                 style: TextStyle(color: Color(0xFFA6ADC8), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
                               ),
                               IconButton(
-                                tooltip: "Copy Raw XML",
+                                tooltip: "admin_copy_raw_xml_tooltip".trSafe("Copy Raw XML"),
                                 splashRadius: 16,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
@@ -1983,7 +1993,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                                 onPressed: () {
                                   Clipboard.setData(ClipboardData(text: rawXml));
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Raw XML copied to clipboard")),
+                                    SnackBar(content: Text("admin_raw_xml_copied".trSafe("Raw XML copied to clipboard"))),
                                   );
                                 },
                               ),
@@ -2051,7 +2061,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     icon: const Icon(Icons.download_rounded, size: 14),
-                    label: const Text("Save ZIP", style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                    label: Text("admin_save_zip".trSafe("Save ZIP"), style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

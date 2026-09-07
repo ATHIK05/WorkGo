@@ -150,16 +150,20 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
 
                   // ── 4. Job Ledger History Header
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'job_ledger_history'.tr(),
-                        style: WorkGoFonts.display(
-                          color: KX.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                      Expanded(
+                        child: Text(
+                          'job_ledger_history'.tr(),
+                          style: WorkGoFonts.display(
+                            color: KX.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(

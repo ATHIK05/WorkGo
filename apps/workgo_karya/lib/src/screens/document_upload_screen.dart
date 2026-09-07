@@ -450,23 +450,23 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               }
             },
             itemBuilder: (ctx) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: "reset_step2",
                 child: Row(
                   children: [
-                    Icon(Icons.replay_rounded, color: KX.gold, size: 18),
-                    SizedBox(width: 8),
-                    Text("Re-do Aadhaar eKYC (Step 2)", style: TextStyle(color: KX.textPrimary, fontSize: 12.5)),
+                    const Icon(Icons.replay_rounded, color: KX.gold, size: 18),
+                    const SizedBox(width: 8),
+                    Text('redo_aadhaar_ekyc_step2'.tr(), style: const TextStyle(color: KX.textPrimary, fontSize: 12.5)),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: "reset_all",
                 child: Row(
                   children: [
-                    Icon(Icons.restart_alt_rounded, color: Color(0xFFEF4444), size: 18),
-                    SizedBox(width: 8),
-                    Text("Restart Verification (Step 1)", style: TextStyle(color: KX.textPrimary, fontSize: 12.5)),
+                    const Icon(Icons.restart_alt_rounded, color: Color(0xFFEF4444), size: 18),
+                    const SizedBox(width: 8),
+                    Text('restart_verification_step1'.tr(), style: const TextStyle(color: KX.textPrimary, fontSize: 12.5)),
                   ],
                 ),
               ),
@@ -1497,7 +1497,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 ),
                 child: _isLoading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const SafeText("Submit for Cooperative Certification", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                    : SafeText("submit_coop_cert_btn".tr(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
               ),
             ),
           ],
@@ -1549,7 +1549,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     ),
                     const SizedBox(height: 2),
                     SafeText(
-                      isApproved ? "c2pa_badge_title".tr() : "Cooperative Officer Audit in Progress",
+                      isApproved ? "c2pa_badge_title".tr() : "coop_audit_in_progress".tr(),
                       style: TextStyle(
                         color: isApproved ? const Color(0xFF34D399) : KaryaColors.brandYellow,
                         fontSize: 12,
@@ -1565,7 +1565,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
           SafeText(
             isApproved
                 ? "stage_approved_desc".tr()
-                : "Your Aadhaar, 3D Multi-Angle Biometrics, and Police Clearance have been securely transmitted to the Cooperative Governance Console.",
+                : "coop_audit_in_progress_desc".tr(),
             style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
           ),
         ],

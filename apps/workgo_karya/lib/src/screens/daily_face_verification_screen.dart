@@ -42,7 +42,7 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
   bool _isVerifying = false;
 
   bool _isFaceAligned = false;
-  String _alignmentPrompt = "Position your face in the oval";
+  String _alignmentPrompt = "position_face_oval".tr();
   int _consecutiveAlignedFrames = 0;
 
   double _originalBrightness = 0.5;
@@ -147,7 +147,7 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
       if (faces.isEmpty) {
         setState(() {
           _isFaceAligned = false;
-          _alignmentPrompt = "No face detected. Look at the camera.";
+          _alignmentPrompt = "no_face_detected".tr();
           _consecutiveAlignedFrames = 0;
         });
         return;
@@ -156,7 +156,7 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
       if (faces.length > 1) {
         setState(() {
           _isFaceAligned = false;
-          _alignmentPrompt = "Only 1 artisan should be in the frame!";
+          _alignmentPrompt = "one_artisan_only".tr();
           _consecutiveAlignedFrames = 0;
         });
         return;
@@ -170,20 +170,20 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
       final rightEyeOpen = face.rightEyeOpenProbability ?? 1.0;
 
       bool aligned = true;
-      String prompt = "Perfect! Hold still...";
+      String prompt = "perfect_hold_still".tr();
 
       if (headY.abs() > 14.0) {
         aligned = false;
-        prompt = headY > 0 ? "Turn head slightly to your LEFT" : "Turn head slightly to your RIGHT";
+        prompt = headY > 0 ? "turn_head_left".tr() : "turn_head_right".tr();
       } else if (headX.abs() > 14.0) {
         aligned = false;
-        prompt = headX > 0 ? "Tilt your head slightly DOWN" : "Tilt your head slightly UP";
+        prompt = headX > 0 ? "tilt_head_down".tr() : "tilt_head_up".tr();
       } else if (headZ.abs() > 12.0) {
         aligned = false;
-        prompt = "Keep your head upright";
+        prompt = "keep_head_upright".tr();
       } else if (leftEyeOpen < 0.35 || rightEyeOpen < 0.35) {
         aligned = false;
-        prompt = "Please keep both eyes open";
+        prompt = "keep_eyes_open".tr();
       }
 
       setState(() {
@@ -289,7 +289,7 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
       );
 
       if (!mounted) return;
-      _onVerificationSuccess(1.0, "Initial reference face registered ✓");
+      _onVerificationSuccess(1.0, "initial_face_registered".tr());
       return;
     }
 
@@ -314,7 +314,7 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
       setState(() {
         _isVerifying = false;
         _comparisonResult = result;
-        _errorMessage = "Face did not match approved 3D KYC profile (${result.confidencePercentage}% confidence). Please face the camera in good lighting.";
+        _errorMessage = "face_mismatch_error".tr(args: ['${result.confidencePercentage}']);
       });
     }
   }
@@ -436,14 +436,14 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 14),
-                        SizedBox(width: 4),
+                        const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 14),
+                        const SizedBox(width: 4),
                         Text(
-                          "ANTI-PROXY",
-                          style: TextStyle(
+                          "anti_proxy_tag".tr(),
+                          style: const TextStyle(
                             color: Color(0xFF10B981),
                             fontSize: 9.5,
                             fontWeight: FontWeight.w900,
@@ -657,7 +657,7 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                         ),
                         icon: Icon(_isFaceAligned ? Icons.camera_alt_rounded : Icons.touch_app_rounded),
                         label: Text(
-                          _isFaceAligned ? "Auto-Detecting... Or Tap to Verify" : "Verify My Face",
+                          _isFaceAligned ? "auto_detecting_or_tap".tr() : "verify_my_face_btn".tr(),
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                         ),
                       ),

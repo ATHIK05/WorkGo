@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/worker.dart';
@@ -98,7 +99,7 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("Peer artisan onboarded! ₹100 referral bonus credited to ledger."),
+            content: Text("peer_artisan_onboarded_toast".tr()),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -109,7 +110,7 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Onboarding error: $e"),
+            content: Text("onboarding_error_arg".tr(args: [e.toString()])),
             backgroundColor: const Color(0xFFEF4444),
           ),
         );
@@ -167,18 +168,18 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Peer Referral Guild",
-                          style: TextStyle(
+                        Text(
+                          "peer_referral_guild_title".tr(),
+                          style: const TextStyle(
                             color: Color(0xFF141416),
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 1),
-                        const Text(
-                          "Earn 2% lifetime bonus on peer dispatches",
-                          style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 11.5),
+                        Text(
+                          "peer_guild_subtitle".tr(),
+                          style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 11.5),
                         ),
                       ],
                     ),
@@ -208,7 +209,7 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
                     setState(() => _showAddForm = true);
                   },
                   icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                  label: const Text("Directly Onboard Peer Artisan", style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
+                  label: Text("directly_onboard_peer_btn".tr(), style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF141416),
                     foregroundColor: Colors.white,
@@ -252,9 +253,9 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "YOUR ARTISAN INVITE CODE",
-                style: TextStyle(
+              Text(
+                "your_artisan_invite_code".tr(),
+                style: const TextStyle(
                   color: Color(0xFF9CA3AF),
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
@@ -267,9 +268,9 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
                   color: const Color(0xFF10B981).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  "ACTIVE",
-                  style: TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.w900),
+                child: Text(
+                  "active_caps".tr(),
+                  style: const TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.w900),
                 ),
               ),
             ],
@@ -295,7 +296,7 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
                       HapticFeedback.selectionClick();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text("Invite code '$_referralCode' copied!"),
+                          content: Text("invite_code_copied_toast".tr(args: [_referralCode])),
                           duration: const Duration(seconds: 1),
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -308,11 +309,11 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFF3F3F46)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.copy_rounded, color: Colors.white, size: 14),
-                          SizedBox(width: 4),
-                          Text("Copy", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                          const Icon(Icons.copy_rounded, color: Colors.white, size: 14),
+                          const SizedBox(width: 4),
+                          Text("copy_btn".tr(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ),
@@ -331,7 +332,7 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
       children: [
         Expanded(
           child: _statPill(
-            "Artisans",
+            "artisans_stat".tr(),
             "${widget.worker.referralCount}",
             const Color(0xFFD1FAE5),
             const Color(0xFF065F46),
@@ -341,7 +342,7 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
         const SizedBox(width: 8),
         Expanded(
           child: _statPill(
-            "Earnings",
+            "earnings_stat".tr(),
             "₹${widget.worker.referralEarnings.toStringAsFixed(0)}",
             const Color(0xFFD6EBFF),
             const Color(0xFF1E3A8A),
@@ -351,8 +352,8 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
         const SizedBox(width: 8),
         Expanded(
           child: _statPill(
-            "Guild Cut",
-            "2% Tier",
+            "guild_cut_stat".tr(),
+            "two_pct_tier".tr(),
             const Color(0xFFFFE0A3),
             const Color(0xFF92400E),
             Icons.bolt_rounded,
@@ -406,27 +407,27 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "How Peer Referral Works",
-            style: TextStyle(color: Color(0xFF141416), fontSize: 14, fontWeight: FontWeight.w800),
+          Text(
+            "how_referral_works_title".tr(),
+            style: const TextStyle(color: Color(0xFF141416), fontSize: 14, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
           _benefitRow(
             icon: Icons.card_giftcard_rounded,
-            title: "₹100 Onboarding Bounty",
-            desc: "Instantly credited to your ledger when your referred peer completes 3 jobs.",
+            title: "onboarding_bounty_title".tr(),
+            desc: "onboarding_bounty_desc".tr(),
           ),
           const SizedBox(height: 10),
           _benefitRow(
             icon: Icons.trending_up_rounded,
-            title: "2% Passive Guild Revenue",
-            desc: "Earn 2% of the gross ticket on every job completed by your network.",
+            title: "passive_guild_revenue_title".tr(),
+            desc: "passive_guild_revenue_desc".tr(),
           ),
           const SizedBox(height: 10),
           _benefitRow(
             icon: Icons.swap_horiz_rounded,
-            title: "Seamless 1-Tap Job Transfers",
-            desc: "When busy or traveling, hand off live dispatches to your trusted peers.",
+            title: "seamless_job_transfers_title".tr(),
+            desc: "seamless_job_transfers_desc".tr(),
           ),
         ],
       ),
@@ -482,9 +483,9 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Onboard Peer Artisan",
-                  style: TextStyle(color: Color(0xFF141416), fontSize: 15, fontWeight: FontWeight.w800),
+                Text(
+                  "onboard_peer_artisan_title".tr(),
+                  style: const TextStyle(color: Color(0xFF141416), fontSize: 15, fontWeight: FontWeight.w800),
                 ),
                 IconButton(
                   onPressed: () => setState(() => _showAddForm = false),
@@ -498,13 +499,13 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
             TextFormField(
               controller: _nameCtrl,
               decoration: InputDecoration(
-                labelText: "Peer's Full Name",
-                hintText: "e.g. Ramesh Kumar",
+                labelText: "peer_full_name_label".tr(),
+                hintText: "peer_name_hint".tr(),
                 filled: true,
                 fillColor: const Color(0xFFF9F6EE),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFF0EDE6))),
               ),
-              validator: (v) => v == null || v.trim().isEmpty ? "Enter peer's name" : null,
+              validator: (v) => v == null || v.trim().isEmpty ? "enter_peer_name_validation".tr() : null,
             ),
             const SizedBox(height: 10),
 
@@ -513,13 +514,13 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                labelText: "Mobile Phone Number",
-                hintText: "+91 98765 43210",
+                labelText: "mobile_phone_label".tr(),
+                hintText: "phone_hint".tr(),
                 filled: true,
                 fillColor: const Color(0xFFF9F6EE),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFF0EDE6))),
               ),
-              validator: (v) => v == null || v.trim().isEmpty ? "Enter valid phone number" : null,
+              validator: (v) => v == null || v.trim().isEmpty ? "enter_valid_phone_validation".tr() : null,
             ),
             const SizedBox(height: 12),
 
@@ -527,7 +528,7 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
             DropdownButtonFormField<String>(
               initialValue: _selectedSkill,
               decoration: InputDecoration(
-                labelText: "Primary Trade",
+                labelText: "primary_trade_label".tr(),
                 filled: true,
                 fillColor: const Color(0xFFF9F6EE),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFF0EDE6))),
@@ -551,7 +552,7 @@ class _PeerReferralNetworkSheetState extends State<PeerReferralNetworkSheet> {
               ),
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text("Register Peer & Claim ₹100 Bonus", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                  : Text("register_peer_claim_btn".tr(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
             ),
           ],
         ),

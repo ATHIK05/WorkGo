@@ -72,7 +72,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                                 children: [
                                   const Icon(Icons.auto_graph_rounded, color: AX.emeraldDark, size: 16),
                                   const SizedBox(width: 6),
-                                  Text("ML AGGREGATION v2", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
+                                  Text('admin_demand_ml_badge'.trSafe("ML AGGREGATION v2"), style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
                                 ],
                               ),
                             ),
@@ -114,7 +114,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: _buildMetricPill(
-                                  title: "Live Cluster Jobs",
+                                  title: 'admin_kpi_live_jobs'.trSafe("Live Cluster Jobs"),
                                   value: "$totalCount",
                                   subtitle: "${settledBookings.length} Settled",
                                   icon: Icons.trending_up_rounded,
@@ -124,7 +124,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                               const SizedBox(width: 14),
                               Expanded(
                                 child: _buildMetricPill(
-                                  title: "Emergency Ratio",
+                                  title: 'admin_kpi_emergency_ratio'.trSafe("Emergency Ratio"),
                                   value: "${emergencyRatio.toStringAsFixed(1)}%",
                                   subtitle: "$emergencyCount SOS calls",
                                   icon: Icons.bolt_rounded,
@@ -134,7 +134,7 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                               const SizedBox(width: 14),
                               Expanded(
                                 child: _buildMetricPill(
-                                  title: "Avg Settled Ticket",
+                                  title: 'admin_kpi_avg_ticket'.trSafe("Avg Settled Ticket"),
                                   value: "₹${avgTicket.toStringAsFixed(0)}",
                                   subtitle: "₹${settledGross.toStringAsFixed(0)} realized",
                                   icon: Icons.currency_rupee_rounded,
@@ -144,9 +144,9 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                               const SizedBox(width: 14),
                               Expanded(
                                 child: _buildMetricPill(
-                                  title: "Supply Density",
+                                  title: 'admin_kpi_supply_density'.trSafe("Supply Density"),
                                   value: "${workers.length}",
-                                  subtitle: "Active Artisans",
+                                  subtitle: 'admin_kpi_active_artisans'.trSafe("Active Artisans"),
                                   icon: Icons.groups_rounded,
                                   color: AX.amber,
                                 ),
@@ -160,17 +160,17 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     child: _buildMetricPill(
-                                      title: "Live Cluster Jobs",
+                                      title: 'admin_kpi_live_jobs'.trSafe("Live Cluster Jobs"),
                                       value: "$totalCount",
                                       subtitle: "${settledBookings.length} Settled",
                                       icon: Icons.trending_up_rounded,
                                       color: AX.emerald,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: _buildMetricPill(
-                                      title: "Emergency Ratio",
+                                      title: 'admin_kpi_emergency_ratio'.trSafe("Emergency Ratio"),
                                       value: "${emergencyRatio.toStringAsFixed(1)}%",
                                       subtitle: "$emergencyCount SOS calls",
                                       icon: Icons.bolt_rounded,
@@ -179,24 +179,24 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 14),
                               Row(
                                 children: [
                                   Expanded(
                                     child: _buildMetricPill(
-                                      title: "Avg Settled Ticket",
+                                      title: 'admin_kpi_avg_ticket'.trSafe("Avg Settled Ticket"),
                                       value: "₹${avgTicket.toStringAsFixed(0)}",
                                       subtitle: "₹${settledGross.toStringAsFixed(0)} realized",
                                       icon: Icons.currency_rupee_rounded,
                                       color: const Color(0xFF1D4ED8),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: _buildMetricPill(
-                                      title: "Supply Density",
+                                      title: 'admin_kpi_supply_density'.trSafe("Supply Density"),
                                       value: "${workers.length}",
-                                      subtitle: "Active Artisans",
+                                      subtitle: 'admin_kpi_active_artisans'.trSafe("Active Artisans"),
                                       icon: Icons.groups_rounded,
                                       color: AX.amber,
                                     ),
@@ -209,33 +209,33 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                           return Column(
                             children: [
                               _buildMetricPill(
-                                title: "Live Cluster Jobs",
+                                title: 'admin_kpi_live_jobs'.trSafe("Live Cluster Jobs"),
                                 value: "$totalCount",
                                 subtitle: "${settledBookings.length} Settled",
                                 icon: Icons.trending_up_rounded,
                                 color: AX.emerald,
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 12),
                               _buildMetricPill(
-                                title: "Emergency Ratio",
+                                title: 'admin_kpi_emergency_ratio'.trSafe("Emergency Ratio"),
                                 value: "${emergencyRatio.toStringAsFixed(1)}%",
                                 subtitle: "$emergencyCount SOS calls",
                                 icon: Icons.bolt_rounded,
                                 color: AX.rose,
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 12),
                               _buildMetricPill(
-                                title: "Avg Settled Ticket",
+                                title: 'admin_kpi_avg_ticket'.trSafe("Avg Settled Ticket"),
                                 value: "₹${avgTicket.toStringAsFixed(0)}",
                                 subtitle: "₹${settledGross.toStringAsFixed(0)} realized",
                                 icon: Icons.currency_rupee_rounded,
                                 color: const Color(0xFF1D4ED8),
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 12),
                               _buildMetricPill(
-                                title: "Supply Density",
+                                title: 'admin_kpi_supply_density'.trSafe("Supply Density"),
                                 value: "${workers.length}",
-                                subtitle: "Active Artisans",
+                                subtitle: 'admin_kpi_active_artisans'.trSafe("Active Artisans"),
                                 icon: Icons.groups_rounded,
                                 color: AX.amber,
                               ),
@@ -259,9 +259,9 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text("7-Day Moving Demand Velocity", style: AX.display(fontSize: 16)),
+                                  Text('admin_demand_velocity_title'.trSafe("7-Day Moving Demand Velocity"), style: AX.display(fontSize: 16)),
                                   const SizedBox(height: 2),
-                                  Text("Regional trade demand spikes aggregated across cooperative nodes", style: AX.body(fontSize: 11)),
+                                  Text('admin_demand_velocity_desc'.trSafe("Regional trade demand spikes aggregated across cooperative nodes"), style: AX.body(fontSize: 11)),
                                 ],
                               ),
                               Container(
@@ -271,14 +271,14 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(color: AX.emerald.withValues(alpha: 0.3)),
                                 ),
-                                child: Text("Real-Time Telemetry", style: AX.mono(fontSize: 10, color: AX.emeraldDark)),
+                                child: Text('admin_demand_realtime_badge'.trSafe("Real-Time Telemetry"), style: AX.mono(fontSize: 10, color: AX.emeraldDark)),
                               ),
                             ],
                           ),
                           const SizedBox(height: 24),
                           SizedBox(
                             height: 220,
-                            child: _buildDynamicLineChart(bookings),
+                            child: _buildDynamicLineChart(context, bookings),
                           ),
                         ],
                       ),
@@ -292,9 +292,9 @@ class SmartDemandInsightsScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Trade Category Demand Concentration", style: AX.display(fontSize: 16)),
+                          Text('admin_demand_concentration_title'.trSafe("Trade Category Demand Concentration"), style: AX.display(fontSize: 16)),
                           const SizedBox(height: 4),
-                          Text("Volume split calculated directly from customer dispatches", style: AX.body(fontSize: 11)),
+                          Text('admin_demand_concentration_desc'.trSafe("Volume split calculated directly from customer dispatches"), style: AX.body(fontSize: 11)),
                           const SizedBox(height: 20),
                           _buildCategoryBreakdown(bookings),
                         ],
@@ -338,8 +338,13 @@ class SmartDemandInsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDynamicLineChart(List<Booking> bookings) {
-    final days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  Widget _buildDynamicLineChart(BuildContext context, List<Booking> bookings) {
+    final lang = context.locale.languageCode;
+    final days = lang == 'ta'
+        ? ["திங்", "செவ்", "புத", "வியா", "வெள்", "சனி", "ஞாயி"]
+        : lang == 'hi'
+            ? ["सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि", "रवि"]
+            : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     final spots = <FlSpot>[];
 
     for (int i = 0; i < 7; i++) {
@@ -436,8 +441,8 @@ class SmartDemandInsightsScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(cat, style: AX.heading(fontSize: 13)),
-                  Text("$count Bookings (${(ratio * 100).toStringAsFixed(0)}%)", style: AX.mono(fontSize: 11, color: color)),
+                  Text(cat.toLocalizedTradeClean(), style: AX.heading(fontSize: 13)),
+                  Text("$count ${'admin_sunburst_bookings'.trSafe('Bookings')} (${(ratio * 100).toStringAsFixed(0)}%)", style: AX.mono(fontSize: 11, color: color)),
                 ],
               ),
               const SizedBox(height: 6),

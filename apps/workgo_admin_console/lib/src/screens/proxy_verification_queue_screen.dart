@@ -38,7 +38,7 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
                   children: [
                     const Icon(Icons.phone_in_talk_rounded, color: AX.emeraldDark, size: 16),
                     const SizedBox(width: 6),
-                    Text("CALL-TO-BOOK BRIDGE", style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
+                    Text('admin_proxy_bridge_badge'.trSafe("CALL-TO-BOOK BRIDGE"), style: AX.mono(fontSize: 11, color: AX.emeraldDark)),
                   ],
                 ),
               ),
@@ -73,9 +73,9 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
                             child: const Icon(Icons.phone_in_talk_rounded, color: AX.emeraldDark, size: 36),
                           ),
                           const SizedBox(height: 16),
-                          Text("No Proxy Verifications Pending", style: AX.display(fontSize: 16)),
+                          Text('admin_proxy_empty_title'.trSafe("No Proxy Verifications Pending"), style: AX.display(fontSize: 16)),
                           const SizedBox(height: 6),
-                          Text("Feature-phone artisans referred by registered members will show up here for voice verification.", style: AX.body(fontSize: 12), textAlign: TextAlign.center),
+                          Text('admin_proxy_empty_desc'.trSafe("Feature-phone artisans referred by registered members will show up here for voice verification."), style: AX.body(fontSize: 12), textAlign: TextAlign.center),
                         ],
                       ),
                     ),
@@ -99,6 +99,10 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
   }
 
   Widget _buildProxyCard(BuildContext context, Worker pw, WorkerService workerService) {
+    final localizedSkills = pw.skills.isNotEmpty
+        ? pw.skills.map((s) => s.toLocalizedTradeClean()).join(', ')
+        : 'artisan_partner'.trSafe("General Maintenance");
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: AX.glassBox(radius: 18),
@@ -123,7 +127,10 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(pw.name.isNotEmpty ? pw.name : "Proxy Artisan #${pw.id.substring(0, 6).toUpperCase()}", style: AX.display(fontSize: 16)),
-                      Text("Calling Phone: ${pw.phoneForCalling ?? '+91 (Co-op Proxy Phone)'}", style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 12, color: Color(0xFF065F46), fontWeight: FontWeight.bold)),
+                      Text(
+                        'admin_proxy_calling_phone'.trSafe("Calling Phone: ${pw.phoneForCalling ?? '+91 (Co-op Proxy Phone)'}", [pw.phoneForCalling ?? '+91 (Co-op Proxy Phone)']),
+                        style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 12, color: Color(0xFF065F46), fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ],
@@ -131,14 +138,14 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(8)),
-                child: const Text("PHONE VERIFICATION QUEUE", style: TextStyle(fontFamily: "SpaceGrotesk", fontSize: 10, color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
+                child: Text('admin_proxy_phone_queue_badge'.trSafe("PHONE VERIFICATION QUEUE"), style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 10, color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           const Divider(color: AX.divider, height: 24),
 
           Text(
-            "Primary Skill: ${pw.skills.isNotEmpty ? pw.skills.join(', ') : 'General Maintenance'} • ${pw.experienceYears} Years Experience",
+            'admin_proxy_primary_skill'.trSafe("Primary Skill: $localizedSkills • ${pw.experienceYears} Years Experience", [localizedSkills, '${pw.experienceYears}']),
             style: AX.body(fontSize: 12, color: AX.textSecondary),
           ),
           const SizedBox(height: 16),
@@ -148,7 +155,7 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.call_rounded, color: Color(0xFF1D4ED8), size: 18),
-                  label: const Text("Initiate Verification Call", style: TextStyle(color: AX.textPrimary, fontWeight: FontWeight.bold)),
+                  label: Text('admin_proxy_initiate_call'.trSafe("Initiate Verification Call"), style: const TextStyle(color: AX.textPrimary, fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AX.divider, width: 1.5),
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -157,7 +164,7 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("Calling ${pw.phoneForCalling ?? pw.name}... Connecting through cooperative voice bridge."),
+                        content: Text("admin_calling_connecting".trSafe("Calling {}... Connecting through cooperative voice bridge.", [pw.phoneForCalling ?? pw.name])),
                         backgroundColor: const Color(0xFF1D4ED8),
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -169,7 +176,7 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF1A1A1A), size: 18),
-                  label: const Text("Approve & Activate Worker", style: TextStyle(fontWeight: FontWeight.w800)),
+                  label: Text('admin_proxy_approve_worker'.trSafe("Approve & Activate Worker"), style: const TextStyle(fontWeight: FontWeight.w800)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AX.emerald,
                     foregroundColor: const Color(0xFF1A1A1A),
@@ -181,9 +188,9 @@ class ProxyVerificationQueueScreen extends StatelessWidget {
                     await workerService.approveWorker(pw.id);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Proxy artisan successfully verified and activated for Call-to-Book!"),
-                          backgroundColor: Color(0xFF10B981),
+                        SnackBar(
+                          content: Text('admin_proxy_approved_snack'.trSafe("Proxy artisan successfully verified and activated for Call-to-Book!")),
+                          backgroundColor: const Color(0xFF10B981),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );

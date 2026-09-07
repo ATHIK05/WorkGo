@@ -9,6 +9,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
 
@@ -38,7 +39,7 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
   // Step Tracker
   BiometricAngleStep _currentStep = BiometricAngleStep.center;
   bool _isFaceAligned = false;
-  String _alignmentPrompt = "Align your face in the circle";
+  String _alignmentPrompt = "";
   int _consecutiveAlignedFrames = 0;
   bool _isCapturing = false;
 
@@ -63,12 +64,12 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+    _pulseAnimation = Tween<double>(begin: 0.96, end: 1.04).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-
+    _alignmentPrompt = 'bio_prompt_align_face'.tr();
     _initBrightnessBoost();
     _initDetector();
     _initCamera();
@@ -152,7 +153,7 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
       if (faces.isEmpty) {
         setState(() {
           _isFaceAligned = false;
-          _alignmentPrompt = "No face detected. Look at the camera.";
+          _alignmentPrompt = 'bio_prompt_no_face'.tr();
           _consecutiveAlignedFrames = 0;
         });
         _isProcessingFrame = false;
@@ -171,12 +172,12 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
       switch (_currentStep) {
         case BiometricAngleStep.center:
           if (!eyesOpen) {
-            promptText = "Please open your eyes naturally";
+            promptText = 'bio_prompt_open_eyes'.tr();
           } else if (yaw.abs() <= 12.0) {
             stepPassed = true;
-            promptText = "Hold still... Capturing Center Face";
+            promptText = 'bio_prompt_hold_center'.tr();
           } else {
-            promptText = "Look straight ahead at the center";
+            promptText = 'bio_prompt_look_straight'.tr();
           }
           break;
 
@@ -184,18 +185,18 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
           // In front camera mirror mode, turning to user's left gives negative or positive yaw depending on sensor
           if (yaw <= -18.0 || yaw >= 18.0) {
             stepPassed = true;
-            promptText = "Left angle aligned! Hold still...";
+            promptText = 'bio_prompt_left_aligned'.tr();
           } else {
-            promptText = "👈 Turn your head slightly to the LEFT";
+            promptText = 'bio_prompt_turn_left_slight'.tr();
           }
           break;
 
         case BiometricAngleStep.turnRight:
           if (yaw >= 18.0 || yaw <= -18.0) {
             stepPassed = true;
-            promptText = "Right angle aligned! Hold still...";
+            promptText = 'bio_prompt_right_aligned'.tr();
           } else {
-            promptText = "👉 Turn your head slightly to the RIGHT";
+            promptText = 'bio_prompt_turn_right_slight'.tr();
           }
           break;
 
@@ -286,17 +287,17 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
           _centerBytes = bytes;
           _centerBase64 = base64Str;
           _currentStep = BiometricAngleStep.turnLeft;
-          _alignmentPrompt = "👈 Now slowly turn your head to the LEFT";
+          _alignmentPrompt = 'bio_prompt_turn_left_slow'.tr();
         } else if (_currentStep == BiometricAngleStep.turnLeft) {
           _leftBytes = bytes;
           _leftBase64 = base64Str;
           _currentStep = BiometricAngleStep.turnRight;
-          _alignmentPrompt = "👉 Now slowly turn your head to the RIGHT";
+          _alignmentPrompt = 'bio_prompt_turn_right_slow'.tr();
         } else if (_currentStep == BiometricAngleStep.turnRight) {
           _rightBytes = bytes;
           _rightBase64 = base64Str;
           _currentStep = BiometricAngleStep.completed;
-          _alignmentPrompt = "All 3 angles captured successfully! ✓";
+          _alignmentPrompt = 'bio_prompt_all_captured'.tr();
         }
         _isFaceAligned = false;
         _consecutiveAlignedFrames = 0;
@@ -362,7 +363,7 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
       _rightBytes = null;
       _isFaceAligned = false;
       _consecutiveAlignedFrames = 0;
-      _alignmentPrompt = "Align your face in the circle";
+      _alignmentPrompt = 'bio_prompt_align_face'.tr();
     });
 
     if (_cameraController != null && _cameraController!.value.isInitialized && !_cameraController!.value.isStreamingImages) {
@@ -433,7 +434,7 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
                         const Icon(Icons.camera_front_rounded, color: KaryaColors.brandYellow, size: 64),
                         const SizedBox(height: 16),
                         SafeText(
-                          _hasCameraError ? "Camera Hardware Unavailable" : "Initializing Front Camera...",
+                          _hasCameraError ? 'camera_hardware_unavailable'.tr() : 'initializing_front_camera'.tr(),
                           style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         if (_hasCameraError) ...[
@@ -442,7 +443,7 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
                             onPressed: () => _fallbackPickAngle(_currentStep),
                             style: ElevatedButton.styleFrom(backgroundColor: KaryaColors.brandYellow),
                             icon: const Icon(Icons.photo_camera, color: Colors.black),
-                            label: const Text("Capture with Device Camera", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                            label: Text('capture_with_device_camera'.tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ],
@@ -492,9 +493,9 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
                       children: [
                         const Icon(Icons.wb_sunny_rounded, color: KaryaColors.brandYellow, size: 16),
                         const SizedBox(width: 6),
-                        const SafeText(
-                          "STUDIO RING LIGHT ⚡",
-                          style: TextStyle(color: KaryaColors.brandYellow, fontSize: 11, fontWeight: FontWeight.w900),
+                        SafeText(
+                          'studio_ring_light'.tr(),
+                          style: const TextStyle(color: KaryaColors.brandYellow, fontSize: 11, fontWeight: FontWeight.w900),
                         ),
                       ],
                     ),
@@ -593,21 +594,21 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _buildAngleThumbnail(
-                          title: "Center",
+                          title: 'angle_center'.tr(),
                           bytes: _centerBytes,
                           isCurrent: _currentStep == BiometricAngleStep.center,
                           isDone: _centerBytes != null,
                           onTapFallback: () => _fallbackPickAngle(BiometricAngleStep.center),
                         ),
                         _buildAngleThumbnail(
-                          title: "Left 👈",
+                          title: 'angle_left'.tr(),
                           bytes: _leftBytes,
                           isCurrent: _currentStep == BiometricAngleStep.turnLeft,
                           isDone: _leftBytes != null,
                           onTapFallback: () => _fallbackPickAngle(BiometricAngleStep.turnLeft),
                         ),
                         _buildAngleThumbnail(
-                          title: "Right 👉",
+                          title: 'angle_right'.tr(),
                           bytes: _rightBytes,
                           isCurrent: _currentStep == BiometricAngleStep.turnRight,
                           isDone: _rightBytes != null,
@@ -630,7 +631,7 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               ),
-                              child: const Text("Retake", style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: Text('retake_btn'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -645,12 +646,12 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 elevation: 4,
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.verified_user_rounded, size: 20),
-                                  SizedBox(width: 8),
-                                  Text("Submit 3D Biometrics", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                                  const Icon(Icons.verified_user_rounded, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text('submit_3d_biometrics_btn'.tr(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
                                 ],
                               ),
                             ),
@@ -671,7 +672,9 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
                               ),
                               icon: Icon(_isFaceAligned ? Icons.camera_alt_rounded : Icons.touch_app_rounded),
                               label: Text(
-                                _isFaceAligned ? "Auto-Locking... Or Tap to Snap" : "Snap ${_getStepTitle()}",
+                                _isFaceAligned
+                                    ? 'bio_auto_locking_or_snap'.tr()
+                                    : 'bio_snap_angle_arg'.tr(args: [_getStepTitle()]),
                                 style: const TextStyle(fontWeight: FontWeight.w900),
                               ),
                             ),
@@ -691,13 +694,13 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
   String _getStepTitle() {
     switch (_currentStep) {
       case BiometricAngleStep.center:
-        return "STEP 1: FRONT CENTER FACE";
+        return 'bio_step_1_title'.tr();
       case BiometricAngleStep.turnLeft:
-        return "STEP 2: TURN HEAD LEFT 👈";
+        return 'bio_step_2_title'.tr();
       case BiometricAngleStep.turnRight:
-        return "STEP 3: TURN HEAD RIGHT 👉";
+        return 'bio_step_3_title'.tr();
       case BiometricAngleStep.completed:
-        return "3D BIOMETRICS VERIFIED ✓";
+        return 'bio_step_completed_title'.tr();
     }
   }
 

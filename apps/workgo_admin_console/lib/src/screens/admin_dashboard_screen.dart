@@ -435,7 +435,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text("WorkGo", style: AX.display(fontSize: 18, fontWeight: FontWeight.w800)),
-                      Text("COOP ADMIN", style: AX.mono(fontSize: 9, color: AX.emeraldDark)),
+                      Text('admin_role_badge'.trSafe('COOP ADMIN'), style: AX.mono(fontSize: 9, color: AX.emeraldDark)),
                     ],
                   ),
                 ],
@@ -903,10 +903,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     final groups = <BarChartGroupData>[];
     double maxY = 1;
 
+    final lang = context.locale.languageCode;
+    final weekdayNames = lang == 'ta'
+        ? ["திங்", "செவ்", "புத", "வியா", "வெள்", "சனி", "ஞாயி"]
+        : lang == 'hi'
+            ? ["सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि", "रवि"]
+            : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
     for (int i = 6; i >= 0; i--) {
       final targetDay = now.subtract(Duration(days: i));
       final dayIdx = 6 - i;
-      dayLabels.add(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][targetDay.weekday - 1]);
+      dayLabels.add(weekdayNames[targetDay.weekday - 1]);
 
       // Use scheduledAt/startedAt if set, otherwise distribute by id hash
       final dayBookings = bookings.where((b) {
@@ -986,7 +993,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       color: const Color(0xFFF3F0EA),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text("Reset View", style: AX.mono(fontSize: 9, color: AX.textSecondary)),
+                    child: Text('admin_reset_view'.trSafe("Reset View"), style: AX.mono(fontSize: 9, color: AX.textSecondary)),
                   ),
                 )
               else
@@ -1016,14 +1023,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("$dayLabel: $t Jobs", style: AX.heading(fontSize: 12)),
+                    Text("$dayLabel: $t ${'admin_chart_jobs'.trSafe('Jobs')}", style: AX.heading(fontSize: 12)),
                     Row(
                       children: [
-                        Text("$comp Done", style: AX.mono(fontSize: 10, color: const Color(0xFF065F46), fontWeight: FontWeight.w700)),
+                        Text("$comp ${'admin_chart_done'.trSafe('Done')}", style: AX.mono(fontSize: 10, color: const Color(0xFF065F46), fontWeight: FontWeight.w700)),
                         const SizedBox(width: 10),
-                        Text("$act Active", style: AX.mono(fontSize: 10, color: const Color(0xFF92400E), fontWeight: FontWeight.w700)),
+                        Text("$act ${'status_in_progress'.trSafe('Active')}", style: AX.mono(fontSize: 10, color: const Color(0xFF92400E), fontWeight: FontWeight.w700)),
                         const SizedBox(width: 10),
-                        Text("$pend Pending", style: AX.mono(fontSize: 10, color: const Color(0xFF991B1B), fontWeight: FontWeight.w700)),
+                        Text("$pend ${'status_pending'.trSafe('Pending')}", style: AX.mono(fontSize: 10, color: const Color(0xFF991B1B), fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ],
@@ -1138,6 +1145,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     const tradeAbbr = ['Elec.', 'Plumb.', 'Carp.', 'Paint', 'AC', 'Mason'];
     const tradeKeys = ['electr', 'plumb', 'carp', 'paint', 'ac', 'mason'];
 
+    final lang = context.locale.languageCode;
+    final displayTradeAbbr = lang == 'ta'
+        ? ['மின்', 'குழாய்', 'தச்சு', 'வண்ணம்', 'ஏசி', 'கொத்து']
+        : lang == 'hi'
+            ? ['बिजली', 'प्लंबिंग', 'बढ़ई', 'पेंटिंग', 'एसी', 'राजमिस्त्री']
+            : tradeAbbr;
+
     double maxY = 1;
     final groups = <BarChartGroupData>[];
 
@@ -1209,14 +1223,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       color: const Color(0xFFF3F0EA),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text("Reset View", style: AX.mono(fontSize: 9, color: AX.textSecondary)),
+                    child: Text('admin_reset_view'.trSafe("Reset View"), style: AX.mono(fontSize: 9, color: AX.textSecondary)),
                   ),
                 )
               else
                 Row(children: [
-                  _buildLegendDot(AX.rose, "Demand"),
+                  _buildLegendDot(AX.rose, 'admin_chart_demand'.trSafe("Demand")),
                   const SizedBox(width: 10),
-                  _buildLegendDot(AX.emerald, "Supply"),
+                  _buildLegendDot(AX.emerald, 'admin_chart_supply'.trSafe("Supply")),
                 ]),
             ],
           ),
@@ -1228,7 +1242,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               final d = selGrp.barRods[0].toY.toInt();
               final s = selGrp.barRods[1].toY.toInt();
               final gap = s - d;
-              final gapStr = gap >= 0 ? "+$gap Surplus" : "$gap Deficit";
+              final surplusLabel = 'admin_chart_surplus'.trSafe("Surplus");
+              final deficitLabel = 'admin_chart_deficit'.trSafe("Deficit");
+              final gapStr = gap >= 0 ? "+$gap $surplusLabel" : "$gap $deficitLabel";
               final gapColor = gap >= 0 ? const Color(0xFF065F46) : const Color(0xFF991B1B);
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1236,12 +1252,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(tradeName, style: AX.heading(fontSize: 12)),
+                    Text(tradeName.toLocalizedTradeClean(), style: AX.heading(fontSize: 12)),
                     Row(
                       children: [
-                        Text("Demand: $d", style: AX.mono(fontSize: 10, color: const Color(0xFF991B1B), fontWeight: FontWeight.w700)),
+                        Text("${'admin_chart_demand'.trSafe('Demand')}: $d", style: AX.mono(fontSize: 10, color: const Color(0xFF991B1B), fontWeight: FontWeight.w700)),
                         const SizedBox(width: 10),
-                        Text("Supply: $s", style: AX.mono(fontSize: 10, color: const Color(0xFF065F46), fontWeight: FontWeight.w700)),
+                        Text("${'admin_chart_supply'.trSafe('Supply')}: $s", style: AX.mono(fontSize: 10, color: const Color(0xFF065F46), fontWeight: FontWeight.w700)),
                         const SizedBox(width: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1284,10 +1300,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       showTitles: true,
                       getTitlesWidget: (val, _) {
                         final idx = val.toInt();
-                        if (idx >= 0 && idx < tradeAbbr.length) {
+                        if (idx >= 0 && idx < displayTradeAbbr.length) {
                           return Padding(
                             padding: const EdgeInsets.only(top: 6),
-                            child: Text(tradeAbbr[idx],
+                            child: Text(displayTradeAbbr[idx],
                                 style: AX.mono(fontSize: 9, color: AX.textSecondary)),
                           );
                         }
@@ -1381,11 +1397,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     final total = workers.length;
 
     final categoryList = [
-      if (certifiedActive > 0) ("Active Online", certifiedActive, AX.emerald),
-      if (approvedOffline > 0) ("Offline Approved", approvedOffline, const Color(0xFF059669)),
-      if (pendingKyc > 0) ("Pending KYC", pendingKyc, AX.amber),
-      if (proxyQueue > 0) ("Proxy Queue", proxyQueue, AX.violet),
-      if (suspended > 0) ("Suspended", suspended, AX.rose),
+      if (certifiedActive > 0) ('admin_status_active_online'.trSafe("Active Online"), certifiedActive, AX.emerald),
+      if (approvedOffline > 0) ('admin_status_offline_approved'.trSafe("Offline Approved"), approvedOffline, const Color(0xFF059669)),
+      if (pendingKyc > 0) ('admin_status_pending_kyc'.trSafe("Pending KYC"), pendingKyc, AX.amber),
+      if (proxyQueue > 0) ('admin_status_proxy_queue'.trSafe("Proxy Queue"), proxyQueue, AX.violet),
+      if (suspended > 0) ('admin_status_suspended'.trSafe("Suspended"), suspended, AX.rose),
     ];
 
     final sections = <PieChartSectionData>[
@@ -1413,7 +1429,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
 
     final hasTouched = _touchedRosterIndex != null && _touchedRosterIndex! >= 0 && _touchedRosterIndex! < categoryList.length;
     final centerTitle = hasTouched ? '${categoryList[_touchedRosterIndex!].$2}' : '$total';
-    final centerSubtitle = hasTouched ? categoryList[_touchedRosterIndex!].$1.toUpperCase() : 'ROSTER';
+    final centerSubtitle = hasTouched ? categoryList[_touchedRosterIndex!].$1.toUpperCase() : 'admin_roster_label'.trSafe('ROSTER');
     final centerColor = hasTouched ? categoryList[_touchedRosterIndex!].$3 : AX.textPrimary;
 
     return Container(
@@ -1442,7 +1458,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       color: const Color(0xFFF3F0EA),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text("Reset", style: AX.mono(fontSize: 9, color: AX.textSecondary)),
+                    child: Text('admin_reset'.trSafe("Reset"), style: AX.mono(fontSize: 9, color: AX.textSecondary)),
                   ),
                 ),
             ],
@@ -1525,18 +1541,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Widget _buildKycPipelineChart(List<Worker> workers) {
     // Each entry: (display label, [stages it covers], bar color)
     final stageDefs = [
-      ('Signup', [VerificationStage.signup], AX.cyanLight),
-      ('Consent', [VerificationStage.consent], AX.cyan),
-      ('Aadhaar', [VerificationStage.aadhaarOfflineEkyc], const Color(0xFF3B82F6)),
-      ('Liveness', [
+      ('admin_stage_signup'.trSafe('Signup'), [VerificationStage.signup], AX.cyanLight),
+      ('admin_stage_consent'.trSafe('Consent'), [VerificationStage.consent], AX.cyan),
+      ('admin_stage_aadhaar'.trSafe('Aadhaar'), [VerificationStage.aadhaarOfflineEkyc], const Color(0xFF3B82F6)),
+      ('admin_stage_biometrics'.trSafe('Liveness'), [
         VerificationStage.selfieCapture,
         VerificationStage.onDeviceLiveness,
         VerificationStage.multiAngleLiveness,
         VerificationStage.liveVideoVerification,
       ], AX.amber),
-      ('PCC Upload', [VerificationStage.pccUpload], const Color(0xFFF97316)),
-      ('PCC Review', [VerificationStage.pccManualReview], AX.rose),
-      ('Approved', [VerificationStage.approved], AX.emerald),
+      ('admin_stage_pcc_upload'.trSafe('PCC Upload'), [VerificationStage.pccUpload], const Color(0xFFF97316)),
+      ('admin_stage_pcc_review'.trSafe('PCC Review'), [VerificationStage.pccManualReview], AX.rose),
+      ('admin_stage_approved'.trSafe('Approved'), [VerificationStage.approved], AX.emerald),
     ];
 
     double maxY = 1;
@@ -1596,7 +1612,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       color: const Color(0xFFF3F0EA),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text("Reset View", style: AX.mono(fontSize: 9, color: AX.textSecondary)),
+                    child: Text('admin_reset_view'.trSafe("Reset View"), style: AX.mono(fontSize: 9, color: AX.textSecondary)),
                   ),
                 ),
             ],
@@ -1614,10 +1630,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("$stageName Stage", style: AX.heading(fontSize: 12)),
+                    Text("$stageName ${'admin_chart_stage_suffix'.trSafe('Stage')}", style: AX.heading(fontSize: 12)),
                     Row(
                       children: [
-                        Text("$count Artisans", style: AX.mono(fontSize: 10, color: const Color(0xFF065F46), fontWeight: FontWeight.w700)),
+                        Text("$count ${'admin_chart_artisans'.trSafe('Artisans')}", style: AX.mono(fontSize: 10, color: const Color(0xFF065F46), fontWeight: FontWeight.w700)),
                         const SizedBox(width: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1625,7 +1641,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             color: const Color(0xFFD1FAE5),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text("$pct% of Total", style: AX.mono(fontSize: 9, color: const Color(0xFF065F46), fontWeight: FontWeight.w700)),
+                          child: Text("$pct% ${'admin_chart_of_total'.trSafe('of Total')}", style: AX.mono(fontSize: 9, color: const Color(0xFF065F46), fontWeight: FontWeight.w700)),
                         ),
                       ],
                     ),
@@ -1739,9 +1755,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     final total = bookings.length;
 
     final payCategories = [
-      if (paid > 0) ("Settled", paid, AX.emerald),
-      if (unpaid > 0) ("Pending", unpaid, AX.amber),
-      if (refunded > 0) ("Refunded", refunded, AX.rose),
+      if (paid > 0) ('admin_chart_settled'.trSafe("Settled"), paid, AX.emerald),
+      if (unpaid > 0) ('admin_chart_pending'.trSafe("Pending"), unpaid, AX.amber),
+      if (refunded > 0) ('admin_chart_refunded'.trSafe("Refunded"), refunded, AX.rose),
     ];
 
     final sections = <PieChartSectionData>[
@@ -1800,7 +1816,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AX.divider),
                     ),
-                    child: Text("Reset", style: AX.mono(fontSize: 9, color: AX.textSecondary)),
+                    child: Text('admin_reset'.trSafe("Reset"), style: AX.mono(fontSize: 9, color: AX.textSecondary)),
                   ),
                 ),
             ],
@@ -1849,7 +1865,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                           ),
                         ),
                         Text(
-                          "$count Bookings",
+                          "$count ${'admin_chart_jobs'.trSafe('Bookings')}",
                           style: AX.mono(fontSize: 11, color: color, fontWeight: FontWeight.w700),
                         ),
                       ],
@@ -1859,7 +1875,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Settlement volume",
+                          'admin_settlement_volume'.trSafe("Settlement volume"),
                           style: AX.mono(fontSize: 9.5, color: AX.textMuted),
                         ),
                         Container(
@@ -1954,9 +1970,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const Text(
-                        "TOTAL",
-                        style: TextStyle(
+                      Text(
+                        'admin_sunburst_total'.trSafe("TOTAL"),
+                        style: const TextStyle(
                           fontFamily: "SpaceGrotesk",
                           fontSize: 8.5,
                           fontWeight: FontWeight.bold,
@@ -2121,7 +2137,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                     color: const Color(0xFFFEE2E2),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: Text("Emergency", style: AX.mono(fontSize: 9, color: const Color(0xFF991B1B))),
+                                  child: Text('admin_emergency_tag'.trSafe("Emergency"), style: AX.mono(fontSize: 9, color: const Color(0xFF991B1B))),
                                 ),
                               ],
                             ],
@@ -2252,9 +2268,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 spacing: 10,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  _buildLegendDot(const Color(0xFF10B981), "Completed"),
-                  _buildLegendDot(const Color(0xFFF59E0B), "Active"),
-                  _buildLegendDot(const Color(0xFFF43F5E), "Pending"),
+                  _buildLegendDot(const Color(0xFF10B981), 'admin_chart_completed'.trSafe("Completed")),
+                  _buildLegendDot(const Color(0xFFF59E0B), 'admin_chart_active'.trSafe("Active")),
+                  _buildLegendDot(const Color(0xFFF43F5E), 'admin_chart_pending'.trSafe("Pending")),
                   if (_selectedSunburstTrade != null)
                     GestureDetector(
                       onTap: () {
@@ -2268,12 +2284,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AX.divider),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.close_rounded, size: 12, color: AX.textSecondary),
-                            SizedBox(width: 4),
-                            Text("Reset", style: TextStyle(fontFamily: "SpaceGrotesk", fontSize: 10, color: AX.textSecondary, fontWeight: FontWeight.bold)),
+                            const Icon(Icons.close_rounded, size: 12, color: AX.textSecondary),
+                            const SizedBox(width: 4),
+                            Text('admin_reset'.trSafe("Reset"), style: const TextStyle(fontFamily: "SpaceGrotesk", fontSize: 10, color: AX.textSecondary, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -2292,10 +2308,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 children: [
                   Icon(Icons.donut_large_rounded, color: AX.textMuted, size: 44),
                   const SizedBox(height: 12),
-                  Text("No booking data yet", style: AX.heading(fontSize: 14)),
+                  Text('admin_no_booking_data'.trSafe("No booking data yet"), style: AX.heading(fontSize: 14)),
                   const SizedBox(height: 4),
                   Text(
-                    "Trade performance will appear once bookings are created.",
+                    'admin_trade_performance_hint'.trSafe("Trade performance will appear once bookings are created."),
                     style: AX.body(fontSize: 12),
                   ),
                 ],
@@ -2370,6 +2386,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                   total: total,
                                   animationProgress: _sunburstAnimation.value,
                                   selectedTrade: _selectedSunburstTrade,
+                                  bookingsLabel: 'admin_sunburst_bookings'.trSafe('BOOKINGS'),
                                 ),
                               ),
                             ),
@@ -2388,8 +2405,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       ),
                       child: Text(
                         _selectedSunburstTrade != null
-                            ? "Tap chart or Reset to exit zoom"
-                            : "Click any trade segment to inspect",
+                            ? 'admin_sunburst_zoom_hint'.trSafe("Tap chart or Reset to exit zoom")
+                            : 'admin_sunburst_hint'.trSafe("Click any trade segment to inspect"),
                         style: TextStyle(
                           fontFamily: "SpaceGrotesk",
                           fontSize: 10,
@@ -2406,7 +2423,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Breakdown by Trade (Click to Inspect)",
+                        Text('admin_sunburst_breakdown'.trSafe("Breakdown by Trade (Click to Inspect)"),
                             style: AX.heading(fontSize: 13)),
                         if (_selectedSunburstTrade != null)
                           GestureDetector(
@@ -2420,7 +2437,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                 color: const Color(0xFFF3F0EA),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Text("Reset View", style: AX.mono(fontSize: 9, color: AX.textSecondary)),
+                              child: Text('admin_reset_view'.trSafe("Reset View"), style: AX.mono(fontSize: 9, color: AX.textSecondary)),
                             ),
                           ),
                       ],
@@ -2484,7 +2501,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          s.name,
+                                          s.name.toLocalizedTradeClean(),
                                           style: AX.heading(
                                             fontSize: 13,
                                             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
@@ -2492,7 +2509,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                         ),
                                       ),
                                       Text(
-                                        "${s.total} jobs",
+                                        "${s.total} ${'admin_chart_jobs'.trSafe('jobs')}",
                                         style: AX.mono(fontSize: 11, color: AX.textMuted),
                                       ),
                                     ],
@@ -2530,17 +2547,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                   Row(
                                     children: [
                                       Text(
-                                        "✓ ${s.completed} Completed",
+                                        "✓ ${s.completed} ${'admin_chart_completed'.trSafe('Completed')}",
                                         style: AX.mono(fontSize: 10, color: const Color(0xFF10B981)),
                                       ),
                                       const Spacer(),
                                       Text(
-                                        "⏳ ${s.active} Active",
+                                        "⏳ ${s.active} ${'admin_chart_active'.trSafe('Active')}",
                                         style: AX.mono(fontSize: 10, color: const Color(0xFFF59E0B)),
                                       ),
                                       const Spacer(),
                                       Text(
-                                        "⚠️ ${s.pending} Pending",
+                                        "⚠️ ${s.pending} ${'admin_chart_pending'.trSafe('Pending')}",
                                         style: AX.mono(fontSize: 10, color: const Color(0xFFF43F5E)),
                                       ),
                                     ],
@@ -2975,7 +2992,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Emergency beacon marked resolved for $workerName.'),
+              content: Text('admin_beacon_resolved_msg'.trSafe('Emergency beacon marked resolved for {}.', [workerName])),
               backgroundColor: const Color(0xFF059669),
             ),
           );
@@ -2984,7 +3001,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error resolving beacon: $e'),
+              content: Text('admin_beacon_error_msg'.trSafe('Error resolving beacon: {}', [e.toString()])),
               backgroundColor: Colors.red,
             ),
           );
@@ -2994,9 +3011,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 //  Data model for one trade segment in the sunburst
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 class _TradeSegmentData {
   final String name;
   final Color color;
@@ -3023,12 +3040,14 @@ class _SunburstPainter extends CustomPainter {
   final int total;
   final double animationProgress;
   final String? selectedTrade;
+  final String bookingsLabel;
 
   const _SunburstPainter({
     required this.segments,
     required this.total,
     this.animationProgress = 1.0,
     this.selectedTrade,
+    this.bookingsLabel = 'BOOKINGS',
   });
 
   @override
@@ -3138,7 +3157,7 @@ class _SunburstPainter extends CustomPainter {
 
         // 5. Center Metrics Display: Big number & Trade name
         _drawText(canvas, '${seg.total}', center.dx, center.dy - 12, seg.color, 28, size, bold: true);
-        _drawText(canvas, seg.name.toUpperCase(), center.dx, center.dy + 12, const Color(0xFF1A1A1A), 9.5, size, bold: true);
+        _drawText(canvas, seg.name.toLocalizedTradeClean().toUpperCase(), center.dx, center.dy + 12, const Color(0xFF1A1A1A), 9.5, size, bold: true);
       }
       return;
     }
@@ -3217,7 +3236,7 @@ class _SunburstPainter extends CustomPainter {
         final labelR = outerR + 13;
         final lx = center.dx + labelR * math.cos(midA);
         final ly = center.dy + labelR * math.sin(midA);
-        _drawText(canvas, seg.name, lx, ly, seg.color, 9.0, size, bold: true);
+        _drawText(canvas, seg.name.toLocalizedTradeClean(), lx, ly, seg.color, 9.0, size, bold: true);
       }
 
       angle += rawSweep;
@@ -3225,7 +3244,7 @@ class _SunburstPainter extends CustomPainter {
 
     // Center Label in Overview
     _drawText(canvas, total.toString(), center.dx, center.dy - 8, const Color(0xFF1A1A1A), 22, size, bold: true);
-    _drawText(canvas, 'BOOKINGS', center.dx, center.dy + 12, const Color(0xFF9CA3AF), 7.5, size, bold: true);
+    _drawText(canvas, bookingsLabel, center.dx, center.dy + 12, const Color(0xFF9CA3AF), 7.5, size, bold: true);
   }
 
   /// Draws an annular slice between [innerR] and [outerR].
@@ -3306,7 +3325,6 @@ class _SunburstPainter extends CustomPainter {
           fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
           color: color,
           letterSpacing: bold ? 0.3 : 0.2,
-          fontFamily: 'SpaceGrotesk',
         ),
       ),
       textDirection: ui.TextDirection.ltr,
@@ -3331,5 +3349,6 @@ class _SunburstPainter extends CustomPainter {
       old.total != total ||
       old.segments.length != segments.length ||
       old.animationProgress != animationProgress ||
-      old.selectedTrade != selectedTrade;
+      old.selectedTrade != selectedTrade ||
+      old.bookingsLabel != bookingsLabel;
 }

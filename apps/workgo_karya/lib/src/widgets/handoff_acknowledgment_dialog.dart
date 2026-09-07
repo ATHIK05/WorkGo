@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
@@ -42,8 +43,8 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
   Future<void> _acceptRelay() async {
     if (!_hasReviewedNotes) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please check the acknowledgment box confirming you have reviewed the diagnosis notes.'),
+        SnackBar(
+          content: Text('check_ack_box_toast'.tr()),
           backgroundColor: KX.amberDark,
         ),
       );
@@ -66,7 +67,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Specialist relay accepted! Customer is awaiting your arrival.'),
+            content: Text('relay_accepted_toast'.tr()),
             backgroundColor: KX.emerald,
           ),
         );
@@ -76,7 +77,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
         setState(() => _isAccepting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not accept relay: $e'),
+            content: Text('could_not_accept_relay_arg'.tr(args: [e.toString()])),
             backgroundColor: KX.rose,
           ),
         );
@@ -88,7 +89,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
   Widget build(BuildContext context) {
     final b = widget.booking;
     final referringArtisan = b.handoffFromWorkerName ?? 'Peer Artisan';
-    final notes = b.handoffDiagnosisNotes ?? 'Pre-inspection diagnosis notes pending.';
+    final notes = b.handoffDiagnosisNotes ?? 'pre_inspection_notes_pending'.tr();
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -117,7 +118,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Co-op Specialist Relay Alert',
+                        'relay_alert_title'.tr(),
                         style: WorkGoFonts.heading(
                           color: KX.textPrimary,
                           fontSize: 16,
@@ -125,7 +126,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
                         ),
                       ),
                       Text(
-                        'Direct job referral from $referringArtisan',
+                        'relay_from_arg'.tr(args: [referringArtisan]),
                         style: WorkGoFonts.body(
                           color: KX.textSecondary,
                           fontSize: 12,
@@ -154,7 +155,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
                     const Icon(Icons.handyman_rounded, color: KX.amber, size: 14),
                     const SizedBox(width: 6),
                     Text(
-                      'Equipment: ${b.equipmentTag}',
+                      'equipment_label_arg'.tr(args: [b.equipmentTag!]),
                       style: WorkGoFonts.body(
                         color: KX.textPrimary,
                         fontSize: 12,
@@ -169,7 +170,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
 
             // Diagnostic Notes Box
             Text(
-              'Pre-Inspection Diagnostic Findings:',
+              'pre_inspection_findings_label'.tr(),
               style: WorkGoFonts.heading(
                 color: KX.textPrimary,
                 fontSize: 12.5,
@@ -203,7 +204,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    b.customerAddressText ?? 'Registered Service Location',
+                    b.customerAddressText ?? 'registered_service_location'.tr(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: WorkGoFonts.body(
@@ -233,7 +234,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
                     child: Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'I have reviewed the pre-inspection diagnosis and confirm I possess the necessary specialization & tools.',
+                        'specialist_ack_checkbox'.tr(),
                         style: WorkGoFonts.body(
                           color: KX.textPrimary,
                           fontSize: 11.5,
@@ -259,7 +260,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(
-                      'Decline',
+                      'decline_btn'.tr(),
                       style: WorkGoFonts.body(
                         color: KX.textSecondary,
                         fontSize: 13,
@@ -287,7 +288,7 @@ class _HandoffAcknowledgmentDialogState extends State<HandoffAcknowledgmentDialo
                             child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF141416)),
                           )
                         : Text(
-                            'Acknowledge & Accept',
+                            'acknowledge_accept_btn'.tr(),
                             style: WorkGoFonts.body(
                               color: const Color(0xFF141416),
                               fontSize: 13,

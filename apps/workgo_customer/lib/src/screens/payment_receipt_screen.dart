@@ -244,7 +244,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
       if (mounted) {
         setState(() => _isProcessing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Payment error: $e"), backgroundColor: const Color(0xFFEF4444)),
+          SnackBar(content: Text('payment_error_prefix'.trSafe('Payment error: {}', [e.toString()])), backgroundColor: const Color(0xFFEF4444)),
         );
       }
     }
@@ -594,7 +594,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                         width: 160,
                         height: 160,
                         alignment: Alignment.center,
-                        child: const Text("Scan with any UPI App", style: TextStyle(fontSize: 11, color: Colors.black54)),
+                        child: Text("scan_with_upi_app".trSafe("Scan with any UPI App"), style: const TextStyle(fontSize: 11, color: Colors.black54)),
                       ),
                     ),
                     const SizedBox(height: 6),

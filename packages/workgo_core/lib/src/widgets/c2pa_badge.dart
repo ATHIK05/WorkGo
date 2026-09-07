@@ -1,4 +1,5 @@
 import "dart:convert";
+import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:google_fonts/google_fonts.dart";
@@ -302,7 +303,7 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                           ),
                           const SizedBox(height: 2),
                           SafeText(
-                            "Cryptographically Sealed & Worker Bound",
+                            'c2pa_sealed_worker_bound'.tr(),
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 12,
@@ -334,28 +335,28 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                     children: [
                       _buildCheckRow(
                         icon: Icons.camera_alt_rounded,
-                        title: "In-App Camera Capture",
-                        subtitle: "Hardware camera only · No gallery import",
+                        title: 'c2pa_in_app_capture'.tr(),
+                        subtitle: 'c2pa_hardware_camera_only'.tr(),
                         verified: true,
                       ),
                       const Divider(color: Color(0x2500E5FF), height: 20),
                       _buildCheckRow(
                         icon: Icons.fingerprint_rounded,
-                        title: "Author Identity Bound",
-                        subtitle: "${record.artisanName} · Co-op Artisan",
+                        title: 'c2pa_author_bound'.tr(),
+                        subtitle: "${record.artisanName} · ${'c2pa_coop_artisan_suffix'.tr()}",
                         verified: true,
                       ),
                       const Divider(color: Color(0x2500E5FF), height: 20),
                       _buildCheckRow(
                         icon: Icons.lock_clock_rounded,
-                        title: "KMS Signed Timestamp",
+                        title: 'c2pa_kms_timestamp'.tr(),
                         subtitle: record.signedAt.toLocal().toString().split(".")[0],
                         verified: true,
                       ),
                       const Divider(color: Color(0x2500E5FF), height: 20),
                       _buildCheckRow(
                         icon: Icons.security_rounded,
-                        title: "Trust Root Authority",
+                        title: 'c2pa_trust_root'.tr(),
                         subtitle: record.signingAuthority,
                         verified: true,
                       ),
@@ -379,7 +380,7 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           SafeText(
-                            "ON-DEVICE SHA-256 HASH",
+                            'c2pa_on_device_hash'.tr(),
                             style: GoogleFonts.firaCode(
                               color: const Color(0xFF00E5FF),
                               fontSize: 10,
@@ -390,19 +391,19 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                             onTap: () {
                               Clipboard.setData(ClipboardData(text: record.assetSha256));
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Hash copied to clipboard!"),
+                                SnackBar(
+                                  content: Text('hash_copied_to_clipboard'.tr()),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             },
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.copy_rounded, color: Colors.white70, size: 12),
-                                SizedBox(width: 4),
+                                const Icon(Icons.copy_rounded, color: Colors.white70, size: 12),
+                                const SizedBox(width: 4),
                                 SafeText(
-                                  "Copy",
-                                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                                  'copy_btn'.tr(),
+                                  style: const TextStyle(color: Colors.white70, fontSize: 11),
                                 ),
                               ],
                             ),
@@ -435,7 +436,7 @@ class _C2paProvenanceSheetState extends State<_C2paProvenanceSheet> {
                     ),
                   ),
                   child: SafeText(
-                    "Close Provenance Inspector",
+                    'c2pa_close_inspector'.tr(),
                     style: GoogleFonts.outfit(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,

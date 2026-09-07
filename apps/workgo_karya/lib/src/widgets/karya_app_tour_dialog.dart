@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,131 +61,131 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
-  final List<KaryaTourStep> _steps = const [
+  List<KaryaTourStep> get _steps => [
     KaryaTourStep(
       stepNumber: "1",
-      title: "Instant Check-In & Availability Switch",
-      subtitle: "Take full control of your working hours. Go live on customer radars across your coverage zone with a single tap.",
-      badgeText: "AUTONOMOUS SHIFTS",
+      title: 'karya_tour_step1_title'.tr(),
+      subtitle: 'karya_tour_step1_subtitle'.tr(),
+      badgeText: 'karya_tour_step1_badge'.tr(),
       icon: Icons.radar_rounded,
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [Color(0xFF7C3AED), Color(0xFF4F46E5)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      glowColor: Color(0xFF7C3AED),
+      glowColor: const Color(0xFF7C3AED),
       bulletPoints: [
-        "1-Tap Check-In button to start receiving incoming booking dispatches",
-        "Motivational fuel targets with progress insights",
-        "Set custom daily operating hours and service radius (1 to 30 km)",
+        'karya_tour_step1_bp1'.tr(),
+        'karya_tour_step1_bp2'.tr(),
+        'karya_tour_step1_bp3'.tr(),
       ],
     ),
     KaryaTourStep(
       stepNumber: "2",
-      title: "Real-Time Job Radar & Incoming Dispatches",
-      subtitle: "Nearby service requests flash directly onto your screen with upfront pricing, location distance, and audio alerts.",
-      badgeText: "PRIORITY DISPATCH",
+      title: 'karya_tour_step2_title'.tr(),
+      subtitle: 'karya_tour_step2_subtitle'.tr(),
+      badgeText: 'karya_tour_step2_badge'.tr(),
       icon: Icons.flash_on_rounded,
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [Color(0xFFD97706), Color(0xFFEA580C)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      glowColor: Color(0xFFD97706),
+      glowColor: const Color(0xFFD97706),
       bulletPoints: [
-        "30-second priority countdown to accept bookings before others",
-        "Transparent dynamic rate breakdown showing your exact payout",
-        "Real-time customer distance and job requirements preview",
+        'karya_tour_step2_bp1'.tr(),
+        'karya_tour_step2_bp2'.tr(),
+        'karya_tour_step2_bp3'.tr(),
       ],
     ),
     KaryaTourStep(
       stepNumber: "3",
-      title: "Active Job Tracking & Start OTP Security",
-      subtitle: "Navigate safely, connect via in-app calling, start work with a secure customer OTP, and log C2PA proof of completion.",
-      badgeText: "ZERO DISPUTE",
+      title: 'karya_tour_step3_title'.tr(),
+      subtitle: 'karya_tour_step3_subtitle'.tr(),
+      badgeText: 'karya_tour_step3_badge'.tr(),
       icon: Icons.verified_rounded,
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [Color(0xFF0284C7), Color(0xFF0D9488)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      glowColor: Color(0xFF0284C7),
+      glowColor: const Color(0xFF0284C7),
       bulletPoints: [
-        "Google Maps turn-by-turn navigation directly to customer doorstep",
-        "4-digit Start Job OTP eliminates false starts and customer confusion",
-        "Tamper-proof C2PA photo upload for authentic proof of work",
+        'karya_tour_step3_bp1'.tr(),
+        'karya_tour_step3_bp2'.tr(),
+        'karya_tour_step3_bp3'.tr(),
       ],
     ),
     KaryaTourStep(
       stepNumber: "4",
-      title: "₹2 Lakh Welfare Shield & PMJJBY Insurance",
-      subtitle: "Every active cooperative artisan is covered by emergency medical protection, death benefits, and accident insurance.",
-      badgeText: "100% COVERED",
+      title: 'karya_tour_step4_title'.tr(),
+      subtitle: 'karya_tour_step4_subtitle'.tr(),
+      badgeText: 'karya_tour_step4_badge'.tr(),
       icon: Icons.health_and_safety_rounded,
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [Color(0xFF059669), Color(0xFF047857)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      glowColor: Color(0xFF059669),
+      glowColor: const Color(0xFF059669),
       bulletPoints: [
-        "₹2,00,000 accidental & disability coverage powered by PMJJBY",
-        "Instant emergency SOS beacon during active jobs",
-        "Cooperative welfare board death grant and family security",
+        'karya_tour_step4_bp1'.tr(),
+        'karya_tour_step4_bp2'.tr(),
+        'karya_tour_step4_bp3'.tr(),
       ],
     ),
     KaryaTourStep(
       stepNumber: "5",
-      title: "Daily Fuel Gauge & Direct UPI Payouts",
-      subtitle: "Track your earnings in real time with 0% platform commission deductions. Direct settlement to your bank account.",
-      badgeText: "0% COMMISSION",
+      title: 'karya_tour_step5_title'.tr(),
+      subtitle: 'karya_tour_step5_subtitle'.tr(),
+      badgeText: 'karya_tour_step5_badge'.tr(),
       icon: Icons.account_balance_wallet_rounded,
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [Color(0xFFE11D48), Color(0xFF9333EA)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      glowColor: Color(0xFFE11D48),
+      glowColor: const Color(0xFFE11D48),
       bulletPoints: [
-        "Keep 100% of your labor wages, tips, and distance compensation",
-        "Live Fuel Gauge tracking daily goals and peak-hour bonuses",
-        "1-Tap instant payout transfer to any registered UPI ID or Bank",
+        'karya_tour_step5_bp1'.tr(),
+        'karya_tour_step5_bp2'.tr(),
+        'karya_tour_step5_bp3'.tr(),
       ],
     ),
     KaryaTourStep(
       stepNumber: "6",
-      title: "Government Aadhaar & Live Video KYC Badging",
-      subtitle: "Verify your identity with genuine Aadhaar e-KYC, live front-camera selfie, and a quick WebRTC video call with staff.",
-      badgeText: "CO-OP CERTIFIED",
+      title: 'karya_tour_step6_title'.tr(),
+      subtitle: 'karya_tour_step6_subtitle'.tr(),
+      badgeText: 'karya_tour_step6_badge'.tr(),
       icon: Icons.verified_user_rounded,
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [Color(0xFF8B5CF6), Color(0xFFD97706)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      glowColor: Color(0xFF8B5CF6),
+      glowColor: const Color(0xFF8B5CF6),
       bulletPoints: [
-        "Cryptographic SHA-256 and AI anti-spoofing protection",
-        "Live Video KYC waiting room with dynamic challenge phrase",
-        "Verified artisans get the Co-op Certified Badge and 3x more bookings",
+        'karya_tour_step6_bp1'.tr(),
+        'karya_tour_step6_bp2'.tr(),
+        'karya_tour_step6_bp3'.tr(),
       ],
     ),
     KaryaTourStep(
       stepNumber: "7",
-      title: "Multilingual & Vernacular Audio Assistance",
-      subtitle: "Work comfortably in your native language with high-contrast text, Tamil, Hindi, or English translations.",
-      badgeText: "VERNACULAR READY",
+      title: 'karya_tour_step7_title'.tr(),
+      subtitle: 'karya_tour_step7_subtitle'.tr(),
+      badgeText: 'karya_tour_step7_badge'.tr(),
       icon: Icons.translate_rounded,
-      gradient: LinearGradient(
+      gradient: const LinearGradient(
         colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      glowColor: Color(0xFF2563EB),
+      glowColor: const Color(0xFF2563EB),
       bulletPoints: [
-        "Switch anytime between தமிழ் (Tamil), हिंदी (Hindi), and English",
-        "High-contrast large-button accessibility designed for low literacy",
-        "Voice audio prompts during incoming job dispatches",
+        'karya_tour_step7_bp1'.tr(),
+        'karya_tour_step7_bp2'.tr(),
+        'karya_tour_step7_bp3'.tr(),
       ],
     ),
   ];
@@ -258,7 +259,7 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                       border: Border.all(color: KX.gold.withValues(alpha: 0.6)),
                     ),
                     child: Text(
-                      "FEATURE GUIDE · STEP ${_currentIndex + 1} OF ${_steps.length}",
+                      "feature_guide_step_arg".tr(args: [(_currentIndex + 1).toString(), _steps.length.toString()]),
                       style: const TextStyle(
                         color: KX.gold,
                         fontSize: 10,
@@ -277,9 +278,9 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                         color: KX.canvasElevated,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        "Skip Tour",
-                        style: TextStyle(
+                      child: Text(
+                        "skip_tour_btn".tr(),
+                        style: const TextStyle(
                           color: KX.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -355,7 +356,7 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text("Previous", style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Text("previous_btn".tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -378,7 +379,7 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                isLastStep ? "Get Started 🚀" : "Next Feature",
+                                isLastStep ? "get_started_rocket_btn".tr() : "next_feature_btn".tr(),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 14,

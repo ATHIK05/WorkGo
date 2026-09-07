@@ -240,7 +240,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Error saving profile: $e"),
+            content: Text('error_saving_profile_arg'.tr(args: [e.toString()])),
             backgroundColor: KX.rose,
           ),
         );
@@ -534,7 +534,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       controller: _streetAreaCtrl,
                       style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                       decoration: InputDecoration(
-                        hintText: "e.g. 20, Mosikeeranar Street, Indira Nagar",
+                        hintText: 'address_hint_example'.tr(),
                         hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
                         filled: true,
                         fillColor: KX.canvasElevated,
@@ -566,7 +566,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       keyboardType: TextInputType.number,
                       style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                       decoration: InputDecoration(
-                        hintText: "e.g. 638001",
+                        hintText: 'pincode_hint_example'.tr(),
                         hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
                         filled: true,
                         fillColor: KX.canvasElevated,

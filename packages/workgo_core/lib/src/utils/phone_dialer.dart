@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -44,8 +45,8 @@ class PhoneDialer {
     if (clean.length < 3) {
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid phone number'),
+          SnackBar(
+            content: Text('invalid_phone_number'.tr()),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -72,7 +73,7 @@ class PhoneDialer {
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Unable to open dialer for $clean'),
+            content: Text('unable_open_dialer_arg'.tr(args: [clean])),
             behavior: SnackBarBehavior.floating,
           ),
         );
