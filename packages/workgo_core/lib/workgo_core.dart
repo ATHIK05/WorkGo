@@ -53,6 +53,11 @@ export "src/widgets/auth/auth_text_field.dart";
 export "src/widgets/auth/sign_in_form.dart";
 export "src/widgets/auth/sign_up_form.dart";
 export "src/widgets/auth/forgot_password_form.dart";
+export "src/widgets/auth/phone_otp_form.dart";
+export "src/widgets/auth/customer_editorial_welcome_screen.dart";
+export "src/widgets/auth/customer_auth_sheet.dart";
+export "src/widgets/profile_trust_hub_sheet.dart";
+export "src/widgets/profile_avatar_trust_ring.dart";
 
 // Services & Firebase
 export "src/firebase_options.dart";

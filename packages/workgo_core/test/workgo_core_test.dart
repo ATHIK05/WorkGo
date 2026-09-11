@@ -356,6 +356,45 @@ void main() {
     expect(copied.proofPhotoBase64, "new_base_64");
     expect(copied.c2paManifest, manifestMap);
   });
+
+  test("AppUser strictly gates phone verification and serializes security pillars", () {
+    // 1. Raw unverified phone number should NOT mark user as verified
+    final unverifiedMap = {
+      "uid": "u_unverified_01",
+      "email": "user@example.com",
+      "displayName": "Ravi Kumar",
+      "role": "customer",
+      "phoneNumber": "+919876543210",
+      "phoneVerified": false,
+    };
+    final unverifiedUser = AppUser.fromMap(unverifiedMap);
+    expect(unverifiedUser.phoneNumber, "+919876543210");
+    expect(unverifiedUser.isPhoneVerified, isFalse);
+    expect(unverifiedUser.hasBackupPassword, isFalse);
+
+    // 2. Verified phone number from OTP verification
+    final verifiedMap = {
+      "uid": "u_verified_01",
+      "email": "user@example.com",
+      "displayName": "Ravi Kumar",
+      "role": "customer",
+      "phoneNumber": "+919876543210",
+      "phoneVerified": true,
+      "hasBackupPassword": true,
+    };
+    final verifiedUser = AppUser.fromMap(verifiedMap);
+    expect(verifiedUser.isPhoneVerified, isTrue);
+    expect(verifiedUser.hasBackupPassword, isTrue);
+
+    // 3. Serialization to Firestore preserves flags
+    final firestoreMap = verifiedUser.toFirestore();
+    expect(firestoreMap["phoneVerified"], isTrue);
+    expect(firestoreMap["hasBackupPassword"], isTrue);
+
+    // 4. copyWith preserves or updates flags
+    final updated = unverifiedUser.copyWith(isPhoneVerified: true);
+    expect(updated.isPhoneVerified, isTrue);
+  });
 }
 
 

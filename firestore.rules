@@ -46,6 +46,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // System Configurations (SMS gateway, private operational credentials)
+    // Only Admin role or backend Admin SDK can access
+    match /system_configs/{configId} {
+      allow read, write: if isAdmin();
+    }
+
     // Default authenticated fallback for all other collections (bookings, users, reviews)
     match /{document=**} {
       allow read, write: if isAuthenticated();

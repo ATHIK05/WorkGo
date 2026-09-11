@@ -13,8 +13,11 @@ import 'auth_role_badge.dart';
 import 'forgot_password_form.dart';
 import 'sign_in_form.dart';
 import 'sign_up_form.dart';
+import 'phone_otp_form.dart';
+import 'customer_editorial_welcome_screen.dart';
+import 'customer_auth_sheet.dart';
 
-enum AuthMode { signIn, signUp, forgotPassword }
+enum AuthMode { signIn, signUp, forgotPassword, phoneOtp }
 
 /// Immersive Authentication Shell for all WorkGo apps.
 /// Features animated mesh gradient, floating glow orbs, frosted glass card,
@@ -258,8 +261,68 @@ class _AuthShellState extends State<AuthShell>
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final cred = await _authService.signInWithGoogle(role: widget.role);
+      final uid = cred.user!.uid;
+      var appUser = await _authService.fetchUser(uid);
+      if (appUser == null) {
+        appUser = AppUser(
+          uid: uid,
+          email: cred.user?.email ?? "",
+          displayName: cred.user?.displayName ?? "User",
+          photoUrl: cred.user?.photoURL,
+          role: widget.role,
+          preferredLanguage: context.locale.languageCode,
+          region: 'IN-TN',
+        );
+        await _authService.upsertUser(appUser);
+      }
+
+      if (mounted) {
+        widget.onSuccess(appUser);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == "ERROR_ABORTED_BY_USER") {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message ?? 'error_unknown'.tr();
+        });
+        _triggerShake();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+        _triggerShake();
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.role != UserRole.admin) {
+      return CustomerEditorialWelcomeScreen(
+        role: widget.role,
+        onSuccess: widget.onSuccess,
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFFBF2),
       body: Stack(
@@ -641,6 +704,13 @@ class _AuthShellState extends State<AuthShell>
           ),
           const SizedBox(height: WorkGoSpacing.lg),
 
+          if (widget.role != UserRole.admin) ...[
+            _buildGoogleHeroButton(),
+            const SizedBox(height: 14),
+            _buildAuthDivider(),
+            const SizedBox(height: 14),
+          ],
+
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
             transitionBuilder: (child, animation) {
@@ -660,6 +730,12 @@ class _AuthShellState extends State<AuthShell>
                   key: const ValueKey('signInForm'),
                   isLoading: _isLoading,
                   onSignIn: _handleSignIn,
+                  onSwitchToPhone: () {
+                    setState(() {
+                      _mode = AuthMode.phoneOtp;
+                      _errorMessage = null;
+                    });
+                  },
                   onSwitchToSignUp: () {
                     setState(() {
                       _mode = AuthMode.signUp;
@@ -697,10 +773,99 @@ class _AuthShellState extends State<AuthShell>
                     });
                   },
                 ),
+              AuthMode.phoneOtp => PhoneOtpForm(
+                  key: const ValueKey('phoneOtpForm'),
+                  role: widget.role,
+                  isLoading: _isLoading,
+                  onSuccess: widget.onSuccess,
+                  onError: (err) {
+                    setState(() => _errorMessage = err);
+                    _triggerShake();
+                  },
+                  onSwitchToEmail: () {
+                    setState(() {
+                      _mode = AuthMode.signIn;
+                      _errorMessage = null;
+                    });
+                  },
+                ),
             },
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGoogleHeroButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton(
+        onPressed: _isLoading ? null : _handleGoogleSignIn,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildGoogleBrandIcon(),
+            const SizedBox(width: 12),
+            Text(
+              'continue_with_google'.tr(),
+              style: const TextStyle(
+                color: Color(0xFF1F2937),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoogleBrandIcon() {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: const Center(
+        child: Text(
+          "G",
+          style: TextStyle(
+            color: Color(0xFF4285F4),
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuthDivider() {
+    return const Row(
+      children: [
+        Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            "or",
+            style: TextStyle(
+              color: Color(0xFF9CA3AF),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
+      ],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -216,6 +217,13 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   _buildMetricStatsRow(worker),
                   const SizedBox(height: 18),
 
+                  // Account Security & Trust Hub (Google, Phone OTP, Backup Password)
+                  ProfileTrustHubCard(
+                    user: widget.user,
+                    role: "worker",
+                  ),
+                  const SizedBox(height: 18),
+
                   // AI Match Strength & Equipment Specializations Card (Exclusive to Profile when match score >= 85%)
                   if (ArtisanKeywordUpliftWidget.calculateMatchStrength(worker) >= 0.85) ...[
                     _buildAiMatchStrengthProfileCard(worker),
@@ -273,6 +281,22 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     );
   }
 
+  int _calculateTrustScore(AppUser user) {
+    int count = 0;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final hasPassword = (currentUser?.providerData.any((p) => p.providerId == "password") ?? false) || user.hasBackupPassword;
+    final hasGoogle = currentUser?.providerData.any((p) => p.providerId == "google.com") ?? false;
+    final hasPhone = (currentUser?.providerData.any((p) => p.providerId == "phone") ?? false) ||
+        (currentUser?.phoneNumber != null && currentUser!.phoneNumber!.trim().isNotEmpty) ||
+        user.isPhoneVerified;
+
+    if (hasPassword) count++;
+    if (hasGoogle) count++;
+    if (hasPhone) count++;
+    if (count == 0 && ((currentUser?.email?.isNotEmpty ?? false) || user.email.isNotEmpty)) return 15;
+    return ((count / 3.0) * 100).round();
+  }
+
   Widget _buildArtisanHero(String name, Worker worker, bool isOnline) {
     return StreamBuilder<AppUser?>(
       stream: _authService.streamAppUser(widget.user.uid),
@@ -286,37 +310,42 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
 
         return Column(
           children: [
-            // Center Avatar
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFE5E0D8), width: 2),
-                  ),
-                  child: WorkGoAvatar(
+            // Center Avatar with Tinder-style verification progress ring
+            ProfileAvatarTrustRing(
+              score: _calculateTrustScore(liveUser),
+              avatarRadius: 46,
+              ringGap: 4.5,
+              strokeWidth: 3.5,
+              onTap: () => showProfileTrustHubSheet(
+                context,
+                user: liveUser,
+                role: "worker",
+                onUpdated: () => setState(() {}),
+              ),
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  WorkGoAvatar(
                     avatarBase64: avatar,
                     name: name,
                     radius: 46,
                     onEditTap: _handleAvatarUpload,
                   ),
-                ),
-                GestureDetector(
-                  onTap: _handleAvatarUpload,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF141416),
-                      shape: BoxShape.circle,
+                  GestureDetector(
+                    onTap: _handleAvatarUpload,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF141416),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
                     ),
-                    child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
             // Name
             Text(

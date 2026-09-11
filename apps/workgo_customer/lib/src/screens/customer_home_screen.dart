@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -3760,6 +3761,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             _buildCustomerHeroCard(liveUser, name),
                             const SizedBox(height: 16),
 
+                            // Profile Security & Trust Hub (Google Identity, Phone OTP, Backup Password)
+                            ProfileTrustHubCard(
+                              user: liveUser,
+                              role: "customer",
+                            ),
+                            const SizedBox(height: 16),
+
                             // 3. 4-Metric Bento Chips (Orders, Savings, Addresses, Pros)
                             _buildCustomerMetricStatsRow(
                               totalBookings: totalBookings,
@@ -3953,6 +3961,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     );
   }
 
+  int _calculateTrustScore(AppUser user) {
+    int count = 0;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final hasPassword = (currentUser?.providerData.any((p) => p.providerId == "password") ?? false) || user.hasBackupPassword;
+    final hasGoogle = currentUser?.providerData.any((p) => p.providerId == "google.com") ?? false;
+    final hasPhone = (currentUser?.providerData.any((p) => p.providerId == "phone") ?? false) ||
+        (currentUser?.phoneNumber != null && currentUser!.phoneNumber!.trim().isNotEmpty) ||
+        user.isPhoneVerified;
+
+    if (hasPassword) count++;
+    if (hasGoogle) count++;
+    if (hasPhone) count++;
+    if (count == 0 && ((currentUser?.email?.isNotEmpty ?? false) || user.email.isNotEmpty)) return 15;
+    return ((count / 3.0) * 100).round();
+  }
+
   Widget _buildCustomerHeroCard(AppUser user, String name) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -3970,35 +3994,47 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       ),
       child: Row(
         children: [
-          // Avatar with Camera Overlay
-          Stack(
-            children: [
-              WorkGoAvatar(
-                avatarBase64: user.avatarBase64,
-                name: name,
-                radius: 34,
-                onEditTap: _handleAvatarUpload,
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: _handleAvatarUpload,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFF141416),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt_rounded,
-                      color: Colors.white,
-                      size: 13,
+          // Avatar with Tinder-Style Verification Ring
+          ProfileAvatarTrustRing(
+            score: _calculateTrustScore(user),
+            avatarRadius: 34,
+            ringGap: 4.0,
+            strokeWidth: 3.5,
+            onTap: () => showProfileTrustHubSheet(
+              context,
+              user: user,
+              role: "customer",
+              onUpdated: () => setState(() {}),
+            ),
+            child: Stack(
+              children: [
+                WorkGoAvatar(
+                  avatarBase64: user.avatarBase64,
+                  name: name,
+                  radius: 34,
+                  onEditTap: _handleAvatarUpload,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _handleAvatarUpload,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF141416),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_rounded,
+                        color: Colors.white,
+                        size: 13,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(

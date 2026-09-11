@@ -11,12 +11,14 @@ class SignInForm extends StatefulWidget {
     required this.onSwitchToSignUp,
     required this.onForgotPassword,
     required this.isLoading,
+    this.onSwitchToPhone,
   });
 
   final Future<void> Function(String email, String password) onSignIn;
   final VoidCallback onSwitchToSignUp;
   final VoidCallback onForgotPassword;
   final bool isLoading;
+  final VoidCallback? onSwitchToPhone;
 
   @override
   State<SignInForm> createState() => _SignInFormState();
@@ -301,6 +303,23 @@ class _SignInFormState extends State<SignInForm> {
               ),
             ],
           ),
+          if (widget.onSwitchToPhone != null) ...[
+            const SizedBox(height: 12),
+            Center(
+              child: TextButton.icon(
+                onPressed: widget.isLoading ? null : widget.onSwitchToPhone,
+                icon: const Icon(Icons.phone_android_rounded, size: 16, color: Color(0xFF4B5563)),
+                label: Text(
+                  'auth_tab_phone'.tr(),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: Color(0xFF4B5563),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

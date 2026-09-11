@@ -58,6 +58,7 @@ app.use((req, _res, next) => {
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => res.json({ status: "ok", project: "workgo-sih2026" }));
 
+app.use("/api/auth", require("./routes/auth_otp"));
 app.use("/api/match", verifyToken, require("./routes/match"));
 app.use("/api/bookings", verifyToken, require("./routes/bookings"));
 app.use("/api/payments", require("./routes/payments")); // webhook — no token, Razorpay signed

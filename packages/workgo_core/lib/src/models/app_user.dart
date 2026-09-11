@@ -15,6 +15,8 @@ class AppUser {
   final String? organizationId;
 
   final String? phoneNumber;
+  final bool isPhoneVerified;
+  final bool hasBackupPassword;
   final String? address;
   final GeoPoint? location;
   final bool isOnboardingComplete;
@@ -36,6 +38,8 @@ class AppUser {
     required this.region,
     this.organizationId,
     this.phoneNumber,
+    this.isPhoneVerified = false,
+    this.hasBackupPassword = false,
     this.address,
     this.location,
     this.isOnboardingComplete = true,
@@ -72,6 +76,8 @@ class AppUser {
       region: d["region"] ?? "",
       organizationId: d["organizationId"],
       phoneNumber: d["phoneNumber"] ?? d["phone"] ?? d["mobile"] ?? d["phoneForCalling"],
+      isPhoneVerified: d["phoneVerified"] == true || d["isPhoneVerified"] == true,
+      hasBackupPassword: d["hasBackupPassword"] == true,
       address: d["address"],
       location: d["location"],
       isOnboardingComplete: d["isOnboardingComplete"] ?? true,
@@ -122,6 +128,8 @@ class AppUser {
       region: d["region"] ?? "Tamil Nadu",
       organizationId: d["organizationId"],
       phoneNumber: d["phoneNumber"] ?? d["phone"] ?? d["mobile"] ?? d["phoneForCalling"],
+      isPhoneVerified: d["phoneVerified"] == true || d["isPhoneVerified"] == true,
+      hasBackupPassword: d["hasBackupPassword"] == true,
       address: d["address"],
       location: loc,
       isOnboardingComplete: d["isOnboardingComplete"] ?? true,
@@ -144,6 +152,8 @@ class AppUser {
     "region": region,
     "organizationId": organizationId,
     "phoneNumber": phoneNumber,
+    "phoneVerified": isPhoneVerified,
+    "hasBackupPassword": hasBackupPassword,
     "address": address,
     "location": location != null ? {"latitude": location!.latitude, "longitude": location!.longitude} : null,
     "isOnboardingComplete": isOnboardingComplete,
@@ -164,6 +174,8 @@ class AppUser {
     "region": region,
     "organizationId": organizationId,
     "phoneNumber": phoneNumber,
+    "phoneVerified": isPhoneVerified,
+    "hasBackupPassword": hasBackupPassword,
     "address": address,
     "location": location,
     "isOnboardingComplete": isOnboardingComplete,
@@ -183,6 +195,8 @@ class AppUser {
     String? region,
     String? organizationId,
     String? phoneNumber,
+    bool? isPhoneVerified,
+    bool? hasBackupPassword,
     String? address,
     GeoPoint? location,
     bool? isOnboardingComplete,
@@ -203,6 +217,8 @@ class AppUser {
       region: region ?? this.region,
       organizationId: organizationId ?? this.organizationId,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      isPhoneVerified: isPhoneVerified ?? this.isPhoneVerified,
+      hasBackupPassword: hasBackupPassword ?? this.hasBackupPassword,
       address: address ?? this.address,
       location: location ?? this.location,
       isOnboardingComplete: isOnboardingComplete ?? this.isOnboardingComplete,
