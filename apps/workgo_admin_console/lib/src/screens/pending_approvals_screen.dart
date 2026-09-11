@@ -24,6 +24,7 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
 
   Key _streamKey = UniqueKey();
   bool _isReloading = false;
+  int _pendingFilterTier = 0;
 
   @override
   void initState() {
@@ -192,13 +193,108 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                   return TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildWorkerList(pendingQueue, "No pending applications in queue"),
+                      _buildPendingReviewTab(pendingQueue),
                       _buildWorkerList(approvedQueue, "No approved artisans yet"),
                       _buildWorkerList(filteredWorkers, "No employee records found"),
                       _buildWorkerList(suspendedQueue, "No suspended artisans"),
                     ],
                   );
                 },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingReviewTab(List<Worker> pendingWorkers) {
+    final priorityCount = pendingWorkers.where((w) => w.trustScore >= 5).length;
+    final fastTrackCount = pendingWorkers.where((w) => w.trustScore == 4).length;
+    final standardCount = pendingWorkers.where((w) => w.trustScore == 3).length;
+    final incompleteCount = pendingWorkers.where((w) => w.trustScore < 3).length;
+
+    final filtered = pendingWorkers.where((w) {
+      if (_pendingFilterTier == 1) return w.trustScore >= 5;
+      if (_pendingFilterTier == 2) return w.trustScore == 4;
+      if (_pendingFilterTier == 3) return w.trustScore == 3;
+      if (_pendingFilterTier == 4) return w.trustScore < 3;
+      return true;
+    }).toList();
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: Colors.white,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTierFilterChip(0, "All", pendingWorkers.length, null),
+                const SizedBox(width: 8),
+                _buildTierFilterChip(1, "Priority (5/5 · 4h SLA)", priorityCount, const Color(0xFF16A34A)),
+                const SizedBox(width: 8),
+                _buildTierFilterChip(2, "Fast-Track (4/5 · 24h SLA)", fastTrackCount, const Color(0xFF2563EB)),
+                const SizedBox(width: 8),
+                _buildTierFilterChip(3, "Standard (3/5 · 48h SLA)", standardCount, const Color(0xFFD97706)),
+                const SizedBox(width: 8),
+                _buildTierFilterChip(4, "Incomplete (<3)", incompleteCount, const Color(0xFFDC2626)),
+              ],
+            ),
+          ),
+        ),
+        const Divider(height: 1, color: WorkGoColors.dividerLight),
+        Expanded(
+          child: _buildWorkerList(filtered, "No applications in this review tier"),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTierFilterChip(int tier, String label, int count, Color? color) {
+    final isSelected = _pendingFilterTier == tier;
+    final activeColor = color ?? WorkGoColors.primary;
+
+    return InkWell(
+      onTap: () => setState(() => _pendingFilterTier = tier),
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withAlpha(25) : const Color(0xFFF9F6EE),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? activeColor : WorkGoColors.dividerLight,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SafeText(
+              label,
+              style: TextStyle(
+                color: isSelected ? activeColor : WorkGoColors.textSecondary,
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor : const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: SafeText(
+                "$count",
+                style: TextStyle(
+                  color: isSelected ? Colors.white : WorkGoColors.textSecondary,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -381,6 +477,10 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
           ),
           const SizedBox(height: 12),
 
+          // ── 5-Signal Trust Matrix (compact) ─────────────────────────────────
+          _buildTrustMatrix(worker),
+          const SizedBox(height: 10),
+
           // Milestone Chips
           Wrap(
             spacing: 8,
@@ -391,15 +491,27 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
                 color: _getStageColor(stage),
                 icon: Icons.timeline_rounded,
               ),
-              if (details?.aadhaarMaskedNumber != null)
+              if (details?.aadhaarQrVerified == true)
+                _buildStatusChip(
+                  label: "Aadhaar QR",
+                  color: const Color(0xFF065F46),
+                  icon: Icons.qr_code_scanner_rounded,
+                )
+              else if (details?.aadhaarMaskedNumber != null)
                 _buildStatusChip(
                   label: "Aadhaar: ${details!.aadhaarMaskedNumber}",
                   color: const Color(0xFF065F46),
                   icon: Icons.fingerprint_rounded,
                 ),
+              if (details?.eshramUan != null)
+                _buildStatusChip(
+                  label: "e-Shram: ${details!.eshramUan!.substring(0, 4)}••••",
+                  color: const Color(0xFF1D4ED8),
+                  icon: Icons.how_to_reg_rounded,
+                ),
               if (details?.selfieCenterBase64 != null)
                 _buildStatusChip(
-                  label: "3D Face: 3 Angles ✓",
+                  label: "3D Face: 3 Angles",
                   color: const Color(0xFF1E40AF),
                   icon: Icons.face_retouching_natural_rounded,
                 ),
@@ -447,6 +559,101 @@ class _PendingApprovalsScreenState extends State<PendingApprovalsScreen>
           worker.name.isNotEmpty ? worker.name[0].toUpperCase() : "A",
           style: const TextStyle(color: WorkGoColors.primaryDark, fontSize: 20, fontWeight: FontWeight.bold),
         ),
+      ),
+    );
+  }
+
+  // ── Trust Matrix (5 signal dots + score) ─────────────────────────────────────
+  Widget _buildTrustMatrix(Worker worker) {
+    final vd = worker.verificationDetails;
+    final score = worker.trustScore;
+
+    final signals = [
+      (
+        label: "Phone",
+        done: worker.phoneForCalling != null && worker.phoneForCalling!.isNotEmpty,
+        icon: Icons.phone_rounded,
+      ),
+      (
+        label: "Aadhaar",
+        done: vd?.aadhaarQrVerified == true || vd?.aadhaarVerifiedAt != null,
+        icon: Icons.fingerprint_rounded,
+      ),
+      (
+        label: "Liveness",
+        done: vd?.livenessPassedAt != null,
+        icon: Icons.face_retouching_natural_rounded,
+      ),
+      (
+        label: "e-Shram",
+        done: vd?.eshramUan != null && vd!.eshramUan!.isNotEmpty,
+        icon: Icons.how_to_reg_rounded,
+      ),
+      (
+        label: "PCC",
+        done: vd?.pccDocumentId != null && vd?.pccReviewedAt != null,
+        icon: Icons.local_police_rounded,
+      ),
+    ];
+
+    final scoreColor = score >= 5
+        ? const Color(0xFF16A34A)
+        : score >= 3
+            ? WorkGoColors.primary
+            : const Color(0xFFDC2626);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF0EDE6)),
+      ),
+      child: Row(
+        children: [
+          // Score badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: scoreColor.withAlpha(20),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: scoreColor.withAlpha(80)),
+            ),
+            child: Text(
+              "$score/5",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: scoreColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Signal dots
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: signals.map((s) {
+                final color = s.done ? const Color(0xFF16A34A) : const Color(0xFFD1D5DB);
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(s.icon, size: 14, color: color),
+                    const SizedBox(height: 2),
+                    Text(
+                      s.label,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: s.done ? const Color(0xFF15803D) : const Color(0xFF9CA3AF),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1107,6 +1314,10 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              // ── 0. 5-Signal Trust Score Matrix ────────────────────────────
+              _buildDossierTrustMatrix(worker),
               const SizedBox(height: 20),
 
               // ── 1. 3D Biometric Multi-Angle Reel ───────────────────────────
@@ -1215,6 +1426,12 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
               _buildSectionHeader(Icons.fingerprint_rounded, "UIDAI Aadhaar e-KYC Verification"),
               const SizedBox(height: 10),
               _buildAadhaarVerificationSection(details, worker),
+              const SizedBox(height: 20),
+
+              // ── 3b. e-Shram Trade & UAN Verification ────────────────────────
+              _buildSectionHeader(Icons.how_to_reg_rounded, "e-Shram Trade & UAN Verification"),
+              const SizedBox(height: 10),
+              _buildEshramVerificationSection(details, worker),
               const SizedBox(height: 20),
 
               // ── 4. Onboarding & Verification Audit Trail ──────────────────
@@ -1345,6 +1562,340 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     );
   }
 
+  Widget _buildDossierTrustMatrix(Worker worker) {
+    final vd = worker.verificationDetails;
+    final score = worker.trustScore;
+    final phone = worker.phoneForCalling;
+    final eshramUan = vd?.eshramUan;
+    final eshramTrade = vd?.eshramTrade;
+    final pccDoc = vd?.pccDocumentId;
+
+    final signals = [
+      (
+        title: "Phone OTP",
+        status: (phone != null && phone.isNotEmpty) ? "Verified" : "Pending",
+        done: phone != null && phone.isNotEmpty,
+        detail: phone ?? "No phone recorded",
+        icon: Icons.phone_rounded,
+      ),
+      (
+        title: "Aadhaar e-KYC",
+        status: vd?.aadhaarQrVerified == true
+            ? "QR Verified (RSA)"
+            : (vd?.aadhaarVerifiedAt != null ? "Offline Verified" : "Awaiting"),
+        done: vd?.aadhaarQrVerified == true || vd?.aadhaarVerifiedAt != null,
+        detail: vd?.aadhaarDistrict ?? "District pending",
+        icon: Icons.fingerprint_rounded,
+      ),
+      (
+        title: "Biometric Liveness",
+        status: vd?.livenessPassedAt != null ? "Passed" : "Awaiting",
+        done: vd?.livenessPassedAt != null,
+        detail: vd?.lightingBoosted == true ? "Studio ring active" : "Standard capture",
+        icon: Icons.face_retouching_natural_rounded,
+      ),
+      (
+        title: "e-Shram Trade",
+        status: eshramUan != null && eshramUan.isNotEmpty
+            ? (vd?.eshramNameMatch == true ? "UAN Match" : "Linked")
+            : "Optional",
+        done: eshramUan != null && eshramUan.isNotEmpty,
+        detail: (eshramTrade != null && eshramTrade.isNotEmpty) ? eshramTrade : "Trade unlinked",
+        icon: Icons.how_to_reg_rounded,
+      ),
+      (
+        title: "Police Clearance",
+        status: pccDoc != null ? "Uploaded" : "Pending",
+        done: pccDoc != null && vd?.pccReviewedAt != null,
+        detail: pccDoc != null ? "Encrypted doc attached" : "Artisan to submit",
+        icon: Icons.local_police_rounded,
+      ),
+    ];
+
+    final tierLabel = score >= 5
+        ? "Priority Queue · Auto-Live Eligible (100%)"
+        : score == 4
+            ? "Fast-Track Review (80%)"
+            : score == 3
+                ? "Standard Review (60%)"
+                : "Incomplete (<60% · Action Needed)";
+
+    final tierColor = score >= 5
+        ? const Color(0xFF16A34A)
+        : score == 4
+            ? const Color(0xFF2563EB)
+            : score == 3
+                ? const Color(0xFFD97706)
+                : const Color(0xFFDC2626);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: const [
+          BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: tierColor.withAlpha(20),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.shield_rounded, color: tierColor, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SafeText(
+                        "5-Signal Trust Score: $score/5",
+                        style: TextStyle(color: tierColor, fontSize: 14, fontWeight: FontWeight.w900),
+                      ),
+                      SafeText(
+                        tierLabel,
+                        style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: tierColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SafeText(
+                  score >= 5 ? "AUTO-LIVE" : "REVIEW TIER",
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: WorkGoColors.dividerLight),
+          const SizedBox(height: 12),
+          ...signals.map((s) {
+            final sigColor = s.done ? const Color(0xFF16A34A) : const Color(0xFF94A3B8);
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(s.done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: sigColor, size: 16),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 130,
+                    child: SafeText(
+                      s.title,
+                      style: const TextStyle(color: WorkGoColors.textPrimary, fontSize: 11.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: sigColor.withAlpha(20),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: SafeText(
+                      s.status,
+                      style: TextStyle(color: sigColor, fontSize: 10, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SafeText(
+                      s.detail,
+                      style: const TextStyle(color: WorkGoColors.textSecondary, fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEshramVerificationSection(VerificationDetails? details, Worker worker) {
+    final uan = details?.eshramUan;
+    final trade = details?.eshramTrade;
+    final district = details?.eshramDistrict;
+    final nameMatch = details?.eshramNameMatch == true;
+    final verifiedAt = details?.eshramVerifiedAt;
+
+    if (uan == null || uan.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFAF9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 20),
+            SizedBox(width: 12),
+            Expanded(
+              child: SafeText(
+                "e-Shram card not linked yet. Artisan was informed that linking will increase recommendation priority.",
+                style: TextStyle(color: WorkGoColors.textSecondary, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: const [
+          BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.how_to_reg_rounded, color: Color(0xFF2563EB), size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SafeText(
+                        "Ministry of Labour & Employment · e-Shram Card Linked",
+                        style: TextStyle(color: Color(0xFF1E40AF), fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      if (verifiedAt != null)
+                        SafeText(
+                          "Verified: ${verifiedAt.to12HourTime()}",
+                          style: const TextStyle(color: Color(0xFF3B82F6), fontSize: 10.5),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const SafeText(
+                    "UAN VERIFIED",
+                    style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _buildDossierField("UNIVERSAL ACCOUNT NUMBER (UAN)", uan),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildDossierField("REGISTERED TRADE / SECTOR", trade ?? "Unspecified"),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildDossierField("DISTRICT / STATE", district ?? "Tamil Nadu"),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "AADHAAR NAME HASH MATCH",
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 0.6),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: nameMatch ? const Color(0xFFECFDF5) : const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: nameMatch ? const Color(0xFFA7F3D0) : const Color(0xFFFDE68A)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(nameMatch ? Icons.check_circle_rounded : Icons.info_rounded, size: 13, color: nameMatch ? const Color(0xFF059669) : const Color(0xFFD97706)),
+                          const SizedBox(width: 5),
+                          Text(
+                            nameMatch ? "Fuzzy Match Confirmed" : "Manual Check Advised",
+                            style: TextStyle(color: nameMatch ? const Color(0xFF065F46) : const Color(0xFF92400E), fontSize: 11, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDossierField(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Color(0xFF64748B), fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 0.6),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Text(
+            value,
+            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w700),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAngleCard(String label, String? base64Str) {
     return Column(
       children: [
@@ -1437,7 +1988,8 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
         details?.aadhaarVerifiedName != "Artisan Cardholder" &&
         details?.aadhaarMaskedNumber != null &&
         !details!.aadhaarMaskedNumber!.contains("Zip-Locked");
-    final isDecrypted = _decryptedAadhaar?.isSuccess == true || hasVerifiedDemographics;
+    final isQr = details?.aadhaarQrVerified == true;
+    final isDecrypted = _decryptedAadhaar?.isSuccess == true || hasVerifiedDemographics || isQr;
     final photoB64 = _decryptedAadhaar?.photoBase64 ?? details?.aadhaarPhotoBase64;
     final verifiedName = _decryptedAadhaar?.name ?? details?.aadhaarVerifiedName ?? worker.name;
     final maskedUid = _decryptedAadhaar?.maskedUid ?? details?.aadhaarMaskedNumber ?? "XXXXXXXX1234";
@@ -1447,7 +1999,7 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
     final address = _decryptedAadhaar?.address ?? details?.aadhaarAddress;
     final refId = _decryptedAadhaar?.referenceId ?? details?.aadhaarReferenceId;
     final rawXml = _decryptedAadhaar?.rawXml;
-    final hasSig = _decryptedAadhaar?.hasValidSignature == true || details?.aadhaarSignatureValid == true;
+    final hasSig = _decryptedAadhaar?.hasValidSignature == true || details?.aadhaarSignatureValid == true || isQr;
     final comps = _decryptedAadhaar?.addressComponents ?? {};
 
     return Container(
@@ -1542,9 +2094,9 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                           spacing: 8,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            const Text(
-                              "UIDAI OFFLINE E-KYC VERIFIED",
-                              style: TextStyle(
+                            Text(
+                              isQr ? "UIDAI SECURE QR VERIFIED" : "UIDAI OFFLINE E-KYC VERIFIED",
+                              style: const TextStyle(
                                 color: Color(0xFF065F46),
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w900,
@@ -1566,26 +2118,29 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
                           ],
                         ),
                         const SizedBox(height: 3),
-                        const Text(
-                          "In-Memory ZipCrypto Decryption · 0-Knowledge Architecture",
-                          style: TextStyle(color: Color(0xFF047857), fontSize: 11, fontWeight: FontWeight.w600),
+                        Text(
+                          isQr
+                              ? "On-Device Cryptographic Verification · Hash Cross-Referenced"
+                              : "In-Memory ZipCrypto Decryption · 0-Knowledge Architecture",
+                          style: const TextStyle(color: Color(0xFF047857), fontSize: 11, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () => _promptCustomShareCode(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF047857),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      minimumSize: const Size(0, 32),
+                  if (!isQr)
+                    ElevatedButton.icon(
+                      onPressed: () => _promptCustomShareCode(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF047857),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        minimumSize: const Size(0, 32),
+                      ),
+                      icon: const Icon(Icons.key_rounded, size: 13),
+                      label: const Text("Re-sync PIN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
-                    icon: const Icon(Icons.key_rounded, size: 13),
-                    label: const Text("Re-sync PIN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  ),
                 ],
               ),
             )
@@ -1634,7 +2189,8 @@ class _WorkerDossierSheetState extends State<_WorkerDossierSheet> {
             ),
 
           // ── 2. UIDAI 4-Digit Share Code Card ──
-          Container(
+          if (!isQr)
+            Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(

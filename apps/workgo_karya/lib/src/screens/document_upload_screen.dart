@@ -34,7 +34,9 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
   bool _consentAgreed = false;
 
   // ── Stage 2: Aadhaar State ──────────────────────────────────────────────────
-  int _aadhaarTabIndex = 0; // 0 = Offline Zip, 1 = Card Photo
+  // QR scan state (primary path)
+  bool _aadhaarQrDone = false; // QR scan succeeded
+  int _aadhaarTabIndex = 0; // 0 = QR Scan, 1 = Offline Zip, 2 = Card Photo
   bool _editingAadhaar = false;
   final TextEditingController _shareCodeCtrl = TextEditingController(text: "1234");
   String? _selectedAadhaarFileName;
@@ -57,6 +59,10 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
   String? _selectedPccFileName;
   String? _selectedPccFileSize;
   Uint8List? _pccPreviewBytes;
+
+  // ── Stage 5: e-Shram State ───────────────────────────────────────────────────
+  bool _eshramDone = false;
+  int _eshramTrustScore = 0;
 
   @override
   void dispose() {
@@ -421,19 +427,76 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     return Scaffold(
       backgroundColor: KX.canvas,
       appBar: AppBar(
-        title: SafeText(
-          "verification_hub_title".tr(),
-          style: const TextStyle(
-            color: KX.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: KX.canvas,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: KX.textPrimary),
+          icon: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFF0EDE6)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x06000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: KX.textPrimary),
+          ),
           onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SafeText(
+              "verification_hub_title".tr(),
+              style: WorkGoFonts.heading(
+                color: KX.textPrimary,
+                fontSize: 15.5,
+                fontWeight: FontWeight.w500,
+                letterSpacing: -0.15,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withAlpha(16),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFF10B981).withAlpha(45),
+                  width: 0.7,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    "UIDAI & Cooperative Trust Hub",
+                    style: WorkGoFonts.body(
+                      color: const Color(0xFF047857),
+                      fontSize: 9.8,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           PopupMenuButton<String>(
@@ -487,28 +550,25 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Header Subtitle ──────────────────────────────────────────
-                  SafeText(
-                    "verification_hub_subtitle".tr(),
-                    style: const TextStyle(
-                      color: KX.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ── Progress Pipeline Bar ────────────────────────────────────
-                  _buildPipelineStatusBar(stage, isApproved),
-                  const SizedBox(height: 24),
+                  // ── 5-Signal Trust Index ─────────────────────────────────
+                  if (worker != null) ...[
+                    _buildTrustStatusCard(worker),
+                    const SizedBox(height: 24),
+                  ],
 
                   // ── Step 1: DPDP 2023 Biometric Consent ───────────────────────
                   _buildConsentCard(stage),
                   const SizedBox(height: 20),
 
-                  // ── Step 2: Aadhaar Offline eKYC + Guide ─────────────────────
+                  // ── Step 2: Aadhaar Identity (QR primary + XML fallback) ──────
                   _buildAadhaarCard(stage, worker),
                   const SizedBox(height: 20),
+
+                  // ── Step 2b: e-Shram (recommended) ───────────────────────────
+                  if (stage.index >= VerificationStage.selfieCapture.index)
+                    _buildEshramCard(worker),
+                  if (stage.index >= VerificationStage.selfieCapture.index)
+                    const SizedBox(height: 20),
 
                   // ── Step 3: 3D Multi-Angle Biometric Liveness ────────────────
                   _build3DMultiAngleCard(stage, worker),
@@ -530,103 +590,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
     );
   }
 
-  // ── 1. Pipeline Status Bar ──────────────────────────────────────────────────
-  Widget _buildPipelineStatusBar(VerificationStage stage, bool isApproved) {
-    int activeStep = 0;
-    if (stage == VerificationStage.aadhaarOfflineEkyc) activeStep = 1;
-    if (stage == VerificationStage.selfieCapture || stage == VerificationStage.onDeviceLiveness || stage == VerificationStage.multiAngleLiveness) activeStep = 2;
-    if (stage == VerificationStage.pccUpload || stage == VerificationStage.pccManualReview) activeStep = 3;
-    if (isApproved || stage == VerificationStage.approved) activeStep = 4;
-
-    final steps = ["Consent", "Aadhaar", "3D Face", "PCC", "Certified"];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: KX.canvasCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF0EDE6)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(steps.length, (index) {
-          final isCompleted = index < activeStep;
-          final isCurrent = index == activeStep;
-
-          return Expanded(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    if (index > 0)
-                      Expanded(
-                        child: Container(
-                          height: 2,
-                          color: isCompleted ? const Color(0xFF10B981) : const Color(0xFFE5E0D8),
-                        ),
-                      ),
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isCompleted
-                            ? const Color(0xFF10B981)
-                            : isCurrent
-                                ? KaryaColors.brandYellow
-                                : const Color(0xFFF0EDE6),
-                      ),
-                      child: Center(
-                        child: isCompleted
-                            ? const Icon(Icons.check, size: 14, color: Colors.white)
-                            : Text(
-                                "${index + 1}",
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isCurrent ? Colors.black : const Color(0xFF6B6B6B),
-                                ),
-                              ),
-                      ),
-                    ),
-                    if (index < steps.length - 1)
-                      Expanded(
-                        child: Container(
-                          height: 2,
-                          color: index < activeStep ? const Color(0xFF10B981) : const Color(0xFFE5E0D8),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                SafeText(
-                  steps[index],
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: isCurrent ? FontWeight.w900 : FontWeight.w600,
-                    color: isCompleted
-                        ? const Color(0xFF10B981)
-                        : isCurrent
-                            ? const Color(0xFFB45309)
-                            : const Color(0xFF9CA3AF),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  // ── 2. DPDP 2023 Consent Card ───────────────────────────────────────────────
+  // ── 1. DPDP 2023 Consent Card ───────────────────────────────────────────────
   Widget _buildConsentCard(VerificationStage stage) {
     final isDone = stage.index >= VerificationStage.aadhaarOfflineEkyc.index;
 
@@ -757,6 +721,166 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12, height: 1.35),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ── Tab helper ─────────────────────────────────────────────────────────────
+  Widget _buildAadhaarTab(int index, String label) {
+    final isSelected = _aadhaarTabIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _aadhaarTabIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: isSelected ? KaryaColors.brandYellow : const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : const Color(0xFF4B5563),
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Trust Status Card ────────────────────────────────────────────────────────
+  Widget _buildTrustStatusCard(Worker worker) {
+    final vd = worker.verificationDetails;
+    final signals = TrustSignals(
+      phone: worker.phoneForCalling != null && worker.phoneForCalling!.isNotEmpty,
+      aadhaar: vd?.aadhaarQrVerified == true || vd?.aadhaarVerifiedAt != null || _aadhaarQrDone,
+      liveness: vd?.livenessPassedAt != null,
+      eshram: _eshramDone || (vd?.eshramUan != null && vd!.eshramUan!.isNotEmpty),
+      pcc: vd?.pccDocumentId != null && vd?.pccReviewedAt != null,
+    );
+    final score = _eshramTrustScore > 0
+        ? _eshramTrustScore
+        : (worker.trustScore > 0
+            ? worker.trustScore
+            : [signals.phone, signals.aadhaar, signals.liveness, signals.eshram, signals.pcc]
+                .where((b) => b)
+                .length);
+
+    return TrustStatusCard(
+      trustScore: score,
+      signals: signals,
+      workerName: worker.name,
+    );
+  }
+
+  // ── e-Shram Recommended Card ──────────────────────────────────────────────────
+  Widget _buildEshramCard(Worker? worker) {
+    final vd = worker?.verificationDetails;
+    final alreadyLinked = _eshramDone ||
+        (vd?.eshramUan != null && vd!.eshramUan!.isNotEmpty);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: KX.canvasCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: alreadyLinked
+              ? const Color(0xFF10B981).withAlpha(120)
+              : KX.dividerLight,
+          width: 1.5,
+        ),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: alreadyLinked
+                      ? const Color(0xFFD1FAE5)
+                      : const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.how_to_reg_rounded,
+                  color: alreadyLinked
+                      ? const Color(0xFF065F46)
+                      : const Color(0xFF92400E),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SafeText(
+                      "eshram_title".tr(),
+                      style: const TextStyle(
+                        color: KX.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    SafeText(
+                      alreadyLinked
+                          ? "eshram_linked_status".tr()
+                          : "eshram_recommended_status".tr(),
+                      style: TextStyle(
+                        color: alreadyLinked
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFB45309),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Recommended badge
+              if (!alreadyLinked)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: SafeText(
+                    "eshram_recommended_badge".tr(),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFB45309),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (!alreadyLinked) ...[ 
+            const SizedBox(height: 16),
+            EshramCardWidget(
+              workerId: widget.workerId,
+              declaredTrade: worker?.skills.isNotEmpty == true
+                  ? worker!.skills.first
+                  : null,
+              onSuccess: (score) {
+                setState(() {
+                  _eshramDone = true;
+                  _eshramTrustScore = score;
+                });
+              },
+              onSkip: () {},
+            ),
+          ],
         ],
       ),
     );
@@ -917,79 +1041,85 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
             ),
             const SizedBox(height: 16),
 
-            // Toggle Tabs: Offline Zip vs Card Photo
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _aadhaarTabIndex = 0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _aadhaarTabIndex == 0 ? KaryaColors.brandYellow : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Text(
-                          "upload_zip_tab".tr(),
-                          style: TextStyle(
-                            color: _aadhaarTabIndex == 0 ? Colors.black : const Color(0xFF4B5563),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _aadhaarTabIndex = 1),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _aadhaarTabIndex == 1 ? KaryaColors.brandYellow : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Text(
-                          "upload_photo_tab".tr(),
-                          style: TextStyle(
-                            color: _aadhaarTabIndex == 1 ? Colors.black : const Color(0xFF4B5563),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            // ── Method tabs: QR Scan / Offline Zip / Card Photo ─────────────
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildAadhaarTab(0, "aadhaar_tab_qr".tr()),
+                  const SizedBox(width: 6),
+                  _buildAadhaarTab(1, "upload_zip_tab".tr()),
+                  const SizedBox(width: 6),
+                  _buildAadhaarTab(2, "upload_photo_tab".tr()),
+                ],
+              ),
             ),
             const SizedBox(height: 14),
 
-            // Share Code Input
-            TextField(
-              controller: _shareCodeCtrl,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              style: const TextStyle(color: KX.textPrimary, fontWeight: FontWeight.bold, letterSpacing: 3),
-              decoration: InputDecoration(
-                labelText: "share_code_label".tr(),
-                hintText: "share_code_hint".tr(),
-                labelStyle: const TextStyle(color: KX.textSecondary),
-                counterText: "",
-                filled: true,
-                fillColor: const Color(0xFFF9F6EE),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFF0EDE6))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: KX.gold, width: 2)),
+            // ── Tab 0: QR Scan (primary) ─────────────────────────────────────
+            if (_aadhaarTabIndex == 0) ...[
+              if (_aadhaarQrDone)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        "aadhaar_verified_badge".tr(),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF15803D),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                AadhaarQrScanner(
+                  workerId: widget.workerId,
+                  onSuccess: () {
+                    setState(() => _aadhaarQrDone = true);
+                    HapticFeedback.heavyImpact();
+                  },
+                  onFallback: () {
+                    setState(() {
+                      _aadhaarTabIndex = 1;
+                    });
+                  },
+                  onError: (e) => _showErrorSnackBar(e),
+                ),
+            ],
+
+            // Share Code Input (only for XML / photo tabs)
+            if (_aadhaarTabIndex > 0) ...[
+              TextField(
+                controller: _shareCodeCtrl,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                style: const TextStyle(color: KX.textPrimary, fontWeight: FontWeight.bold, letterSpacing: 3),
+                decoration: InputDecoration(
+                  labelText: "share_code_label".tr(),
+                  hintText: "share_code_hint".tr(),
+                  labelStyle: const TextStyle(color: KX.textSecondary),
+                  counterText: "",
+                  filled: true,
+                  fillColor: const Color(0xFFF9F6EE),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFF0EDE6))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: KX.gold, width: 2)),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
 
             // File / Photo Picker Trigger
-            if (_aadhaarTabIndex == 0) ...[
+            if (_aadhaarTabIndex == 1) ...[
               // ── Offline Zip Tab ──
               if (_selectedAadhaarFileName != null && _isAadhaarZip) ...[
                 Container(
@@ -1053,7 +1183,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                   ),
                 ),
               ],
-            ] else ...[
+            ] else if (_aadhaarTabIndex == 2) ...[
               // ── Card Photo Tab ──
               Row(
                 children: [

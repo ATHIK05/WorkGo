@@ -19,7 +19,7 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update: if isAuthenticated() &&
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus', 'visibilityStatus', 'verificationDetails.pccReviewedAt']) || isAdmin());
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus', 'visibilityStatus', 'trustScore', 'verificationDetails.pccReviewedAt']) || isAdmin());
       allow delete: if isAdmin();
 
       match /documents/{docId} {

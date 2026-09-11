@@ -308,28 +308,31 @@ class _WorkGoSplashScreenState extends State<WorkGoSplashScreen>
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Transform.scale(
-                                scale: _logoScale.value,
-                                child: Opacity(
-                                  opacity: _logoFade.value.clamp(0.0, 1.0),
-                                  child: const WorkGoMark(size: 82),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              ClipRect(
-                                child: SlideTransition(
-                                  position: _textSlide,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Transform.scale(
+                                  scale: _logoScale.value,
                                   child: Opacity(
-                                    opacity: _textFade.value.clamp(0.0, 1.0),
-                                    child: _buildBrandTitle(widget.appName),
+                                    opacity: _logoFade.value.clamp(0.0, 1.0),
+                                    child: const WorkGoMark(size: 82),
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 16),
+                                ClipRect(
+                                  child: SlideTransition(
+                                    position: _textSlide,
+                                    child: Opacity(
+                                      opacity: _textFade.value.clamp(0.0, 1.0),
+                                      child: _buildBrandTitle(widget.appName),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 22),
                           Opacity(

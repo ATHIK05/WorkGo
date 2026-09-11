@@ -40,6 +40,10 @@ dependencies:
   pdf: ^3.11.1
   printing: ^5.13.2
   share_plus: ^10.1.2
+  # Aadhaar QR scanning + UIDAI RSA-SHA256 verification
+  mobile_scanner: ^5.2.3
+  pointycastle: ^3.9.1
+  xml: ^6.5.0
 
 dev_dependencies:
   flutter_test:

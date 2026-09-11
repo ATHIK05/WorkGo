@@ -1,15 +1,11 @@
 import "dart:async";
-import "package:cloud_firestore/cloud_firestore.dart";
-import "package:easy_localization/easy_localization.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "../firebase/auth_service.dart";
 import "../localization/trade_localization.dart";
 import "../models/app_user.dart";
-import "../theme/colors.dart";
 import "../theme/typography.dart";
-import "safe_text.dart";
 
 /// Professional Account Security & Trust Hub Card.
 /// Embeds directly in the Profile page or opens as a bottom sheet.

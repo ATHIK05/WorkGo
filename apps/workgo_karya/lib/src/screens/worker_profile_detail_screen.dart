@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -139,16 +140,283 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     showPeerReferralNetworkSheet(context, worker: widget.worker);
   }
 
+  void _showEditNameDialog(BuildContext context, Worker worker, String currentName) {
+    final effectiveCurrent = (currentName.isNotEmpty &&
+            currentName != "Artisan Partner" &&
+            currentName != "Co-op Artisan")
+        ? currentName
+        : "";
+    final controller = TextEditingController(text: effectiveCurrent);
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+            return Container(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+              decoration: const BoxDecoration(
+                color: KX.canvasCard,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD1D5DB),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: KX.gold.withAlpha(35),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.badge_outlined, color: Color(0xFFB45309), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Edit Display Name",
+                                style: WorkGoFonts.heading(
+                                  fontSize: 16.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: KX.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "Visible to customers on quotes and dispatch cards",
+                                style: WorkGoFonts.body(
+                                  fontSize: 11.5,
+                                  color: KX.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    TextFormField(
+                      controller: controller,
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.words,
+                      maxLength: 40,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: KX.textPrimary,
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return "Please enter your name";
+                        }
+                        if (val.trim().length < 2) {
+                          return "Name must be at least 2 characters";
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        labelText: "Full Name",
+                        labelStyle: const TextStyle(color: KX.textSecondary, fontSize: 13),
+                        hintText: "e.g. Ramesh Kumar",
+                        hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                        counterText: "",
+                        filled: true,
+                        fillColor: const Color(0xFFF9F6EE),
+                        prefixIcon: const Icon(Icons.person_outline_rounded, size: 20, color: Color(0xFF9CA3AF)),
+                        suffixIcon: controller.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF9CA3AF)),
+                                onPressed: () {
+                                  controller.clear();
+                                  setSheetState(() {});
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: KX.gold, width: 2),
+                        ),
+                      ),
+                      onChanged: (_) => setSheetState(() {}),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: isSaving ? null : () => Navigator.of(sheetContext).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: Color(0xFFE5E7EB)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(
+                              "Cancel",
+                              style: WorkGoFonts.heading(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: KX.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: isSaving
+                                ? null
+                                : () async {
+                                    if (!formKey.currentState!.validate()) return;
+                                    setSheetState(() => isSaving = true);
+                                    final newName = controller.text.trim();
+                                    await _updateUserName(sheetContext, worker, newName);
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: KaryaColors.brandYellow,
+                              foregroundColor: Colors.black,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: isSaving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                                  )
+                                : Text(
+                                    "Save Name",
+                                    style: WorkGoFonts.heading(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateUserName(BuildContext sheetContext, Worker worker, String newName) async {
+    try {
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser != null) {
+        await authUser.updateDisplayName(newName);
+      }
+
+      await FirebaseFirestore.instance.collection('users').doc(worker.userId).set({
+        'displayName': newName,
+        'name': newName,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await FirebaseFirestore.instance.collection('workers').doc(worker.id).set({
+        'name': newName,
+        'displayName': newName,
+        'artisanName': newName,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (sheetContext.mounted) {
+        Navigator.of(sheetContext).pop();
+      }
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Display name updated successfully!",
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF047857),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (sheetContext.mounted) {
+        ScaffoldMessenger.of(sheetContext).showSnackBar(
+          SnackBar(
+            content: Text("Failed to update name: $e"),
+            backgroundColor: const Color(0xFFE11D48),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final name = widget.user.displayName.isNotEmpty ? widget.user.displayName : "Artisan Partner";
-
     return StreamBuilder<Worker?>(
       stream: _workerService.streamWorker(widget.worker.id),
       initialData: widget.worker,
       builder: (context, snapshot) {
         final worker = snapshot.data ?? widget.worker;
         final isOnline = worker.availabilityStatus == AvailabilityStatus.online;
+        final name = (worker.name.isNotEmpty &&
+                worker.name != "Co-op Artisan" &&
+                worker.name != "Artisan Partner")
+            ? worker.name
+            : (widget.user.displayName.isNotEmpty
+                ? widget.user.displayName
+                : "Artisan Partner");
 
         return Scaffold(
           backgroundColor: KX.canvas,
@@ -347,15 +615,46 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             ),
             const SizedBox(height: 14),
 
-            // Name
-            Text(
-              name,
-              style: WorkGoFonts.display(
-                color: KX.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
+            // Name with Edit Option
+            InkWell(
+              onTap: () => _showEditNameDialog(context, worker, name),
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: WorkGoFonts.display(
+                          color: KX.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+                      ),
+                      child: const Icon(
+                        Icons.edit_outlined,
+                        size: 13,
+                        color: Color(0xFFB45309),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
 
@@ -833,10 +1132,16 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           _buildMenuItem(
             icon: Icons.verified_user_rounded,
             title: "eKYC & Certification",
-            subtitle: isKycApproved ? "Co-op Verified ✓" : "Verification Pending",
+            subtitle: isKycApproved
+                ? "Co-op Verified"
+                : (worker.trustScore > 0
+                    ? "Trust Score: ${worker.trustScore}/5 Signals"
+                    : "Verification Pending"),
             badgeColor: isKycApproved ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
             badgeTextColor: isKycApproved ? const Color(0xFF065F46) : const Color(0xFF92400E),
-            badgeText: isKycApproved ? "VERIFIED" : "PENDING",
+            badgeText: isKycApproved
+                ? "VERIFIED"
+                : (worker.trustScore > 0 ? "${worker.trustScore}/5" : "PENDING"),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (ctx) => DocumentUploadScreen(

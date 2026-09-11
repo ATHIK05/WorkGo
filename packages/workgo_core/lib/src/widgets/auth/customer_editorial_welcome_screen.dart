@@ -4,7 +4,6 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:google_fonts/google_fonts.dart";
 import "../../models/app_user.dart";
-import "../../theme/colors.dart";
 import "customer_auth_sheet.dart";
 
 /// State-of-the-art Editorial Consumer Onboarding & Welcome Screen.

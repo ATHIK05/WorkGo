@@ -26,6 +26,7 @@ class AppUser {
   final double? latitude;
   final double? longitude;
   final String? primaryArea;
+  final int trustScore;
 
   AppUser({
     required this.uid,
@@ -48,6 +49,7 @@ class AppUser {
     this.latitude,
     this.longitude,
     this.primaryArea,
+    this.trustScore = 0,
   });
 
   factory AppUser.fromFirestore(DocumentSnapshot doc) {
@@ -86,6 +88,7 @@ class AppUser {
       latitude: (d["latitude"] as num?)?.toDouble() ?? currentAddr?.latitude,
       longitude: (d["longitude"] as num?)?.toDouble() ?? currentAddr?.longitude,
       primaryArea: d["primaryArea"] ?? currentAddr?.shortSummary,
+      trustScore: (d["trustScore"] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -138,6 +141,7 @@ class AppUser {
       latitude: (d["latitude"] as num?)?.toDouble() ?? currentAddr?.latitude,
       longitude: (d["longitude"] as num?)?.toDouble() ?? currentAddr?.longitude,
       primaryArea: d["primaryArea"] ?? currentAddr?.shortSummary,
+      trustScore: (d["trustScore"] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -162,6 +166,7 @@ class AppUser {
     "latitude": latitude ?? currentAddress?.latitude,
     "longitude": longitude ?? currentAddress?.longitude,
     "primaryArea": primaryArea ?? currentAddress?.shortSummary,
+    "trustScore": trustScore,
   };
 
   Map<String, dynamic> toFirestore() => {
@@ -184,6 +189,7 @@ class AppUser {
     "latitude": latitude ?? currentAddress?.latitude,
     "longitude": longitude ?? currentAddress?.longitude,
     "primaryArea": primaryArea ?? currentAddress?.shortSummary,
+    "trustScore": trustScore,
   };
 
   AppUser copyWith({
@@ -205,6 +211,7 @@ class AppUser {
     double? latitude,
     double? longitude,
     String? primaryArea,
+    int? trustScore,
   }) {
     return AppUser(
       uid: uid,
@@ -227,6 +234,7 @@ class AppUser {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       primaryArea: primaryArea ?? this.primaryArea,
+      trustScore: trustScore ?? this.trustScore,
     );
   }
 }

@@ -58,6 +58,10 @@ export "src/widgets/auth/customer_editorial_welcome_screen.dart";
 export "src/widgets/auth/customer_auth_sheet.dart";
 export "src/widgets/profile_trust_hub_sheet.dart";
 export "src/widgets/profile_avatar_trust_ring.dart";
+// Verification widgets
+export "src/widgets/verification/aadhaar_qr_scanner.dart";
+export "src/widgets/verification/eshram_card_widget.dart";
+export "src/widgets/verification/trust_status_card.dart";
 
 // Services & Firebase
 export "src/firebase_options.dart";
@@ -71,6 +75,7 @@ export "src/services/location_service.dart";
 export "src/services/c2pa_service.dart";
 export "src/services/biometric_service.dart";
 export "src/services/aadhaar_offline_parser.dart";
+export "src/services/aadhaar_qr_service.dart";
 export "src/services/road_routing_service.dart";
 export "src/services/face_comparison_service.dart";
 export "src/services/session_manager.dart";

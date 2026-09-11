@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
@@ -24,6 +25,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
   late double _experience;
   late double _serviceRadius;
   late Set<String> _selectedSkills;
+  late TextEditingController _nameController;
   late TextEditingController _phoneController;
   bool _isSaving = false;
 
@@ -58,6 +60,12 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     _selectedSkills = widget.worker.skills.isNotEmpty
         ? widget.worker.skills.toSet()
         : {"Plumbing", "Carpentry"};
+    _nameController = TextEditingController(
+      text: widget.worker.name != "Co-op Artisan" &&
+              widget.worker.name != "Artisan Partner"
+          ? widget.worker.name
+          : "",
+    );
     _phoneController = TextEditingController(
       text: widget.worker.phoneForCalling?.replaceFirst('+91', '') ?? '',
     );
@@ -65,6 +73,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -84,12 +93,16 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     setState(() => _isSaving = true);
     final workerService = WorkerService();
 
+    final nameRaw = _nameController.text.trim();
+    final updatedName = nameRaw.isNotEmpty ? nameRaw : widget.worker.name;
+
     final phoneRaw = _phoneController.text.trim();
     final normalizedPhone = phoneRaw.startsWith('+91')
         ? phoneRaw
         : (phoneRaw.isNotEmpty ? '+91$phoneRaw' : null);
 
     final updated = widget.worker.copyWith(
+      name: updatedName,
       skills: _selectedSkills.toList(),
       experienceYears: _experience.toInt(),
       serviceRadiusKm: _serviceRadius,
@@ -97,6 +110,30 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     );
 
     await workerService.upsertWorkerProfile(updated);
+
+    if (nameRaw.isNotEmpty) {
+      try {
+        final authUser = FirebaseAuth.instance.currentUser;
+        if (authUser != null) {
+          await authUser.updateDisplayName(nameRaw);
+        }
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.worker.userId)
+            .set({
+          'displayName': nameRaw,
+          'name': nameRaw,
+        }, SetOptions(merge: true));
+        await FirebaseFirestore.instance
+            .collection('workers')
+            .doc(widget.worker.id)
+            .set({
+          'name': nameRaw,
+          'displayName': nameRaw,
+          'artisanName': nameRaw,
+        }, SetOptions(merge: true));
+      } catch (_) {}
+    }
 
     if (normalizedPhone != null) {
       try {
@@ -153,6 +190,83 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // ── Artisan Display Name Card ──
+                KSlideFadeIn(
+                  child: KaryaCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.badge_outlined,
+                              color: Color(0xFFD97706),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Artisan Display Name",
+                                style: WorkGoFonts.heading(
+                                  color: KX.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: _nameController,
+                          textCapitalization: TextCapitalization.words,
+                          maxLength: 40,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: KX.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: "Enter full name (e.g. Ramesh Kumar)",
+                            hintStyle: const TextStyle(
+                              color: KX.textSecondary,
+                              fontSize: 13,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.person_outline_rounded,
+                              size: 18,
+                              color: KX.textSecondary,
+                            ),
+                            counterText: "",
+                            filled: true,
+                            fillColor: const Color(0xFFF9F6EE),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: KX.gold, width: 1.8),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
                 // Skill Selection
                 KSlideFadeIn(
                   child: Column(

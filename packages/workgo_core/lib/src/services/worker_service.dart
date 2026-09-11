@@ -49,6 +49,11 @@ class WorkerService {
           list.add(w);
         } catch (_) {}
       }
+      list.sort((a, b) {
+        final scoreComp = b.trustScore.compareTo(a.trustScore);
+        if (scoreComp != 0) return scoreComp;
+        return b.avgRating.compareTo(a.avgRating);
+      });
       return list;
     });
   }

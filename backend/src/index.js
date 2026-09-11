@@ -66,6 +66,7 @@ app.use("/api/documents", verifyToken, require("./routes/documents"));
 app.use("/api/insights", verifyToken, require("./routes/insights"));
 app.use("/api/admin", verifyToken, require("./routes/admin"));
 app.use("/api/verification", verifyToken, require("./routes/verification"));
+app.use("/api/verification", verifyToken, require("./routes/aadhaar_qr"));
 app.use("/api/c2pa", require("./routes/c2pa")); // /api/c2pa/sign validates token or accepts payload; /api/c2pa/verify is public
 app.use("/api/notifications", require("./routes/notifications"));
 

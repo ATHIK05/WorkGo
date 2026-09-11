@@ -15,7 +15,6 @@ import 'sign_in_form.dart';
 import 'sign_up_form.dart';
 import 'phone_otp_form.dart';
 import 'customer_editorial_welcome_screen.dart';
-import 'customer_auth_sheet.dart';
 
 enum AuthMode { signIn, signUp, forgotPassword, phoneOtp }
 
@@ -267,6 +266,7 @@ class _AuthShellState extends State<AuthShell>
       _errorMessage = null;
     });
 
+    final langCode = context.locale.languageCode;
     try {
       final cred = await _authService.signInWithGoogle(role: widget.role);
       final uid = cred.user!.uid;
@@ -278,7 +278,7 @@ class _AuthShellState extends State<AuthShell>
           displayName: cred.user?.displayName ?? "User",
           photoUrl: cred.user?.photoURL,
           role: widget.role,
-          preferredLanguage: context.locale.languageCode,
+          preferredLanguage: langCode,
           region: 'IN-TN',
         );
         await _authService.upsertUser(appUser);

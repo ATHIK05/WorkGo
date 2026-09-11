@@ -36,6 +36,17 @@ class VerificationDetails {
   final String? aadhaarAddress;
   final bool? aadhaarSignatureValid;
   final String? aadhaarReferenceId;
+  // QR-specific fields (primary Aadhaar path)
+  final bool? aadhaarQrVerified;
+  final String? aadhaarQrMethod; // "qr_scan" | "xml_upload"
+  final String? aadhaarDistrict;
+  // e-Shram signals
+  final String? eshramUan;
+  final String? eshramTrade;
+  final String? eshramDistrict;
+  final bool? eshramNameMatch;
+  final DateTime? eshramVerifiedAt;
+  // Liveness
   final DateTime? livenessPassedAt;
   final double? livenessScore;
   final String? selfieBase64;
@@ -80,6 +91,14 @@ class VerificationDetails {
     this.aadhaarAddress,
     this.aadhaarSignatureValid,
     this.aadhaarReferenceId,
+    this.aadhaarQrVerified,
+    this.aadhaarQrMethod,
+    this.aadhaarDistrict,
+    this.eshramUan,
+    this.eshramTrade,
+    this.eshramDistrict,
+    this.eshramNameMatch,
+    this.eshramVerifiedAt,
     this.livenessPassedAt,
     this.livenessScore,
     this.selfieBase64,
@@ -127,6 +146,14 @@ class VerificationDetails {
       aadhaarAddress: map["aadhaarAddress"] as String?,
       aadhaarSignatureValid: map["aadhaarSignatureValid"] as bool?,
       aadhaarReferenceId: map["aadhaarReferenceId"] as String?,
+      aadhaarQrVerified: map["aadhaarQrVerified"] as bool?,
+      aadhaarQrMethod: map["aadhaarQrMethod"] as String?,
+      aadhaarDistrict: map["aadhaarDistrict"] as String?,
+      eshramUan: map["eshramUan"] as String?,
+      eshramTrade: map["eshramTrade"] as String?,
+      eshramDistrict: map["eshramDistrict"] as String?,
+      eshramNameMatch: map["eshramNameMatch"] as bool?,
+      eshramVerifiedAt: _parseDateTime(map["eshramVerifiedAt"]),
       livenessPassedAt: _parseDateTime(map["livenessPassedAt"]),
       livenessScore: (map["livenessScore"] as num?)?.toDouble(),
       selfieBase64: map["selfieBase64"] as String?,
@@ -176,6 +203,16 @@ class VerificationDetails {
         "aadhaarAddress": aadhaarAddress,
         "aadhaarSignatureValid": aadhaarSignatureValid,
         "aadhaarReferenceId": aadhaarReferenceId,
+        "aadhaarQrVerified": aadhaarQrVerified,
+        "aadhaarQrMethod": aadhaarQrMethod,
+        "aadhaarDistrict": aadhaarDistrict,
+        "eshramUan": eshramUan,
+        "eshramTrade": eshramTrade,
+        "eshramDistrict": eshramDistrict,
+        "eshramNameMatch": eshramNameMatch,
+        "eshramVerifiedAt": eshramVerifiedAt != null
+            ? Timestamp.fromDate(eshramVerifiedAt!)
+            : null,
         "livenessPassedAt": livenessPassedAt != null
             ? Timestamp.fromDate(livenessPassedAt!)
             : null,
@@ -369,6 +406,8 @@ class Worker {
   final List<String> equipmentTags;
   final List<String> serviceKeywords;
   final double diagnosticAccuracyScore;
+  /// 0–5 integer: Phone + Aadhaar + Liveness + e-Shram + PCC
+  final int trustScore;
 
   Worker({
     required this.id,
@@ -416,6 +455,7 @@ class Worker {
     this.equipmentTags = const [],
     this.serviceKeywords = const [],
     this.diagnosticAccuracyScore = 0.92,
+    this.trustScore = 0,
   });
 
   bool get isTitan =>
@@ -424,6 +464,33 @@ class Worker {
       isCheckedIn || availabilityStatus == AvailabilityStatus.online;
   bool get isApproved => verificationStatus == VerificationStatus.approved;
   bool get isPubliclyVisible => visibilityStatus == VisibilityStatus.public;
+
+  /// Computed live trust signal count (0–5) from verificationDetails
+  int get trustSignalCount {
+    if (trustScore >= 1) return trustScore;
+    final vd = verificationDetails;
+    int count = 0;
+    final phone = phoneForCalling;
+    if (phone != null && phone.isNotEmpty) count++;
+    if (vd?.aadhaarQrVerified == true || vd?.aadhaarVerifiedAt != null) count++;
+    if (vd?.livenessPassedAt != null) count++;
+    final eshramUan = vd?.eshramUan;
+    if (eshramUan != null && eshramUan.isNotEmpty) count++;
+    if (vd?.pccDocumentId != null && vd?.pccReviewedAt != null) count++;
+    return count;
+  }
+
+  /// Whether the worker qualifies to appear on customer radar (>= 3 signals)
+  bool get isRadarEligible => trustSignalCount >= 3;
+
+  /// Trust badge label for customer-facing display
+  String get trustBadgeLabel {
+    final score = trustSignalCount;
+    if (score >= 5) return 'coop_pro_badge';
+    if (score >= 4) return 'verified_badge';
+    if (score >= 3) return 'verified_badge';
+    return '';
+  }
 
   String? get avatarBase64 =>
       verificationDetails?.selfieBase64 ??
@@ -745,11 +812,13 @@ class Worker {
       equipmentTags: equipTags,
       serviceKeywords: srvKeywords,
       diagnosticAccuracyScore: diagAccuracy,
+      trustScore: (d["trustScore"] as num?)?.toInt() ?? 0,
     );
   }
 
   Map<String, dynamic> toFirestore() => {
         "userId": userId,
+        "trustScore": trustScore,
         "name": name,
         "organizationId": organizationId,
         "skills": skills,

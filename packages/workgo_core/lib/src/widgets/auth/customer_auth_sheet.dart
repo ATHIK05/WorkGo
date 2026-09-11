@@ -8,7 +8,6 @@ import "../../firebase/auth_service.dart";
 import "../../models/app_user.dart";
 import "../../theme/colors.dart";
 import "../../theme/typography.dart";
-import "../../theme/spacing.dart";
 import "auth_text_field.dart";
 
 /// Frictionless Authentication Sheet for Customers and Artisans.

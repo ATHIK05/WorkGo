@@ -1,5 +1,6 @@
 import "dart:async";
 import "package:easy_localization/easy_localization.dart";
+import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -8,16 +9,23 @@ import "../../models/app_user.dart";
 import "../../theme/colors.dart";
 import "auth_text_field.dart";
 
-/// Keys used to persist the in-flight OTP session across process restarts.
+// ── SharedPreferences keys ───────────────────────────────────────────────────
+// Checkpoint 1: OTP has been sent — resume at code-entry step
 const _kOtpSessionId = "wg_otp_session_id";
 const _kOtpPhone = "wg_otp_phone";
+// Checkpoint 2: Backend verified OTP and returned a customToken — resume at
+// Firebase sign-in step (so the user never has to re-enter the OTP code)
+const _kOtpCustomToken = "wg_otp_custom_token";
+const _kOtpRole = "wg_otp_role";
 
 /// Dedicated Phone OTP Form for WorkGo Authentication.
-/// Communicates with 2Factor.in backend microservice.
 ///
-/// Persists session state so if the OS kills the app (low RAM) and the user
-/// returns, they land directly on the OTP entry step rather than having to
-/// re-request the code.
+/// Two-checkpoint persistence model:
+///   CP1 (sessionId + phone) → OTP sent, waiting for user code input
+///   CP2 (customToken)       → OTP verified by backend, waiting for Firebase
+///
+/// If the OS kills the app (low RAM) at any point, the next launch detects the
+/// furthest checkpoint and resumes silently from there — no re-entry needed.
 class PhoneOtpForm extends StatefulWidget {
   const PhoneOtpForm({
     super.key,
@@ -45,7 +53,8 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
 
   bool _codeSent = false;
   String? _sessionId;
-  bool _sending = false;
+  bool _sending = false;     // controls button spinner
+  bool _resuming = false;    // silent auto-resume on restart
   int _countdown = 0;
   Timer? _timer;
 
@@ -63,13 +72,55 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
     super.dispose();
   }
 
-  // ── Session persistence ──────────────────────────────────────────────────
+  // ── Checkpoint helpers ───────────────────────────────────────────────────
 
-  /// Restore a pending OTP session if the app was killed mid-flow.
+  Future<void> _persistSessionSent(String sessionId, String phone) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_kOtpSessionId, sessionId);
+    await p.setString(_kOtpPhone, phone);
+  }
+
+  Future<void> _persistCustomToken(String token, String role) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_kOtpCustomToken, token);
+    await p.setString(_kOtpRole, role);
+  }
+
+  Future<void> _clearAllCheckpoints() async {
+    final p = await SharedPreferences.getInstance();
+    await Future.wait([
+      p.remove(_kOtpSessionId),
+      p.remove(_kOtpPhone),
+      p.remove(_kOtpCustomToken),
+      p.remove(_kOtpRole),
+    ]);
+  }
+
+  /// On launch, detect the furthest saved checkpoint and resume from it.
   Future<void> _restoreSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedSession = prefs.getString(_kOtpSessionId);
-    final savedPhone = prefs.getString(_kOtpPhone);
+    final p = await SharedPreferences.getInstance();
+
+    // CP2: customToken saved — backend already verified the OTP.
+    // Complete Firebase sign-in silently (no user input required).
+    final savedToken = p.getString(_kOtpCustomToken);
+    final savedRole = p.getString(_kOtpRole);
+    if (savedToken != null && savedRole != null) {
+      if (!mounted) return;
+      setState(() => _resuming = true);
+      try {
+        await _completeFbSignIn(savedToken, savedRole);
+        return;
+      } catch (_) {
+        // Token expired — fall through to CP1 or phone entry
+        await _clearAllCheckpoints();
+      } finally {
+        if (mounted) setState(() => _resuming = false);
+      }
+    }
+
+    // CP1: OTP was sent — user only needs to enter the code.
+    final savedSession = p.getString(_kOtpSessionId);
+    final savedPhone = p.getString(_kOtpPhone);
     if (savedSession != null && savedPhone != null && mounted) {
       setState(() {
         _sessionId = savedSession;
@@ -79,16 +130,30 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
     }
   }
 
-  Future<void> _persistSession(String sessionId, String phone) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kOtpSessionId, sessionId);
-    await prefs.setString(_kOtpPhone, phone);
-  }
+  // ── Firebase completion (shared between new verify + CP2 recovery) ────────
 
-  Future<void> _clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kOtpSessionId);
-    await prefs.remove(_kOtpPhone);
+  Future<void> _completeFbSignIn(String customToken, String role) async {
+    final cred = await _authService.completePhoneOtpSignIn(customToken);
+    await _clearAllCheckpoints();
+
+    final uid = cred.user!.uid;
+    final userRole = role == "worker" ? UserRole.worker : UserRole.customer;
+    final phone = _phoneController.text.trim().replaceAll(RegExp(r"\D"), "");
+    final normalized = phone.length == 12 && phone.startsWith("91")
+        ? phone.substring(2)
+        : phone;
+
+    var user = await _authService.fetchUser(uid);
+    user ??= AppUser(
+      uid: uid,
+      email: "$normalized@phone.workgo.in",
+      displayName: userRole == UserRole.worker ? "Artisan" : "Customer",
+      phoneNumber: "+91$normalized",
+      role: userRole,
+      region: "IN-TN",
+    );
+    await _authService.upsertUser(user);
+    if (mounted) widget.onSuccess(user);
   }
 
   // ── Countdown ────────────────────────────────────────────────────────────
@@ -127,7 +192,8 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
       final res = await _authService.sendPhoneOtp(normalized);
       if (res["success"] == true && res["sessionId"] != null) {
         final sid = res["sessionId"] as String;
-        await _persistSession(sid, normalized);
+        // CP1 — persist before updating UI
+        await _persistSessionSent(sid, normalized);
         if (mounted) {
           setState(() {
             _codeSent = true;
@@ -159,27 +225,35 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
 
     setState(() => _sending = true);
     try {
-      final cred = await _authService.signInWithPhoneOtp(
+      // ── Step A: verify OTP with backend (returns customToken) ──────────
+      final customToken = await _authService.verifyPhoneOtpGetToken(
         phone: normalized,
         otpCode: otp,
         sessionId: _sessionId!,
         role: widget.role.name,
       );
 
-      await _clearSession();
+      // ── CP2: persist token BEFORE Firebase call ────────────────────────
+      // If killed here, next launch completes sign-in without re-entering OTP.
+      await _persistCustomToken(customToken, widget.role.name);
 
-      final uid = cred.user!.uid;
-      var user = await _authService.fetchUser(uid);
-      user ??= AppUser(
-        uid: uid,
-        email: "$normalized@phone.workgo.in",
-        displayName: widget.role == UserRole.worker ? "Artisan" : "Customer",
-        phoneNumber: "+91$normalized",
-        role: widget.role,
-        region: "IN-TN",
-      );
-      await _authService.upsertUser(user);
-      widget.onSuccess(user);
+      // ── Step B: Firebase sign-in ───────────────────────────────────────
+      await _completeFbSignIn(customToken, widget.role.name);
+    } on FirebaseAuthException catch (e) {
+      // customToken expired (e.g. device was off too long) — clear and restart
+      if (e.code == "invalid-custom-token" || e.code == "custom-token-mismatch") {
+        await _clearAllCheckpoints();
+        if (mounted) {
+          setState(() {
+            _codeSent = false;
+            _sessionId = null;
+            _otpController.clear();
+          });
+          widget.onError("Session expired. Please request a new OTP.");
+        }
+      } else {
+        widget.onError(e.message ?? e.toString());
+      }
     } catch (e) {
       widget.onError(e.toString());
     } finally {
@@ -187,9 +261,8 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
     }
   }
 
-  /// Reset back to phone-entry step and clear any saved session.
   Future<void> _handleChangeNumber() async {
-    await _clearSession();
+    await _clearAllCheckpoints();
     if (!mounted) return;
     setState(() {
       _codeSent = false;
@@ -198,8 +271,34 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
     });
   }
 
+  // ── UI ───────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
+    // Silent CP2 auto-resume: show spinner, no interaction needed
+    if (_resuming) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              SizedBox(height: 12),
+              Text(
+                "Signing you in...",
+                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final isBusy = widget.isLoading || _sending;
 
     return Column(
@@ -207,7 +306,7 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (!_codeSent) ...[
-          // ── Step 1: Enter phone & request OTP ──────────────────────────
+          // ── Step 1: phone entry ─────────────────────────────────────────
           AuthTextField(
             controller: _phoneController,
             labelText: "phone_otp_title".tr(),
@@ -242,13 +341,13 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
                   ),
           ),
         ] else ...[
-          // ── Step 2: OTP already sent — enter code ───────────────────────
-          // Subtle info row showing the destination phone
+          // ── Step 2: OTP code entry ──────────────────────────────────────
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
-                const Icon(Icons.check_circle_outline_rounded, size: 14, color: Color(0xFF16A34A)),
+                const Icon(Icons.check_circle_outline_rounded,
+                    size: 14, color: Color(0xFF16A34A)),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -260,7 +359,6 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
               ],
             ),
           ),
-
           AuthTextField(
             controller: _otpController,
             labelText: "verify_otp_btn".tr(),
@@ -274,7 +372,6 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
             ],
           ),
           const SizedBox(height: 12),
-
           ElevatedButton(
             onPressed: isBusy ? null : _handleVerifyOtp,
             style: ElevatedButton.styleFrom(
@@ -288,7 +385,8 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(color: Color(0xFF1A1A1A), strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                        color: Color(0xFF1A1A1A), strokeWidth: 2),
                   )
                 : Text(
                     "verify_otp_btn".tr(),
@@ -296,8 +394,6 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
                   ),
           ),
           const SizedBox(height: 6),
-
-          // Resend / Change Number row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -328,15 +424,18 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
             ],
           ),
         ],
-
         const SizedBox(height: 14),
         Center(
           child: TextButton.icon(
             onPressed: widget.onSwitchToEmail,
-            icon: const Icon(Icons.mail_outline_rounded, size: 16, color: Color(0xFF4B5563)),
+            icon: const Icon(Icons.mail_outline_rounded,
+                size: 16, color: Color(0xFF4B5563)),
             label: Text(
               "auth_tab_email".tr(),
-              style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563), fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF4B5563),
+                  fontWeight: FontWeight.w600),
             ),
           ),
         ),

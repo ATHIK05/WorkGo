@@ -174,8 +174,10 @@ class AuthService {
     return res as Map<String, dynamic>;
   }
 
-  /// Sign in directly using verified Phone OTP (generates custom token)
-  Future<UserCredential> signInWithPhoneOtp({
+  /// Step 1 of OTP sign-in: verify code with backend → returns raw Firebase customToken.
+  /// Callers MUST persist this token before calling [completePhoneOtpSignIn] so a
+  /// mid-flight process kill can be recovered without re-entering the OTP.
+  Future<String> verifyPhoneOtpGetToken({
     required String phone,
     required String otpCode,
     required String sessionId,
@@ -188,13 +190,34 @@ class AuthService {
       "role": role,
     });
     if (res is Map<String, dynamic> && res["success"] == true && res["customToken"] != null) {
-      final cred = await _auth.signInWithCustomToken(res["customToken"] as String);
-      return cred;
+      return res["customToken"] as String;
     }
     throw FirebaseAuthException(
       code: "OTP_LOGIN_FAILED",
       message: res is Map ? res["error"] ?? "Failed to login with phone OTP" : "Failed to login with phone OTP",
     );
+  }
+
+  /// Step 2 of OTP sign-in: exchange a pre-verified customToken for a Firebase session.
+  Future<UserCredential> completePhoneOtpSignIn(String customToken) =>
+      _auth.signInWithCustomToken(customToken);
+
+  /// Sign in directly using verified Phone OTP (generates custom token).
+  /// Convenience method that combines both steps — prefer the split API when
+  /// the caller needs restart-recovery persistence between the two steps.
+  Future<UserCredential> signInWithPhoneOtp({
+    required String phone,
+    required String otpCode,
+    required String sessionId,
+    String role = "customer",
+  }) async {
+    final token = await verifyPhoneOtpGetToken(
+      phone: phone,
+      otpCode: otpCode,
+      sessionId: sessionId,
+      role: role,
+    );
+    return _auth.signInWithCustomToken(token);
   }
 
   // ── Backup Password Fallback ───────────────────────────────────────────────
