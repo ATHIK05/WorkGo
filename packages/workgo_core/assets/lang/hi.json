@@ -966,5 +966,9 @@
   "pill_flexible_shifts": "लचीले कार्य घंटे",
   "pill_safety_insurance": "सुरक्षा बीमा",
   "pill_verified_clients": "सत्यापित ग्राहक",
-  "new_user_create_account": "नया खाता बनाएं"
+  "new_user_create_account": "नया खाता बनाएं",
+  "change_number": "नंबर बदलें",
+  "resend_in": "फिर भेजें",
+  "resend_otp": "OTP दोबारा भेजें",
+  "send_otp_failed": "OTP भेजने में विफल। कृपया पुनः प्रयास करें।"
 }

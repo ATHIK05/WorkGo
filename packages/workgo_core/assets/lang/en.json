@@ -987,5 +987,9 @@
   "pill_flexible_shifts": "Flexible shifts",
   "pill_safety_insurance": "Accident cover",
   "pill_verified_clients": "Verified clients",
-  "new_user_create_account": "New artisan or client? Create Account"
+  "new_user_create_account": "New artisan or client? Create Account",
+  "change_number": "Change Number",
+  "resend_in": "Resend in",
+  "resend_otp": "Resend Code",
+  "send_otp_failed": "Failed to send OTP. Please try again."
 }

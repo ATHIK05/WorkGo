@@ -966,5 +966,9 @@
   "pill_flexible_shifts": "நெகிழ்வான வேலை நேரம்",
   "pill_safety_insurance": "பாதுகாப்பு காப்பீடு",
   "pill_verified_clients": "சரிபார்க்கப்பட்ட வாடிக்கையாளர்கள்",
-  "new_user_create_account": "புதிய கணக்கு உருவாக்குங்கள்"
+  "new_user_create_account": "புதிய கணக்கு உருவாக்குங்கள்",
+  "change_number": "எண்ணை மாற்றவும்",
+  "resend_in": "மீண்டும் அனுப்பவும்",
+  "resend_otp": "OTP மீண்டும் அனுப்பு",
+  "send_otp_failed": "OTP அனுப்புவதில் தோல்வி. மீண்டும் முயற்சிக்கவும்."
 }

@@ -2,13 +2,22 @@ import "dart:async";
 import "package:easy_localization/easy_localization.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:shared_preferences/shared_preferences.dart";
 import "../../firebase/auth_service.dart";
 import "../../models/app_user.dart";
 import "../../theme/colors.dart";
 import "auth_text_field.dart";
 
+/// Keys used to persist the in-flight OTP session across process restarts.
+const _kOtpSessionId = "wg_otp_session_id";
+const _kOtpPhone = "wg_otp_phone";
+
 /// Dedicated Phone OTP Form for WorkGo Authentication.
 /// Communicates with 2Factor.in backend microservice.
+///
+/// Persists session state so if the OS kills the app (low RAM) and the user
+/// returns, they land directly on the OTP entry step rather than having to
+/// re-request the code.
 class PhoneOtpForm extends StatefulWidget {
   const PhoneOtpForm({
     super.key,
@@ -41,12 +50,48 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
   Timer? _timer;
 
   @override
+  void initState() {
+    super.initState();
+    _restoreSession();
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     _phoneController.dispose();
     _otpController.dispose();
     super.dispose();
   }
+
+  // ── Session persistence ──────────────────────────────────────────────────
+
+  /// Restore a pending OTP session if the app was killed mid-flow.
+  Future<void> _restoreSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedSession = prefs.getString(_kOtpSessionId);
+    final savedPhone = prefs.getString(_kOtpPhone);
+    if (savedSession != null && savedPhone != null && mounted) {
+      setState(() {
+        _sessionId = savedSession;
+        _phoneController.text = savedPhone;
+        _codeSent = true;
+      });
+    }
+  }
+
+  Future<void> _persistSession(String sessionId, String phone) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kOtpSessionId, sessionId);
+    await prefs.setString(_kOtpPhone, phone);
+  }
+
+  Future<void> _clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kOtpSessionId);
+    await prefs.remove(_kOtpPhone);
+  }
+
+  // ── Countdown ────────────────────────────────────────────────────────────
 
   void _startCountdown() {
     _countdown = 30;
@@ -62,6 +107,8 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
       });
     });
   }
+
+  // ── OTP actions ──────────────────────────────────────────────────────────
 
   Future<void> _handleSendOtp() async {
     final rawPhone = _phoneController.text.trim();
@@ -79,13 +126,17 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
     try {
       final res = await _authService.sendPhoneOtp(normalized);
       if (res["success"] == true && res["sessionId"] != null) {
-        setState(() {
-          _codeSent = true;
-          _sessionId = res["sessionId"] as String;
-        });
-        _startCountdown();
+        final sid = res["sessionId"] as String;
+        await _persistSession(sid, normalized);
+        if (mounted) {
+          setState(() {
+            _codeSent = true;
+            _sessionId = sid;
+          });
+          _startCountdown();
+        }
       } else {
-        widget.onError(res["error"]?.toString() ?? "Failed to send OTP");
+        widget.onError(res["error"]?.toString() ?? "send_otp_failed".tr());
       }
     } catch (e) {
       widget.onError(e.toString());
@@ -115,6 +166,8 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
         role: widget.role.name,
       );
 
+      await _clearSession();
+
       final uid = cred.user!.uid;
       var user = await _authService.fetchUser(uid);
       user ??= AppUser(
@@ -134,6 +187,17 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
     }
   }
 
+  /// Reset back to phone-entry step and clear any saved session.
+  Future<void> _handleChangeNumber() async {
+    await _clearSession();
+    if (!mounted) return;
+    setState(() {
+      _codeSent = false;
+      _sessionId = null;
+      _otpController.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isBusy = widget.isLoading || _sending;
@@ -142,22 +206,21 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Phone Input
-        AuthTextField(
-          controller: _phoneController,
-          labelText: "phone_otp_title".tr(),
-          hintText: "phone_otp_sub".tr(),
-          prefixIcon: Icons.phone_android_rounded,
-          keyboardType: TextInputType.phone,
-          enabled: !isBusy && !_codeSent,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(10),
-          ],
-        ),
-        const SizedBox(height: 12),
-
         if (!_codeSent) ...[
+          // ── Step 1: Enter phone & request OTP ──────────────────────────
+          AuthTextField(
+            controller: _phoneController,
+            labelText: "phone_otp_title".tr(),
+            hintText: "phone_otp_sub".tr(),
+            prefixIcon: Icons.phone_android_rounded,
+            keyboardType: TextInputType.phone,
+            enabled: !isBusy,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ],
+          ),
+          const SizedBox(height: 12),
           ElevatedButton(
             onPressed: isBusy ? null : _handleSendOtp,
             style: ElevatedButton.styleFrom(
@@ -179,7 +242,25 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
                   ),
           ),
         ] else ...[
-          // OTP Code Input
+          // ── Step 2: OTP already sent — enter code ───────────────────────
+          // Subtle info row showing the destination phone
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_outline_rounded, size: 14, color: Color(0xFF16A34A)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    "${"otp_sent_to".tr()} +91 ${_phoneController.text}",
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           AuthTextField(
             controller: _otpController,
             labelText: "verify_otp_btn".tr(),
@@ -214,37 +295,34 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                   ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
-          // Resend or Change Phone
+          // Resend / Change Number row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               TextButton(
-                onPressed: isBusy
-                    ? null
-                    : () {
-                        setState(() {
-                          _codeSent = false;
-                          _otpController.clear();
-                        });
-                      },
-                child: const Text(
-                  "Change Number",
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                onPressed: isBusy ? null : _handleChangeNumber,
+                child: Text(
+                  "change_number".tr(),
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                 ),
               ),
               if (_countdown > 0)
                 Text(
-                  "Resend in ${_countdown}s",
+                  "${"resend_in".tr()} ${_countdown}s",
                   style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
                 )
               else
                 TextButton(
                   onPressed: isBusy ? null : _handleSendOtp,
-                  child: const Text(
-                    "Resend Code",
-                    style: TextStyle(fontSize: 12, color: Color(0xFF2563EB), fontWeight: FontWeight.w600),
+                  child: Text(
+                    "resend_otp".tr(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF2563EB),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
             ],
