@@ -71,6 +71,7 @@ app.use("/api/c2pa", require("./routes/c2pa")); // /api/c2pa/sign validates toke
 app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/locales", require("./routes/locales"));
 app.use("/api/ai", require("./routes/ai_triage")); // Gemini 1.5 Flash triage proxy + Firestore cache
+app.use("/api/ai", require("./routes/ai_transcribe")); // Cloud-assisted vernacular speech-to-text (Gemini Audio + Bhashini)
 
 // ── Notification Cloud Functions Daemon (for Render background triggers) ────
 const { initFirestoreNotificationListeners } = require("./cloud_functions");
