@@ -69,6 +69,8 @@ app.use("/api/verification", verifyToken, require("./routes/verification"));
 app.use("/api/verification", verifyToken, require("./routes/aadhaar_qr"));
 app.use("/api/c2pa", require("./routes/c2pa")); // /api/c2pa/sign validates token or accepts payload; /api/c2pa/verify is public
 app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/locales", require("./routes/locales"));
+app.use("/api/ai", require("./routes/ai_triage")); // Gemini 1.5 Flash triage proxy + Firestore cache
 
 // ── Notification Cloud Functions Daemon (for Render background triggers) ────
 const { initFirestoreNotificationListeners } = require("./cloud_functions");

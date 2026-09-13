@@ -170,7 +170,20 @@ class SymptomCatalog {
       secondaryCategory: 'Plumber',
       searchTokens: [
         'motor', 'pump', 'submersible', 'borewell', 'water pump', 'thanni motor', 'paani motor',
-        'humming', 'sound', 'not pumping', 'no water', 'dry run', 'capacitor', 'winding'
+        'humming', 'sound', 'not pumping', 'no water', 'dry run', 'capacitor', 'winding',
+        // Romanized Tanglish / Hinglish / Manglish
+        'motor la sound varudhu', 'thani varala', 'motor odala', 'motor chal nahi raha',
+        'motor tiragatledu', 'motor chalda nahi', 'motor ghuri na', 'motor kaam nahi karta',
+        'pani nahi aa raha', 'motor awaaz kar raha', 'paani motor nahi chal raha',
+        'motor avde vellam varala', 'motor pravar thiitilla',
+        // Native Tamil script
+        'மோட்டார் ஓடல', 'தண்ணீர் வரல', 'மோட்டார் சத்தம்', 'தண்ணி வரல',
+        // Native Hindi (Devanagari)
+        'मोटर चल नहीं रही', 'पानी नहीं आ रहा', 'पंप बंद',
+        // Native Telugu
+        'మోటార్ పని చేయడం లేదు', 'నీళ్ళు రావడం లేదు',
+        // Native Malayalam
+        'മോട്ടോർ പ്രവർത്തിക്കുന്നില്ല', 'വെള്ളം വരുന്നില്ല',
       ],
       likelyCauses: [
         'Capacitor failure or burnt motor start winding (Electrical)',
@@ -253,7 +266,16 @@ class SymptomCatalog {
       secondaryCategory: 'Plumber',
       searchTokens: [
         'geyser', 'water heater', 'instant geyser', 'heating', 'hot water', 'shock', 'leakage',
-        'thermostat', 'coil', 'suudu thanni'
+        'thermostat', 'coil', 'suudu thanni',
+        // Romanized Tanglish / Hinglish
+        'geyser shock adikkudhu', 'suudu thanni varala', 'geyser se shock', 'geysur ka paani thanda',
+        'geyser kaam nahi kar raha', 'geyser la current adikkudhu', 'boiler problem',
+        // Native Tamil script
+        'கீஸர் சரியில்லை', 'சூடு தண்ணி வரல', 'கீஸர் ஷாக் அடிக்குது',
+        // Native Hindi
+        'गीज़र खराब', 'गर्म पानी नहीं आ रहा', 'गीज़र से शॉक',
+        // Native Telugu
+        'గీజర్ పని చేయడం లేదు', 'వేడి నీళ్ళు రావడం లేదు',
       ],
       likelyCauses: [
         'Heating element / coil calcified or open-circuit (Electrical)',
@@ -297,7 +319,16 @@ class SymptomCatalog {
       secondaryCategory: 'Electrician',
       searchTokens: [
         'ac', 'air conditioner', 'split ac', 'inverter ac', 'cooling', 'ice', 'gas leak', 'refrigerant',
-        'outdoor unit', 'water dripping', 'drip', 'dripping', 'ac leaking', 'ac leak', 'ac sound'
+        'outdoor unit', 'water dripping', 'drip', 'dripping', 'ac leaking', 'ac leak', 'ac sound',
+        // Romanized Tanglish / Hinglish
+        'ac kulirakala', 'ac kulir illa', 'ac thandi illai', 'ac blast', 'ac water varudhu',
+        'ac thanda nahi de raha', 'ac se paani aata hai', 'ac gas khatam', 'ac gas leak',
+        // Native Tamil script
+        'ஏசி குளிர்ச்சி இல்லை', 'ஏசி தண்ணி வருது', 'ஏசி கேஸ் போச்சு',
+        // Native Hindi
+        'एसी ठंडा नहीं कर रहा', 'एसी से पानी आ रहा', 'एसी का गैस खत्म',
+        // Native Telugu
+        'ఏసీ చల్లగా లేదు', 'ఏసీ నీళ్ళు కారుతున్నాయి',
       ],
       likelyCauses: [
         'Refrigerant / freon gas leak at copper flare nut (Appliance)',
@@ -341,7 +372,20 @@ class SymptomCatalog {
       secondaryCategory: 'Electrician',
       searchTokens: [
         'mcb', 'fuse', 'trip', 'tripping', 'spark', 'sparking', 'switch', 'socket', 'plug',
-        'smoke', 'burning smell', 'flicker', 'short circuit', 'current'
+        'smoke', 'burning smell', 'flicker', 'short circuit', 'current',
+        // Romanized Tanglish / Hinglish / Manglish
+        'current poiduchu', 'bijli chali gayi', 'current poindi', 'current hoythu', 'light gayi',
+        'bijli band', 'fuse ur gaya', 'switch spark', 'switchboard spark adikkudhu',
+        'bijli board garam ho gaya', 'current adikkudhu', 'shock adikkudhu', 'fuse poiduchu',
+        'light flicker aagudhu', 'mcb trip aagudhu', 'current problem',
+        // Native Tamil script
+        'ஸ்விட்ச் பார்டு நெருப்பு', 'மின்சாரம் போச்சு', 'ஸ்பார்க் அடிக்குது', 'கரண்ட் போச்சு',
+        // Native Hindi
+        'स्विचबोर्ड से चिंगारी', 'बिजली चली गई', 'MCB ट्रिप हो रहा', 'बिजली का झटका',
+        // Native Telugu
+        'స్విచ్ స్పార్క్ చేస్తోంది', 'కరెంట్ పోతోంది', 'ఫ్యూజ్ పోయింది',
+        // Native Malayalam
+        'കറന്റ് പോയി', 'ഷോക്ക് അടിക്കുന്നു',
       ],
       likelyCauses: [
         'Neutral wire short circuit or neutral overload (Electrical)',
@@ -362,7 +406,23 @@ class SymptomCatalog {
       secondaryCategory: 'Carpenter',
       searchTokens: [
         'pipe', 'leak', 'water leak', 'tap', 'faucet', 'flush', 'toilet', 'seepage', 'dampness',
-        'moisture', 'pressure', 'tank overflow', 'thanni ottudhu'
+        'moisture', 'pressure', 'tank overflow', 'thanni ottudhu', 'nal', 'nalwala',
+        // Romanized Tanglish / Hinglish / Manglish / Benglish
+        'thani varala', 'thanni varala', 'paani nahi', 'neellu ravatledu', 'neeru bartilla',
+        'vellam varunnilla', 'pani aavtu nathi', 'paani aundi nahi', 'jol asche na', 'pani asuni',
+        'thani sottudhu', 'pipe la leak varudhu', 'nal se paani tapak raha', 'thanni kottudhu',
+        'wall se paani aa raha', 'bathroom leak', 'toilet flush kaam nahi kar raha',
+        'pipe ottudhu', 'vellam ottunnu', 'pipe phateri gaya',
+        // Native Tamil script
+        'தண்ணீர் சொட்டுகிறது', 'குழாய் ஒழுகுகிறது', 'தண்ணி கசிவு', 'குழாய் உடைஞ்சது',
+        // Native Hindi
+        'पानी टपक रहा है', 'नल से पानी आ रहा', 'पाइप टूट गया', 'दीवार से पानी',
+        // Native Telugu
+        'పైపు లీక్ అవుతుంది', 'నీళ్ళు కారుతున్నాయి', 'గోడ నుండి నీళ్ళు',
+        // Native Malayalam
+        'വെള്ളം ഒലിക്കുന്നു', 'പൈപ്പ് ലീക്ക്', 'ചുമർ നനഞ്ഞിരിക്കുന്നു',
+        // Native Kannada
+        'ನೀರು ಸೋರುತ್ತಿದೆ', 'ಕೊಳವೆ ಒಡೆದಿದೆ',
       ],
       likelyCauses: [
         'Concealed CPVC/UPVC pipe joint fissure inside wall (Plumbing)',
@@ -426,7 +486,20 @@ class SymptomCatalog {
       searchTokens: [
         'fan', 'ceiling fan', 'table fan', 'exhaust fan', 'pedestal fan', 'wall fan',
         'regulator', 'fan slow', 'fan sound', 'fan bearing', 'capacitor', 'blade',
-        'fan not spinning', 'fan humming', 'fan noise', 'fan speed', 'kaathadi', 'visiri', 'pankha'
+        'fan not spinning', 'fan humming', 'fan noise', 'fan speed', 'kaathadi', 'visiri', 'pankha',
+        // Romanized Tanglish / Hinglish
+        'fan suthu varudhu', 'fan slow-ah suthuthu', 'fan odala', 'fan blade suthala',
+        'fan kazhiyadhu', 'pankha chalda nahi', 'pankha nahi ghum raha', 'pankha slow chal raha',
+        'fan humming sound varudhu', 'fan spark adikkudhu', 'mirchi fan', 'fan ka regulator kaam nahi',
+        'fan chikku budukku', 'fan kiriyal varudhu',
+        // Native Tamil script
+        'சின்னக்காத்தாடி ஓடல', 'பேன் மெதுவாக சுத்துது', 'பேன் ஓடல', 'காத்தாடி ஓடல',
+        // Native Hindi
+        'पंखा नहीं चल रहा', 'पंखा धीरे चल रहा', 'पंखा की आवाज़ आ रही',
+        // Native Telugu
+        'ఫ్యాన్ తిరగడం లేదు', 'ఫ్యాన్ నెమ్మదిగా తిరుగుతోంది',
+        // Native Malayalam
+        'ഫാൻ കറങ്ങുന്നില്ല', 'ഫാൻ പതുക്കെ കറങ്ങുന്നു',
       ],
       likelyCauses: [
         'Run capacitor (2.5µF) degraded or blown (fan spins very slowly or needs manual push to start)',
@@ -644,7 +717,17 @@ class SymptomCatalog {
       searchTokens: [
         'door', 'lock', 'latch', 'hinge', 'handle', 'key stuck', 'wood', 'carpenter', 'door dragging',
         'drawer', 'cupboard', 'wardrobe', 'sliding door', 'lock broken', 'kathavu', 'pootu', 'saavi',
-        'darwaza', 'woodwork', 'furniture'
+        'darwaza', 'woodwork', 'furniture',
+        // Romanized Tanglish / Hinglish
+        'kathavu poochu', 'pootu maatikichi', 'saavi maatikichi', 'door lock aagala',
+        'darwaza nahi band ho raha', 'lock jam ho gaya', 'darwaza kholna mushkil',
+        'almirah drawer atagirichu', 'wardrobe door pochi', 'door kiligichu',
+        // Native Tamil script
+        'கதவு திறக்கல', 'பூட்டு சாவி மாட்டிகிச்சு', 'கதவு இழுக்குது',
+        // Native Hindi
+        'दरवाज़ा नहीं खुल रहा', 'ताला जाम हो गया', 'चाबी अंदर फंसी',
+        // Native Telugu
+        'తలుపు తెరుచుకోవడం లేదు', 'తాళం వేసుకుపోయింది',
       ],
       likelyCauses: [
         'Mortise cylinder brass pins jammed with dust or worn out',
@@ -685,7 +768,9 @@ class SymptomCatalog {
       searchTokens: [
         'paint', 'painting', 'peel', 'peeling', 'wall damp', 'flaking', 'putty', 'primer',
         'waterproofing', 'exterior paint', 'interior paint', 'seepage', 'sunnam', 'vannam',
-        'color adikka', 'rang', 'safedi'
+        'color adikka', 'rang', 'safedi',
+        // Vernacular: Walls & Ceiling (22-language expansion)
+        'paint adikanu', 'ghar rangna', 'deewar safedi', 'bith pe paint', 'chuna jhad raha', 'wall dampness'
       ],
       likelyCauses: [
         'Concealed water seepage behind wall from bathroom tile grout or pipeline joint',
@@ -764,7 +849,14 @@ class SymptomCatalog {
       secondaryCategory: 'Carpenter',
       searchTokens: [
         'welding', 'weld', 'gate', 'grill', 'metal', 'iron', 'shutter', 'railing', 'broken hinge',
-        'rust', 'iron gate', 'irumbu', 'patrai', 'loha', 'welder', 'gate welding'
+        'rust', 'iron gate', 'irumbu', 'patrai', 'loha', 'welder', 'gate welding',
+        // Romanized Tanglish / Hinglish
+        'gate hinge vudainju', 'iron gate keezha vizhundhuchu', 'grill loose aagidhu',
+        'lohe ka darwaza tuta', 'gate weld toot gaya', 'shutter ka hinge toot gaya',
+        // Native Tamil script
+        'இரும்பு வாசல் கீழே விழுந்தது', 'கிரில் தளர்ந்தது',
+        // Native Hindi
+        'लोहे का गेट गिर गया', 'ग्रिल ढीला हो गया',
       ],
       likelyCauses: [
         'Severe rust corrosion weakening load-bearing weld joint on gate post',
@@ -803,7 +895,16 @@ class SymptomCatalog {
       secondaryCategory: 'Plumber',
       searchTokens: [
         'masonry', 'mason', 'tile', 'tiles', 'plaster', 'cement', 'brick', 'granite', 'marble',
-        'grout', 'hollow tile', 'floor cracked', 'wall crack', 'kothanar', 'mistri', 'chuna', 'patthar'
+        'grout', 'hollow tile', 'floor cracked', 'wall crack', 'kothanar', 'mistri', 'chuna', 'patthar',
+        // Romanized Tanglish / Hinglish
+        'tile vudainju', 'tile vizhundhuchu', 'floor tile udaindhuchu', 'grout problem',
+        'cement jhar raha', 'tiles toot gayi', 'wall crack aa gayi', 'floor pe crack',
+        // Native Tamil script
+        'டைல்ஸ் உடைஞ்சது', 'சிமெண்ட் கழண்டது', 'தரை வெடிப்பு',
+        // Native Hindi
+        'टाइल टूट गई', 'दीवार में दरार', 'सीमेंट उखड़ रहा',
+        // Native Telugu
+        'టైల్స్ విరిగిపోయాయి', 'గోడలో పగులు',
       ],
       likelyCauses: [
         'Hollow or debonded tile bed due to inadequate adhesive coverage during laying',
@@ -881,6 +982,67 @@ class SymptomCatalog {
     'some', 'any', 'with', 'from', 'this', 'that', 'there', 'here', 'issue', 'problem',
     'working', 'works', 'work'
   };
+
+  // ---------------------------------------------------------------------
+  // 22-Language Conversational Stopword Stripper
+  // ---------------------------------------------------------------------
+  // Spoken queries across India's Scheduled Languages are often wrapped in
+  // filler words ("I need", "mujhe...chahiye", "enakku...vennu") that add
+  // zero diagnostic signal and can dilute/starve the scoring engine, or
+  // even trigger a false "Out of Scope" rejection. These are stripped
+  // BEFORE tokenization/scoring so only the meaningful trade/symptom
+  // tokens remain.
+  static const Set<String> _conversationalFillers = {
+    // --- South ---
+    // Tamil
+    'enakku', 'ippo', 'ippa', 'oru', 'vennu', 'venum', 'theva', 'aachu', 'poiduchu', 'varala',
+    'veetuku', 'panna',
+    // Telugu
+    'naku', 'ippudu', 'oka', 'kavali', 'raavatledu', 'poindi', 'cheyali', 'ma', 'intiki', 'undi',
+    // Kannada
+    'nanage', 'eege', 'ondu', 'beku', 'bartilla', 'madabeku', 'namma', 'manege', 'agide',
+    // Malayalam
+    'enikku', 'ippol', 'venam', 'varunnilla', 'cheyyanam', 'veettil', 'und',
+
+    // --- North & West ---
+    // Hindi & Urdu
+    'mujhe', 'ek', 'ki', 'zaroorat', 'hai', 'chahiye', 'bhej', 'do', 'karna', 'mere', 'ghar',
+    'me', 'hoga', 'darmiyan',
+    // Punjabi
+    'mainu', 'ik', 'chahida', 'chahidi', 'kharab', 'ho', 'gaya', 'ghare', 'bhejo',
+    // Gujarati
+    'mane', 'joie', 'chhe', 'bagdi', 'gayu', 'gharma', 'moklo',
+    // Marathi
+    'mala', 'hava', 'ahe', 'yet', 'nahiye', 'pahije', 'karaycha', 'gharat',
+    // Kashmiri / Dogri / Sindhi
+    'mye', 'chhu', 'chhi', 'lori', 'khapyo',
+
+    // --- East & Northeast ---
+    // Bengali
+    'amar', 'ekta', 'dorkar', 'lagbe', 'kharaap', 'asche', 'na', 'barite',
+    // Assamese
+    'mur', 'eta', 'lage', 'bhangise', 'ghorot', 'ahise',
+    // Odia
+    'mote', 'gote', 'darkar', 'kharap', 'heichi', 'gharare',
+    // Maithili / Nepali / Santali / Bodo / Manipuri
+    'hamra', 'chahi', 'chahiyo', 'bhayeko',
+
+    // --- English conversational wrapper ---
+    'i', 'need', 'want', 'looking', 'for', 'please', 'call', 'book', 'send', 'urgent',
+    'quick', 'right', 'now',
+  };
+
+  /// Strips conversational filler/wrapper words (across all 22 Scheduled
+  /// Languages + English) from a lowercased query so that only the
+  /// meaningful trade/symptom tokens remain for scoring. Falls back to the
+  /// original query if stripping would remove every single token (so we
+  /// never operate on an empty string unnecessarily).
+  static String _stripConversationalFillers(String loweredQuery) {
+    final words = loweredQuery.split(RegExp(r'[\s,.-]+')).where((w) => w.isNotEmpty);
+    final kept = words.where((w) => !_conversationalFillers.contains(w)).toList();
+    if (kept.isEmpty) return loweredQuery;
+    return kept.join(' ');
+  }
 
   // Primary equipment identifiers mapped to item IDs
   static const Map<String, List<String>> _equipmentTokens = {
@@ -968,10 +1130,153 @@ class SymptomCatalog {
     return reg.hasMatch(text);
   }
 
+  /// Root-stem matcher: matches a word STARTING with [stem], with a left
+  /// word boundary but no right word boundary. This fixes the architectural
+  /// flaw where `\bpaint\b` rejected legitimate inflections like `painter`,
+  /// `painters`, or `paintwork`. Reserved for known, unambiguous trade-root
+  /// stems (e.g. `paint`, `plumb`, `electr`, `carpent`, `weld`, `mason`,
+  /// `clean`) — NOT used for generic short tokens that would over-match.
+  static bool _matchesStem(String text, String stem) {
+    final s = stem.trim().toLowerCase();
+    if (s.isEmpty) return false;
+    if (s.contains(' ')) {
+      return text.contains(s);
+    }
+    final reg = RegExp(r'\b' + RegExp.escape(s), caseSensitive: false);
+    return reg.hasMatch(text);
+  }
+
+  /// Dual-text phrase matcher: checks a token/phrase against BOTH the
+  /// filler-stripped query and the original raw (lowercased) query.
+  /// This is required because some conversational filler words in a few
+  /// regional languages are, by coincidence, also verb fragments inside a
+  /// legitimate multi-word vernacular symptom phrase (e.g. Tamil "varala"
+  /// is stripped as a standalone filler, but is also part of the phrase
+  /// "thani varala" = "water not coming"). Checking the untouched raw text
+  /// as a fallback guarantees such phrases are never lost to stripping.
+  static bool _matchesAny(String cleanedText, String rawText, String token) {
+    return _matchesWordOrPhrase(cleanedText, token) || _matchesWordOrPhrase(rawText, token);
+  }
+
+  /// Same dual-text guarantee as [_matchesAny], but for root-stem matching.
+  static bool _matchesStemAny(String cleanedText, String rawText, String stem) {
+    return _matchesStem(cleanedText, stem) || _matchesStem(rawText, stem);
+  }
+
+  // ---------------------------------------------------------------------
+  // Top-Level Direct Artisan Intent Gate
+  // ---------------------------------------------------------------------
+  // If the (filler-stripped) query directly names a trade artisan — in
+  // English root form, or via common Hindi/regional trade nouns — we skip
+  // the full symptom-scoring cascade entirely and return that trade
+  // immediately with high (0.95) confidence. This is what lets queries
+  // like "Enakku ippa oru painter vennu" or "mujhe ek painter ki zaroorat
+  // hai" resolve straight to Painter regardless of language.
+  static const List<Map<String, Object>> _directArtisanGate = [
+    {
+      'trade': 'Painter',
+      'secondary': 'Plumber',
+      'equipmentTag': 'Painting & Waterproofing',
+      'stems': ['paint'],
+      'phrases': ['rangwala', 'safediwala', 'rangari', 'chitrakaar', 'vanna poosu', 'rang lagana'],
+    },
+    {
+      'trade': 'Plumber',
+      'secondary': 'Electrician',
+      'equipmentTag': 'Water & Plumbing System',
+      'stems': ['plumb'],
+      'phrases': ['nalwala', 'pipe mechanic', 'tap fitter', 'water mechanic'],
+    },
+    {
+      'trade': 'Electrician',
+      'secondary': 'Appliance Repair',
+      'equipmentTag': 'Electrical Fixture',
+      'stems': ['electr'],
+      'phrases': ['bijliwala', 'wireman', 'line mechanic', 'current man'],
+    },
+    {
+      'trade': 'Carpenter',
+      'secondary': 'Welder / Metal',
+      'equipmentTag': 'Doors, Locks & Woodwork',
+      'stems': ['carpent'],
+      'phrases': ['badhai', 'sutar', 'maramari', 'thachchan', 'wood worker', 'furniture maker'],
+    },
+    {
+      'trade': 'Cleaning',
+      'secondary': 'Plumber',
+      'equipmentTag': 'Deep Cleaning & Descaling',
+      'stems': ['clean'],
+      'phrases': ['safaiwala', 'housekeeping', 'cleaning crew', 'kachra saf'],
+    },
+    {
+      'trade': 'Masonry',
+      'secondary': 'Plumber',
+      'equipmentTag': 'Masonry & Tile Works',
+      'stems': ['mason'],
+      'phrases': ['mistri', 'rajmistri', 'kothanar', 'brick layer', 'plasterer'],
+    },
+    {
+      'trade': 'Welder / Metal',
+      'secondary': 'Carpenter',
+      'equipmentTag': 'Metal Fabrication & Welding',
+      'stems': ['weld'],
+      'phrases': ['lohar', 'fabricator', 'patrai', 'iron worker'],
+    },
+  ];
+
+  /// Returns a high-confidence direct-artisan match if the cleaned OR raw
+  /// query explicitly names a trade professional, otherwise returns null so
+  /// the caller can fall through to the normal symptom-scoring cascade.
+  /// [cleanedQuery] is the filler-stripped, lowercased query; [rawLower] is
+  /// the untouched, lowercased original — checked together so a filler word
+  /// that coincidentally overlaps with a symptom/trade fragment (see
+  /// [_matchesAny]) never causes a missed match.
+  static DiagnosticResult? _checkDirectArtisanIntent(String cleanedQuery, String rawLower, String rawQuery) {
+    for (final entry in _directArtisanGate) {
+      final trade = entry['trade'] as String;
+      final secondary = entry['secondary'] as String;
+      final equipmentTag = entry['equipmentTag'] as String;
+      final stems = entry['stems'] as List<String>;
+      final phrases = entry['phrases'] as List<String>;
+
+      var matched = false;
+      for (final stem in stems) {
+        if (_matchesStemAny(cleanedQuery, rawLower, stem)) {
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        for (final phrase in phrases) {
+          if (_matchesAny(cleanedQuery, rawLower, phrase)) {
+            matched = true;
+            break;
+          }
+        }
+      }
+
+      if (matched) {
+        return DiagnosticResult(
+          symptomQuery: rawQuery,
+          primaryCategory: trade,
+          secondaryCategory: secondary,
+          confidence: 0.95,
+          equipmentTag: equipmentTag,
+          summary: 'Direct request identified for a $trade. Matched artisan trade professional with high confidence.',
+          likelyCauses: const ['Customer directly requested this trade professional by name.'],
+          suggestedToolsNeeded: const [],
+          requiresSmartDiagnosticVisit: false,
+          diagnosticFee: 99.0,
+        );
+      }
+    }
+    return null;
+  }
+
   /// Token-based local triage matching algorithm for instantaneous offline response.
   static DiagnosticResult matchSymptom(String rawQuery) {
-    final query = rawQuery.trim().toLowerCase();
-    if (query.isEmpty) {
+    final lowered = rawQuery.trim().toLowerCase();
+    if (lowered.isEmpty) {
       return const DiagnosticResult(
         symptomQuery: '',
         primaryCategory: 'Electrician',
@@ -983,9 +1288,22 @@ class SymptomCatalog {
       );
     }
 
+    // Strip conversational wrapper/filler words across all 22 Scheduled
+    // Languages + English BEFORE scoring, so phrases like "I need send
+    // someone urgent in my house" or "mujhe ek painter ki zaroorat hai"
+    // don't dilute scores or trigger a false Out-of-Scope rejection.
+    // NOTE: `lowered` (the untouched raw text) is kept alongside `query`
+    // (the stripped text) and both are checked together via [_matchesAny] /
+    // [_matchesStemAny] throughout, because a handful of regional filler
+    // words coincidentally double as fragments of legitimate multi-word
+    // vernacular symptom phrases (e.g. Tamil "varala" inside "thani
+    // varala" = "water not coming"). Stripping alone would silently break
+    // those phrases; checking both texts guarantees they still match.
+    final query = _stripConversationalFillers(lowered);
+
     // 0. Negative Guardrail: Reject Out-of-Scope Requests (e.g., "my pen broken", "car puncture", "laptop screen")
     for (final outToken in _outOfScopeTokens) {
-      if (_matchesWordOrPhrase(query, outToken)) {
+      if (_matchesAny(query, lowered, outToken)) {
         return DiagnosticResult(
           symptomQuery: rawQuery,
           primaryCategory: 'Out of Scope',
@@ -1004,6 +1322,12 @@ class SymptomCatalog {
       }
     }
 
+    // 0.5 Top-Level Direct Artisan Intent Gate (0.95 confidence short-circuit)
+    final directMatch = _checkDirectArtisanIntent(query, lowered, rawQuery);
+    if (directMatch != null) {
+      return directMatch;
+    }
+
     final allWords = query.split(RegExp(r'[\s,.-]+')).where((w) => w.length > 1).toList();
     final contentWords = allWords.where((w) => !_stopWords.contains(w)).toList();
 
@@ -1018,7 +1342,7 @@ class SymptomCatalog {
       // that equipment MUST take priority over unrelated appliances.
       final equipTokens = _equipmentTokens[item.id] ?? [];
       for (final eqTok in equipTokens) {
-        if (_matchesWordOrPhrase(query, eqTok)) {
+        if (_matchesAny(query, lowered, eqTok)) {
           score += 20;
           break; // Count once per item
         }
@@ -1026,7 +1350,7 @@ class SymptomCatalog {
 
       // 2. Specialized Symptom / Fault Descriptor Tokens
       for (final token in item.searchTokens) {
-        if (_matchesWordOrPhrase(query, token)) {
+        if (_matchesAny(query, lowered, token)) {
           score += (token.length > 5 ? 5 : 3);
         }
       }
@@ -1070,24 +1394,24 @@ class SymptomCatalog {
 
     // Comprehensive Heuristic Fallbacks based on Blue Collar Trade Taxonomy
     // 1. Carpenter Fallback
-    if (_matchesWordOrPhrase(query, 'door') ||
-        _matchesWordOrPhrase(query, 'lock') ||
-        _matchesWordOrPhrase(query, 'latch') ||
-        _matchesWordOrPhrase(query, 'hinge') ||
-        _matchesWordOrPhrase(query, 'key') ||
-        _matchesWordOrPhrase(query, 'wood') ||
-        _matchesWordOrPhrase(query, 'carpenter') ||
-        _matchesWordOrPhrase(query, 'wardrobe') ||
-        _matchesWordOrPhrase(query, 'cupboard') ||
-        _matchesWordOrPhrase(query, 'drawer') ||
-        _matchesWordOrPhrase(query, 'bed') ||
-        _matchesWordOrPhrase(query, 'sofa') ||
-        _matchesWordOrPhrase(query, 'furniture') ||
-        _matchesWordOrPhrase(query, 'kathavu') ||
-        _matchesWordOrPhrase(query, 'pootu') ||
-        _matchesWordOrPhrase(query, 'saavi') ||
-        _matchesWordOrPhrase(query, 'darwaza') ||
-        _matchesWordOrPhrase(query, 'lakdi')) {
+    if (_matchesStemAny(query, lowered, 'carpent') ||
+        _matchesAny(query, lowered, 'door') ||
+        _matchesAny(query, lowered, 'lock') ||
+        _matchesAny(query, lowered, 'latch') ||
+        _matchesAny(query, lowered, 'hinge') ||
+        _matchesAny(query, lowered, 'key') ||
+        _matchesAny(query, lowered, 'wood') ||
+        _matchesAny(query, lowered, 'wardrobe') ||
+        _matchesAny(query, lowered, 'cupboard') ||
+        _matchesAny(query, lowered, 'drawer') ||
+        _matchesAny(query, lowered, 'bed') ||
+        _matchesAny(query, lowered, 'sofa') ||
+        _matchesAny(query, lowered, 'furniture') ||
+        _matchesAny(query, lowered, 'kathavu') ||
+        _matchesAny(query, lowered, 'pootu') ||
+        _matchesAny(query, lowered, 'saavi') ||
+        _matchesAny(query, lowered, 'darwaza') ||
+        _matchesAny(query, lowered, 'lakdi')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Carpenter',
@@ -1103,19 +1427,21 @@ class SymptomCatalog {
     }
 
     // 2. Painter & Waterproofing Fallback
-    if (_matchesWordOrPhrase(query, 'paint') ||
-        _matchesWordOrPhrase(query, 'painting') ||
-        _matchesWordOrPhrase(query, 'putty') ||
-        _matchesWordOrPhrase(query, 'primer') ||
-        _matchesWordOrPhrase(query, 'peel') ||
-        _matchesWordOrPhrase(query, 'peeling') ||
-        _matchesWordOrPhrase(query, 'waterproofing') ||
-        _matchesWordOrPhrase(query, 'exterior paint') ||
-        _matchesWordOrPhrase(query, 'interior paint') ||
-        _matchesWordOrPhrase(query, 'vannam') ||
-        _matchesWordOrPhrase(query, 'safedi') ||
-        _matchesWordOrPhrase(query, 'rang') ||
-        _matchesWordOrPhrase(query, 'color adikka')) {
+    if (_matchesStemAny(query, lowered, 'paint') ||
+        _matchesAny(query, lowered, 'putty') ||
+        _matchesAny(query, lowered, 'primer') ||
+        _matchesAny(query, lowered, 'peel') ||
+        _matchesAny(query, lowered, 'peeling') ||
+        _matchesAny(query, lowered, 'waterproofing') ||
+        _matchesAny(query, lowered, 'exterior paint') ||
+        _matchesAny(query, lowered, 'interior paint') ||
+        _matchesAny(query, lowered, 'vannam') ||
+        _matchesAny(query, lowered, 'safedi') ||
+        _matchesAny(query, lowered, 'rang') ||
+        _matchesAny(query, lowered, 'color adikka') ||
+        _matchesAny(query, lowered, 'rangwala') ||
+        _matchesAny(query, lowered, 'rangari') ||
+        _matchesAny(query, lowered, 'chitrakaar')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Painter',
@@ -1131,18 +1457,19 @@ class SymptomCatalog {
     }
 
     // 3. Deep Cleaning & Sanitization Fallback
-    if (_matchesWordOrPhrase(query, 'clean') ||
-        _matchesWordOrPhrase(query, 'cleaning') ||
-        _matchesWordOrPhrase(query, 'deep clean') ||
-        _matchesWordOrPhrase(query, 'sanitize') ||
-        _matchesWordOrPhrase(query, 'descaling') ||
-        _matchesWordOrPhrase(query, 'chimney clean') ||
-        _matchesWordOrPhrase(query, 'sofa clean') ||
-        _matchesWordOrPhrase(query, 'acid wash') ||
-        _matchesWordOrPhrase(query, 'stain') ||
-        _matchesWordOrPhrase(query, 'safai') ||
-        _matchesWordOrPhrase(query, 'suththam') ||
-        _matchesWordOrPhrase(query, 'kazhuva')) {
+    if (_matchesStemAny(query, lowered, 'clean') ||
+        _matchesAny(query, lowered, 'deep clean') ||
+        _matchesAny(query, lowered, 'sanitize') ||
+        _matchesAny(query, lowered, 'descaling') ||
+        _matchesAny(query, lowered, 'chimney clean') ||
+        _matchesAny(query, lowered, 'sofa clean') ||
+        _matchesAny(query, lowered, 'acid wash') ||
+        _matchesAny(query, lowered, 'stain') ||
+        _matchesAny(query, lowered, 'safai') ||
+        _matchesAny(query, lowered, 'safaiwala') ||
+        _matchesAny(query, lowered, 'housekeeping') ||
+        _matchesAny(query, lowered, 'suththam') ||
+        _matchesAny(query, lowered, 'kazhuva')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Cleaning',
@@ -1158,17 +1485,18 @@ class SymptomCatalog {
     }
 
     // 4. Welder / Metal Fabrication Fallback
-    if (_matchesWordOrPhrase(query, 'weld') ||
-        _matchesWordOrPhrase(query, 'welding') ||
-        _matchesWordOrPhrase(query, 'gate') ||
-        _matchesWordOrPhrase(query, 'grill') ||
-        _matchesWordOrPhrase(query, 'metal') ||
-        _matchesWordOrPhrase(query, 'iron') ||
-        _matchesWordOrPhrase(query, 'railing') ||
-        _matchesWordOrPhrase(query, 'shutter') ||
-        _matchesWordOrPhrase(query, 'irumbu') ||
-        _matchesWordOrPhrase(query, 'patrai') ||
-        _matchesWordOrPhrase(query, 'loha')) {
+    if (_matchesStemAny(query, lowered, 'weld') ||
+        _matchesAny(query, lowered, 'gate') ||
+        _matchesAny(query, lowered, 'grill') ||
+        _matchesAny(query, lowered, 'metal') ||
+        _matchesAny(query, lowered, 'iron') ||
+        _matchesAny(query, lowered, 'railing') ||
+        _matchesAny(query, lowered, 'shutter') ||
+        _matchesAny(query, lowered, 'irumbu') ||
+        _matchesAny(query, lowered, 'patrai') ||
+        _matchesAny(query, lowered, 'lohar') ||
+        _matchesAny(query, lowered, 'fabricator') ||
+        _matchesAny(query, lowered, 'loha')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Welder / Metal',
@@ -1184,20 +1512,20 @@ class SymptomCatalog {
     }
 
     // 5. Masonry & Civil Works Fallback
-    if (_matchesWordOrPhrase(query, 'masonry') ||
-        _matchesWordOrPhrase(query, 'mason') ||
-        _matchesWordOrPhrase(query, 'tile') ||
-        _matchesWordOrPhrase(query, 'tiles') ||
-        _matchesWordOrPhrase(query, 'cement') ||
-        _matchesWordOrPhrase(query, 'plaster') ||
-        _matchesWordOrPhrase(query, 'brick') ||
-        _matchesWordOrPhrase(query, 'granite') ||
-        _matchesWordOrPhrase(query, 'marble') ||
-        _matchesWordOrPhrase(query, 'grout') ||
-        _matchesWordOrPhrase(query, 'kothanar') ||
-        _matchesWordOrPhrase(query, 'mistri') ||
-        _matchesWordOrPhrase(query, 'chuna') ||
-        _matchesWordOrPhrase(query, 'patthar')) {
+    if (_matchesStemAny(query, lowered, 'mason') ||
+        _matchesAny(query, lowered, 'tile') ||
+        _matchesAny(query, lowered, 'tiles') ||
+        _matchesAny(query, lowered, 'cement') ||
+        _matchesAny(query, lowered, 'plaster') ||
+        _matchesAny(query, lowered, 'brick') ||
+        _matchesAny(query, lowered, 'granite') ||
+        _matchesAny(query, lowered, 'marble') ||
+        _matchesAny(query, lowered, 'grout') ||
+        _matchesAny(query, lowered, 'kothanar') ||
+        _matchesAny(query, lowered, 'mistri') ||
+        _matchesAny(query, lowered, 'rajmistri') ||
+        _matchesAny(query, lowered, 'chuna') ||
+        _matchesAny(query, lowered, 'patthar')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Masonry',
@@ -1213,13 +1541,13 @@ class SymptomCatalog {
     }
 
     // 6. Kitchen Gas Stove & Hob Fallback
-    if (_matchesWordOrPhrase(query, 'gas stove') ||
-        _matchesWordOrPhrase(query, 'hob') ||
-        _matchesWordOrPhrase(query, 'burner') ||
-        _matchesWordOrPhrase(query, 'gas leak') ||
-        _matchesWordOrPhrase(query, 'cylinder pipe') ||
-        _matchesWordOrPhrase(query, 'gas aduppu') ||
-        _matchesWordOrPhrase(query, 'chulha')) {
+    if (_matchesAny(query, lowered, 'gas stove') ||
+        _matchesAny(query, lowered, 'hob') ||
+        _matchesAny(query, lowered, 'burner') ||
+        _matchesAny(query, lowered, 'gas leak') ||
+        _matchesAny(query, lowered, 'cylinder pipe') ||
+        _matchesAny(query, lowered, 'gas aduppu') ||
+        _matchesAny(query, lowered, 'chulha')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Appliance Repair',
@@ -1235,24 +1563,24 @@ class SymptomCatalog {
     }
 
     // 7. Appliance Repair Fallback
-    if (_matchesWordOrPhrase(query, 'fridge') ||
-        _matchesWordOrPhrase(query, 'refrigerator') ||
-        _matchesWordOrPhrase(query, 'ac') ||
-        _matchesWordOrPhrase(query, 'air conditioner') ||
-        _matchesWordOrPhrase(query, 'washing machine') ||
-        _matchesWordOrPhrase(query, 'geyser') ||
-        _matchesWordOrPhrase(query, 'heater') ||
-        _matchesWordOrPhrase(query, 'ro') ||
-        _matchesWordOrPhrase(query, 'purifier') ||
-        _matchesWordOrPhrase(query, 'microwave') ||
-        _matchesWordOrPhrase(query, 'oven') ||
-        _matchesWordOrPhrase(query, 'mixer') ||
-        _matchesWordOrPhrase(query, 'grinder') ||
-        _matchesWordOrPhrase(query, 'blender') ||
-        _matchesWordOrPhrase(query, 'mixie') ||
-        _matchesWordOrPhrase(query, 'tv') ||
-        _matchesWordOrPhrase(query, 'television') ||
-        _matchesWordOrPhrase(query, 'appliance')) {
+    if (_matchesAny(query, lowered, 'fridge') ||
+        _matchesAny(query, lowered, 'refrigerator') ||
+        _matchesAny(query, lowered, 'ac') ||
+        _matchesAny(query, lowered, 'air conditioner') ||
+        _matchesAny(query, lowered, 'washing machine') ||
+        _matchesAny(query, lowered, 'geyser') ||
+        _matchesAny(query, lowered, 'heater') ||
+        _matchesAny(query, lowered, 'ro') ||
+        _matchesAny(query, lowered, 'purifier') ||
+        _matchesAny(query, lowered, 'microwave') ||
+        _matchesAny(query, lowered, 'oven') ||
+        _matchesAny(query, lowered, 'mixer') ||
+        _matchesAny(query, lowered, 'grinder') ||
+        _matchesAny(query, lowered, 'blender') ||
+        _matchesAny(query, lowered, 'mixie') ||
+        _matchesAny(query, lowered, 'tv') ||
+        _matchesAny(query, lowered, 'television') ||
+        _matchesAny(query, lowered, 'appliance')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Appliance Repair',
@@ -1268,26 +1596,28 @@ class SymptomCatalog {
     }
 
     // 8. Plumber Fallback
-    if (_matchesWordOrPhrase(query, 'water') ||
-        _matchesWordOrPhrase(query, 'pipe') ||
-        _matchesWordOrPhrase(query, 'tap') ||
-        _matchesWordOrPhrase(query, 'faucet') ||
-        _matchesWordOrPhrase(query, 'leak') ||
-        _matchesWordOrPhrase(query, 'drain') ||
-        _matchesWordOrPhrase(query, 'flush') ||
-        _matchesWordOrPhrase(query, 'sink') ||
-        _matchesWordOrPhrase(query, 'basin') ||
-        _matchesWordOrPhrase(query, 'toilet') ||
-        _matchesWordOrPhrase(query, 'sewer') ||
-        _matchesWordOrPhrase(query, 'sewage') ||
-        _matchesWordOrPhrase(query, 'clog') ||
-        _matchesWordOrPhrase(query, 'shower') ||
-        _matchesWordOrPhrase(query, 'motor') ||
-        _matchesWordOrPhrase(query, 'valve') ||
-        _matchesWordOrPhrase(query, 'tank') ||
-        _matchesWordOrPhrase(query, 'thanni') ||
-        _matchesWordOrPhrase(query, 'paani') ||
-        _matchesWordOrPhrase(query, 'adaipu')) {
+    if (_matchesStemAny(query, lowered, 'plumb') ||
+        _matchesAny(query, lowered, 'water') ||
+        _matchesAny(query, lowered, 'pipe') ||
+        _matchesAny(query, lowered, 'tap') ||
+        _matchesAny(query, lowered, 'faucet') ||
+        _matchesAny(query, lowered, 'leak') ||
+        _matchesAny(query, lowered, 'drain') ||
+        _matchesAny(query, lowered, 'flush') ||
+        _matchesAny(query, lowered, 'sink') ||
+        _matchesAny(query, lowered, 'basin') ||
+        _matchesAny(query, lowered, 'toilet') ||
+        _matchesAny(query, lowered, 'sewer') ||
+        _matchesAny(query, lowered, 'sewage') ||
+        _matchesAny(query, lowered, 'clog') ||
+        _matchesAny(query, lowered, 'shower') ||
+        _matchesAny(query, lowered, 'motor') ||
+        _matchesAny(query, lowered, 'valve') ||
+        _matchesAny(query, lowered, 'tank') ||
+        _matchesAny(query, lowered, 'nalwala') ||
+        _matchesAny(query, lowered, 'thanni') ||
+        _matchesAny(query, lowered, 'paani') ||
+        _matchesAny(query, lowered, 'adaipu')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Plumber',
@@ -1303,25 +1633,28 @@ class SymptomCatalog {
     }
 
     // 9. Electrician Fallback
-    if (_matchesWordOrPhrase(query, 'light') ||
-        _matchesWordOrPhrase(query, 'wire') ||
-        _matchesWordOrPhrase(query, 'wiring') ||
-        _matchesWordOrPhrase(query, 'switch') ||
-        _matchesWordOrPhrase(query, 'fan') ||
-        _matchesWordOrPhrase(query, 'power') ||
-        _matchesWordOrPhrase(query, 'shock') ||
-        _matchesWordOrPhrase(query, 'trip') ||
-        _matchesWordOrPhrase(query, 'mcb') ||
-        _matchesWordOrPhrase(query, 'fuse') ||
-        _matchesWordOrPhrase(query, 'inverter') ||
-        _matchesWordOrPhrase(query, 'current') ||
-        _matchesWordOrPhrase(query, 'spark') ||
-        _matchesWordOrPhrase(query, 'socket') ||
-        _matchesWordOrPhrase(query, 'plug') ||
-        _matchesWordOrPhrase(query, 'bulb') ||
-        _matchesWordOrPhrase(query, 'earthing') ||
-        _matchesWordOrPhrase(query, 'short circuit') ||
-        _matchesWordOrPhrase(query, 'bijli')) {
+    if (_matchesStemAny(query, lowered, 'electr') ||
+        _matchesAny(query, lowered, 'light') ||
+        _matchesAny(query, lowered, 'wire') ||
+        _matchesAny(query, lowered, 'wiring') ||
+        _matchesAny(query, lowered, 'switch') ||
+        _matchesAny(query, lowered, 'fan') ||
+        _matchesAny(query, lowered, 'power') ||
+        _matchesAny(query, lowered, 'shock') ||
+        _matchesAny(query, lowered, 'trip') ||
+        _matchesAny(query, lowered, 'mcb') ||
+        _matchesAny(query, lowered, 'fuse') ||
+        _matchesAny(query, lowered, 'inverter') ||
+        _matchesAny(query, lowered, 'current') ||
+        _matchesAny(query, lowered, 'spark') ||
+        _matchesAny(query, lowered, 'socket') ||
+        _matchesAny(query, lowered, 'plug') ||
+        _matchesAny(query, lowered, 'bulb') ||
+        _matchesAny(query, lowered, 'earthing') ||
+        _matchesAny(query, lowered, 'short circuit') ||
+        _matchesAny(query, lowered, 'bijliwala') ||
+        _matchesAny(query, lowered, 'wireman') ||
+        _matchesAny(query, lowered, 'bijli')) {
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: 'Electrician',

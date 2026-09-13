@@ -134,7 +134,27 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
       _transcribedWords = '';
     });
 
+    // ── Resolve BCP-47 locale from active app language ──────────────────────
+    // WorkGoLocale.getInfo() maps ISO-639-1 code → BCP-47 tag stored in locale_config.dart
+    // Examples: 'ta' → 'ta-IN', 'hi' → 'hi-IN', 'te' → 'te-IN', 'ml' → 'ml-IN'
+    final langCode = context.locale.languageCode;
+    final bcp47 = WorkGoLocale.getInfo(langCode).bcp47;
+
     final success = await _voiceService.startListening(
+      localeId: bcp47, // Solution A: native script transcription
+      onError: (errorMsg) {
+        // Speech error (e.g. error_speech_timeout, error_no_match):
+        // Cancel the silence timer immediately so stale _transcribedWords
+        // from a previous session cannot be re-submitted to diagnosis.
+        _silenceTimer?.cancel();
+        if (mounted) {
+          setState(() {
+            _transcribedWords = '';
+            _isListening = false;
+          });
+        }
+        debugPrint('[VoiceAITriageScreen] Speech error: $errorMsg — cleared stale text');
+      },
       onResult: (words, isFinal) {
         if (!mounted) return;
         setState(() {
@@ -178,6 +198,9 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
   void _toggleMic() {
     HapticFeedback.mediumImpact();
     if (_isListening) {
+      // Cancel silence timer FIRST — prevents double-trigger race where
+      // both the timer and _toggleMic call _proceedToDiagnosis simultaneously.
+      _silenceTimer?.cancel();
       _stopVoiceListening();
       if (_transcribedWords.trim().isNotEmpty) {
         _proceedToDiagnosis(_transcribedWords.trim());
@@ -190,6 +213,10 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
   Future<void> _proceedToDiagnosis(String rawQuery) async {
     if (_isAnalyzing || rawQuery.trim().isEmpty) return;
 
+    // Capture languageCode synchronously at the TOP, before any await.
+    // context must never be accessed after an async gap (use_build_context_synchronously).
+    final langCode = context.locale.languageCode;
+
     _silenceTimer?.cancel();
     await _voiceService.stopListening();
 
@@ -201,7 +228,10 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
     HapticFeedback.heavyImpact();
 
     try {
-      final diagResult = await _aiService.diagnoseSymptom(rawQuery.trim());
+      final diagResult = await _aiService.diagnoseSymptom(
+        rawQuery.trim(),
+        languageCode: langCode, // hint for Tier 3 Gemini prompt
+      );
 
       if (!mounted) return;
 

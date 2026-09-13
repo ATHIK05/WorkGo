@@ -31,6 +31,11 @@ class VoiceRecognitionService {
           debugPrint('[VoiceRecognitionService] Error: ${errorNotification.errorMsg}');
           _isListening = false;
           isListeningNotifier.value = false;
+          // Clear any partial transcription on error so stale text
+          // cannot be re-submitted to _proceedToDiagnosis by a dangling
+          // silence timer (fixes error_speech_timeout bug).
+          transcribedTextNotifier.value = '';
+          onSpeechError?.call(errorNotification.errorMsg);
         },
         onStatus: (status) {
           debugPrint('[VoiceRecognitionService] Status: $status');
@@ -51,11 +56,17 @@ class VoiceRecognitionService {
   }
 
   /// Start live microphone listening with real-time word streaming and decibel levels.
+  /// Optional callback fired when speech recognition encounters an error.
+  /// Used by the screen to cancel the silence timer and clear stale text.
+  void Function(String errorMsg)? onSpeechError;
+
   Future<bool> startListening({
     required void Function(String recognizedWords, bool isFinal) onResult,
     void Function(double soundLevel)? onSoundLevel,
+    void Function(String errorMsg)? onError,
     String? localeId,
   }) async {
+    onSpeechError = onError; // store for use in the onError callback above
     if (!_isInitialized) {
       await initialize();
     }
@@ -74,8 +85,31 @@ class VoiceRecognitionService {
       isListeningNotifier.value = true;
       transcribedTextNotifier.value = '';
 
-      // Determine best locale matching user device / app language
-      final effectiveLocale = localeId ?? 'en_IN';
+      // ── Determine effective BCP-47 locale ─────────────────────────────────
+      // Check whether the requested regional locale (e.g. 'ta-IN', 'hi-IN')
+      // is actually available on this specific Android device. If not downloaded,
+      // fall back to 'en_IN' silently — never throw or show an error to the user.
+      String effectiveLocale = localeId ?? 'en_IN';
+
+      if (localeId != null && localeId != 'en_IN') {
+        try {
+          final availableLocales = await _speechToText.locales();
+          final isSupported = availableLocales.any(
+            (l) => l.localeId == localeId || l.localeId.startsWith(localeId.split('-').first),
+          );
+          if (!isSupported) {
+            debugPrint(
+              '[VoiceRecognitionService] Locale "$localeId" not available on this device — '
+              'falling back to en_IN',
+            );
+            effectiveLocale = 'en_IN';
+          }
+        } catch (_) {
+          // If locale check itself fails, use the requested locale anyway
+          // (better to try than to silently default)
+          effectiveLocale = localeId;
+        }
+      }
 
       await _speechToText.listen(
         onResult: (result) {

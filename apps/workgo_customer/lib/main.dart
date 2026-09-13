@@ -22,6 +22,7 @@ class WorkGoScrollBehavior extends MaterialScrollBehavior {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
+  await WorkGoLocale.ensureInitialized();
 
   try {
     await Firebase.initializeApp(
@@ -37,11 +38,18 @@ void main() async {
   // Initialize Push Notifications
   await PushNotificationService.instance.initialize(userType: 'customer');
 
+  // Warm up Tier-2 on-device semantic matcher in background (pure Dart TF-IDF index).
+  // Uses unawaited so it never blocks the splash → home navigation.
+  // By the time the customer taps the voice mic, the index is already ready.
+  // ignore: unawaited_futures
+  SemanticTriageMatcher.instance.initialize();
+
   runApp(
     EasyLocalization(
       supportedLocales: WorkGoLocale.supported,
       path: WorkGoLocale.assetPath,
       fallbackLocale: WorkGoLocale.fallback,
+      assetLoader: WorkGoLocale.loader,
       child: const WorkGoCustomerApp(),
     ),
   );
@@ -67,7 +75,7 @@ class _WorkGoCustomerAppState extends State<WorkGoCustomerApp> {
       title: 'WorkGo Customer',
       debugShowCheckedModeBanner: false,
       scrollBehavior: const WorkGoScrollBehavior(),
-      localizationsDelegates: context.localizationDelegates,
+      localizationsDelegates: WorkGoLocale.delegates(context),
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       theme: WorkGoTheme.light(),
