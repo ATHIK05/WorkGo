@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audioplayers_windows
   cloud_firestore
   file_selector_windows
   firebase_auth
@@ -12,6 +13,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   geolocator_windows
   local_auth_windows
   printing
+  record_windows
   screen_brightness_windows
   share_plus
   url_launcher_windows

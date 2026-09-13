@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:workgo_core/workgo_core.dart';
 import '../services/ml_translation_service.dart';
 
 /// A reactive widget that translates free-form text, Firebase data,
@@ -64,6 +65,15 @@ class _TranslatedTextState extends State<TranslatedText> {
     if (locale == 'en' || widget.text.trim().isEmpty) {
       _displayedText = widget.text;
       return;
+    }
+
+    // 0. Instant Trade / Catalog Check (0ms Synchronous Short-Circuit)
+    if (!widget.isAddress) {
+      final trade = widget.text.toLocalizedTrade();
+      if (trade != widget.text) {
+        _displayedText = trade;
+        return; // Zero async delay, 60fps buttery scrolling!
+      }
     }
 
     // 1. Immediate synchronous resolution (Cache & Smart Dictionary)

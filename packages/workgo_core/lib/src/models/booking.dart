@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import "package:cloud_firestore/cloud_firestore.dart";
 import "c2pa_manifest_model.dart";
+import "../services/pricing_engine.dart";
 
 enum BookingStatus { pending, accepted, inProgress, paymentPending, completed, cancelled }
 enum PaymentStatus { unpaid, paid, refunded }
@@ -45,6 +46,7 @@ class Booking {
   final DateTime? proofSubmittedAt;
   final String? proofPhotoBase64;
   final Map<String, dynamic>? c2paManifest;
+  final Map<String, dynamic>? fareBreakdown;
 
   // AI Diagnostic & Specialist Handoff extensions
   final String bookingType; // 'direct', 'broadcast', 'diagnostic'
@@ -73,6 +75,7 @@ class Booking {
   final DateTime? ratedAt;
 
   Booking({
+    this.fareBreakdown,
     required this.id,
     required this.customerId,
     this.workerId,
@@ -164,6 +167,8 @@ class Booking {
   bool get hasProofPhoto => proofPhotoBase64 != null && proofPhotoBase64!.isNotEmpty;
   C2paManifestRecord? get parsedC2paManifest =>
       c2paManifest != null ? C2paManifestRecord.fromMap(c2paManifest!) : null;
+  FareBreakdown? get parsedFareBreakdown =>
+      fareBreakdown != null ? FareBreakdown.fromMap(fareBreakdown!) : null;
 
   /// Returns true if [name] is a generic role/title or placeholder rather than an artisan's authentic personal name.
   static bool isGenericArtisanName(String? name) {
@@ -261,10 +266,12 @@ class Booking {
       reviewComment: d["reviewComment"] ?? d["comment"],
       reviewTags: List<String>.from(d["reviewTags"] ?? d["tags"] ?? []),
       ratedAt: (d["ratedAt"] as Timestamp?)?.toDate() ?? (d["reviewedAt"] as Timestamp?)?.toDate(),
+      fareBreakdown: d["fareBreakdown"] != null ? Map<String, dynamic>.from(d["fareBreakdown"] as Map) : null,
     );
   }
 
   Map<String, dynamic> toFirestore() => {
+    "fareBreakdown": fareBreakdown,
     "customerId": customerId,
     "workerId": workerId,
     "organizationId": organizationId,
@@ -389,6 +396,7 @@ class Booking {
     String? reviewComment,
     List<String>? reviewTags,
     DateTime? ratedAt,
+    Map<String, dynamic>? fareBreakdown,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -452,6 +460,7 @@ class Booking {
       reviewComment: reviewComment ?? this.reviewComment,
       reviewTags: reviewTags ?? this.reviewTags,
       ratedAt: ratedAt ?? this.ratedAt,
+      fareBreakdown: fareBreakdown ?? this.fareBreakdown,
     );
   }
 }

@@ -28,6 +28,8 @@ dependencies:
   # Localization — easy_localization for view-layer .tr() translation
   easy_localization: ^3.0.8
   intl: ^0.20.2
+  flutter_localizations:
+    sdk: flutter
   image_picker: ^1.1.2
   geolocator: ^14.0.2
   flutter_map: ^7.0.2
@@ -44,6 +46,9 @@ dependencies:
   mobile_scanner: ^5.2.3
   pointycastle: ^3.9.1
   xml: ^6.5.0
+  # Emergency SOS Audio recording & playback
+  record: ^6.2.1
+  audioplayers: ^6.7.1
 
 dev_dependencies:
   flutter_test:

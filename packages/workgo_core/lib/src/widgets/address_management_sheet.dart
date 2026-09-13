@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../localization/trade_localization.dart';
 import '../models/user_address.dart';
 import '../services/location_service.dart';
+import 'interactive_map_picker_sheet.dart';
 
 /// Opens the Swiggy/Zomato style Address Management sheet.
 Future<UserAddress?> showAddressManagementSheet(
@@ -525,6 +526,27 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
     }
   }
 
+  Future<void> _pickOnMap() async {
+    final picked = await showInteractiveMapPickerSheet(
+      context,
+      initialLatitude: _latitude,
+      initialLongitude: _longitude,
+      initialAddress: _formattedAddress,
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _latitude = picked.latitude;
+        _longitude = picked.longitude;
+        _formattedAddress = picked.formattedAddress;
+        if (picked.flatBuilding.isNotEmpty) _flatCtrl.text = picked.flatBuilding;
+        if (picked.streetArea.isNotEmpty) _streetCtrl.text = picked.streetArea;
+        if (picked.landmark.isNotEmpty) _landmarkCtrl.text = picked.landmark;
+        if (picked.city.isNotEmpty) _cityCtrl.text = picked.city;
+        if (picked.pincode.isNotEmpty) _pincodeCtrl.text = picked.pincode;
+      });
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
@@ -614,29 +636,36 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
 
               // Title
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
                       widget.existingAddress != null ? "edit_address_title".trSafe("Edit Address") : "add_new_address_title".trSafe("Add New Address"),
-                      style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 18, fontWeight: FontWeight.w800),
+                      style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 17, fontWeight: FontWeight.w800),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: TextButton.icon(
-                      onPressed: _isDetectingGps ? null : _autoDetectGps,
-                      icon: _isDetectingGps
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFB800)))
-                          : const Icon(Icons.my_location_rounded, size: 16, color: Color(0xFFB45309)),
-                      label: Text(
-                        _isDetectingGps ? "detecting_gps_btn".trSafe("Detecting...") : "detect_gps_btn".trSafe("Detect GPS"),
-                        style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.w800),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  const SizedBox(width: 6),
+                  TextButton.icon(
+                    onPressed: _pickOnMap,
+                    icon: const Icon(Icons.map_rounded, size: 15, color: Color(0xFF1E1035)),
+                    label: Text(
+                      "pick_map_short_btn".trSafe("Map"),
+                      style: const TextStyle(color: Color(0xFF1E1035), fontSize: 11.5, fontWeight: FontWeight.w800),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _isDetectingGps ? null : _autoDetectGps,
+                    icon: _isDetectingGps
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFB800)))
+                        : const Icon(Icons.my_location_rounded, size: 15, color: Color(0xFFB45309)),
+                    label: Text(
+                      _isDetectingGps ? "detecting_gps_btn".trSafe("GPS...") : "detect_gps_btn".trSafe("GPS"),
+                      style: const TextStyle(color: Color(0xFFB45309), fontSize: 11.5, fontWeight: FontWeight.w800),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

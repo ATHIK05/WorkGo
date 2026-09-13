@@ -19,10 +19,10 @@ void main() {
     expect(UserRole.values.map((r) => r.name), containsAll(["customer", "worker", "admin"]));
   });
 
-  test("WorkGoLocale has 3 supported locales", () {
-    expect(WorkGoLocale.supported.length, 3);
+  test("WorkGoLocale has 23 supported locales (22 Official Indian Languages + English)", () {
+    expect(WorkGoLocale.supported.length, 23);
     final codes = WorkGoLocale.supported.map((l) => l.languageCode).toList();
-    expect(codes, containsAll(["en", "hi", "ta"]));
+    expect(codes, containsAll(["en", "hi", "ta", "te", "kn", "ml", "mr", "bn", "gu", "ur", "pa", "or", "as"]));
   });
 
   test("WorkGoLocale fallback is English", () {
@@ -82,6 +82,121 @@ void main() {
     expect(fare2.experienceBonus, 30.0);
     expect(fare2.emergencySurcharge, 150.0);
     expect(fare2.totalEstimatedFare, 465.0);
+  });
+
+  test("CooperativePricingEngine calculates duration-based post-job settlement accurately", () {
+    final pricing = CooperativePricingEngine.instance;
+
+    final upfront = pricing.calculateFare(
+      category: "Plumbing",
+      distanceKm: 2.5,
+      experienceYears: 4,
+      toolAllowance: 50.0,
+      toolType: "Rotary Drain Snake",
+    );
+    // Base 149 + Transit (2.5 * 12 = 30) + Exp (15) + Tool (50) = 244
+    expect(upfront.totalEstimatedFare, 244.0);
+    expect(upfront.baseLaborIncludedMinutes, 45);
+    expect(upfront.hourlyExtensionRate, 120.0);
+    expect(upfront.isFinalSettlement, false);
+
+    // Case 1: Job completed in 35 mins (< 45 min inclusion window -> 0 overtime)
+    final settlementWithinWindow = pricing.calculateFinalSettlementFare(
+      upfrontFare: upfront,
+      actualDuration: const Duration(minutes: 35),
+    );
+    expect(settlementWithinWindow.actualDurationMinutes, 35);
+    expect(settlementWithinWindow.timeExtensionSlabs, 0);
+    expect(settlementWithinWindow.timeExtensionFare, 0.0);
+    expect(settlementWithinWindow.totalEstimatedFare, 244.0);
+    expect(settlementWithinWindow.isFinalSettlement, true);
+
+    // Case 2: Job completed in 65 mins (20 mins beyond 45m -> 1 extension slab = +₹60)
+    final settlement1Slab = pricing.calculateFinalSettlementFare(
+      upfrontFare: upfront,
+      actualDuration: const Duration(minutes: 65),
+    );
+    expect(settlement1Slab.actualDurationMinutes, 65);
+    expect(settlement1Slab.timeExtensionSlabs, 1);
+    expect(settlement1Slab.timeExtensionFare, 60.0);
+    expect(settlement1Slab.totalEstimatedFare, 304.0); // 244 + 60
+
+    // Gross labor = Base 149 + Exp 15 + Tool 50 + Overtime 60 = 274.0
+    // 2% welfare = 274.0 * 0.02 = 5.48 -> 5.5
+    expect(settlement1Slab.welfareContributionFare, 5.5);
+    // Worker take-home = 304.0 - 5.48 = 298.5
+    expect(settlement1Slab.workerTakeHomeFare, 298.5);
+
+    // Case 3: Job completed in 100 mins (55 mins beyond 45m -> 2 extension slabs = +₹120)
+    final settlement2Slabs = pricing.calculateFinalSettlementFare(
+      upfrontFare: upfront,
+      actualDuration: const Duration(minutes: 100),
+    );
+    expect(settlement2Slabs.timeExtensionSlabs, 2);
+    expect(settlement2Slabs.timeExtensionFare, 120.0);
+    expect(settlement2Slabs.totalEstimatedFare, 364.0); // 244 + 120
+
+    // Case 4: Runaway meter protection: 6 hours elapsed (360 mins)
+    // Overtime = 360 - 45 = 315 mins -> 11 slabs, but ceiling caps at 8 slabs (4 hours overtime)
+    final settlementCapped = pricing.calculateFinalSettlementFare(
+      upfrontFare: upfront,
+      actualDuration: const Duration(hours: 6),
+    );
+    expect(settlementCapped.timeExtensionSlabs, 8);
+    expect(settlementCapped.timeExtensionFare, 480.0); // 8 * 60
+    expect(settlementCapped.totalEstimatedFare, 724.0); // 244 + 480
+  });
+
+  test("FareBreakdown toMap and fromMap serialization round-trip preserves all fields", () {
+    const original = FareBreakdown(
+      category: "Electrical",
+      baseVisitFare: 149.0,
+      distanceKm: 3.2,
+      perKmRate: 12.0,
+      distanceTransitFare: 38.0,
+      experienceBonus: 30.0,
+      experienceYears: 6,
+      emergencySurcharge: 150.0,
+      urgencyTip: 40.0,
+      toolAllowance: 50.0,
+      toolType: "Arc Welder",
+      temporalSurcharge: 50.0,
+      temporalTier: "Late Evening",
+      baseLaborIncludedMinutes: 45,
+      hourlyExtensionRate: 120.0,
+      actualDurationMinutes: 80,
+      timeExtensionSlabs: 2,
+      timeExtensionFare: 120.0,
+      welfareContributionPercent: 2.0,
+      welfareContributionFare: 6.9,
+      workerTakeHomeFare: 720.1,
+      totalEstimatedFare: 727.0,
+      estimatedArrival: "~15 mins (3.2 km)",
+      estimatedJobDuration: "30–45 mins",
+      isFinalSettlement: true,
+    );
+
+    final map = original.toMap();
+    expect(map['category'], "Electrical");
+    expect(map['toolType'], "Arc Welder");
+    expect(map['actualDurationMinutes'], 80);
+    expect(map['timeExtensionSlabs'], 2);
+    expect(map['timeExtensionFare'], 120.0);
+    expect(map['welfareContributionPercent'], 2.0);
+    expect(map['isFinalSettlement'], true);
+
+    final deserialized = FareBreakdown.fromMap(map);
+    expect(deserialized.category, original.category);
+    expect(deserialized.baseVisitFare, original.baseVisitFare);
+    expect(deserialized.toolAllowance, original.toolAllowance);
+    expect(deserialized.toolType, original.toolType);
+    expect(deserialized.actualDurationMinutes, original.actualDurationMinutes);
+    expect(deserialized.timeExtensionSlabs, original.timeExtensionSlabs);
+    expect(deserialized.timeExtensionFare, original.timeExtensionFare);
+    expect(deserialized.workerTakeHomeFare, original.workerTakeHomeFare);
+    expect(deserialized.isFinalSettlement, original.isFinalSettlement);
+    expect(deserialized.formattedTotal, "₹727");
+    expect(deserialized.formattedTimeExtension, "+₹120");
   });
 
   test("UserAddress model serializes and formats correctly", () {

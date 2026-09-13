@@ -2595,7 +2595,13 @@ class _WorkerCard extends StatelessWidget {
                     _fareRow(
                       'base_visit_fare'.tr(),
                       "₹${fare.baseVisitFare.toStringAsFixed(0)}",
-                      subtitle: 'inspection_basic_labour'.tr(args: [fare.category]),
+                      subtitle: 'first_45_mins_included'.tr(),
+                    ),
+                    const Divider(color: Color(0xFFE2E8F0), height: 18),
+                    _fareRow(
+                      'overtime_extension'.tr(),
+                      'overtime_rate_disclosure'.tr(),
+                      subtitle: "${fare.estimatedJobDuration} expected",
                     ),
                     const Divider(color: Color(0xFFE2E8F0), height: 18),
                     _fareRow(
@@ -2612,6 +2618,21 @@ class _WorkerCard extends StatelessWidget {
                         isBonus: true,
                       ),
                     ],
+                    if (fare.toolAllowance > 0) ...[
+                      const Divider(color: Color(0xFFE2E8F0), height: 18),
+                      _fareRow(
+                        'tool_machinery_allowance'.tr(),
+                        fare.formattedToolAllowance,
+                        subtitle: fare.toolType ?? '',
+                      ),
+                    ],
+                    const Divider(color: Color(0xFFE2E8F0), height: 18),
+                    _fareRow(
+                      'coop_welfare_contribution'.tr(),
+                      fare.formattedWelfare,
+                      subtitle: 'welfare_fund_benefit'.tr(),
+                      isBonus: true,
+                    ),
                     const Divider(color: Color(0xFFE2E8F0), height: 18),
                     _fareRow(
                       'coop_platform_cut'.tr(),

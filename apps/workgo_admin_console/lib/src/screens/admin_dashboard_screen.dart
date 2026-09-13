@@ -30,6 +30,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _currentNavIndex = 0;
   final WorkerService _workerService = WorkerService();
   final BookingService _bookingService = BookingService();
+  String? _playingSosDocId;
+
+  @override
+  void dispose() {
+    EmergencySosService.instance.stopAudioPlayback();
+    super.dispose();
+  }
 
   Future<bool?> _showExitConfirmationBottomSheet(BuildContext context) {
     HapticFeedback.mediumImpact();
@@ -1120,6 +1127,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   : 'Location not reported';
               final lat = (data['latitude'] as num?)?.toDouble();
               final lng = (data['longitude'] as num?)?.toDouble();
+              final audioBase64 = (data['audioBase64'] as String?) ?? '';
+              final hasAudio = (data['hasAudio'] as bool? ?? false) && audioBase64.isNotEmpty;
+              final policeMap = data['nearestPoliceStation'] as Map<String, dynamic>?;
+              final policeInfo = PoliceStationInfo.fromMap(policeMap);
+              final bookingId = data['bookingId'] as String?;
 
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
@@ -1140,8 +1152,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   builder: (context, constraints) {
                     final isCompact = constraints.maxWidth < 700;
                     return isCompact
-                        ? _buildCompactSosCard(context, doc.id, workerName, workerPhone, address, lat, lng)
-                        : _buildWideSosCard(context, doc.id, workerName, workerPhone, address, lat, lng);
+                        ? _buildCompactSosCard(context, doc.id, workerName, workerPhone, address, lat, lng, audioBase64, hasAudio, policeInfo, bookingId: bookingId)
+                        : _buildWideSosCard(context, doc.id, workerName, workerPhone, address, lat, lng, audioBase64, hasAudio, policeInfo, bookingId: bookingId);
                   },
                 ),
               );
@@ -1160,7 +1172,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     String address,
     double? lat,
     double? lng,
-  ) {
+    String audioBase64,
+    bool hasAudio,
+    PoliceStationInfo policeInfo, {
+    String? bookingId,
+  }) {
     return Row(
       children: [
         Container(
@@ -1231,6 +1247,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ],
               ),
+              if (policeInfo.name.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    const Icon(Icons.local_police_rounded, size: 12, color: Color(0xFFB91C1C)),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        '${'sos_nearest_police_station'.tr(args: [policeInfo.name, policeInfo.distanceKm.toStringAsFixed(1)])} · ${'sos_police_contact_desk'.tr(args: [policeInfo.deskPhone])}',
+                        style: const TextStyle(
+                          color: Color(0xFF991B1B),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -1241,9 +1278,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           alignment: WrapAlignment.end,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
+            if (hasAudio) _buildAudioButton(audioBase64, docId),
+            _buildPoliceButton(policeInfo),
             _buildCallButton(workerPhone),
             _buildMapButton(address, lat, lng),
-            _buildResolveButton(context, docId, workerName),
+            _buildResolveButton(context, docId, workerName, bookingId: bookingId),
           ],
         ),
       ],
@@ -1258,7 +1297,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     String address,
     double? lat,
     double? lng,
-  ) {
+    String audioBase64,
+    bool hasAudio,
+    PoliceStationInfo policeInfo, {
+    String? bookingId,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -1322,17 +1365,107 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ],
         ),
+        if (policeInfo.name.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.local_police_rounded, size: 12, color: Color(0xFFB91C1C)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  '${'sos_nearest_police_station'.tr(args: [policeInfo.name, policeInfo.distanceKm.toStringAsFixed(1)])} · ${'sos_police_contact_desk'.tr(args: [policeInfo.deskPhone])}',
+                  style: const TextStyle(
+                    color: Color(0xFF991B1B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 10),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
           children: [
-            Expanded(child: _buildCallButton(workerPhone)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildMapButton(address, lat, lng)),
-            const SizedBox(width: 8),
-            _buildResolveButton(context, docId, workerName),
+            if (hasAudio) _buildAudioButton(audioBase64, docId),
+            _buildPoliceButton(policeInfo),
+            _buildCallButton(workerPhone),
+            _buildMapButton(address, lat, lng),
+            _buildResolveButton(context, docId, workerName, bookingId: bookingId),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildAudioButton(String audioBase64, String docId) {
+    final isPlaying = _playingSosDocId == docId;
+    return OutlinedButton.icon(
+      onPressed: () async {
+        if (isPlaying) {
+          await EmergencySosService.instance.stopAudioPlayback();
+          if (mounted) setState(() => _playingSosDocId = null);
+        } else {
+          setState(() => _playingSosDocId = docId);
+          await EmergencySosService.instance.playAudioBase64(
+            audioBase64,
+            onComplete: () {
+              if (mounted) setState(() => _playingSosDocId = null);
+            },
+          );
+        }
+      },
+      icon: Icon(
+        isPlaying ? Icons.stop_circle_rounded : Icons.play_circle_filled_rounded,
+        size: 14,
+        color: const Color(0xFFB91C1C),
+      ),
+      label: Text(
+        isPlaying ? 'sos_stop_audio_proof'.tr() : 'sos_play_audio_proof'.tr(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFFB91C1C),
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFF991B1B),
+        side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
+        backgroundColor: isPlaying ? const Color(0xFFFEE2E2) : Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  Widget _buildPoliceButton(PoliceStationInfo policeInfo) {
+    return ElevatedButton.icon(
+      onPressed: () async {
+        final uri = Uri.parse('tel:112');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        }
+      },
+      icon: const Icon(Icons.local_police_rounded, size: 14),
+      label: Text(
+        'sos_police_escalate_btn'.tr(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1E293B),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+      ),
     );
   }
 
@@ -1395,9 +1528,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildResolveButton(BuildContext context, String docId, String workerName) {
+  Widget _buildResolveButton(BuildContext context, String docId, String workerName, {String? bookingId}) {
     return OutlinedButton.icon(
-      onPressed: () => _confirmResolveBeacon(context, docId, workerName),
+      onPressed: () => _confirmResolveBeacon(context, docId, workerName, bookingId: bookingId),
       icon: const Icon(Icons.check_circle_rounded, size: 14),
       label: Text(
         'sos_resolve'.tr(),
@@ -1414,7 +1547,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Future<void> _confirmResolveBeacon(BuildContext context, String docId, String workerName) async {
+  Future<void> _confirmResolveBeacon(BuildContext context, String docId, String workerName, {String? bookingId}) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1472,11 +1605,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     if (confirmed == true) {
       try {
-        await FirebaseFirestore.instance.collection('emergency_beacons').doc(docId).update({
-          'status': 'resolved',
-          'resolvedAt': FieldValue.serverTimestamp(),
-          'resolvedBy': widget.user.uid,
-        });
+        await EmergencySosService.instance.resolveDistressBeacon(
+          docId,
+          bookingId: bookingId,
+          resolvedBy: widget.user.uid,
+        );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

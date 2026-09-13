@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
 import '../services/ml_translation_service.dart';
+import '../widgets/customer_emergency_sheet.dart';
 import '../widgets/translated_text.dart';
 import 'payment_receipt_screen.dart';
 
@@ -69,25 +71,113 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
 
   @override
   Widget build(BuildContext context) {
-    return AuroraScaffold(
-      appBar: AuroraAppBar(title: 'my_bookings'.tr()),
-      body: StreamBuilder<Booking?>(
-        stream: _bookingService.streamBooking(widget.bookingId),
-        initialData: widget.initialBooking,
-        builder: (context, snapshot) {
-          final booking = snapshot.data;
-          if (booking == null) {
-            return const Center(
+    return StreamBuilder<Booking?>(
+      stream: _bookingService.streamBooking(widget.bookingId),
+      initialData: widget.initialBooking,
+      builder: (context, snapshot) {
+        final booking = snapshot.data;
+        if (booking == null) {
+          return AuroraScaffold(
+            appBar: AuroraAppBar(title: 'my_bookings'.tr()),
+            body: const Center(
               child: AuroraShimmer(width: 320, height: 400, borderRadius: 24),
-            );
-          }
+            ),
+          );
+        }
 
-          return SafeArea(
+        return AuroraScaffold(
+          appBar: AuroraAppBar(
+            title: 'my_bookings'.tr(),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: Center(
+                  child: InkWell(
+                    onTap: () => showCustomerEmergencySheet(
+                      context,
+                      booking: booking,
+                      myLat: _myLat,
+                      myLng: _myLng,
+                      onRefreshLocation: _initDeviceLocation,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFDC2626),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.shield_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'sos_action_btn'.tr(),
+                            style: const TextStyle(
+                              color: Color(0xFFDC2626),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // ── Active Safety Emergency Beacon Alert (If Artisan or Booking in distress)
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('emergency_beacons')
+                        .where('status', isEqualTo: 'active')
+                        .snapshots(),
+                    builder: (context, beaconSnap) {
+                      if (!beaconSnap.hasData || beaconSnap.data!.docs.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      final matchingDocs = beaconSnap.data!.docs.where((doc) {
+                        final d = doc.data() as Map<String, dynamic>;
+                        final bId = d['bookingId'] as String?;
+                        final wId = d['workerId'] as String?;
+                        return (bId != null && bId == booking.id) ||
+                            (wId != null &&
+                                booking.workerId != null &&
+                                wId == booking.workerId);
+                      }).toList();
+                      if (matchingDocs.isEmpty) return const SizedBox.shrink();
+                      final beaconData =
+                          matchingDocs.first.data() as Map<String, dynamic>;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: _buildArtisanSafetyProtocolBanner(
+                          context,
+                          booking,
+                          beaconData,
+                        ),
+                      );
+                    },
+                  ),
                   // Live Real-Time Map with Moving Artisan Vehicle (OSM tiles)
                   SlideFadeIn(
                     child: StreamBuilder<Worker?>(
@@ -304,9 +394,9 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
                 ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -1036,6 +1126,185 @@ class _LiveBookingTrackerScreenState extends State<LiveBookingTrackerScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// High-priority safety protocol alert banner shown when assigned artisan signals distress.
+  Widget _buildArtisanSafetyProtocolBanner(
+    BuildContext context,
+    Booking booking,
+    Map<String, dynamic> beaconData,
+  ) {
+    final policeMap = beaconData['nearestPoliceStation'] as Map<String, dynamic>?;
+    final policeName = policeMap?['name'] as String? ?? 'National Emergency Response (ERSS)';
+    final policeDist = (policeMap?['distanceKm'] as num?)?.toDouble() ?? 1.2;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEF4444), width: 1.6),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.shield_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'sos_artisan_distress_title'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFF991B1B),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'sos_artisan_distress_desc'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFFB91C1C),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFCA5A5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.local_police_rounded,
+                  size: 14,
+                  color: Color(0xFFDC2626),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'sos_nearest_police_station'.tr(args: [policeName, policeDist.toStringAsFixed(1)]),
+                    style: const TextStyle(
+                      color: Color(0xFF7F1D1D),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final uri = Uri.parse('tel:18002005555');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.support_agent_rounded,
+                    size: 16,
+                    color: Color(0xFF991B1B),
+                  ),
+                  label: Text(
+                    'sos_call_coop_helpline'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF991B1B),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFF87171)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final uri = Uri.parse('tel:112');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.local_police_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                  label: Text(
+                    'sos_call_police_112'.tr(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

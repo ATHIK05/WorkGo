@@ -8,6 +8,7 @@ import 'src/screens/admin_dashboard_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
+  await WorkGoLocale.ensureInitialized();
 
   try {
     await Firebase.initializeApp(options: WorkGoFirebaseOptions.currentPlatform);
@@ -23,6 +24,7 @@ void main() async {
       supportedLocales: WorkGoLocale.supported,
       path: WorkGoLocale.assetPath,
       fallbackLocale: WorkGoLocale.fallback,
+      assetLoader: WorkGoLocale.loader,
       child: const WorkGoAdminApp(),
     ),
   );
@@ -39,7 +41,7 @@ class WorkGoAdminApp extends StatelessWidget {
       navigatorKey: adminNavigatorKey,
       title: 'WorkGo Console',
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: context.localizationDelegates,
+      localizationsDelegates: WorkGoLocale.delegates(context),
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       theme: WorkGoTheme.light(),

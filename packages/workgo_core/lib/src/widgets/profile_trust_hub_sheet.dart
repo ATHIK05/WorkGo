@@ -17,11 +17,13 @@ class ProfileTrustHubCard extends StatefulWidget {
     required this.user,
     this.role = "customer",
     this.onUpdated,
+    this.showProgressBar = false,
   });
 
   final AppUser user;
   final String role;
   final VoidCallback? onUpdated;
+  final bool showProgressBar;
 
   @override
   State<ProfileTrustHubCard> createState() => _ProfileTrustHubCardState();
@@ -369,19 +371,21 @@ class _ProfileTrustHubCardState extends State<ProfileTrustHubCard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-
-              // Progress Bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: score / 100.0,
-                  backgroundColor: const Color(0xFFF3F4F6),
-                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                  minHeight: 6,
+              if (widget.showProgressBar) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: score / 100.0,
+                    backgroundColor: const Color(0xFFF3F4F6),
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                    minHeight: 6,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ] else ...[
+                const SizedBox(height: 16),
+              ],
 
               // 3-Pillar Micro Badges Matrix (Email + Google + Phone)
               _buildPillarStatusMatrix(liveUser),
@@ -419,25 +423,31 @@ class _ProfileTrustHubCardState extends State<ProfileTrustHubCard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildPillarBadge(
-            label: "pillar_email_short".trSafe("Email"),
-            isLinked: emailActive,
-            activeText: "status_active".trSafe("Active"),
-            inactiveText: "status_unlinked".trSafe("Unlinked"),
+          Expanded(
+            child: _buildPillarBadge(
+              label: "pillar_email_short".trSafe("Email"),
+              isLinked: emailActive,
+              activeText: "status_active".trSafe("Active"),
+              inactiveText: "status_unlinked".trSafe("Unlinked"),
+            ),
           ),
           Container(width: 1, height: 24, color: const Color(0xFFE5E7EB)),
-          _buildPillarBadge(
-            label: "pillar_google_short".trSafe("Google"),
-            isLinked: googleLinked,
-            activeText: "status_linked".trSafe("Linked"),
-            inactiveText: "status_unlinked".trSafe("Unlinked"),
+          Expanded(
+            child: _buildPillarBadge(
+              label: "pillar_google_short".trSafe("Google"),
+              isLinked: googleLinked,
+              activeText: "status_linked".trSafe("Linked"),
+              inactiveText: "status_unlinked".trSafe("Unlinked"),
+            ),
           ),
           Container(width: 1, height: 24, color: const Color(0xFFE5E7EB)),
-          _buildPillarBadge(
-            label: "pillar_phone_short".trSafe("Phone OTP"),
-            isLinked: phoneLinked,
-            activeText: "status_verified".trSafe("Verified"),
-            inactiveText: "status_unverified".trSafe("Unverified"),
+          Expanded(
+            child: _buildPillarBadge(
+              label: "pillar_phone_short".trSafe("Phone OTP"),
+              isLinked: phoneLinked,
+              activeText: "status_verified".trSafe("Verified"),
+              inactiveText: "status_unverified".trSafe("Unverified"),
+            ),
           ),
         ],
       ),
@@ -461,26 +471,33 @@ class _ProfileTrustHubCardState extends State<ProfileTrustHubCard> {
           size: 13,
         ),
         const SizedBox(width: 5),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF374151),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF374151),
+                ),
               ),
-            ),
-            Text(
-              isLinked ? activeText : inactiveText,
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: FontWeight.w600,
-                color: color,
+              Text(
+                isLinked ? activeText : inactiveText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

@@ -423,22 +423,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           appBar: AppBar(
             backgroundColor: KX.canvas,
             elevation: 0,
-            leading: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFF0EDE6)),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: KX.textPrimary),
-              ),
-              onPressed: () {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
+            automaticallyImplyLeading: false,
             centerTitle: true,
             title: Text(
               "Profile",

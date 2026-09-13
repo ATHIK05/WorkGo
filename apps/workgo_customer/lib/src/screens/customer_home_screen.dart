@@ -17,6 +17,7 @@ import 'worker_search_screen.dart';
 import 'voice_ai_triage_screen.dart';
 import '../services/ml_translation_service.dart';
 import '../widgets/translated_text.dart';
+import '../widgets/customer_emergency_sheet.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({
@@ -40,6 +41,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   final WorkerService _workerService = WorkerService();
   late AnimationController _navIndicatorCtrl;
   String _bookingFilter = "all"; // 'all', 'active', 'completed', 'cancelled'
+  String _selectedCategory =
+      "All"; // Dynamic category filter for bento match cards
   static bool _hasPromptedThisSession = false;
   double? _customerLat;
   double? _customerLng;
@@ -134,14 +137,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             (currAddr is Map
                 ? (currAddr["longitude"] as num?)?.toDouble()
                 : null);
-        final addrText = (data["address"] as String?) ??
-            (currAddr is Map ? (currAddr["formattedAddress"] as String?) : null) ?? "";
+        final addrText =
+            (data["address"] as String?) ??
+            (currAddr is Map
+                ? (currAddr["formattedAddress"] as String?)
+                : null) ??
+            "";
 
-        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
-          addressText: addrText,
-          latitude: lat,
-          longitude: lng,
-        );
+        final sanitized = await LocationService.instance
+            .resolveSanitizedCoordinates(
+              addressText: addrText,
+              latitude: lat,
+              longitude: lng,
+            );
 
         if (mounted) {
           setState(() {
@@ -165,11 +173,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         final lng = (d["longitude"] as num?)?.toDouble();
         final addrText = (d["formattedAddress"] as String?) ?? "";
 
-        final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
-          addressText: addrText,
-          latitude: lat,
-          longitude: lng,
-        );
+        final sanitized = await LocationService.instance
+            .resolveSanitizedCoordinates(
+              addressText: addrText,
+              latitude: lat,
+              longitude: lng,
+            );
 
         if (mounted) {
           setState(() {
@@ -181,14 +190,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       }
 
       // 4. Default cooperative regional hub fallback
-      if ((_customerLat == null || LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng)) && mounted) {
+      if ((_customerLat == null ||
+              LocationService.isEmulatorOrOutOfBounds(
+                _customerLat,
+                _customerLng,
+              )) &&
+          mounted) {
         setState(() {
           _customerLat = 11.3410;
           _customerLng = 77.7172;
         });
       }
     } catch (_) {
-      if ((_customerLat == null || LocationService.isEmulatorOrOutOfBounds(_customerLat, _customerLng)) && mounted) {
+      if ((_customerLat == null ||
+              LocationService.isEmulatorOrOutOfBounds(
+                _customerLat,
+                _customerLng,
+              )) &&
+          mounted) {
         setState(() {
           _customerLat = 11.3410;
           _customerLng = 77.7172;
@@ -394,39 +413,40 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 110),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Top Header (Avatar + Hello, Customer + Real Date + Search)
-            _buildSandraTopBar(),
-            const SizedBox(height: 14),
+            // 1. Editorial Hero Card (Yellow & White Ambient Mesh Canvas)
+            // Hosts: User Header + Address Selector + Safety SOS + Editorial Headline with Hand-Drawn Pen Marker Loop + Pill Search + Detached Obsidian Mic Button
+            _buildEditorialHeroCard(),
+            const SizedBox(height: 18),
 
-            // 1.5 Smart AI Symptom-First Search & Problem Triage Bar
-            _buildAiSymptomSearchBar(),
-            const SizedBox(height: 16),
+            // 2. Interactive Category Filter Bar ("Category" horizontal pill strip)
+            _buildCategoryFilterBar(),
+            const SizedBox(height: 18),
 
-            // 2. WorkGo Fast-Track Artisan Dispatch Card (Lavender / Soft Purple Card)
-            _buildWorkGoDispatchHeroCard(),
-            const SizedBox(height: 16),
+            // 3. "Artisans matched with you" Bento Cards (Real Stream Data with Trade Watermark, Master title & Occupation Marker Loop)
+            _buildArtisansMatchedWithYouSection(),
+            const SizedBox(height: 20),
 
-            // 3. Customer Live Order Radar & 1-Tap Rebook Hub
+            // 4. Customer Live Order Radar & 1-Tap Rebook Hub
             _buildCustomerLiveHubAndRebookStrip(),
             const SizedBox(height: 16),
 
-            // 4. Emergency Rapid 10-Min SOS Dispatch Row
+            // 5. Emergency Rapid 10-Min SOS Dispatch Row
             _buildEmergencyRapidDispatchBar(),
             const SizedBox(height: 16),
 
-            // 5. Cooperative Fair-Pricing & Quality Guarantee Badges
+            // 6. Cooperative Fair-Pricing & Quality Guarantee Badges
             _buildCooperativeGuaranteeStrip(),
             const SizedBox(height: 22),
 
-            // 6. "Active Bookings & Fast Action" Bento Grid (Real Stream Data)
+            // 7. "Active Bookings & Fast Action" Bento Grid (Real Stream Data)
             _buildCustomerWorkGoBentoGrid(),
             const SizedBox(height: 24),
 
-            // 5. Section Header: Explore Craft Services
+            // 8. Section Header: Explore Craft Services
             _buildSectionHeader(
               title: 'explore_craft_services'.tr(),
               actionLabel: 'view_all'.tr(),
@@ -434,15 +454,1164 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             ),
             const SizedBox(height: 14),
 
-            // 6. 8-Category Bento Grid
+            // 9. 8-Category Bento Grid
             _buildCategoryBentoGrid(),
-            const SizedBox(height: 24),
-
-            // 7. Top Verified Artisans Spotlight Carousel
-            _buildTopArtisansSpotlight(),
           ],
         ),
       ),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  1. EDITORIAL HERO CARD (Yellow & White Ambient Mesh Canvas)
+  // ──────────────────────────────────────────
+  Widget _buildEditorialHeroCard() {
+    final name = widget.user.displayName.isNotEmpty
+        ? widget.user.displayName.split(' ').first
+        : widget.user.email.split('@').first;
+    final now = DateTime.now();
+    final dateStr =
+        "${'today'.tr()} ${DateFormat('d MMM', context.locale.languageCode).format(now)}";
+
+    return StreamBuilder<AppUser?>(
+      stream: _authService.streamAppUser(widget.user.uid),
+      initialData: widget.user,
+      builder: (context, snap) {
+        final liveUser = snap.data ?? widget.user;
+        final avatar = liveUser.avatarBase64;
+        final activeAddr = liveUser.currentAddress;
+        final areaLabel = activeAddr != null
+            ? "${activeAddr.displayTitle} · ${activeAddr.shortSummary}"
+            : (liveUser.primaryArea ?? 'select_address'.tr());
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFFDF0), Color(0xFFFEF9C3)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFFFDE68A), width: 1.4),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 18,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Top Header Inside Hero: Avatar + Greeting + Date + Address + SOS ──
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Circular User Avatar (with halo border)
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _onNavTap(3);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFD97706).withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
+                        color: Colors.white,
+                      ),
+                      child: WorkGoAvatar(
+                        avatarBase64: avatar,
+                        name: name,
+                        radius: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Greeting on top, Date below, and Address strictly below the date
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'greeting_hello'.tr(args: [name]),
+                          style: WorkGoFonts.heading(
+                            color: const Color(0xFF141416),
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          dateStr,
+                          style: WorkGoFonts.body(
+                            color: const Color(0xFF6B7280),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 3),
+                        GestureDetector(
+                          onTap: () async {
+                            final selectedAddr =
+                                await showAddressManagementSheet(
+                                  context,
+                                  userId: widget.user.uid,
+                                  userRole: "customer",
+                                  selectedAddress: activeAddr,
+                                );
+                            if (selectedAddr != null && mounted) {
+                              setState(() {
+                                _customerLat = selectedAddr.latitude;
+                                _customerLng = selectedAddr.longitude;
+                              });
+                            }
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.location_on_rounded,
+                                size: 12,
+                                color: Color(0xFFD97706),
+                              ),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: TranslatedText(
+                                  areaLabel,
+                                  isAddress: true,
+                                  style: const TextStyle(
+                                    color: Color(0xFFB45309),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_drop_down_rounded,
+                                size: 16,
+                                color: Color(0xFFD97706),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // Safety / Emergency SOS Action Pill
+                  InkWell(
+                    onTap: () {
+                      HapticFeedback.heavyImpact();
+                      showCustomerEmergencySheet(
+                        context,
+                        myLat: _customerLat,
+                        myLng: _customerLng,
+                        onRefreshLocation: _loadCustomerLocation,
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFDC2626),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.shield_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'sos_action_btn'.tr(),
+                            style: const TextStyle(
+                              color: Color(0xFFDC2626),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
+              // ── Editorial Headline with Authentic Hand-Drawn Doodle Loop ──
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: WorkGoFonts.heading(
+                        fontSize: 22,
+                        letterSpacing: -0.4,
+                        height: 1.25,
+                      ),
+                      children: const [
+                        TextSpan(
+                          text: "We ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                        TextSpan(
+                          text: "connect you ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF141416),
+                          ),
+                        ),
+                        TextSpan(
+                          text: "to your",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Transform.rotate(
+                        angle: -0.03,
+                        child: CustomPaint(
+                          foregroundPainter: const _HandDrawnLoopPainter(
+                            color: Color(0xFF141416),
+                            strokeWidth: 2.2,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            child: Text(
+                              "dream",
+                              style: WorkGoFonts.heading(
+                                color: const Color(0xFF141416),
+                                fontSize: 21,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "artisan",
+                        style: WorkGoFonts.heading(
+                          color: const Color(0xFF6B7280),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Search & Detached Obsidian Black Voice Mic Bar ──
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        VoiceAiTriageScreen.show(
+                          context,
+                          user: widget.user,
+                          customerLat: _customerLat,
+                          customerLng: _customerLng,
+                          customerAddress:
+                              widget.user.currentAddress?.shortSummary ??
+                              widget.user.primaryArea,
+                        );
+                      },
+                      child: Container(
+                        height: 50,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(50),
+                          border: Border.all(
+                            color: const Color(0xFFFDE68A),
+                            width: 1.0,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0A000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.search_rounded,
+                              color: Color(0xFF141416),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'ai_search_placeholder'.tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.heavyImpact();
+                      VoiceAiTriageScreen.show(
+                        context,
+                        user: widget.user,
+                        customerLat: _customerLat,
+                        customerLng: _customerLng,
+                        customerAddress:
+                            widget.user.currentAddress?.shortSummary ??
+                            widget.user.primaryArea,
+                      );
+                    },
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF141416),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x33000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.mic_rounded,
+                          color: Color(0xFFFBBF24),
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  2. HORIZONTAL CATEGORY FILTER PILL STRIP
+  // ──────────────────────────────────────────
+  Widget _buildCategoryFilterBar() {
+    final categories = [
+      (key: "All", label: "All", icon: Icons.tune_rounded),
+      (
+        key: "Plumbing",
+        label: "cat_plumbing".tr(),
+        icon: Icons.water_drop_rounded,
+      ),
+      (
+        key: "Electrical",
+        label: "cat_electrical".tr(),
+        icon: Icons.bolt_rounded,
+      ),
+      (
+        key: "Carpentry",
+        label: "cat_carpentry".tr(),
+        icon: Icons.carpenter_rounded,
+      ),
+      (
+        key: "Cleaning",
+        label: "cat_cleaning".tr(),
+        icon: Icons.cleaning_services_rounded,
+      ),
+      (
+        key: "Painting",
+        label: "cat_painting".tr(),
+        icon: Icons.format_paint_rounded,
+      ),
+      (
+        key: "Appliance Repair",
+        label: "cat_appliances".tr(),
+        icon: Icons.kitchen_rounded,
+      ),
+      (key: "AC Repair", label: "AC Repair", icon: Icons.ac_unit_rounded),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'service_categories'.trSafe("Category"),
+              style: WorkGoFonts.heading(
+                color: const Color(0xFF141416),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            GestureDetector(
+              onTap: () => _onNavTap(1),
+              child: Text(
+                'view_all'.tr(),
+                style: const TextStyle(
+                  color: Color(0xFFD97706),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 44,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final cat = categories[i];
+              final isSelected = _selectedCategory == cat.key;
+
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _selectedCategory = cat.key);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF141416) : Colors.white,
+                    borderRadius: BorderRadius.circular(50),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF141416)
+                          : const Color(0xFFE2E8F0),
+                      width: 1.2,
+                    ),
+                    boxShadow: isSelected
+                        ? const [
+                            BoxShadow(
+                              color: Color(0x24000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ]
+                        : const [
+                            BoxShadow(
+                              color: Color(0x05000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        cat.icon,
+                        color: isSelected
+                            ? const Color(0xFFF59E0B)
+                            : const Color(0xFF64748B),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        cat.label,
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF334155),
+                          fontSize: 12.5,
+                          fontWeight: isSelected
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _getArtisanTradeDrawingIcon(String skill) {
+    final s = skill.toLowerCase();
+    if (s.contains('plumb')) return Icons.plumbing_rounded;
+    if (s.contains('electr')) return Icons.bolt_rounded;
+    if (s.contains('carpent')) return Icons.carpenter_rounded;
+    if (s.contains('appliance') || s.contains('repair')) {
+      return Icons.home_repair_service_rounded;
+    }
+    if (s.contains('ac') || s.contains('cool')) return Icons.ac_unit_rounded;
+    if (s.contains('paint')) return Icons.format_paint_rounded;
+    if (s.contains('clean')) return Icons.cleaning_services_rounded;
+    return Icons.handyman_rounded;
+  }
+
+  String _getArtisanSpecialization(String skill) {
+    final s = skill.toLowerCase();
+    if (s.contains('plumb')) return "Sanitation & Pipe Specialist";
+    if (s.contains('electr')) return "Power & Systems Specialist";
+    if (s.contains('carpent')) return "Woodcraft & Joinery Specialist";
+    if (s.contains('appliance') || s.contains('repair')) {
+      return "Diagnostic & Hardware Specialist";
+    }
+    if (s.contains('ac') || s.contains('cool'))
+      return "HVAC & Thermal Specialist";
+    if (s.contains('paint')) return "Surface & Coating Specialist";
+    if (s.contains('clean')) return "Hygiene & Detailing Specialist";
+    return "Certified Cooperative Specialist";
+  }
+
+  // ──────────────────────────────────────────
+  //  3. "ARTISANS MATCHED WITH YOU" BENTO CARDS (Real Stream Data)
+  // ──────────────────────────────────────────
+  Widget _buildArtisansMatchedWithYouSection() {
+    return StreamBuilder<List<Worker>>(
+      stream: _workerService.streamAvailableWorkers(
+        skill: _selectedCategory == "All" ? "All" : _selectedCategory,
+        onlineOnly: false,
+      ),
+      builder: (context, snap) {
+        final rawWorkers = snap.data ?? [];
+        if (rawWorkers.isEmpty) {
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  color: Color(0xFFD97706),
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "No active ${_selectedCategory.toLocalizedTrade()} artisans currently checked in nearby.",
+                    style: const TextStyle(
+                      color: Color(0xFF92400E),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Real geodesic distance sorting
+        final workers = rawWorkers
+            .map((w) => w.withCalculatedDistance(_customerLat, _customerLng))
+            .toList();
+        workers.sort((a, b) {
+          if (a.isOnlineOrCheckedIn != b.isOnlineOrCheckedIn) {
+            return a.isOnlineOrCheckedIn ? -1 : 1;
+          }
+          return a.distanceKm.compareTo(b.distanceKm);
+        });
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'top_verified_artisans'.tr(),
+                    style: WorkGoFonts.heading(
+                      color: const Color(0xFF141416),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => setState(() => _currentNavIndex = 1),
+                  child: Text(
+                    'see_all_count'.tr(args: ['${workers.length}']),
+                    style: const TextStyle(
+                      color: Color(0xFFD97706),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 245,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: workers.length.clamp(0, 8),
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (context, idx) {
+                  final worker = workers[idx];
+                  final skill = worker.skills.isNotEmpty
+                      ? worker.skills.first
+                      : "Plumbing";
+                  final fare = CooperativePricingEngine.instance
+                      .getBaseVisitFare(skill)
+                      .toInt();
+                  final String trustText;
+                  if (worker.homesServiced > 0) {
+                    trustText = "${worker.homesServiced}+ Homes";
+                  } else if (worker.totalRatings > 0) {
+                    trustText = "${worker.totalRatings}+ Reviews";
+                  } else if (worker.experienceYears > 0) {
+                    trustText = "${worker.experienceYears}y Exp";
+                  } else {
+                    trustText = "verified_pro".tr();
+                  }
+
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Container(
+                      width: 285,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFFFFFFFF), // Pure white on one side
+                            Color(0xFFFFFBEB), // Soft warm cream
+                            Color(
+                              0xFFFDE68A,
+                            ), // Luminous gold yellow over the other side
+                          ],
+                          stops: [0.0, 0.45, 1.0],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFFFDE68A),
+                          width: 1.4,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x0A000000),
+                            blurRadius: 16,
+                            offset: Offset(0, 4),
+                          ),
+                          BoxShadow(
+                            color: Color(0x14F59E0B),
+                            blurRadius: 18,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          // ── Trade Drawing Watermark (Occupation Illustration) ──
+                          Positioned(
+                            right: -10,
+                            top: 25,
+                            child: IgnorePointer(
+                              child: Opacity(
+                                opacity: 0.07,
+                                child: Icon(
+                                  _getArtisanTradeDrawingIcon(skill),
+                                  size: 130,
+                                  color: const Color(0xFFD97706),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // ── Card Foreground Content ──
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Top Row: Avatar + Pro Status & Rating + Bookmark Button
+                              Row(
+                                children: [
+                                  WorkGoAvatar(
+                                    name: worker.name,
+                                    avatarBase64: worker.avatarBase64,
+                                    radius: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          worker.name,
+                                          style: const TextStyle(
+                                            color: Color(0xFF0F172A),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.star_rounded,
+                                              color: Color(0xFFF59E0B),
+                                              size: 14,
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              worker.avgRating > 0
+                                                  ? worker.avgRating
+                                                        .toStringAsFixed(1)
+                                                  : "5.0",
+                                              style: const TextStyle(
+                                                color: Color(0xFF141416),
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 5,
+                                                    vertical: 1.5,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    worker.isOnlineOrCheckedIn
+                                                    ? const Color(0xFFDCFCE7)
+                                                    : const Color(0xFFF1F5F9),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                worker.isOnlineOrCheckedIn
+                                                    ? "checked_in".tr()
+                                                    : "verified_pro".tr(),
+                                                style: TextStyle(
+                                                  color:
+                                                      worker.isOnlineOrCheckedIn
+                                                      ? const Color(0xFF15803D)
+                                                      : const Color(0xFF475569),
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 34,
+                                    height: 34,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.8,
+                                      ),
+                                      border: Border.all(
+                                        color: const Color(0xFFFDE68A),
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.bookmark_border_rounded,
+                                        color: Color(0xFFD97706),
+                                        size: 17,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Title: "Master" + Hand-Drawn Pen Marker Loop Drawing around Occupation
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          "Master ",
+                                          style: WorkGoFonts.heading(
+                                            color: const Color(0xFF141416),
+                                            fontSize: 16.5,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                        Transform.rotate(
+                                          angle: -0.03,
+                                          child: CustomPaint(
+                                            foregroundPainter:
+                                                const _HandDrawnLoopPainter(
+                                                  color: Color(0xFF141416),
+                                                  strokeWidth: 2.2,
+                                                ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 6,
+                                                  ),
+                                              child: Text(
+                                                skill.toLocalizedTrade(),
+                                                style: WorkGoFonts.heading(
+                                                  color: const Color(
+                                                    0xFF141416,
+                                                  ),
+                                                  fontSize: 16.5,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: -0.3,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _getArtisanSpecialization(skill),
+                                    style: const TextStyle(
+                                      color: Color(0xFF475569),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+
+                              // Micro-Pills Badges Row
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: const Color(0xFFFDE68A),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.payments_outlined,
+                                          size: 13,
+                                          color: Color(0xFFB45309),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          "₹$fare Base",
+                                          style: const TextStyle(
+                                            color: Color(0xFF92400E),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: const Color(0xFFFDE68A),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.schedule_rounded,
+                                          size: 13,
+                                          color: Color(0xFFB45309),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          worker.distanceKm < 2.0
+                                              ? "≤15 Min"
+                                              : "${worker.distanceKm.toStringAsFixed(1)} km",
+                                          style: const TextStyle(
+                                            color: Color(0xFF92400E),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Bottom Row: Cooperative Trust Stack + Launcher Button
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Cooperative Trust Indicators Stack
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 44,
+                                        height: 20,
+                                        child: Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            Positioned(
+                                              left: 0,
+                                              child: Container(
+                                                width: 18,
+                                                height: 18,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: const Color(
+                                                    0xFFF59E0B,
+                                                  ),
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 1.2,
+                                                  ),
+                                                ),
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.verified_rounded,
+                                                    size: 10,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Positioned(
+                                              left: 10,
+                                              child: Container(
+                                                width: 18,
+                                                height: 18,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: const Color(
+                                                    0xFF0284C7,
+                                                  ),
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 1.2,
+                                                  ),
+                                                ),
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.shield_rounded,
+                                                    size: 10,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Positioned(
+                                              left: 20,
+                                              child: Container(
+                                                width: 18,
+                                                height: 18,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: const Color(
+                                                    0xFF059669,
+                                                  ),
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 1.2,
+                                                  ),
+                                                ),
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.handshake_rounded,
+                                                    size: 10,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        trustText,
+                                        style: const TextStyle(
+                                          color: Color(0xFF1E293B),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  // Quick Launch Arrow Button
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.mediumImpact();
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => BookingCreationScreen(
+                                            serviceCategory: skill,
+                                            targetWorkerId: worker.id,
+                                            worker: worker,
+                                            customerId: widget.user.uid,
+                                            customerLat: _customerLat,
+                                            customerLng: _customerLng,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 42,
+                                      height: 42,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Color(0xFF141416),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Color(0x33000000),
+                                            blurRadius: 8,
+                                            offset: Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.north_east_rounded,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -2523,7 +3692,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             child: GestureDetector(
               onTap: onAction,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF141416).withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(20),
@@ -2554,217 +3726,163 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   // ──────────────────────────────────────────
   Widget _buildCategoryBentoGrid() {
     final craftItems = [
-      // 0. Plumbing (Tall Purple / Magenta Card - matching screenshot left tall card)
-      _CraftServiceItem(
+      // 0. Plumbing (Tall Dynamic Card with plumber.gif animated asset)
+      const _CraftServiceItem(
         key: "cat_plumbing",
         name: "Plumbing",
         categoryName: "Plumbing",
         tagline: "Pipes, Taps & Leaks",
         taglineKey: "tagline_plumbing_fittings",
-        emoji: "🚰",
-        assetPath: "assets/images/crafts/plumbing.jpg",
+        description:
+            "Precision pipe fittings, faucet repair & sanitary leak fixes.",
+        icon: Icons.plumbing_rounded,
+        assetPath: "assets/images/plumber.gif",
+        isAnimatedAsset: true,
         price: "From ₹149",
         priceAmount: 149,
-        cardHeight: 205.0,
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE879F9), Color(0xFFC026D3), Color(0xFF9333EA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        meshColor1: Color(0xFFC7D2FE),
+        meshColor2: Color(0xFFBAE6FD),
       ),
-      // 1. Electrical (Shorter Cyan / Sky Blue Card - matching screenshot right card)
-      _CraftServiceItem(
+      // 1. Electrical (electrian.gif animated asset)
+      const _CraftServiceItem(
         key: "cat_electrical",
         name: "Electrical",
         categoryName: "Electrical",
         tagline: "Wiring & Power",
         taglineKey: "tagline_wiring_power",
-        emoji: "⚡",
-        assetPath: "assets/images/crafts/electrical.jpg",
+        description:
+            "Licensed wiring, switches, breaker fixes & expert lighting.",
+        icon: Icons.bolt_rounded,
+        assetPath: "assets/images/electrian.gif",
+        isAnimatedAsset: true,
         price: "From ₹149",
         priceAmount: 149,
-        cardHeight: 160.0,
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7DD3FC), Color(0xFF0284C7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        meshColor1: Color(0xFFDDD6FE),
+        meshColor2: Color(0xFFFED7AA),
       ),
-      // 2. Carpentry (Shorter Amber / Cinnamon Card)
-      _CraftServiceItem(
+      // 2. Carpentry (Rich Cedar & Honey Woodcraft)
+      const _CraftServiceItem(
         key: "cat_carpentry",
         name: "Carpentry",
         categoryName: "Carpentry",
         tagline: "Woodwork & Doors",
         taglineKey: "tagline_woodwork_doors",
-        emoji: "🪚",
-        assetPath: "assets/images/crafts/carpentry.jpg",
+        description:
+            "Custom woodwork, door fixes, lock repair & furniture care.",
+        icon: Icons.carpenter_rounded,
+        assetPath: "",
+        isAnimatedAsset: false,
         price: "From ₹199",
         priceAmount: 199,
-        cardHeight: 155.0,
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        meshColor1: Color(0xFFFED7AA),
+        meshColor2: Color(0xFFFDE68A),
       ),
-      // 3. Cleaning (Tall Tangerine / Orange Card - matching screenshot bottom-right card)
-      _CraftServiceItem(
+      // 3. Cleaning (Fresh Mint & Pure Aqua)
+      const _CraftServiceItem(
         key: "cat_cleaning",
         name: "Cleaning",
         categoryName: "Cleaning",
         tagline: "Deep Home Clean",
         taglineKey: "tagline_deep_clean",
-        emoji: "🧹",
-        assetPath: "assets/images/crafts/cleaning.jpg",
+        description: "Deep home sanitation, kitchen scrub & spotless hygiene.",
+        icon: Icons.cleaning_services_rounded,
+        assetPath: "",
+        isAnimatedAsset: false,
         price: "From ₹129",
         priceAmount: 129,
-        cardHeight: 215.0,
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFB923C), Color(0xFFEA580C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        meshColor1: Color(0xFFA7F3D0),
+        meshColor2: Color(0xFFBAE6FD),
       ),
-      // 4. Painting (Tall Crimson / Rose Card)
-      _CraftServiceItem(
+      // 4. Painting (Pastel Rose & Soft Lilac)
+      const _CraftServiceItem(
         key: "cat_painting",
         name: "Painting",
         categoryName: "Painting",
         tagline: "Walls & Primer",
         taglineKey: "tagline_walls_primer",
-        emoji: "🎨",
-        assetPath: "assets/images/crafts/painting.jpg",
+        description:
+            "Interior wall coats, waterproof primer & smooth finishes.",
+        icon: Icons.format_paint_rounded,
+        assetPath: "",
+        isAnimatedAsset: false,
         price: "From ₹249",
         priceAmount: 249,
-        cardHeight: 195.0,
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFB7185), Color(0xFFE11D48)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        meshColor1: Color(0xFFFECDD3),
+        meshColor2: Color(0xFFDDD6FE),
       ),
-      // 5. Appliance Repair (Shorter Indigo Card)
-      _CraftServiceItem(
+      // 5. Appliance Repair (home_appliances.gif animated asset)
+      const _CraftServiceItem(
         key: "cat_appliance",
         name: "Appliance",
         categoryName: "Appliance Repair",
         tagline: "AC & Fridge Repair",
         taglineKey: "tagline_ac_fridge",
-        emoji: "🔌",
-        assetPath: "assets/images/crafts/appliance.jpg",
+        description: "AC servicing, refrigerator care & precision diagnostics.",
+        icon: Icons.kitchen_rounded,
+        assetPath: "assets/images/home_appliances.gif",
+        isAnimatedAsset: true,
         price: "From ₹179",
         priceAmount: 179,
-        cardHeight: 155.0,
-        gradient: const LinearGradient(
-          colors: [Color(0xFF818CF8), Color(0xFF4F46E5)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        meshColor1: Color(0xFFE9D5FF),
+        meshColor2: Color(0xFFFBCFE8),
       ),
-      // 6. Masonry (Shorter Terracotta Card)
-      _CraftServiceItem(
+      // 6. Masonry (Warm Terracotta & Sand)
+      const _CraftServiceItem(
         key: "cat_masonry",
         name: "Masonry",
         categoryName: "Masonry",
         tagline: "Tiles & Grouting",
         taglineKey: "tagline_tiles_grouting",
-        emoji: "🧱",
-        assetPath: "assets/images/crafts/masonry.jpg",
+        description:
+            "Tile fixing, wall grouting, plastering & structural repair.",
+        icon: Icons.foundation_rounded,
+        assetPath: "",
+        isAnimatedAsset: false,
         price: "From ₹299",
         priceAmount: 299,
-        cardHeight: 160.0,
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF97316), Color(0xFFC2410C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        meshColor1: Color(0xFFFFEDD5),
+        meshColor2: Color(0xFFFED7AA),
       ),
-      // 7. Gardening (Tall Mint / Forest Green Card)
-      _CraftServiceItem(
+      // 7. Gardening (Lush Emerald Botanic)
+      const _CraftServiceItem(
         key: "cat_gardening",
         name: "Gardening",
         categoryName: "Gardening",
         tagline: "Lawn & Soil Care",
         taglineKey: "tagline_lawn_soil",
-        emoji: "🌿",
-        assetPath: "assets/images/crafts/gardening.jpg",
+        description: "Lawn maintenance, organic soil care & terrace greenery.",
+        icon: Icons.yard_rounded,
+        assetPath: "",
+        isAnimatedAsset: false,
         price: "From ₹149",
         priceAmount: 149,
-        cardHeight: 200.0,
-        gradient: const LinearGradient(
-          colors: [Color(0xFF34D399), Color(0xFF059669)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        meshColor1: Color(0xFFA7F3D0),
+        meshColor2: Color(0xFFE9D5FF),
       ),
     ];
 
-    final leftColumnItems = [
-      craftItems[0],
-      craftItems[2],
-      craftItems[4],
-      craftItems[6],
-    ];
-    final rightColumnItems = [
-      craftItems[1],
-      craftItems[3],
-      craftItems[5],
-      craftItems[7],
-    ];
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Left Staggered Column
-        Expanded(
-          child: Column(
-            children: leftColumnItems.map((item) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _MasonryCraftCard(
-                  item: item,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (ctx) => BookingCreationScreen(
-                        serviceCategory: item.categoryName,
-                        customerId: widget.user.uid,
-                        customerLat: _customerLat,
-                        customerLng: _customerLng,
-                      ),
-                    ),
-                  ),
+    return Column(
+      children: craftItems.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: _AlternatingCraftRowCard(
+            item: item,
+            index: index,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (ctx) => BookingCreationScreen(
+                  serviceCategory: item.categoryName,
+                  customerId: widget.user.uid,
+                  customerLat: _customerLat,
+                  customerLng: _customerLng,
                 ),
-              );
-            }).toList(),
+              ),
+            ),
           ),
-        ),
-        const SizedBox(width: 14),
-
-        // Right Staggered Column
-        Expanded(
-          child: Column(
-            children: rightColumnItems.map((item) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _MasonryCraftCard(
-                  item: item,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (ctx) => BookingCreationScreen(
-                        serviceCategory: item.categoryName,
-                        customerId: widget.user.uid,
-                        customerLat: _customerLat,
-                        customerLng: _customerLng,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
 
@@ -3964,16 +5082,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   int _calculateTrustScore(AppUser user) {
     int count = 0;
     final currentUser = FirebaseAuth.instance.currentUser;
-    final hasPassword = (currentUser?.providerData.any((p) => p.providerId == "password") ?? false) || user.hasBackupPassword;
-    final hasGoogle = currentUser?.providerData.any((p) => p.providerId == "google.com") ?? false;
-    final hasPhone = (currentUser?.providerData.any((p) => p.providerId == "phone") ?? false) ||
-        (currentUser?.phoneNumber != null && currentUser!.phoneNumber!.trim().isNotEmpty) ||
+    final hasPassword =
+        (currentUser?.providerData.any((p) => p.providerId == "password") ??
+            false) ||
+        user.hasBackupPassword;
+    final hasGoogle =
+        currentUser?.providerData.any((p) => p.providerId == "google.com") ??
+        false;
+    final hasPhone =
+        (currentUser?.providerData.any((p) => p.providerId == "phone") ??
+            false) ||
+        (currentUser?.phoneNumber != null &&
+            currentUser!.phoneNumber!.trim().isNotEmpty) ||
         user.isPhoneVerified;
 
     if (hasPassword) count++;
     if (hasGoogle) count++;
     if (hasPhone) count++;
-    if (count == 0 && ((currentUser?.email?.isNotEmpty ?? false) || user.email.isNotEmpty)) return 15;
+    if (count == 0 &&
+        ((currentUser?.email?.isNotEmpty ?? false) || user.email.isNotEmpty))
+      return 15;
     return ((count / 3.0) * 100).round();
   }
 
@@ -4073,7 +5201,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           decoration: BoxDecoration(
                             color: const Color(0xFFFEF3C7),
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFFDE68A), width: 0.8),
+                            border: Border.all(
+                              color: const Color(0xFFFDE68A),
+                              width: 0.8,
+                            ),
                           ),
                           child: const Icon(
                             Icons.edit_outlined,
@@ -4169,9 +5300,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     );
   }
 
-  void _showEditNameDialog(BuildContext context, AppUser user, String currentName) {
-    final effectiveCurrent = (currentName.isNotEmpty &&
-            currentName.toLowerCase() != 'customer')
+  void _showEditNameDialog(
+    BuildContext context,
+    AppUser user,
+    String currentName,
+  ) {
+    final effectiveCurrent =
+        (currentName.isNotEmpty && currentName.toLowerCase() != 'customer')
         ? currentName
         : '';
     final nameCtrl = TextEditingController(text: effectiveCurrent);
@@ -4276,9 +5411,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         ),
                         decoration: InputDecoration(
                           labelText: "Full Name",
-                          labelStyle: const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
+                          labelStyle: const TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 13,
+                          ),
                           hintText: "e.g. Ramesh Kumar",
-                          hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                          hintStyle: const TextStyle(
+                            color: Color(0xFF9CA3AF),
+                            fontSize: 14,
+                          ),
                           counterText: "",
                           filled: true,
                           fillColor: const Color(0xFFF9FAFB),
@@ -4289,7 +5430,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           ),
                           suffixIcon: nameCtrl.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF9CA3AF)),
+                                  icon: const Icon(
+                                    Icons.clear_rounded,
+                                    size: 18,
+                                    color: Color(0xFF9CA3AF),
+                                  ),
                                   onPressed: () {
                                     nameCtrl.clear();
                                     setSheetState(() {});
@@ -4298,15 +5443,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                               : null,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E7EB),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF10B981),
+                              width: 1.5,
+                            ),
                           ),
                         ),
                         onChanged: (_) => setSheetState(() {}),
@@ -4325,11 +5477,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: isSaving ? null : () => Navigator.of(sheetCtx).pop(),
+                              onPressed: isSaving
+                                  ? null
+                                  : () => Navigator.of(sheetCtx).pop(),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 13),
-                                side: const BorderSide(color: Color(0xFFE5E7EB)),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 13,
+                                ),
+                                side: const BorderSide(
+                                  color: Color(0xFFE5E7EB),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               child: Text(
                                 "Cancel",
@@ -4348,28 +5508,36 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                               onPressed: isSaving
                                   ? null
                                   : () async {
-                                      if (formKey.currentState?.validate() ?? false) {
+                                      if (formKey.currentState?.validate() ??
+                                          false) {
                                         setSheetState(() => isSaving = true);
                                         final trimmed = nameCtrl.text.trim();
                                         try {
-                                          final authUser = FirebaseAuth.instance.currentUser;
+                                          final authUser =
+                                              FirebaseAuth.instance.currentUser;
                                           if (authUser != null) {
-                                            await authUser.updateDisplayName(trimmed);
+                                            await authUser.updateDisplayName(
+                                              trimmed,
+                                            );
                                           }
                                           await FirebaseFirestore.instance
                                               .collection('users')
                                               .doc(user.uid)
                                               .set({
-                                            'displayName': trimmed,
-                                            'name': trimmed,
-                                            'updatedAt': FieldValue.serverTimestamp(),
-                                          }, SetOptions(merge: true));
+                                                'displayName': trimmed,
+                                                'name': trimmed,
+                                                'updatedAt':
+                                                    FieldValue.serverTimestamp(),
+                                              }, SetOptions(merge: true));
                                         } catch (_) {}
 
-                                        if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
+                                        if (sheetCtx.mounted)
+                                          Navigator.of(sheetCtx).pop();
                                         if (context.mounted) {
                                           setState(() {});
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
                                             SnackBar(
                                               content: Row(
                                                 children: [
@@ -4381,17 +5549,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                                   const SizedBox(width: 8),
                                                   Expanded(
                                                     child: Text(
-                                                      'profile_updated_toast'.tr(),
+                                                      'profile_updated_toast'
+                                                          .tr(),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                              backgroundColor: const Color(0xFF059669),
-                                              behavior: SnackBarBehavior.floating,
+                                              backgroundColor: const Color(
+                                                0xFF059669,
+                                              ),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(12),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
                                               ),
                                             ),
                                           );
@@ -4402,14 +5576,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 backgroundColor: const Color(0xFF141416),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(vertical: 13),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 13,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               child: isSaving
                                   ? const SizedBox(
                                       width: 18,
                                       height: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
                                     )
                                   : Text(
                                       "Save Name",
@@ -4503,7 +5684,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     ),
                     decoration: InputDecoration(
                       prefixIcon: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
                         child: Text(
                           "+91",
                           style: TextStyle(
@@ -4514,7 +5698,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         ),
                       ),
                       hintText: 'phone_number_hint'.tr(),
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      hintStyle: const TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontSize: 14,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFFF9FAFB),
                       border: OutlineInputBorder(
@@ -4527,7 +5714,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF10B981),
+                          width: 1.5,
+                        ),
                       ),
                     ),
                     validator: (val) {
@@ -4546,14 +5736,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     onPressed: () async {
                       if (formKey.currentState?.validate() ?? false) {
                         final raw = phoneCtrl.text.trim();
-                        final normalized = raw.startsWith('+91') ? raw : '+91$raw';
+                        final normalized = raw.startsWith('+91')
+                            ? raw
+                            : '+91$raw';
                         try {
                           await FirebaseFirestore.instance
                               .collection('users')
                               .doc(user.uid)
-                              .update({
-                            'phoneNumber': normalized,
-                          });
+                              .update({'phoneNumber': normalized});
                         } catch (_) {}
                         if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
                         if (context.mounted) {
@@ -4561,7 +5751,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             SnackBar(
                               content: Row(
                                 children: [
-                                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
@@ -4574,7 +5768,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                               ),
                               backgroundColor: const Color(0xFF059669),
                               behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           );
                         }
@@ -4584,11 +5780,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: Text(
                       'save_phone_number'.tr(),
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -5096,6 +6297,60 @@ class _PulsingEmergencyBannerState extends State<_PulsingEmergencyBanner>
   }
 }
 
+// ──────────────────────────────────────────
+//  HAND-DRAWN SCRIBBLE LOOP PAINTER
+//  Mirrors authentic marker loop stroke from reference design (media_1789322811943.png)
+// ──────────────────────────────────────────
+class _HandDrawnLoopPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+
+  const _HandDrawnLoopPainter({
+    this.color = const Color(0xFF141416),
+    this.strokeWidth = 2.2,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+
+    // Traced directly from hand-drawn pen marker reference (media_1789322811943.png):
+    // Starts at top-left (~11 o'clock), curves down around left side, sweeps under baseline,
+    // loops up past right edge, curves over top, and overlaps across start point with a loose pen stroke flick.
+    path.moveTo(w * 0.18, h * 0.08);
+
+    // Left edge swooping down with organic hand-drawn curve
+    path.cubicTo(w * 0.02, h * 0.22, -w * 0.06, h * 0.72, w * 0.14, h * 0.94);
+
+    // Bottom edge curving under text
+    path.cubicTo(w * 0.38, h * 1.07, w * 0.72, h * 1.05, w * 0.92, h * 0.88);
+
+    // Right edge swooping up
+    path.cubicTo(w * 1.06, h * 0.68, w * 1.05, h * 0.22, w * 0.84, h * 0.06);
+
+    // Top edge sweeping back left over text
+    path.cubicTo(w * 0.65, -h * 0.05, w * 0.35, -h * 0.06, w * 0.12, h * 0.06);
+
+    // Natural overlapping marker stroke tail
+    path.cubicTo(w * 0.01, h * 0.12, w * 0.06, h * 0.22, w * 0.28, h * 0.17);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HandDrawnLoopPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
+}
+
 // ──────────────────────────────────────────────────────
 //  MASONRY STAGGERED CRAFT CARD (Pinterest / Dribbble Inspiration)
 // ──────────────────────────────────────────────────────
@@ -5105,12 +6360,14 @@ class _CraftServiceItem {
   final String categoryName;
   final String tagline;
   final String taglineKey;
-  final String emoji;
+  final String description;
+  final IconData icon;
   final String assetPath;
+  final bool isAnimatedAsset;
   final String price;
   final int priceAmount;
-  final double cardHeight;
-  final LinearGradient gradient;
+  final Color meshColor1;
+  final Color meshColor2;
 
   const _CraftServiceItem({
     required this.key,
@@ -5118,26 +6375,58 @@ class _CraftServiceItem {
     required this.categoryName,
     required this.tagline,
     required this.taglineKey,
-    required this.emoji,
+    required this.description,
+    required this.icon,
     required this.assetPath,
+    this.isAnimatedAsset = false,
     required this.price,
     required this.priceAmount,
-    required this.cardHeight,
-    required this.gradient,
+    required this.meshColor1,
+    required this.meshColor2,
   });
 }
 
-class _MasonryCraftCard extends StatefulWidget {
-  const _MasonryCraftCard({required this.item, required this.onTap});
+class _BlueprintGridPainter extends CustomPainter {
+  const _BlueprintGridPainter({this.lineColor = const Color(0x60FFFFFF)});
+  final Color lineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    const cellSize = 22.0;
+    for (double x = size.width; x >= 0; x -= cellSize) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y <= size.height; y += cellSize) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BlueprintGridPainter oldDelegate) => false;
+}
+
+class _AlternatingCraftRowCard extends StatefulWidget {
+  const _AlternatingCraftRowCard({
+    required this.item,
+    required this.index,
+    required this.onTap,
+  });
 
   final _CraftServiceItem item;
+  final int index;
   final VoidCallback onTap;
 
   @override
-  State<_MasonryCraftCard> createState() => _MasonryCraftCardState();
+  State<_AlternatingCraftRowCard> createState() =>
+      _AlternatingCraftRowCardState();
 }
 
-class _MasonryCraftCardState extends State<_MasonryCraftCard>
+class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scale;
@@ -5147,11 +6436,11 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
+      duration: const Duration(milliseconds: 130),
     );
     _scale = Tween<double>(
       begin: 1.0,
-      end: 0.95,
+      end: 0.98,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
@@ -5164,6 +6453,16 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final isEven = widget.index % 2 == 0;
+    final localizedName = item.key.tr();
+    final displayName = (localizedName.isNotEmpty && localizedName != item.key)
+        ? localizedName
+        : item.name;
+    final localizedTagline = item.taglineKey.tr();
+    final displayTagline =
+        (localizedTagline.isNotEmpty && localizedTagline != item.taglineKey)
+        ? localizedTagline
+        : item.tagline;
 
     return GestureDetector(
       onTapDown: (_) => _ctrl.forward(),
@@ -5177,205 +6476,353 @@ class _MasonryCraftCardState extends State<_MasonryCraftCard>
         animation: _scale,
         builder: (_, child) =>
             Transform.scale(scale: _scale.value, child: child),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── 1. The High-Res 3D Visual Canvas (as in Screenshot) ──
-            Container(
-              height: item.cardHeight,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: [
-                  BoxShadow(
-                    color: item.gradient.colors.last.withValues(alpha: 0.28),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white, width: 3.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x10000000),
+                blurRadius: 26,
+                offset: Offset(0, 10),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(26),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Background fallback gradient
-                    Container(
-                      decoration: BoxDecoration(gradient: item.gradient),
-                    ),
-
-                    // High-Res 3D Imagery with Error Fallback
-                    Image.asset(
-                      item.assetPath,
-                      package: 'workgo_core',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withValues(alpha: 0.18),
-                            ),
-                            child: Text(
-                              item.emoji,
-                              style: const TextStyle(fontSize: 46),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    // Elegant Scrim Gradient Overlay
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.black.withValues(alpha: 0.15),
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.45),
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
-                    ),
-
-                    // Top-Right Glassy Translucent Price Chip
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 4.5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.35),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          'from_price_arg'.tr(
-                            args: [item.priceAmount.toString()],
-                          ),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Top-Left 15-Min Badge
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 3.5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.88),
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x1A000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.flash_on_rounded,
-                              size: 10,
-                              color: Color(0xFFD97706),
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              'badge_15m'.trSafe("15M"),
-                              style: const TextStyle(
-                                color: Color(0xFF141416),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 8,
+                offset: Offset(0, 3),
               ),
-            ),
-            const SizedBox(height: 10),
-
-            // ── 2. Bottom Label + Options Row (as in Screenshot) ──
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28.5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        (item.key).tr().isNotEmpty
-                            ? (item.key).tr()
-                            : item.name,
-                        style: const TextStyle(
-                          color: Color(0xFF141416),
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        item.taglineKey.trSafe(item.tagline),
-                        style: const TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: Color(0xFF141416),
-                    size: 13,
-                  ),
+                // 1. Top Visual Zone (height: 200px)
+                _buildTopVisualZone(item, isEven: isEven),
+
+                // 2. Bottom Content Zone (Pure White with Service Details)
+                _buildBottomContentZone(
+                  displayName: displayName,
+                  displayTagline: displayTagline,
+                  item: item,
+                  isEven: isEven,
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildTopVisualZone(_CraftServiceItem item, {required bool isEven}) {
+    return SizedBox(
+      height: 200,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Ambient Pastel Mesh Gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isEven
+                    ? [
+                        item.meshColor1,
+                        item.meshColor2,
+                        item.meshColor1.withValues(alpha: 0.45),
+                      ]
+                    : [
+                        item.meshColor2,
+                        item.meshColor1,
+                        item.meshColor2.withValues(alpha: 0.45),
+                      ],
+                stops: const [0.0, 0.65, 1.0],
+                begin: isEven ? Alignment.topLeft : Alignment.topRight,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+
+          // Blueprint Architectural Grid (Top-Right for even, Top-Left for odd)
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: isEven ? null : 0,
+            right: isEven ? 0 : null,
+            width: 190,
+            child: IgnorePointer(
+              child: ShaderMask(
+                shaderCallback: (rect) {
+                  return LinearGradient(
+                    colors: const [
+                      Colors.white,
+                      Colors.white,
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                    begin: isEven ? Alignment.topRight : Alignment.topLeft,
+                    end: isEven ? Alignment.bottomLeft : Alignment.bottomRight,
+                  ).createShader(rect);
+                },
+                child: const CustomPaint(
+                  painter: _BlueprintGridPainter(lineColor: Color(0x60FFFFFF)),
+                ),
+              ),
+            ),
+          ),
+
+          // Artwork: 100% Solid Animated GIF or Floating Glassmorphic Badge
+          if (item.isAnimatedAsset && item.assetPath.isNotEmpty)
+            Positioned.fill(
+              child: ShaderMask(
+                shaderCallback: (rect) {
+                  return const LinearGradient(
+                    colors: [Colors.black, Colors.black, Colors.transparent],
+                    stops: [0.0, 0.85, 1.0],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ).createShader(rect);
+                },
+                blendMode: BlendMode.dstIn,
+                child: Image.asset(
+                  item.assetPath,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            )
+          else
+            Center(
+              child: Container(
+                width: 78,
+                height: 78,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.32),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.65),
+                    width: 2.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: item.meshColor1.withValues(alpha: 0.40),
+                      blurRadius: 22,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    item.icon,
+                    size: 40,
+                    color: Colors.white.withValues(alpha: 0.95),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomContentZone({
+    required String displayName,
+    required String displayTagline,
+    required _CraftServiceItem item,
+    required bool isEven,
+  }) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Top Row: Service Icon on Left (even) / Right (odd), Tagline on Opposite
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (isEven) ...[
+                _buildIconBadge(item),
+                _buildTaglineChip(displayTagline),
+              ] else ...[
+                _buildTaglineChip(displayTagline),
+                _buildIconBadge(item),
+              ],
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Title
+          Text(
+            displayName,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+              height: 1.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+
+          const SizedBox(height: 6),
+
+          // Editorial Description
+          Text(
+            item.description,
+            style: const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 12.5,
+              fontWeight: FontWeight.w400,
+              height: 1.45,
+              letterSpacing: -0.1,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Bottom Bar: Alternating Price Pill & Launch Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (isEven) ...[
+                _buildPricePill(item),
+                _buildLaunchButton(),
+              ] else ...[
+                _buildLaunchButton(),
+                _buildPricePill(item),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconBadge(_CraftServiceItem item) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(item.icon, size: 21, color: const Color(0xFF0F172A)),
+      ),
+    );
+  }
+
+  Widget _buildTaglineChip(String tagline) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        tagline,
+        style: const TextStyle(
+          color: Color(0xFF64748B),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _buildPricePill(_CraftServiceItem item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.flash_on_rounded,
+            size: 13,
+            color: Color(0xFFD97706),
+          ),
+          const SizedBox(width: 3),
+          const Text(
+            "15M",
+            style: TextStyle(
+              color: Color(0xFF1E293B),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            width: 3,
+            height: 3,
+            decoration: const BoxDecoration(
+              color: Color(0xFF94A3B8),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            "From ₹${item.priceAmount}",
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLaunchButton() {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.22),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: const Center(
+        child: Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
+      ),
+    );
+  }
 }
+
+typedef _MasonryCraftCard = _AlternatingCraftRowCard;
 
 // ──────────────────────────────────────────────────────
 //  QUICK SOLUTION CHIP (1-Tap Horizontal Rail)
@@ -6114,7 +7561,8 @@ class _BookingListTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (isCompleted && (booking.isRated || booking.rating != null)) ...[
+                        if (isCompleted &&
+                            (booking.isRated || booking.rating != null)) ...[
                           const SizedBox(width: 4),
                           Flexible(
                             child: Container(
@@ -6143,7 +7591,9 @@ class _BookingListTile extends StatelessWidget {
                                     child: Text(
                                       booking.rating != null
                                           ? "${booking.rating!.toStringAsFixed(1)} ${'rated_badge_label'.tr().toUpperCase()}"
-                                          : "rated_badge_label".tr().toUpperCase(),
+                                          : "rated_badge_label"
+                                                .tr()
+                                                .toUpperCase(),
                                       style: const TextStyle(
                                         color: Color(0xFF92400E),
                                         fontSize: 9.5,
@@ -6170,15 +7620,20 @@ class _BookingListTile extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       HapticFeedback.lightImpact();
-                      final receiptWorker = booking.genuineArtisanName ??
-                          (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                      final receiptWorker =
+                          booking.genuineArtisanName ??
+                          (!Booking.isGenericArtisanName(
+                                booking.acceptedWorkerName,
+                              )
                               ? booking.acceptedWorkerName!
                               : "");
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => PaymentReceiptScreen(
                             booking: booking,
-                            workerName: receiptWorker.isNotEmpty ? receiptWorker : "Cooperative Artisan",
+                            workerName: receiptWorker.isNotEmpty
+                                ? receiptWorker
+                                : "Cooperative Artisan",
                             isReceiptOnly: false,
                           ),
                         ),
@@ -6250,20 +7705,27 @@ class _BookingListTile extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // If unrated and paid, offer quick-action Rate button
-                      if (booking.paymentStatus == PaymentStatus.paid && !booking.isRated && booking.rating == null) ...[
+                      if (booking.paymentStatus == PaymentStatus.paid &&
+                          !booking.isRated &&
+                          booking.rating == null) ...[
                         Flexible(
                           child: OutlinedButton.icon(
                             onPressed: () {
                               HapticFeedback.lightImpact();
-                              final receiptWorker = booking.genuineArtisanName ??
-                                  (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
+                              final receiptWorker =
+                                  booking.genuineArtisanName ??
+                                  (!Booking.isGenericArtisanName(
+                                        booking.acceptedWorkerName,
+                                      )
                                       ? booking.acceptedWorkerName!
                                       : "");
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => RatingReviewScreen(
                                     booking: booking,
-                                    workerName: receiptWorker.isNotEmpty ? receiptWorker : "Cooperative Artisan",
+                                    workerName: receiptWorker.isNotEmpty
+                                        ? receiptWorker
+                                        : "Cooperative Artisan",
                                   ),
                                 ),
                               );
@@ -6305,52 +7767,57 @@ class _BookingListTile extends StatelessWidget {
                       if (booking.paymentStatus == PaymentStatus.paid)
                         Flexible(
                           child: OutlinedButton.icon(
-                          onPressed: () {
-                            HapticFeedback.lightImpact();
-                            final receiptWorker = booking.genuineArtisanName ??
-                                (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
-                                    ? booking.acceptedWorkerName!
-                                    : "");
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => PaymentReceiptScreen(
-                                  booking: booking,
-                                  workerName: receiptWorker.isNotEmpty ? receiptWorker : "Cooperative Artisan",
-                                  isReceiptOnly: true,
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              final receiptWorker =
+                                  booking.genuineArtisanName ??
+                                  (!Booking.isGenericArtisanName(
+                                        booking.acceptedWorkerName,
+                                      )
+                                      ? booking.acceptedWorkerName!
+                                      : "");
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => PaymentReceiptScreen(
+                                    booking: booking,
+                                    workerName: receiptWorker.isNotEmpty
+                                        ? receiptWorker
+                                        : "Cooperative Artisan",
+                                    isReceiptOnly: true,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(
-                            Icons.receipt_long_rounded,
-                            color: Color(0xFF2563EB),
-                            size: 13,
-                          ),
-                          label: Text(
-                            "receipt".tr(),
-                            style: const TextStyle(
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.receipt_long_rounded,
                               color: Color(0xFF2563EB),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
+                              size: 13,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFBFDBFE)),
-                            backgroundColor: const Color(0xFFEFF6FF),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 6,
+                            label: Text(
+                              "receipt".tr(),
+                              style: const TextStyle(
+                                color: Color(0xFF2563EB),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            minimumSize: const Size(0, 34),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFBFDBFE)),
+                              backgroundColor: const Color(0xFFEFF6FF),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 6,
+                              ),
+                              minimumSize: const Size(0, 34),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           ),
                         ),
-                      ),
                       if (onBookAgain != null) ...[
                         const SizedBox(width: 4),
                         Flexible(

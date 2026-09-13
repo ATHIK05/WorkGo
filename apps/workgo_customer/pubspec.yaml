@@ -45,6 +45,9 @@ dependencies:
   # PDF share sheet
   printing: ^5.13.2
   share_plus: ^10.1.2
+  # Emergency SOS Audio recording & playback
+  record: ^6.2.1
+  audioplayers: ^6.7.1
 
 dev_dependencies:
   flutter_test:
@@ -53,3 +56,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/

@@ -972,6 +972,483 @@ class SymptomCatalog {
       suggestedToolsNeeded: ['Nozzle Jet Pin Cleaner', 'Gas Leak Detector Spray', 'Brass Wire Brush'],
       isAmbiguous: false,
     ),
+
+    // 20. Overhead Tank / Sump / Float Valve Overflow (Plumber vs Electrician)
+    const SymptomItem(
+      id: 'overhead_tank_overflow',
+      title: 'Overhead Tank / Sump Overflowing or Float Valve Not Cutting Off',
+      description: 'Water overflows continuously from the terrace tank, sump auto-starter does not cut off, or level sensor stays dry.',
+      equipmentTag: 'Overhead Tank & Sump',
+      primaryCategory: 'Plumber',
+      secondaryCategory: 'Electrician',
+      searchTokens: [
+        'overhead tank', 'sump', 'float valve', 'ball valve', 'tank overflow', 'water tank overflow',
+        'auto starter', 'level sensor', 'water level controller', 'tank not stopping', 'sump pump',
+        'water wasting', 'terrace tank leaking',
+        // Romanized Tanglish / Hinglish / Manglish
+        'tank overflow aagudhu', 'thanni tank thulumbudhu', 'float valve velaikala',
+        'sump tank thanni poidhu', 'tank se paani gir raha', 'float valve kaam nahi kar raha',
+        'auto starter band nahi ho raha', 'tanki bhar ke bhi paani aa raha',
+        // Native Tamil script
+        'தண்ணீர் தொட்டி நிரம்பி வழிகிறது', 'ஃப்ளோட் வால்வு வேலை செய்யல',
+        // Native Hindi
+        'टंकी ओवरफ्लो हो रही', 'फ्लोट वाल्व खराब', 'सम्प पंप बंद नहीं हो रहा',
+        // Native Telugu
+        'ట్యాంక్ ఓవర్ఫ్లో అవుతోంది', 'ఫ్లోట్ వాల్వ్ పని చేయడం లేదు',
+        // Native Malayalam
+        'ടാങ്ക് കവിഞ്ഞൊഴുകുന്നു', 'ഫ്ലോട്ട് വാൽവ് പ്രവർത്തിക്കുന്നില്ല',
+        // Native Kannada
+        'ಟ್ಯಾಂಕ್ ಉಕ್ಕಿ ಹರಿಯುತ್ತಿದೆ', 'ಫ್ಲೋಟ್ ವಾಲ್ವ್ ಕೆಲಸ ಮಾಡುತ್ತಿಲ್ಲ',
+        // Native Bengali / Marathi / Gujarati / Punjabi / Urdu (vernacular expansion)
+        'tanki upoche jachhe', 'tanki bharun vahate', 'tanki chhalakti hai', 'tanki vich pani vagda',
+        'ٹینکی اوور فلو ہو رہی ہے',
+      ],
+      likelyCauses: [
+        'Float valve rubber washer worn out or ball cock arm bent (Plumbing)',
+        'Water level sensor probe corroded or auto-starter relay board stuck ON (Electrical)',
+        'Sump submersible float switch jammed with debris (Electrical / Plumbing)'
+      ],
+      clarifyingQuestions: [
+        TriageQuestion(
+          id: 'tank_q1',
+          questionText: 'Where exactly is the overflow happening?',
+          options: [
+            TriageOption(
+              label: 'Terrace/overhead tank overflow pipe runs constantly',
+              probableCategory: 'Plumber',
+              likelyCause: 'Worn float valve washer or bent ball cock arm',
+            ),
+            TriageOption(
+              label: 'Auto water level controller display shows FULL but motor keeps running',
+              probableCategory: 'Electrician',
+              likelyCause: 'Level sensor probe fault or stuck relay on the auto-starter panel',
+            ),
+          ],
+        ),
+      ],
+      suggestedToolsNeeded: ['Float Valve Kit', 'Multimeter', 'Water Level Controller Tester', 'Pipe Wrench'],
+      isAmbiguous: true,
+    ),
+
+    // 21. Kitchen Chimney Exhaust & Baffle Motor Failure (Appliance Repair vs Cleaning)
+    const SymptomItem(
+      id: 'chimney_exhaust_failure',
+      title: 'Kitchen Chimney Not Sucking Smoke or Motor Making Loud Noise',
+      description: 'Chimney runs but does not pull smoke/oil fumes, baffle filter dripping oil, or exhaust motor grinding noise.',
+      equipmentTag: 'Kitchen Chimney',
+      primaryCategory: 'Appliance Repair',
+      secondaryCategory: 'Cleaning',
+      searchTokens: [
+        'chimney', 'kitchen chimney', 'exhaust motor', 'baffle filter', 'suction weak', 'smoke not going',
+        'chimney noise', 'chimney oil dripping', 'chimney not working', 'auto clean chimney',
+        // Romanized Tanglish / Hinglish
+        'chimney velaikala', 'puke izhukkala', 'chimney la sound varudhu', 'chimney dhooma vaanguthu illai',
+        'chimney awaaz kar raha', 'chimney dhuan nahi khinch raha', 'chimney se tel tapak raha',
+        // Native Tamil script
+        'சிம்னி புகை இழுக்கல', 'சிம்னி சத்தம் போடுது',
+        // Native Hindi
+        'चिमनी धुआं नहीं खींच रही', 'चिमनी से आवाज़ आ रही', 'चिमनी से तेल टपक रहा',
+        // Native Telugu
+        'చిమ్నీ పొగ లాగడం లేదు', 'చిమ్నీ శబ్దం చేస్తోంది',
+        // Native Malayalam
+        'ചിമ്മിനി പുക വലിക്കുന്നില്ല', 'ചിമ്മിനിയിൽ ശബ്ദം',
+      ],
+      likelyCauses: [
+        'Baffle/mesh filter fully choked with hardened grease reducing suction (Cleaning)',
+        'Exhaust blower motor bearing worn or carbon brushes dead (Appliance)',
+        'Non-return flap valve stuck or duct blocked with grease (Cleaning / Appliance)'
+      ],
+      clarifyingQuestions: [
+        TriageQuestion(
+          id: 'chimney_q1',
+          questionText: 'What is the chimney doing when switched on?',
+          options: [
+            TriageOption(
+              label: 'Motor runs but suction is very weak, filters visibly greasy',
+              probableCategory: 'Cleaning',
+              likelyCause: 'Baffle filter and duct choked with grease buildup',
+            ),
+            TriageOption(
+              label: 'Loud grinding/rattling noise from the motor housing',
+              probableCategory: 'Appliance Repair',
+              likelyCause: 'Worn blower motor bearing or bent fan blade',
+            ),
+          ],
+        ),
+      ],
+      suggestedToolsNeeded: ['Degreaser Solution', 'Multimeter', 'Motor Bearing Kit', 'Duct Brush'],
+      isAmbiguous: true,
+    ),
+
+    // 22. Induction Cooktop / Electric Kettle Coil Failure (Appliance Repair vs Electrician)
+    const SymptomItem(
+      id: 'induction_kettle_coil_failure',
+      title: 'Induction Cooktop Not Heating or Electric Kettle Tripping Switch',
+      description: 'Induction stove shows error code and shuts off, or electric kettle heating coil trips the MCB / does not boil water.',
+      equipmentTag: 'Induction Cooktop & Electric Kettle',
+      primaryCategory: 'Appliance Repair',
+      secondaryCategory: 'Electrician',
+      searchTokens: [
+        'induction', 'induction stove', 'induction cooktop', 'electric kettle', 'kettle', 'coil failure',
+        'induction error', 'induction not heating', 'kettle not boiling', 'kettle tripping',
+        // Romanized Tanglish / Hinglish
+        'induction stove velaikala', 'induction heat aagala', 'kettle thanni koodalai', 'induction error varudhu',
+        'induction chulha garam nahi ho raha', 'kettle mein paani nahi garam ho raha', 'kettle se MCB trip ho raha',
+        // Native Tamil script
+        'இண்டக்ஷன் அடுப்பு சூடாகல', 'கெட்டில் தண்ணீர் கொதிக்கல',
+        // Native Hindi
+        'इंडक्शन चूल्हा गर्म नहीं हो रहा', 'केतली में पानी नहीं उबल रहा', 'केतली से MCB ट्रिप हो रहा',
+        // Native Telugu
+        'ఇండక్షన్ స్టవ్ వేడెక్కడం లేదు', 'కెటిల్లో నీళ్ళు మరగడం లేదు',
+        // Native Malayalam
+        'ഇൻഡക്ഷൻ അടുപ്പ് ചൂടാകുന്നില്ല', 'കെറ്റിലിൽ വെള്ളം തിളക്കുന്നില്ല',
+      ],
+      likelyCauses: [
+        'Induction cooktop IGBT power module or ceramic glass sensor failure (Appliance)',
+        'Electric kettle heating element/coil burnt or open circuit (Appliance)',
+        'Overloaded socket / undersized wiring tripping the MCB under kettle load (Electrical)'
+      ],
+      clarifyingQuestions: [
+        TriageQuestion(
+          id: 'induction_q1',
+          questionText: 'What exactly is happening with the appliance?',
+          options: [
+            TriageOption(
+              label: 'Induction stove displays an error code and shuts down mid-cooking',
+              probableCategory: 'Appliance Repair',
+              likelyCause: 'IGBT power module overheating or faulty pan-detection sensor',
+            ),
+            TriageOption(
+              label: 'Kettle switches on but water never heats up',
+              probableCategory: 'Appliance Repair',
+              likelyCause: 'Burnt heating coil/element inside the kettle base',
+            ),
+            TriageOption(
+              label: 'MCB trips the moment the appliance is switched on',
+              probableCategory: 'Electrician',
+              likelyCause: 'Overloaded circuit or damaged socket wiring',
+            ),
+          ],
+        ),
+      ],
+      suggestedToolsNeeded: ['Multimeter', 'IGBT Tester', 'Insulated Screwdriver Set', 'Heating Element Tester'],
+      isAmbiguous: true,
+    ),
+
+    // 23. Dishwasher Drainage & Spray Arm Issue (Appliance Repair vs Plumber)
+    const SymptomItem(
+      id: 'dishwasher_drainage_issue',
+      title: 'Dishwasher Not Draining, Spray Arm Not Rotating, or Dishes Coming Out Dirty',
+      description: 'Standing water pools at the bottom after a wash cycle, spray arm jets are blocked, or drain hose is siphoning back.',
+      equipmentTag: 'Dishwasher',
+      primaryCategory: 'Appliance Repair',
+      secondaryCategory: 'Plumber',
+      searchTokens: [
+        'dishwasher', 'dish washer', 'spray arm', 'dishwasher not draining', 'dishwasher water standing',
+        'dishwasher dirty dishes', 'dishwasher error code', 'dishwasher leak',
+        // Romanized Tanglish / Hinglish
+        'dishwasher thanni pogala', 'dishwasher la thanni nikkudhu', 'dishwasher nahi drain ho raha',
+        'dishwasher mein pani ruka hua hai', 'dishwasher se paani leak ho raha',
+        // Native Tamil script
+        'டிஷ்வாஷர் தண்ணீர் போகல', 'டிஷ்வாஷர் ஒழுகுது',
+        // Native Hindi
+        'डिशवॉशर से पानी नहीं निकल रहा', 'डिशवॉशर लीक हो रहा',
+        // Native Telugu
+        'డిష్వాషర్లో నీళ్ళు నిలిచిపోయాయి',
+        // Native Malayalam
+        'ഡിഷ്വാഷറിൽ വെള്ളം കെട്ടിക്കിടക്കുന്നു',
+      ],
+      likelyCauses: [
+        'Drain pump filter or food-debris trap clogged (Appliance)',
+        'Kinked or improperly looped drain hose causing siphoning back into the tub (Plumbing)',
+        'Spray arm nozzle jets clogged with hard-water scale or food particles (Appliance)',
+        'Under-sink drain connection or air-gap fitting blocked (Plumbing)'
+      ],
+      clarifyingQuestions: [
+        TriageQuestion(
+          id: 'dishwasher_q1',
+          questionText: 'What is the dishwasher doing wrong?',
+          options: [
+            TriageOption(
+              label: 'Water pools at the bottom after every cycle finishes',
+              probableCategory: 'Appliance Repair',
+              likelyCause: 'Clogged drain pump filter or blocked drain hose',
+            ),
+            TriageOption(
+              label: 'Dishes come out with food residue / not properly washed',
+              probableCategory: 'Appliance Repair',
+              likelyCause: 'Spray arm nozzles blocked or not rotating freely',
+            ),
+            TriageOption(
+              label: 'Water backs up from the kitchen sink into the dishwasher tub',
+              probableCategory: 'Plumber',
+              likelyCause: 'Shared drain line blockage or missing air-gap fitting',
+            ),
+          ],
+        ),
+      ],
+      suggestedToolsNeeded: ['Drain Pump Pliers', 'Descaling Solution', 'Pipe Wrench', 'Multimeter'],
+      isAmbiguous: true,
+    ),
+
+    // 24. Solar Water Heater / Heat Pump System (Electrician vs Plumber)
+    const SymptomItem(
+      id: 'solar_water_heater_issue',
+      title: 'Solar Water Heater Not Heating, Heat Pump Tripping, or Panel Leaking',
+      description: 'Rooftop solar water heater gives lukewarm water, backup heating element trips MCB, or glass tube/tank leaks.',
+      equipmentTag: 'Solar Water Heater & Heat Pump',
+      primaryCategory: 'Electrician',
+      secondaryCategory: 'Plumber',
+      searchTokens: [
+        'solar water heater', 'solar heater', 'heat pump', 'solar panel water', 'solar geyser not heating',
+        'vacuum tube', 'solar backup heater', 'solar tank leak',
+        // Romanized Tanglish / Hinglish
+        'solar heater suudu thanni varala', 'solar water heater velaikala', 'heat pump trip aagudhu',
+        'solar geyser garam paani nahi de raha', 'solar heater se paani leak ho raha',
+        // Native Tamil script
+        'சோலார் ஹீட்டர் சூடு தண்ணீர் தரல', 'சோலார் டேங்க் ஒழுகுது',
+        // Native Hindi
+        'सोलर हीटर गर्म पानी नहीं दे रहा', 'सोलर टैंक से पानी लीक हो रहा', 'हीट पंप ट्रिप हो रहा',
+        // Native Telugu
+        'సోలార్ హీటర్ వేడి నీళ్ళు ఇవ్వడం లేదు',
+        // Native Malayalam
+        'സോളാർ ഹീറ്റർ ചൂടുവെള്ളം തരുന്നില്ല',
+      ],
+      likelyCauses: [
+        'Broken/cracked evacuated glass vacuum tube causing heat loss (Plumbing)',
+        'Backup electric heating element or thermostat in the tank failed (Electrical)',
+        'Heat pump compressor relay or circuit board fault tripping the MCB (Electrical)',
+        'Tank-to-pipe union joint corroded and leaking at the rooftop (Plumbing)'
+      ],
+      clarifyingQuestions: [
+        TriageQuestion(
+          id: 'solar_q1',
+          questionText: 'What symptom are you seeing with the solar/heat-pump system?',
+          options: [
+            TriageOption(
+              label: 'Water stays lukewarm even after a full sunny day',
+              probableCategory: 'Plumber',
+              likelyCause: 'Cracked vacuum tube or scaled heat exchanger reducing efficiency',
+            ),
+            TriageOption(
+              label: 'Backup electric heater trips the MCB or does not switch on',
+              probableCategory: 'Electrician',
+              likelyCause: 'Faulty backup heating element or thermostat',
+            ),
+            TriageOption(
+              label: 'Water is dripping from the rooftop tank or pipe joints',
+              probableCategory: 'Plumber',
+              likelyCause: 'Corroded union joint or cracked tank seam',
+            ),
+          ],
+        ),
+      ],
+      suggestedToolsNeeded: ['Multimeter', 'Pipe Wrench', 'Vacuum Tube Replacement Kit', 'Thermostat Tester'],
+      isAmbiguous: true,
+    ),
+
+    // 25. Smart Doorbell / CCTV / Intercom Power & Wiring Fault (Electrician)
+    const SymptomItem(
+      id: 'smart_doorbell_cctv_fault',
+      title: 'Smart Doorbell, CCTV Camera, or Intercom Not Powering On',
+      description: 'Video doorbell shows no power/offline, CCTV DVR camera feed goes blank, or intercom panel has no dial tone.',
+      equipmentTag: 'Smart Doorbell, CCTV & Intercom',
+      primaryCategory: 'Electrician',
+      secondaryCategory: 'Appliance Repair',
+      searchTokens: [
+        'doorbell', 'video doorbell', 'smart doorbell', 'cctv', 'cctv camera', 'security camera',
+        'intercom', 'dvr', 'nvr', 'camera not working', 'camera offline', 'doorbell not ringing',
+        // Romanized Tanglish / Hinglish
+        'doorbell velaikala', 'cctv camera velaikala', 'intercom sabdham varala',
+        'doorbell kaam nahi kar raha', 'cctv camera band ho gaya', 'intercom mein awaaz nahi aa rahi',
+        // Native Tamil script
+        'டோர்பெல் வேலை செய்யல', 'சிசிடிவி காமிரா வேலை செய்யல',
+        // Native Hindi
+        'डोरबेल काम नहीं कर रही', 'सीसीटीवी कैमरा बंद हो गया', 'इंटरकॉम में आवाज़ नहीं आ रही',
+        // Native Telugu
+        'డోర్బెల్ పని చేయడం లేదు', 'సీసీటీవీ కెమెరా ఆఫ్లైన్',
+        // Native Malayalam
+        'ഡോർബെൽ പ്രവർത്തിക്കുന്നില്ല', 'സിസിടിവി ക്യാമറ ഓഫ്ലൈൻ',
+      ],
+      likelyCauses: [
+        'Low-voltage transformer or PoE adapter for the doorbell/camera dead (Electrical)',
+        'Loose or corroded wiring termination at the CCTV DVR/NVR power supply (Electrical)',
+        'Intercom base station power adapter blown or fuse tripped (Electrical)'
+      ],
+      suggestedToolsNeeded: ['Multimeter', 'Cable Tester (RJ45/Coax)', 'PoE Injector Tester', 'Insulated Screwdriver Set'],
+      isAmbiguous: false,
+    ),
+
+    // 26. Sliding Window Roller Jammed / Glass Crack (Carpenter vs Welder)
+    const SymptomItem(
+      id: 'sliding_window_roller_glass',
+      title: 'Sliding Window Roller Jammed, Track Derailed, or Glass Pane Cracked',
+      description: 'UPVC/aluminum sliding window is hard to slide, rollers have jumped the track, or glass pane is cracked/shattered.',
+      equipmentTag: 'Sliding Windows & Glass',
+      primaryCategory: 'Carpenter',
+      secondaryCategory: 'Welder / Metal',
+      searchTokens: [
+        'sliding window', 'window roller', 'window track', 'glass crack', 'glass broken', 'window jammed',
+        'upvc window', 'aluminum window', 'window not sliding', 'window pane cracked',
+        // Romanized Tanglish / Hinglish
+        'window jarudhu illai', 'kannadi udaindhuchu', 'window roller odayndhuchu',
+        'khidki nahi khisak rahi', 'kanch tut gaya', 'khidki ka roller kharab',
+        // Native Tamil script
+        'ஜன்னல் நகரல', 'கண்ணாடி உடைந்தது', 'ஜன்னல் ரோலர் பழுது',
+        // Native Hindi
+        'खिड़की नहीं खिसक रही', 'खिड़की का कांच टूट गया', 'खिड़की का रोलर खराब',
+        // Native Telugu
+        'కిటికీ జారడం లేదు', 'కిటికీ అద్దం పగిలింది',
+        // Native Malayalam
+        'ജനൽ നീങ്ങുന്നില്ല', 'ജനൽ ചില്ല് പൊട്ടി',
+      ],
+      likelyCauses: [
+        'Nylon/steel roller wheels worn out or derailed from aluminum track (Carpentry)',
+        'Toughened or plain glass pane cracked from impact or thermal stress (Carpentry)',
+        'Aluminum/UPVC frame corner joint bent or welded corner cleat failed (Welder / Metal)'
+      ],
+      clarifyingQuestions: [
+        TriageQuestion(
+          id: 'window_q1',
+          questionText: 'What exactly is wrong with the sliding window?',
+          options: [
+            TriageOption(
+              label: 'Window is stiff, jammed, or rollers have come off the track',
+              probableCategory: 'Carpenter',
+              likelyCause: 'Worn roller wheels needing replacement and track cleaning',
+            ),
+            TriageOption(
+              label: 'Glass pane is cracked, chipped, or fully shattered',
+              probableCategory: 'Carpenter',
+              likelyCause: 'Glass pane needs re-cutting and reglazing into the frame',
+            ),
+            TriageOption(
+              label: 'Metal frame corner is bent, loose, or the joint has separated',
+              probableCategory: 'Welder / Metal',
+              likelyCause: 'Corner cleat weld or crimp joint failure needing re-fabrication',
+            ),
+          ],
+        ),
+      ],
+      suggestedToolsNeeded: ['Roller Wheel Kit', 'Glass Cutter', 'Suction Cup Glass Lifter', 'Rivet Gun'],
+      isAmbiguous: true,
+    ),
+
+    // 27. Bathroom Tile Grouting & Anti-Skid Seepage (Masonry vs Plumber)
+    const SymptomItem(
+      id: 'bathroom_tile_grouting_seepage',
+      title: 'Bathroom Tile Grout Eroded, Anti-Skid Tiles Loose, or Shower Area Seepage',
+      description: 'Grout lines between bathroom/anti-skid tiles crumbling and black-moldy, or seepage reappearing near the shower area.',
+      equipmentTag: 'Bathroom Tile Grouting & Waterproofing',
+      primaryCategory: 'Masonry',
+      secondaryCategory: 'Plumber',
+      searchTokens: [
+        'tile grouting', 'grout', 'anti-skid tile', 'bathroom seepage', 'shower area leak', 'mold grout',
+        'black fungus tile', 'regrouting', 'bathroom floor leak', 'epoxy grout',
+        // Romanized Tanglish / Hinglish
+        'bathroom tile grout udaindhuchu', 'kuligal la thanni oorudhu', 'bathroom la seepage varudhu',
+        'bathroom mein grout ukhad gaya', 'shower area se seepage aa raha', 'tile grout kala pad gaya',
+        // Native Tamil script
+        'குளியலறை டைல் க்ரவுட் கழண்டது', 'குளியலறையில் ஈரப்பதம்',
+        // Native Hindi
+        'बाथरूम टाइल ग्राउट उखड़ गया', 'शावर एरिया में सीपेज',
+        // Native Telugu
+        'బాత్రూమ్ టైల్ గ్రౌట్ ఊడిపోయింది', 'షవర్ ఏరియాలో లీకేజీ',
+        // Native Malayalam
+        'ബാത്ത്റൂം ടൈൽ ഗ്രൗട്ട് ഇളകി', 'ഷവർ ഏരിയയിൽ ചോർച്ച',
+      ],
+      likelyCauses: [
+        'Cement/epoxy grout eroded allowing water ingress into the tile bed (Masonry)',
+        'Failed waterproofing membrane below the shower area screed (Masonry / Plumbing)',
+        'Concealed shower mixer or connector pipe joint leaking beneath the tiles (Plumbing)'
+      ],
+      clarifyingQuestions: [
+        TriageQuestion(
+          id: 'grout_q1',
+          questionText: 'What best describes the bathroom issue?',
+          options: [
+            TriageOption(
+              label: 'Grout lines are crumbling, discolored, or growing black mold',
+              probableCategory: 'Masonry',
+              likelyCause: 'Grout erosion needs raking out and epoxy re-grouting',
+            ),
+            TriageOption(
+              label: 'Seepage keeps reappearing on the wall or ceiling below the bathroom',
+              probableCategory: 'Plumber',
+              likelyCause: 'Concealed shower pipe or waterproofing membrane failure',
+            ),
+          ],
+        ),
+      ],
+      suggestedToolsNeeded: ['Grout Removal Tool', 'Epoxy Grout Kit', 'Moisture Meter', 'Waterproofing Membrane'],
+      isAmbiguous: true,
+    ),
+
+    // 28. Wood Termite Damage & Cavity Rot (Carpenter)
+    const SymptomItem(
+      id: 'wood_termite_damage',
+      title: 'Wood Termite Infestation, Hollow Furniture, or Cavity Rot',
+      description: 'Wooden door frame, wardrobe, or bed sounds hollow when tapped, mud tunnels visible, or wood crumbles to powder.',
+      equipmentTag: 'Wood Termite & Cavity Rot',
+      primaryCategory: 'Carpenter',
+      secondaryCategory: 'Carpenter',
+      searchTokens: [
+        'termite', 'termites', 'wood borer', 'deemak', 'wood rot', 'hollow wood', 'wood powder',
+        'mud tunnel', 'furniture eaten', 'white ants', 'wood decay',
+        // Romanized Tanglish / Hinglish
+        'thegu pூச்சி saapten', 'marathula thegu vandhurichi', 'lakdi mein deemak lag gaya',
+        'furniture mein deemak', 'wood khaali ho gaya', 'lakdi choor ho rahi hai',
+        // Native Tamil script
+        'மரத்தில் கறையான்', 'மரம் பொடியாகுது', 'கதவு உள்ளே பொள்ளலாகுது',
+        // Native Hindi
+        'लकड़ी में दीमक लग गया', 'फर्नीचर में दीमक', 'लकड़ी अंदर से खोखली हो गई',
+        // Native Telugu
+        'కర్రలో చెద పట్టింది', 'ఫర్నిచర్లో చెదపురుగులు',
+        // Native Malayalam
+        'തടിയിൽ ചിതൽ കയറി', 'ഫർണിച്ചറിൽ ചിതൽ',
+        // Native Kannada
+        'ಮರದಲ್ಲಿ ಗೆದ್ದಲು ಹಿಡಿದಿದೆ',
+      ],
+      likelyCauses: [
+        'Subterranean termite colony infestation through untreated wood-to-ground contact',
+        'Moisture-induced wood rot fungus weakening the internal cavity',
+        'Old furniture/frame never treated with anti-termite chemical during installation'
+      ],
+      suggestedToolsNeeded: ['Termite Detection Moisture Meter', 'Anti-Termite Injection Kit', 'Wood Filler', 'Chisel Set'],
+      isAmbiguous: false,
+    ),
+
+    // 29. Balcony Clothes Drying Ceiling Pulley / Wire Snap (Carpenter vs Welder)
+    const SymptomItem(
+      id: 'balcony_pulley_wire_snap',
+      title: 'Balcony Ceiling Cloth-Drying Pulley Jammed or Hanging Wire Snapped',
+      description: 'Ceiling-mounted clothes drying hanger pulley does not rotate smoothly, or the steel wire/rope has snapped under load.',
+      equipmentTag: 'Balcony Clothes Drying Pulley',
+      primaryCategory: 'Carpenter',
+      secondaryCategory: 'Welder / Metal',
+      searchTokens: [
+        'pulley', 'clothes drying pulley', 'ceiling pulley', 'drying stand', 'cloth hanger wire',
+        'balcony pulley', 'pulley wire snapped', 'clothesline broken', 'hanger rope cut',
+        // Romanized Tanglish / Hinglish
+        'thugil pulley velaikala', 'kayiru arundhupochi', 'balcony pulley wire pottupochu',
+        'kapda sukhane wali pulley kharab', 'balcony ki rassi toot gayi', 'pulley ka wire kat gaya',
+        // Native Tamil script
+        'துணி காயப்போடும் பொறி வேலை செய்யல', 'கயிறு அறுந்துபோச்சு',
+        // Native Hindi
+        'कपड़े सुखाने वाली पुली खराब हो गई', 'बालकनी की रस्सी टूट गई',
+        // Native Telugu
+        'బట్టలు ఆరవేసే పుల్లీ పాడైంది', 'తాడు తెగిపోయింది',
+        // Native Malayalam
+        'തുണി ഉണക്കുന്ന പുള്ളി കേടായി', 'കയർ പൊട്ടിപ്പോയി',
+      ],
+      likelyCauses: [
+        'Pulley wheel bearing seized or ceiling bracket screws loosened (Carpentry)',
+        'Galvanized steel hanging wire/rope frayed and snapped under repeated load (Carpentry)',
+        'Ceiling mounting bracket bent or welded hook joint sheared off (Welder / Metal)'
+      ],
+      suggestedToolsNeeded: ['Pulley Replacement Kit', 'Galvanized Wire Rope', 'Cordless Drill', 'Wall Anchor Set'],
+      isAmbiguous: true,
+    ),
   ];
 
   // English stop words that should never artificially inflate equipment matches
@@ -1065,6 +1542,16 @@ class SymptomCatalog {
     'pipe_leakage_dampness': ['pipe', 'tap', 'faucet', 'flush', 'toilet', 'cistern', 'seepage', 'pipeline', 'plumbing'],
     'ro_purifier_issue': ['ro', 'water purifier', 'purifier', 'kent', 'aquaguard', 'pureit', 'membrane filter'],
     'washing_machine_fault': ['washing machine', 'washer', 'dryer', 'front load', 'top load'],
+    'overhead_tank_overflow': ['overhead tank', 'sump', 'float valve', 'ball valve', 'water tank', 'sump pump', 'level sensor', 'auto starter'],
+    'chimney_exhaust_failure': ['chimney', 'kitchen chimney', 'baffle filter', 'exhaust motor', 'chimney filter'],
+    'induction_kettle_coil_failure': ['induction', 'induction stove', 'induction cooktop', 'kettle', 'electric kettle'],
+    'dishwasher_drainage_issue': ['dishwasher', 'dish washer', 'spray arm'],
+    'solar_water_heater_issue': ['solar water heater', 'solar heater', 'heat pump', 'solar geyser', 'vacuum tube'],
+    'smart_doorbell_cctv_fault': ['doorbell', 'video doorbell', 'smart doorbell', 'cctv', 'cctv camera', 'security camera', 'intercom', 'dvr', 'nvr'],
+    'sliding_window_roller_glass': ['sliding window', 'window roller', 'window track', 'upvc window', 'aluminum window', 'glass pane'],
+    'bathroom_tile_grouting_seepage': ['tile grouting', 'grout', 'anti-skid tile', 'regrouting', 'epoxy grout', 'shower area'],
+    'wood_termite_damage': ['termite', 'termites', 'wood borer', 'deemak', 'white ants'],
+    'balcony_pulley_wire_snap': ['pulley', 'clothes drying pulley', 'ceiling pulley', 'drying stand', 'balcony pulley'],
   };
 
   // Comprehensive guardrail against non-household requests (negative test cases)
@@ -1118,49 +1605,196 @@ class SymptomCatalog {
     'gun', 'weapon', 'spaceship', 'rocket', 'alien',
   };
 
-  /// Check whether a word or phrase matches inside text with exact word boundaries.
+  // ---------------------------------------------------------------------
+  // Phonetic & Fuzzy STT Normalization
+  // ---------------------------------------------------------------------
+  static const Map<String, String> _phoneticSubstitutions = {
+    'motar': 'motor',
+    'motur': 'motor',
+    'plamber': 'plumber',
+    'plammar': 'plumber',
+    'plamer': 'plumber',
+    'nalwala': 'plumber',
+    'geysar': 'geyser',
+    'jyser': 'geyser',
+    'giser': 'geyser',
+    'geger': 'geyser',
+    'frige': 'fridge',
+    'freez': 'fridge',
+    'frize': 'fridge',
+    'mixi': 'mixie',
+    'miksy': 'mixie',
+    'mixy': 'mixie',
+    'karant': 'current',
+    'karand': 'current',
+    'panka': 'fan',
+    'pankha': 'fan',
+    'carpantar': 'carpenter',
+    'mistari': 'carpenter',
+    'wirin': 'wiring',
+    'wireing': 'wiring',
+    'swich': 'switch',
+    'swichboard': 'switchboard',
+    'leeking': 'leak',
+    'lik': 'leak',
+    // Additional regional phonetic / STT dialect slips
+    'istove': 'stove',
+    'isteve': 'stove',
+    'iswitch': 'switch',
+    'iswitchboard': 'switchboard',
+    'fyan': 'fan',
+    'phyan': 'fan',
+    'kol': 'tap',
+    'karentu': 'current',
+    'karrent': 'current',
+    'plambaru': 'plumber',
+    'palambar': 'plumber',
+    'indukshun': 'induction',
+    'indakshun': 'induction',
+    'kittli': 'kettle',
+    'ketli': 'kettle',
+    'chimni': 'chimney',
+    'chimney': 'chimney',
+    'dishwaser': 'dishwasher',
+    'dishwasar': 'dishwasher',
+    'dorbel': 'doorbell',
+    'dorebell': 'doorbell',
+    'cictv': 'cctv',
+    'sisitivi': 'cctv',
+    'termait': 'termite',
+    'turmite': 'termite',
+    'pulli': 'pulley',
+    'puli': 'pulley',
+    'solaar': 'solar',
+    'saump': 'sump',
+    'isump': 'sump',
+    'iflot': 'float',
+    'iglass': 'glass',
+    'girout': 'grout',
+    'igrout': 'grout',
+  };
+
+  /// Computes bounded Levenshtein distance between [s] and [t].
+  static int _levenshtein(String s, String t, {int maxDistance = 2}) {
+    if (s == t) return 0;
+    if (s.isEmpty) return t.length;
+    if (t.isEmpty) return s.length;
+    if ((s.length - t.length).abs() > maxDistance) return maxDistance + 1;
+
+    List<int> v0 = List<int>.generate(t.length + 1, (i) => i);
+    List<int> v1 = List<int>.filled(t.length + 1, 0);
+
+    for (int i = 0; i < s.length; i++) {
+      v1[0] = i + 1;
+      int minRowVal = v1[0];
+
+      for (int j = 0; j < t.length; j++) {
+        final cost = (s.codeUnitAt(i) == t.codeUnitAt(j)) ? 0 : 1;
+        v1[j + 1] = min(v0[j + 1] + 1, min(v1[j] + 1, v0[j] + cost));
+        if (v1[j + 1] < minRowVal) {
+          minRowVal = v1[j + 1];
+        }
+      }
+
+      if (minRowVal > maxDistance) {
+        return maxDistance + 1;
+      }
+
+      for (int j = 0; j <= t.length; j++) {
+        v0[j] = v1[j];
+      }
+    }
+
+    return v0[t.length];
+  }
+
+  /// Checks if any word in [text] is within fuzzy edit distance of [token].
+  /// Enforces token.length >= 5 and strict distance bounds to prevent false matches.
+  static bool _fuzzyMatchesToken(String text, String token) {
+    final t = token.trim().toLowerCase();
+    if (t.length < 5 || t.contains(' ')) return false;
+
+    final maxDist = t.length >= 8 ? 2 : 1;
+    final words = text.split(RegExp(r'[\s,.-]+')).where((w) => w.length >= 4);
+
+    for (final w in words) {
+      if ((w.length - t.length).abs() > maxDist) continue;
+      if (_levenshtein(w, t, maxDistance: maxDist) <= maxDist) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Check whether a word or phrase matches inside text with exact word boundaries,
+  /// with phonetic substitution and bounded fuzzy matching fallback.
   /// Prevents "ac" from matching "machine", "is" from matching "display", etc.
-  static bool _matchesWordOrPhrase(String text, String token) {
+  static bool _matchesWordOrPhrase(String text, String token, {bool allowFuzzy = false}) {
     final t = token.trim().toLowerCase();
     if (t.isEmpty) return false;
     if (t.contains(' ')) {
       return text.contains(t);
     }
     final reg = RegExp(r'\b' + RegExp.escape(t) + r'\b', caseSensitive: false);
-    return reg.hasMatch(text);
+    if (reg.hasMatch(text)) return true;
+
+    // Check phonetic dictionary: if any word in text maps to token
+    final words = text.split(RegExp(r'[\s,.-]+')).where((w) => w.isNotEmpty);
+    for (final w in words) {
+      if (_phoneticSubstitutions[w] == t) {
+        return true;
+      }
+    }
+
+    if (allowFuzzy && t.length >= 5) {
+      return _fuzzyMatchesToken(text, t);
+    }
+    return false;
   }
 
   /// Root-stem matcher: matches a word STARTING with [stem], with a left
-  /// word boundary but no right word boundary. This fixes the architectural
-  /// flaw where `\bpaint\b` rejected legitimate inflections like `painter`,
-  /// `painters`, or `paintwork`. Reserved for known, unambiguous trade-root
-  /// stems (e.g. `paint`, `plumb`, `electr`, `carpent`, `weld`, `mason`,
-  /// `clean`) — NOT used for generic short tokens that would over-match.
-  static bool _matchesStem(String text, String stem) {
+  /// word boundary but no right word boundary, with phonetic & fuzzy tolerance.
+  static bool _matchesStem(String text, String stem, {bool allowFuzzy = false}) {
     final s = stem.trim().toLowerCase();
     if (s.isEmpty) return false;
     if (s.contains(' ')) {
       return text.contains(s);
     }
     final reg = RegExp(r'\b' + RegExp.escape(s), caseSensitive: false);
-    return reg.hasMatch(text);
+    if (reg.hasMatch(text)) return true;
+
+    final words = text.split(RegExp(r'[\s,.-]+')).where((w) => w.isNotEmpty);
+    for (final w in words) {
+      final canon = _phoneticSubstitutions[w];
+      if (canon != null && canon.startsWith(s)) {
+        return true;
+      }
+    }
+
+    if (allowFuzzy && s.length >= 5) {
+      for (final w in words) {
+        if (w.length >= s.length - 1) {
+          final prefix = w.length >= s.length ? w.substring(0, s.length) : w;
+          if (_levenshtein(prefix, s, maxDistance: 1) <= 1) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /// Dual-text phrase matcher: checks a token/phrase against BOTH the
   /// filler-stripped query and the original raw (lowercased) query.
-  /// This is required because some conversational filler words in a few
-  /// regional languages are, by coincidence, also verb fragments inside a
-  /// legitimate multi-word vernacular symptom phrase (e.g. Tamil "varala"
-  /// is stripped as a standalone filler, but is also part of the phrase
-  /// "thani varala" = "water not coming"). Checking the untouched raw text
-  /// as a fallback guarantees such phrases are never lost to stripping.
-  static bool _matchesAny(String cleanedText, String rawText, String token) {
-    return _matchesWordOrPhrase(cleanedText, token) || _matchesWordOrPhrase(rawText, token);
+  static bool _matchesAny(String cleanedText, String rawText, String token, {bool allowFuzzy = false}) {
+    return _matchesWordOrPhrase(cleanedText, token, allowFuzzy: allowFuzzy) ||
+           _matchesWordOrPhrase(rawText, token, allowFuzzy: allowFuzzy);
   }
 
   /// Same dual-text guarantee as [_matchesAny], but for root-stem matching.
-  static bool _matchesStemAny(String cleanedText, String rawText, String stem) {
-    return _matchesStem(cleanedText, stem) || _matchesStem(rawText, stem);
+  static bool _matchesStemAny(String cleanedText, String rawText, String stem, {bool allowFuzzy = false}) {
+    return _matchesStem(cleanedText, stem, allowFuzzy: allowFuzzy) ||
+           _matchesStem(rawText, stem, allowFuzzy: allowFuzzy);
   }
 
   // ---------------------------------------------------------------------
@@ -1241,14 +1875,14 @@ class SymptomCatalog {
 
       var matched = false;
       for (final stem in stems) {
-        if (_matchesStemAny(cleanedQuery, rawLower, stem)) {
+        if (_matchesStemAny(cleanedQuery, rawLower, stem, allowFuzzy: true)) {
           matched = true;
           break;
         }
       }
       if (!matched) {
         for (final phrase in phrases) {
-          if (_matchesAny(cleanedQuery, rawLower, phrase)) {
+          if (_matchesAny(cleanedQuery, rawLower, phrase, allowFuzzy: true)) {
             matched = true;
             break;
           }
@@ -1274,7 +1908,11 @@ class SymptomCatalog {
   }
 
   /// Token-based local triage matching algorithm for instantaneous offline response.
-  static DiagnosticResult matchSymptom(String rawQuery) {
+  /// Supports optional [contextEquipmentHint] to disambiguate identical symptoms (e.g. water leak from AC vs plumbing).
+  static DiagnosticResult matchSymptom(
+    String rawQuery, {
+    String? contextEquipmentHint,
+  }) {
     final lowered = rawQuery.trim().toLowerCase();
     if (lowered.isEmpty) {
       return const DiagnosticResult(
@@ -1337,12 +1975,22 @@ class SymptomCatalog {
     for (final item in items) {
       int score = 0;
 
+      // Context Equipment Hint Disambiguation (+15 points)
+      if (contextEquipmentHint != null && contextEquipmentHint.isNotEmpty) {
+        final hint = contextEquipmentHint.toLowerCase().trim();
+        if (item.equipmentTag.toLowerCase().contains(hint) ||
+            hint.contains(item.equipmentTag.toLowerCase()) ||
+            item.title.toLowerCase().contains(hint)) {
+          score += 15;
+        }
+      }
+
       // 1. Primary Equipment Name Match (+20 points)
       // If customer explicitly mentions the equipment (e.g. "ac", "geyser", "motor"),
       // that equipment MUST take priority over unrelated appliances.
       final equipTokens = _equipmentTokens[item.id] ?? [];
       for (final eqTok in equipTokens) {
-        if (_matchesAny(query, lowered, eqTok)) {
+        if (_matchesAny(query, lowered, eqTok, allowFuzzy: true)) {
           score += 20;
           break; // Count once per item
         }
@@ -1350,17 +1998,17 @@ class SymptomCatalog {
 
       // 2. Specialized Symptom / Fault Descriptor Tokens
       for (final token in item.searchTokens) {
-        if (_matchesAny(query, lowered, token)) {
+        if (_matchesAny(query, lowered, token, allowFuzzy: true)) {
           score += (token.length > 5 ? 5 : 3);
         }
       }
 
       // 3. Content Word Overlap (Stopwords strictly excluded)
       for (final word in contentWords) {
-        if (_matchesWordOrPhrase(item.title.toLowerCase(), word)) {
+        if (_matchesWordOrPhrase(item.title.toLowerCase(), word, allowFuzzy: true)) {
           score += 4;
         }
-        if (_matchesWordOrPhrase(item.description.toLowerCase(), word)) {
+        if (_matchesWordOrPhrase(item.description.toLowerCase(), word, allowFuzzy: true)) {
           score += 2;
         }
       }
@@ -1373,21 +2021,29 @@ class SymptomCatalog {
 
     if (bestItem != null && bestScore >= 3) {
       final double confidence = min(0.95, 0.70 + (bestScore * 0.03));
+      final bool isDualDiscipline = bestItem.isAmbiguous &&
+          bestItem.secondaryCategory.isNotEmpty &&
+          bestItem.secondaryCategory != bestItem.primaryCategory;
+
+      final summary = isDualDiscipline
+          ? 'Cross-disciplinary issue: Primary dispatch routed to ${bestItem.primaryCategory}, with cross-trade ${bestItem.secondaryCategory} verification on-site.'
+          : 'Specialist match identified: ${bestItem.primaryCategory}.';
+
       return DiagnosticResult(
         symptomQuery: rawQuery,
         primaryCategory: bestItem.primaryCategory,
-        secondaryCategory: bestItem.secondaryCategory != bestItem.primaryCategory ? bestItem.secondaryCategory : null,
+        secondaryCategory: isDualDiscipline
+            ? bestItem.secondaryCategory
+            : (bestItem.secondaryCategory != bestItem.primaryCategory ? bestItem.secondaryCategory : null),
         confidence: confidence,
         equipmentTag: bestItem.equipmentTag,
-        summary: bestItem.isAmbiguous
-            ? 'Cross-disciplinary issue: Both ${bestItem.primaryCategory} and ${bestItem.secondaryCategory} skill sets may be relevant.'
-            : 'Specialist match identified: ${bestItem.primaryCategory}.',
+        summary: summary,
         likelyCauses: bestItem.likelyCauses,
         clarifyingQuestions: bestItem.clarifyingQuestions,
         suggestedKeywords: bestItem.searchTokens.take(4).toList(),
         suggestedToolsNeeded: bestItem.suggestedToolsNeeded,
-        requiresSmartDiagnosticVisit: bestItem.isAmbiguous,
-        diagnosticFee: 99.0,
+        requiresSmartDiagnosticVisit: bestItem.isAmbiguous || isDualDiscipline,
+        diagnosticFee: isDualDiscipline ? 149.0 : 99.0,
         isAiGenerated: false,
       );
     }

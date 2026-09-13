@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
+import 'package:workgo_core/workgo_core.dart';
 
 /// On-device and resilient multi-tier translation service for dynamic Firebase
 /// content, AI-generated diagnoses, worker skills, and customer locations.
@@ -26,6 +27,12 @@ class MlTranslationService {
   static const _supportedTargets = {
     'hi': TranslateLanguage.hindi,
     'ta': TranslateLanguage.tamil,
+    'te': TranslateLanguage.telugu,
+    'kn': TranslateLanguage.kannada,
+    'mr': TranslateLanguage.marathi,
+    'bn': TranslateLanguage.bengali,
+    'gu': TranslateLanguage.gujarati,
+    'ur': TranslateLanguage.urdu,
   };
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -258,7 +265,7 @@ class MlTranslationService {
     return 'en';
   }
 
-  /// Instant synchronous translation lookup (Cache -> Dictionary -> Fallback to original text).
+  /// Instant synchronous translation lookup (Cache -> Catalog Trade -> Dictionary -> Fallback to original text).
   /// Perfect for initial build frame to prevent UI flicker.
   String translateSync(String text, dynamic contextOrLocale, {bool isAddress = false}) {
     if (text.trim().isEmpty) return text;
@@ -268,9 +275,24 @@ class MlTranslationService {
     // If text already contains target language script, it is already localized
     if (locale == 'ta' && RegExp(r'[\u0B80-\u0BFF]').hasMatch(text)) return text;
     if (locale == 'hi' && RegExp(r'[\u0900-\u097F]').hasMatch(text)) return text;
+    if (locale == 'te' && RegExp(r'[\u0C00-\u0C7F]').hasMatch(text)) return text;
+    if (locale == 'kn' && RegExp(r'[\u0C80-\u0CFF]').hasMatch(text)) return text;
+    if (locale == 'ml' && RegExp(r'[\u0D00-\u0D7F]').hasMatch(text)) return text;
+    if (locale == 'bn' && RegExp(r'[\u0980-\u09FF]').hasMatch(text)) return text;
+    if (locale == 'gu' && RegExp(r'[\u0A80-\u0AFF]').hasMatch(text)) return text;
+    if (locale == 'mr' && RegExp(r'[\u0900-\u097F]').hasMatch(text)) return text;
 
     final cacheKey = '$locale:$text';
     if (_cache.containsKey(cacheKey)) return _cache[cacheKey]!;
+
+    // 0. Instant trade catalog check
+    if (!isAddress) {
+      final trade = text.toLocalizedTrade();
+      if (trade != text) {
+        _cache[cacheKey] = trade;
+        return trade;
+      }
+    }
 
     if (isAddress) {
       return translateAddressSync(text, locale);
@@ -306,7 +328,7 @@ class MlTranslationService {
   }
 
   /// Translate [text] from English into the target locale.
-  /// Uses multi-tier strategy: Cache -> Smart Dict -> On-Device ML Kit -> Cloud Fallback.
+  /// Uses multi-tier strategy: Cache -> Catalog Trade -> Smart Dict -> On-Device ML Kit -> Cloud Fallback.
   Future<String> translate(
     String text,
     dynamic contextOrLocale, {
@@ -319,12 +341,24 @@ class MlTranslationService {
     // If text already contains target language script, it is already localized
     if (locale == 'ta' && RegExp(r'[\u0B80-\u0BFF]').hasMatch(text)) return text;
     if (locale == 'hi' && RegExp(r'[\u0900-\u097F]').hasMatch(text)) return text;
-
-    final targetLang = _supportedTargets[locale];
-    if (targetLang == null) return text;
+    if (locale == 'te' && RegExp(r'[\u0C00-\u0C7F]').hasMatch(text)) return text;
+    if (locale == 'kn' && RegExp(r'[\u0C80-\u0CFF]').hasMatch(text)) return text;
+    if (locale == 'ml' && RegExp(r'[\u0D00-\u0D7F]').hasMatch(text)) return text;
+    if (locale == 'bn' && RegExp(r'[\u0980-\u09FF]').hasMatch(text)) return text;
+    if (locale == 'gu' && RegExp(r'[\u0A80-\u0AFF]').hasMatch(text)) return text;
+    if (locale == 'mr' && RegExp(r'[\u0900-\u097F]').hasMatch(text)) return text;
 
     final cacheKey = '$locale:$text';
     if (_cache.containsKey(cacheKey)) return _cache[cacheKey]!;
+
+    // 0. Instant trade catalog check
+    if (!isAddress) {
+      final trade = text.toLocalizedTrade();
+      if (trade != text) {
+        _cache[cacheKey] = trade;
+        return trade;
+      }
+    }
 
     // 1. Check Smart Dictionary
     final dict = _phraseDictionary[locale];
@@ -346,21 +380,24 @@ class MlTranslationService {
       }
     }
 
-    // 2. Try On-Device Google ML Kit
-    try {
-      final modelReady = await _ensureModel(targetLang);
-      if (modelReady) {
-        final translator = _translators[locale] ??= OnDeviceTranslator(
-          sourceLanguage: TranslateLanguage.english,
-          targetLanguage: targetLang,
-        );
-        final translated = await translator.translateText(candidateText);
-        if (translated.trim().isNotEmpty && translated != candidateText) {
-          _cache[cacheKey] = translated;
-          return translated;
+    // 2. Try On-Device Google ML Kit (for supported languages)
+    final targetLang = _supportedTargets[locale];
+    if (targetLang != null) {
+      try {
+        final modelReady = await _ensureModel(targetLang);
+        if (modelReady) {
+          final translator = _translators[locale] ??= OnDeviceTranslator(
+            sourceLanguage: TranslateLanguage.english,
+            targetLanguage: targetLang,
+          );
+          final translated = await translator.translateText(candidateText);
+          if (translated.trim().isNotEmpty && translated != candidateText) {
+            _cache[cacheKey] = translated;
+            return translated;
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
 
     // 3. Fallback: Lightweight Cloud Google Translate API
     try {
@@ -399,22 +436,18 @@ class MlTranslationService {
     try {
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
       final url = Uri.parse(
-        'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encodeComponent(text)}',
+        'https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=$targetLang&q=${Uri.encodeComponent(text)}',
       );
       final request = await client.getUrl(url);
       final response = await request.close();
       if (response.statusCode == 200) {
         final responseBody = await response.transform(utf8.decoder).join();
         final decoded = jsonDecode(responseBody);
-        if (decoded is List && decoded.isNotEmpty && decoded[0] is List) {
-          final buffer = StringBuffer();
-          for (final item in decoded[0]) {
-            if (item is List && item.isNotEmpty && item[0] != null) {
-              buffer.write(item[0].toString());
-            }
-          }
-          final res = buffer.toString().trim();
+        if (decoded is List && decoded.isNotEmpty && decoded[0] != null) {
+          final res = decoded[0].toString().trim();
           if (res.isNotEmpty) return res;
+        } else if (decoded is String && decoded.trim().isNotEmpty) {
+          return decoded.trim();
         }
       }
     } catch (_) {}

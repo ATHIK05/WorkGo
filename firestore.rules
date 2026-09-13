@@ -52,6 +52,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Locales & UI Translations: Publicly readable so onboarding and login screens localize instantly
+    match /locales/{localeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Default authenticated fallback for all other collections (bookings, users, reviews)
     match /{document=**} {
       allow read, write: if isAuthenticated();

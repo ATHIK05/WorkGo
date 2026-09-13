@@ -12,6 +12,7 @@ import '../services/karya_equipment_engine.dart';
 import '../services/karya_tts_service.dart';
 import '../widgets/handoff_specialist_sheet.dart';
 import '../widgets/karya_start_otp_sheet.dart';
+import '../widgets/sos_beacon_bottom_sheet.dart';
 
 class ActiveJobScreen extends StatefulWidget {
   const ActiveJobScreen({
@@ -77,9 +78,11 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         distanceFilter: 3,
         intervalDuration: const Duration(seconds: 4),
         foregroundNotificationConfig: ForegroundNotificationConfig(
-          notificationTitle: "WorkGo · Live Tracking Active 📍",
+          notificationTitle: "WorkGo · Live Tracking Active",
           notificationText: "Transmitting your road GPS for $serviceName...",
           enableWakeLock: true,
+          notificationIcon: const AndroidResource(name: 'ic_stat_workgo', defType: 'drawable'),
+          color: const Color(0xFFFFB800),
         ),
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
@@ -528,11 +531,32 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         base64Data: base64String,
       );
 
+      final now = DateTime.now();
+      final started = widget.booking.startedAt ?? now;
+      final actualDuration = now.difference(started);
+
+      final upfront = widget.booking.parsedFareBreakdown ??
+          CooperativePricingEngine.instance.calculateFare(
+            category: widget.booking.serviceType,
+            distanceKm: widget.booking.distanceTo(widget.booking.workerLatitude, widget.booking.workerLongitude),
+            experienceYears: widget.worker.experienceYears,
+            isEmergency: widget.booking.isEmergency,
+            urgencyTip: widget.booking.urgencyBonus,
+          );
+
+      final finalSettlementFare = CooperativePricingEngine.instance.calculateFinalSettlementFare(
+        upfrontFare: upfront,
+        actualDuration: actualDuration,
+      );
+
       // Atomically submit Base64 photo proof & C2PA manifest in Firestore, transitioning to paymentPending
       await _bookingService.submitWorkProof(
         bookingId: widget.booking.id,
         proofPhotoBase64: base64String,
         c2paManifest: manifest.toMap(),
+        completedAt: now,
+        fareBreakdown: finalSettlementFare.toMap(),
+        finalAmount: finalSettlementFare.totalEstimatedFare,
       );
 
       if (mounted) {
@@ -553,7 +577,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    "${'work_completed_payment_due'.tr()} • ₹${widget.booking.totalAmount.toStringAsFixed(0)}",
+                    "${'work_completed_payment_due'.tr()} • ₹${finalSettlementFare.totalEstimatedFare.toStringAsFixed(0)}",
                     style: WorkGoFonts.body(color: Colors.white),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -762,6 +786,57 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
           appBar: KaryaAppBar(
             title: "Tactical Job HUD",
             subtitle: "Booking #$shortId · ${currentBooking.serviceType}",
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: InkWell(
+                    onTap: () {
+                      showSosBeaconBottomSheet(
+                        context,
+                        worker: widget.worker,
+                        bookingId: currentBooking.id,
+                        customerId: currentBooking.customerId,
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFDC2626),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.emergency_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'SOS',
+                            style: TextStyle(
+                              color: Color(0xFFDC2626),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -1467,7 +1542,8 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
     final hasDiagnosticContext = (booking.equipmentTag?.isNotEmpty == true) ||
         (booking.customerIssueDetails?.isNotEmpty == true) ||
         (booking.symptomDescription?.isNotEmpty == true) ||
-        booking.suggestedToolsNeeded.isNotEmpty;
+        booking.suggestedToolsNeeded.isNotEmpty ||
+        _hasAiSuggestions;
 
     return KaryaCard(
       padding: const EdgeInsets.all(16),
@@ -1841,12 +1917,16 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                                   color: isChecked ? const Color(0xFF059669) : KX.textMuted,
                                 ),
                                 const SizedBox(width: 6),
-                                Text(
-                                  tool,
-                                  style: TextStyle(
-                                    color: isChecked ? const Color(0xFF065F46) : KX.textPrimary,
-                                    fontSize: 11,
-                                    fontWeight: isChecked ? FontWeight.w800 : FontWeight.w600,
+                                Flexible(
+                                  child: Text(
+                                    tool,
+                                    style: TextStyle(
+                                      color: isChecked ? const Color(0xFF065F46) : KX.textPrimary,
+                                      fontSize: 11,
+                                      fontWeight: isChecked ? FontWeight.w800 : FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -2120,9 +2200,10 @@ class _PayoutLedgerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fare = booking.parsedFareBreakdown;
     final gross = booking.amount;
-    final welfare = gross * 0.02;
-    final netPayout = gross - welfare;
+    final welfare = fare?.welfareContributionFare ?? (gross * 0.02);
+    final netPayout = fare?.workerTakeHomeFare ?? (gross - welfare);
 
     return KaryaCard(
       padding: const EdgeInsets.all(16),
@@ -2133,14 +2214,19 @@ class _PayoutLedgerCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Payout Breakdown",
-                style: WorkGoFonts.display(
-                  color: KX.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  'fare_breakdown'.tr(),
+                  style: WorkGoFonts.display(
+                    color: KX.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 "₹${netPayout.toStringAsFixed(0)} Net",
                 style: WorkGoFonts.display(
@@ -2152,23 +2238,166 @@ class _PayoutLedgerCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Gross Fee", style: TextStyle(color: KX.textSecondary, fontSize: 12)),
-              Text("₹${gross.toStringAsFixed(0)}", style: const TextStyle(color: KX.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
-            ],
+
+          // Base Visit & Diagnostics (covers first 45 mins)
+          _buildRow(
+            'base_visit_fare'.tr(),
+            fare != null ? fare.formattedBase : "₹${(gross * 0.7).toStringAsFixed(0)}",
+            subtitle: 'first_45_mins_included'.tr(),
           ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Co-op Welfare (2%)", style: TextStyle(color: KX.textSecondary, fontSize: 12)),
-              Text("-₹${welfare.toStringAsFixed(0)}", style: const TextStyle(color: KX.emeraldLight, fontSize: 12)),
-            ],
+
+          // Duration / Overtime Extensions
+          if (fare != null && fare.actualDurationMinutes > 0) ...[
+            const SizedBox(height: 6),
+            _buildRow(
+              'actual_time_spent'.tr(),
+              "${fare.actualDurationMinutes} mins",
+              subtitle: fare.timeExtensionSlabs > 0
+                  ? "${fare.timeExtensionSlabs} x ₹60 (${fare.formattedTimeExtension})"
+                  : "Within 45 min base window",
+              isBonus: fare.timeExtensionFare > 0,
+            ),
+          ] else if (fare != null) ...[
+            const SizedBox(height: 6),
+            _buildRow(
+              'overtime_extension'.tr(),
+              "₹60 / 30m",
+              subtitle: 'overtime_rate_disclosure'.tr(),
+            ),
+          ],
+
+          // Distance Transit Fuel
+          if (fare != null && fare.distanceTransitFare > 0) ...[
+            const SizedBox(height: 6),
+            _buildRow(
+              'transit_distance_fare'.tr(),
+              fare.formattedTransit,
+              subtitle: fare.formattedDistance,
+            ),
+          ],
+
+          // Tool / Heavy Equipment allowance
+          if (fare != null && fare.toolAllowance > 0) ...[
+            const SizedBox(height: 6),
+            _buildRow(
+              'tool_machinery_allowance'.tr(),
+              fare.formattedToolAllowance,
+              subtitle: fare.toolType,
+            ),
+          ],
+
+          // Seniority bonus
+          if (fare != null && fare.experienceBonus > 0) ...[
+            const SizedBox(height: 6),
+            _buildRow(
+              'experience_bonus'.tr(),
+              fare.formattedExperienceBonus,
+              subtitle: "${fare.experienceYears} yrs experience",
+              isBonus: true,
+            ),
+          ],
+
+          // Direct Tip
+          if (booking.urgencyBonus > 0) ...[
+            const SizedBox(height: 6),
+            _buildRow(
+              'urgency_priority_tip'.tr(),
+              "+₹${booking.urgencyBonus.toStringAsFixed(0)}",
+              subtitle: "100% direct artisan tip",
+              isBonus: true,
+            ),
+          ],
+
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Divider(color: Color(0xFFE5E7EB), height: 1),
+          ),
+
+          // Co-op Welfare
+          _buildRow(
+            'coop_welfare_contribution'.tr(),
+            "-₹${welfare.toStringAsFixed(1)}",
+            subtitle: 'welfare_fund_benefit'.tr(),
+            isWelfare: true,
+          ),
+
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 14),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'worker_take_home'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF065F46),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  "₹${netPayout.toStringAsFixed(0)}",
+                  style: const TextStyle(
+                    color: Color(0xFF065F46),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRow(String label, String value, {String? subtitle, bool isBonus = false, bool isWelfare = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(color: KX.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (subtitle != null && subtitle.isNotEmpty)
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: KX.textMuted, fontSize: 10, fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          value,
+          style: TextStyle(
+            color: isWelfare
+                ? KX.emeraldLight
+                : (isBonus ? KX.gold : KX.textPrimary),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

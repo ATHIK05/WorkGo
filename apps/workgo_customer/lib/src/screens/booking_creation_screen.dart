@@ -36,8 +36,13 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     with TickerProviderStateMixin {
   late bool _isEmergency;
   double _urgencyTip = 0.0;
-  int _selectedDayIndex = 0;
+
+  // Flexible Booking Time State: "immediate", "custom", "slot"
+  String _bookingTimeMode = "immediate";
+  DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedCustomTime = TimeOfDay.fromDateTime(DateTime.now().add(const Duration(hours: 1)));
   String _selectedSlot = "slot_morning";
+
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -48,6 +53,133 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
   bool _isSubmitting = false;
 
   late AnimationController _emergencyCtrl;
+
+  DateTime get _effectiveScheduledDateTime {
+    final now = DateTime.now();
+    if (_bookingTimeMode == "immediate") {
+      return now;
+    } else if (_bookingTimeMode == "custom") {
+      return DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedCustomTime.hour,
+        _selectedCustomTime.minute,
+      );
+    } else {
+      int hour = 10;
+      if (_selectedSlot == "slot_afternoon") hour = 14;
+      if (_selectedSlot == "slot_evening") hour = 17;
+      return DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        hour,
+        0,
+      );
+    }
+  }
+
+  Future<void> _pickServiceLocationOnMap() async {
+    final initialLat = (_selectedAddress != null && _selectedAddress!.latitude > 1.0)
+        ? _selectedAddress!.latitude
+        : widget.customerLat;
+    final initialLng = (_selectedAddress != null && _selectedAddress!.longitude > 1.0)
+        ? _selectedAddress!.longitude
+        : widget.customerLng;
+
+    final picked = await showInteractiveMapPickerSheet(
+      context,
+      initialLatitude: initialLat,
+      initialLongitude: initialLng,
+      initialAddress: _selectedAddress?.fullDisplayAddress,
+    );
+
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedAddress = picked;
+        _addressController.text = picked.fullDisplayAddress;
+      });
+    }
+  }
+
+  Future<void> _pickCustomTime() async {
+    final now = DateTime.now();
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: _selectedCustomTime,
+      builder: (ctx, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E1035),
+              onPrimary: Color(0xFFFFB800),
+              surface: Colors.white,
+              onSurface: Color(0xFF0F172A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime != null && mounted) {
+      final isToday = _selectedDate.year == now.year &&
+          _selectedDate.month == now.month &&
+          _selectedDate.day == now.day;
+      if (isToday) {
+        final pickedDateTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+        if (pickedDateTime.isBefore(now.add(const Duration(minutes: 25)))) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("please_select_future_time".trSafe("Please select a time at least 30 minutes from now.")),
+              backgroundColor: const Color(0xFF1E1035),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+          return;
+        }
+      }
+
+      setState(() {
+        _bookingTimeMode = "custom";
+        _selectedCustomTime = pickedTime;
+      });
+    }
+  }
+
+  Future<void> _pickCustomDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 14)),
+      builder: (ctx, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1E1035),
+              onPrimary: Color(0xFFFFB800),
+              surface: Colors.white,
+              onSurface: Color(0xFF0F172A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedDate = picked);
+    }
+  }
 
   @override
   void initState() {
@@ -335,13 +467,15 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         amount: totalAmount - _urgencyTip,
         urgencyBonus: _urgencyTip,
         isEmergency: _isEmergency,
-        scheduledAt: DateTime.now().add(Duration(days: _selectedDayIndex)),
+        scheduledAt: _effectiveScheduledDateTime,
         customerAddressText: addressText,
         customerLatitude: custLat,
         customerLongitude: custLng,
         customerName: _customerName,
         customerPhone: contactPhone,
         customerEmail: _customerEmail,
+        customerIssueDetails: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+        fareBreakdown: fare.toMap(),
       );
 
       if (mounted) {
@@ -453,108 +587,286 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
               ),
               const SizedBox(height: 20),
 
-              // Date Selection
+              // Flexible Service Appointment Time
               SlideFadeIn(
                 delay: const Duration(milliseconds: 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _sectionLabel('select_date'.tr()),
+                    _sectionLabel('select_service_time'.trSafe("Service Appointment Time")),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DayChip(
-                            index: 0,
-                            selected: _selectedDayIndex == 0,
-                            label: "date_today".tr(),
-                            sub: "date_today_sub".tr(),
-                            onTap: () =>
-                                setState(() => _selectedDayIndex = 0),
+
+                    // 3 Mode Selector Pills: Immediate (ASAP), Specific Time, Convenience Slots
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _buildTimeModePill(
+                              modeKey: "immediate",
+                              icon: Icons.bolt_rounded,
+                              label: "booking_time_immediate".trSafe("Immediate"),
+                              isSelected: _bookingTimeMode == "immediate",
+                              onTap: () => setState(() => _bookingTimeMode = "immediate"),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: _buildTimeModePill(
+                              modeKey: "custom",
+                              icon: Icons.schedule_rounded,
+                              label: "booking_time_custom".trSafe("Exact Time"),
+                              isSelected: _bookingTimeMode == "custom",
+                              onTap: () => setState(() => _bookingTimeMode = "custom"),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: _buildTimeModePill(
+                              modeKey: "slot",
+                              icon: Icons.view_agenda_rounded,
+                              label: "booking_time_slots".trSafe("Slots"),
+                              isSelected: _bookingTimeMode == "slot",
+                              onTap: () => setState(() => _bookingTimeMode = "slot"),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Mode Details
+                    if (_bookingTimeMode == "immediate") ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFFDE59),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.flash_on_rounded, color: Color(0xFF1E1035), size: 18),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "immediate_arrival_notice".trSafe("Instant Dispatch Radar"),
+                                    style: const TextStyle(color: Color(0xFF92400E), fontSize: 13, fontWeight: FontWeight.w800),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "immediate_arrival_desc".trSafe("Dispatched to nearby artisan immediately. Expected arrival in 30–45 mins."),
+                                    style: const TextStyle(color: Color(0xFFB45309), fontSize: 11.5, height: 1.3),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      // Date Selector Row (Today, Tomorrow, Pick Date)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildDatePill(
+                              label: "date_today".trSafe("Today"),
+                              sub: DateFormat('d MMM').format(DateTime.now()),
+                              isSelected: _isSameDay(_selectedDate, DateTime.now()),
+                              onTap: () => setState(() => _selectedDate = DateTime.now()),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildDatePill(
+                              label: "date_tomorrow".trSafe("Tomorrow"),
+                              sub: DateFormat('d MMM').format(DateTime.now().add(const Duration(days: 1))),
+                              isSelected: _isSameDay(_selectedDate, DateTime.now().add(const Duration(days: 1))),
+                              onTap: () => setState(() => _selectedDate = DateTime.now().add(const Duration(days: 1))),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildDatePill(
+                              label: "date_pick_calendar".trSafe("Calendar"),
+                              sub: !_isSameDay(_selectedDate, DateTime.now()) &&
+                                      !_isSameDay(_selectedDate, DateTime.now().add(const Duration(days: 1)))
+                                  ? DateFormat('d MMM').format(_selectedDate)
+                                  : "pick_date_sub".trSafe("14 Days"),
+                              isSelected: !_isSameDay(_selectedDate, DateTime.now()) &&
+                                  !_isSameDay(_selectedDate, DateTime.now().add(const Duration(days: 1))),
+                              onTap: _pickCustomDate,
+                              icon: Icons.calendar_month_rounded,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      if (_bookingTimeMode == "custom") ...[
+                        // Custom Specific Time Box
+                        InkWell(
+                          onTap: _pickCustomTime,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFD97706), width: 1.3),
+                              boxShadow: const [
+                                BoxShadow(color: Color(0x0C000000), blurRadius: 8, offset: Offset(0, 2)),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.access_time_filled_rounded, color: Color(0xFFD97706), size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "selected_time_label".trSafe("Target Service Time"),
+                                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _selectedCustomTime.format(context),
+                                        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.w900),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E1035),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.edit_calendar_rounded, color: Color(0xFFFFB800), size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        "change_time_btn".trSafe("Change"),
+                                        style: const TextStyle(color: Color(0xFFFFB800), fontSize: 11.5, fontWeight: FontWeight.w800),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _DayChip(
-                            index: 1,
-                            selected: _selectedDayIndex == 1,
-                            label: "date_tomorrow".tr(),
-                            sub: "date_tomorrow_sub".tr(),
-                            onTap: () =>
-                                setState(() => _selectedDayIndex = 1),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _DayChip(
-                            index: 2,
-                            selected: _selectedDayIndex == 2,
-                            label: "date_scheduled".tr(),
-                            sub: "date_scheduled_sub".tr(),
-                            onTap: () =>
-                                setState(() => _selectedDayIndex = 2),
-                          ),
+                      ] else ...[
+                        // Slots Row: Morning, Afternoon, Evening
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _SlotChip(
+                                slotKey: "slot_morning",
+                                timeRange: "9 AM–12 PM",
+                                icon: Icons.wb_sunny_rounded,
+                                iconColor: CX.amber,
+                                selected: _selectedSlot == "slot_morning",
+                                onTap: () => setState(() => _selectedSlot = "slot_morning"),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _SlotChip(
+                                slotKey: "slot_afternoon",
+                                timeRange: "12–4 PM",
+                                icon: Icons.wb_cloudy_rounded,
+                                iconColor: CX.cyan,
+                                selected: _selectedSlot == "slot_afternoon",
+                                onTap: () => setState(() => _selectedSlot = "slot_afternoon"),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _SlotChip(
+                                slotKey: "slot_evening",
+                                timeRange: "4–8 PM",
+                                icon: Icons.nights_stay_rounded,
+                                iconColor: CX.violetLight,
+                                selected: _selectedSlot == "slot_evening",
+                                onTap: () => setState(() => _selectedSlot = "slot_evening"),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
+                    ],
+                    const SizedBox(height: 10),
+
+                    // Formatted Appointment Summary Banner
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.event_available_rounded, color: Color(0xFF059669), size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _bookingTimeMode == "immediate"
+                                  ? "immediate_summary_badge".trSafe("Immediate: Dispatched As Soon As Possible (Next 30–45 mins)")
+                                  : (_bookingTimeMode == "custom"
+                                      ? "custom_time_summary_badge".trSafe("Scheduled for {} at {}", [DateFormat('EEE, d MMM').format(_selectedDate), _selectedCustomTime.format(context)])
+                                      : "slot_summary_badge".trSafe("Scheduled for {} ({})", [DateFormat('EEE, d MMM').format(_selectedDate), _selectedSlot.tr()])),
+                              style: const TextStyle(color: Color(0xFF334155), fontSize: 11.5, fontWeight: FontWeight.w700),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
-              // Time Slots
-              SlideFadeIn(
-                delay: const Duration(milliseconds: 140),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionLabel('select_slot'.tr()),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _SlotChip(
-                            slotKey: "slot_morning",
-                            timeRange: "9 AM–12 PM",
-                            icon: Icons.wb_sunny_rounded,
-                            iconColor: CX.amber,
-                            selected: _selectedSlot == "slot_morning",
-                            onTap: () =>
-                                setState(() => _selectedSlot = "slot_morning"),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _SlotChip(
-                            slotKey: "slot_afternoon",
-                            timeRange: "12–4 PM",
-                            icon: Icons.wb_cloudy_rounded,
-                            iconColor: CX.cyan,
-                            selected: _selectedSlot == "slot_afternoon",
-                            onTap: () => setState(
-                                () => _selectedSlot = "slot_afternoon"),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _SlotChip(
-                            slotKey: "slot_evening",
-                            timeRange: "4–8 PM",
-                            icon: Icons.nights_stay_rounded,
-                            iconColor: CX.violetLight,
-                            selected: _selectedSlot == "slot_evening",
-                            onTap: () =>
-                                setState(() => _selectedSlot = "slot_evening"),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Dedicated Service Address Card with 1-Tap Switcher
+              // Dedicated Service Address Card with Map Picker & Switcher
               SlideFadeIn(
                 delay: const Duration(milliseconds: 180),
                 child: Column(
@@ -565,61 +877,104 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                       children: [
                         Flexible(child: _sectionLabel('address'.tr())),
                         Flexible(
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () async {
-                              final chosen = await showAddressManagementSheet(
-                                context,
-                                userId: widget.customerId,
-                                userRole: "customer",
-                                selectedAddress: _selectedAddress,
-                              );
-                              if (chosen != null && mounted) {
-                                final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
-                                  addressText: chosen.fullDisplayAddress,
-                                  latitude: chosen.latitude,
-                                  longitude: chosen.longitude,
-                                  fallbackLat: widget.customerLat,
-                                  fallbackLng: widget.customerLng,
-                                );
-                                final validLat = sanitized["latitude"] ?? chosen.latitude;
-                                final validLng = sanitized["longitude"] ?? chosen.longitude;
-                                final effectiveAddr = chosen.copyWith(latitude: validLat, longitude: validLng);
-                                setState(() {
-                                  _selectedAddress = effectiveAddr;
-                                  _addressController.text = effectiveAddr.fullDisplayAddress;
-                                });
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              // Pick on Map Button
+                              InkWell(
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xFFFDE68A), width: 1),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.swap_horiz_rounded, color: Color(0xFFD97706), size: 15),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      _selectedAddress != null
-                                          ? "change_address".tr(args: [_selectedAddress!.displayTitle])
-                                          : "select_saved_address".tr(),
-                                      style: const TextStyle(
-                                        color: Color(0xFFB45309),
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                onTap: _pickServiceLocationOnMap,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E1035),
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: const [
+                                      BoxShadow(color: Color(0x14000000), blurRadius: 4, offset: Offset(0, 1)),
+                                    ],
                                   ),
-                                ],
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.map_rounded, color: Color(0xFFFFB800), size: 14),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          "pick_on_map_btn".trSafe("Pick on Map"),
+                                          style: const TextStyle(
+                                            color: Color(0xFFFFB800),
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+
+                              // Saved Addresses Switcher
+                              InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () async {
+                                  final chosen = await showAddressManagementSheet(
+                                    context,
+                                    userId: widget.customerId,
+                                    userRole: "customer",
+                                    selectedAddress: _selectedAddress,
+                                  );
+                                  if (chosen != null && mounted) {
+                                    final sanitized = await LocationService.instance.resolveSanitizedCoordinates(
+                                      addressText: chosen.fullDisplayAddress,
+                                      latitude: chosen.latitude,
+                                      longitude: chosen.longitude,
+                                      fallbackLat: widget.customerLat,
+                                      fallbackLng: widget.customerLng,
+                                    );
+                                    final validLat = sanitized["latitude"] ?? chosen.latitude;
+                                    final validLng = sanitized["longitude"] ?? chosen.longitude;
+                                    final effectiveAddr = chosen.copyWith(latitude: validLat, longitude: validLng);
+                                    setState(() {
+                                      _selectedAddress = effectiveAddr;
+                                      _addressController.text = effectiveAddr.fullDisplayAddress;
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.swap_horiz_rounded, color: Color(0xFFD97706), size: 14),
+                                      const SizedBox(width: 3),
+                                      Flexible(
+                                        child: Text(
+                                          _selectedAddress != null
+                                              ? "change_address".tr(args: [_selectedAddress!.displayTitle])
+                                              : "select_saved_address".tr(),
+                                          style: const TextStyle(
+                                            color: Color(0xFFB45309),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -627,6 +982,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                     const SizedBox(height: 8),
                     _ServiceAddressCard(
                       address: _selectedAddress,
+                      onPickOnMapPressed: _pickServiceLocationOnMap,
                       onChangePressed: () async {
                         final chosen = await showAddressManagementSheet(
                           context,
@@ -915,6 +1271,131 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     );
   }
 
+  static bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  Widget _buildTimeModePill({
+    required String modeKey,
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E1035) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(color: Color(0x18000000), blurRadius: 6, offset: Offset(0, 2)),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: isSelected ? const Color(0xFFFFB800) : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF475569),
+                  fontSize: 11.5,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePill({
+    required String label,
+    required String sub,
+    required bool isSelected,
+    required VoidCallback onTap,
+    IconData? icon,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1E1035) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFFFB800) : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.5 : 1.1,
+          ),
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(color: Color(0x18000000), blurRadius: 8, offset: Offset(0, 3)),
+                ]
+              : const [
+                  BoxShadow(color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 1)),
+                ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 12, color: isSelected ? const Color(0xFFFFB800) : const Color(0xFF64748B)),
+                  const SizedBox(width: 3),
+                ],
+                Flexible(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              sub,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFFFFB800) : const Color(0xFF64748B),
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _sectionLabel(String text) {
     return Text(
       text,
@@ -937,10 +1418,12 @@ class _ServiceAddressCard extends StatelessWidget {
   const _ServiceAddressCard({
     required this.address,
     required this.onChangePressed,
+    this.onPickOnMapPressed,
   });
 
   final UserAddress? address;
   final VoidCallback onChangePressed;
+  final VoidCallback? onPickOnMapPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -1037,6 +1520,20 @@ class _ServiceAddressCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            if (onPickOnMapPressed != null) ...[
+              GestureDetector(
+                onTap: onPickOnMapPressed,
+                child: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1035),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.map_rounded, color: Color(0xFFFFB800), size: 15),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
@@ -1044,7 +1541,7 @@ class _ServiceAddressCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
               ),
-              child: const Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B), size: 18),
+              child: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF64748B), size: 16),
             ),
           ],
         ),
@@ -1462,85 +1959,6 @@ class _EmergencyToggleCard extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────
-//  DAY CHIP — High-Contrast Segmented Selector
-// ──────────────────────────────────────────────────────
-class _DayChip extends StatelessWidget {
-  const _DayChip({
-    required this.index,
-    required this.selected,
-    required this.label,
-    required this.sub,
-    required this.onTap,
-  });
-
-  final int index;
-  final bool selected;
-  final String label;
-  final String sub;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: CAnim.normal,
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF141416) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
-            width: selected ? 1.6 : 1.2,
-          ),
-          boxShadow: selected
-              ? const [
-                  BoxShadow(
-                    color: Color(0x28000000),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ]
-              : const [
-                  BoxShadow(
-                    color: Color(0x06000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-        ),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? Colors.white : const Color(0xFF1E293B),
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              sub,
-              style: TextStyle(
-                color: selected ? const Color(0xFFFBBF24) : const Color(0xFF64748B),
-                fontSize: 10.5,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────
 //  SLOT CHIP — Clean, Non-Truncating Time Range Selector
 // ──────────────────────────────────────────────────────
 class _SlotChip extends StatelessWidget {
@@ -1722,14 +2140,27 @@ class _PriceCard extends StatelessWidget {
 
           // Base Visit Fare
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  'base_visit_fare'.tr(),
-                  style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'base_visit_fare'.tr(),
+                      style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      'first_45_mins_included'.tr(),
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w500),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
@@ -1739,6 +2170,30 @@ class _PriceCard extends StatelessWidget {
                   color: Color(0xFF0F172A),
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Duration & Overtime Disclosure
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.access_time_rounded, size: 14, color: Color(0xFF64748B)),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        "${fare.estimatedJobDuration} • ${'overtime_rate_disclosure'.tr()}",
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1787,6 +2242,34 @@ class _PriceCard extends StatelessWidget {
                   "+₹${fare.experienceBonus.toStringAsFixed(0)}",
                   style: const TextStyle(
                     color: Color(0xFF059669),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          if (fare.toolAllowance > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    fare.toolType?.isNotEmpty == true
+                        ? "${'tool_machinery_allowance'.tr()} (${fare.toolType})"
+                        : 'tool_machinery_allowance'.tr(),
+                    style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  fare.formattedToolAllowance,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1912,6 +2395,35 @@ class _PriceCard extends StatelessWidget {
                     color: Color(0xFFB45309),
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Cooperative Impact & Social Security Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBBF7D0), width: 1),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.shield_outlined, color: Color(0xFF16A34A), size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'coop_guarantee_badge'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF15803D),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

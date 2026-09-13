@@ -18,6 +18,8 @@ import 'daily_face_verification_screen.dart';
 import '../widgets/karya_spotlight_tour.dart';
 import '../widgets/handoff_acknowledgment_dialog.dart';
 import '../widgets/karya_start_otp_sheet.dart';
+import '../widgets/sos_beacon_bottom_sheet.dart';
+import '../widgets/job_preparation_tools_sheet.dart';
 
 class KaryaHomeScreen extends StatefulWidget {
   const KaryaHomeScreen({
@@ -51,6 +53,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   static bool _hasPromptedThisSession = false;
   String? _lastAnnouncedRequestId; // TTS dedup tracker
   String? _lastAnnouncedPeerSosId; // Peer SOS TTS dedup tracker
+  String? _playingPeerSosAudioDocId; // Active SOS audio proof playback tracker
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -86,6 +89,12 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       languageCode: 'en', // will be updated per locale at runtime
     );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        await KaryaTtsService.instance.updateLanguage(
+          context.locale.languageCode,
+          announceChange: false,
+        );
+      }
       await _checkAndPromptWorkerLocation();
       try {
         final worker = await _workerService.fetchWorkerByUserId(
@@ -121,6 +130,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     if (KaryaHomeScreen._activeState == this) {
       KaryaHomeScreen._activeState = null;
     }
+    EmergencySosService.instance.stopAudioPlayback();
     _stopLiveLocationBroadcasting();
     _radarCtrl.dispose();
     _scrollController.dispose();
@@ -771,161 +781,20 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   }
 
   // ──────────────────────────────────────────────────────────────
-  //  SOS EMERGENCY BEACON SHEET
+  //  SOS EMERGENCY BEACON SHEET WITH LIVE GPS & 10S AUDIO RECORDING
   // ──────────────────────────────────────────────────────────────
-  void _showSosBeaconSheet(BuildContext context, Worker worker) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(22, 16, 22, 32),
-          decoration: BoxDecoration(
-            color: KX.canvasCard,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border.all(color: const Color(0xFFEF4444), width: 1.5),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: KX.dividerLight,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFEF4444),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.sos_rounded,
-                    color: Color(0xFFEF4444),
-                    size: 36,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'sos_beacon_title'.tr(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: KX.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Broadcast your live GPS coordinates to cooperative admins and active artisans within 5 km for immediate assistance.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: KX.textSecondary,
-                  fontSize: 12.5,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  HapticFeedback.heavyImpact();
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('emergency_beacons')
-                        .add({
-                          'workerId': worker.id,
-                          'workerName': widget.user.displayName.trim().isNotEmpty
-                              ? widget.user.displayName.trim()
-                              : (worker.name.trim().isNotEmpty ? worker.name.trim() : 'Artisan'),
-                          'workerPhone': (widget.user.phoneNumber != null && widget.user.phoneNumber!.trim().isNotEmpty)
-                              ? widget.user.phoneNumber!.trim()
-                              : (worker.phoneForCalling ?? ''),
-                          'createdAt': FieldValue.serverTimestamp(),
-                          'status': 'active',
-                          'latitude': worker.latitude,
-                          'longitude': worker.longitude,
-                          'address': worker.baseArea,
-                        });
-                  } catch (_) {}
-                  KaryaTtsService.instance.announce(
-                    'Emergency alert sent. Help is notified.',
-                  );
-                  if (sheetCtx.mounted) Navigator.of(sheetCtx).pop();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            const Icon(
-                              Icons.emergency_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'sos_beacon_sent'.tr(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        backgroundColor: const Color(0xFFDC2626),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.warning_amber_rounded, size: 18),
-                label: Text(
-                  'sos_beacon_confirm'.tr(),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () => Navigator.of(sheetCtx).pop(),
-                child: Text(
-                  'sos_beacon_cancelled'.tr(),
-                  style: const TextStyle(color: KX.textSecondary),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  void _showSosBeaconSheet(
+    BuildContext context,
+    Worker worker, {
+    String? bookingId,
+    String? customerId,
+  }) {
+    showSosBeaconBottomSheet(
+      context,
+      worker: worker,
+      user: widget.user,
+      bookingId: bookingId,
+      customerId: customerId,
     );
   }
 
@@ -958,6 +827,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         final address = data['address'] as String? ?? 'Nearby service location';
         final lat = (data['latitude'] as num?)?.toDouble();
         final lng = (data['longitude'] as num?)?.toDouble();
+        final audioBase64 = (data['audioBase64'] as String?) ?? '';
+        final hasAudio = (data['hasAudio'] as bool? ?? false) && audioBase64.isNotEmpty;
+        final policeMap = data['nearestPoliceStation'] as Map<String, dynamic>?;
+        final policeInfo = PoliceStationInfo.fromMap(policeMap);
 
         // Voice announce peer SOS if online and not yet announced
         if (worker.availabilityStatus == AvailabilityStatus.online &&
@@ -967,6 +840,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             KaryaTtsService.instance.announcePeerSos(peerName);
           });
         }
+
+        final isPlayingThisAudio = _playingPeerSosAudioDocId == topDoc.id;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -1062,7 +937,83 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              if (policeInfo.name.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFCA5A5), width: 0.8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.local_police_rounded, size: 12, color: Color(0xFFB91C1C)),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          'sos_nearest_police_station'.tr(args: [
+                            policeInfo.name,
+                            policeInfo.distanceKm.toStringAsFixed(1),
+                          ]),
+                          style: const TextStyle(
+                            color: Color(0xFF991B1B),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (hasAudio) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      if (isPlayingThisAudio) {
+                        await EmergencySosService.instance.stopAudioPlayback();
+                        if (mounted) setState(() => _playingPeerSosAudioDocId = null);
+                      } else {
+                        setState(() => _playingPeerSosAudioDocId = topDoc.id);
+                        await EmergencySosService.instance.playAudioBase64(
+                          audioBase64,
+                          onComplete: () {
+                            if (mounted) setState(() => _playingPeerSosAudioDocId = null);
+                          },
+                        );
+                      }
+                    },
+                    icon: Icon(
+                      isPlayingThisAudio ? Icons.stop_circle_rounded : Icons.play_circle_filled_rounded,
+                      size: 16,
+                      color: const Color(0xFFB91C1C),
+                    ),
+                    label: Text(
+                      isPlayingThisAudio ? 'sos_stop_audio_proof'.tr() : 'sos_play_audio_proof'.tr(),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFB91C1C),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFEF4444), width: 1.2),
+                      backgroundColor: isPlayingThisAudio ? const Color(0xFFFEE2E2) : Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
               Row(
                 children: [
                   if (peerPhone != null && peerPhone.isNotEmpty) ...[
@@ -1079,20 +1030,20 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           'sos_call_peer'.tr(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFEF4444),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(vertical: 9),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           elevation: 0,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                   ],
                   Expanded(
                     child: OutlinedButton.icon(
@@ -1112,15 +1063,42 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         'sos_nav_peer'.tr(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF991B1B),
                         side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 9),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final uri = Uri.parse('tel:112');
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        }
+                      },
+                      icon: const Icon(Icons.local_police_rounded, size: 14),
+                      label: Text(
+                        'sos_call_police_112'.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E293B),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
                       ),
                     ),
                   ),
@@ -1900,6 +1878,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     return PopupMenuButton<String>(
       onSelected: (code) async {
         await context.setLocale(Locale(code));
+        await KaryaTtsService.instance.updateLanguage(code, announceChange: true);
         setState(() {});
       },
       shape: RoundedRectangleBorder(
@@ -1907,41 +1886,29 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         side: BorderSide(color: KX.gold.withValues(alpha: 0.3)),
       ),
       color: Colors.white,
-      itemBuilder: (ctx) => [
-        const PopupMenuItem(
-          value: 'en',
-          child: Text(
-            '🇬🇧 English',
-            style: TextStyle(
-              color: KX.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
+      itemBuilder: (ctx) => WorkGoLocale.allLanguages.map((lang) {
+        final isSelected = lang.code == currentCode;
+        return PopupMenuItem<String>(
+          value: lang.code,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${lang.nativeName} (${lang.englishName})',
+                style: TextStyle(
+                  color: isSelected ? KX.violet : KX.textPrimary,
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+              if (isSelected)
+                const Icon(Icons.check_rounded, color: KX.violet, size: 16),
+            ],
           ),
-        ),
-        const PopupMenuItem(
-          value: 'hi',
-          child: Text(
-            '🇮🇳 हिन्दी (Hindi)',
-            style: TextStyle(
-              color: KX.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'ta',
-          child: Text(
-            '🇮🇳 தமிழ் (Tamil)',
-            style: TextStyle(
-              color: KX.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
+        );
+      }).toList(),
+
+
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         decoration: BoxDecoration(
@@ -2691,21 +2658,105 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           if (hasRequest)
                             GestureDetector(
                               onTap: () async {
-                                await _bookingService.acceptBooking(
-                                  topReq!.id,
-                                  worker.id,
-                                  workerName: worker.name,
-                                  workerPhone: worker.phoneForCalling,
-                                );
-                                if (context.mounted) {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (ctx) => ActiveJobScreen(
-                                        booking: topReq,
-                                        worker: worker,
-                                      ),
-                                    ),
+                                try {
+                                  await _bookingService.acceptBooking(
+                                    topReq!.id,
+                                    worker.id,
+                                    workerName: worker.name,
+                                    workerPhone: worker.phoneForCalling,
                                   );
+                                  if (context.mounted) {
+                                    await JobPreparationToolsSheet.show(
+                                      context,
+                                      booking: topReq,
+                                      worker: worker,
+                                    );
+                                    if (context.mounted && ModalRoute.of(context)?.isCurrent == true) {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (ctx) => ActiveJobScreen(
+                                            booking: topReq,
+                                            worker: worker,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                } on WorkerHasActiveJobException catch (e) {
+                                  HapticFeedback.heavyImpact();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        backgroundColor: const Color(0xFF141416),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        content: Text(
+                                          e.message,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        action: SnackBarAction(
+                                          label: "Go to Job",
+                                          textColor: const Color(0xFFFFDE59),
+                                          onPressed: () async {
+                                            final ongoing = await _bookingService.getWorkerActiveJob(worker.id);
+                                            if (ongoing != null && context.mounted) {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (ctx) => ActiveJobScreen(
+                                                    booking: ongoing,
+                                                    worker: worker,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } on BookingAlreadyAcceptedException catch (e) {
+                                  HapticFeedback.heavyImpact();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        backgroundColor: const Color(0xFF141416),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        content: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.flash_off_rounded,
+                                              color: Color(0xFFFFDE59),
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                e.message,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text("Error: $e")),
+                                    );
+                                  }
                                 }
                               },
                               child: Container(

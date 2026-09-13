@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:ui' show Color;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -92,6 +93,8 @@ class LocationService {
             notificationTitle: "WorkGo Dispatch Radar Active",
             notificationText: "Transmitting live GPS position to incoming customer requests...",
             enableWakeLock: true,
+            notificationIcon: AndroidResource(name: 'ic_stat_workgo', defType: 'drawable'),
+            color: Color(0xFFFFB800),
           ),
         );
       } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {

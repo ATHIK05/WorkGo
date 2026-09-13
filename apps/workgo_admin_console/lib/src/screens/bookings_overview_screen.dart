@@ -420,6 +420,97 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
             _buildDetailRow("Assigned Artisan", b.acceptedWorkerName ?? "Awaiting Pickup"),
             _buildDetailRow("Status", b.status.name.toUpperCase()),
             _buildDetailRow("Payment Settlement", b.paymentStatus.name.toUpperCase()),
+            const SizedBox(height: 14),
+
+            // Transparent Wage & Fare Audit Box
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.account_balance_wallet_rounded, size: 16, color: Color(0xFF047857)),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Transparent Wage & Fare Audit",
+                            style: AX.heading(fontSize: 13, color: const Color(0xFF065F46)),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        b.parsedFareBreakdown?.isFinalSettlement == true ? "FINAL SETTLEMENT" : "UPFRONT ESTIMATE",
+                        style: AX.mono(fontSize: 9, color: const Color(0xFF047857), fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Color(0xFFE2E8F0), height: 16),
+                  if (b.startedAt != null) ...[
+                    _buildAuditRow(
+                      "Work Time / Hours Completed",
+                      b.completedAt != null
+                          ? "${b.completedAt!.difference(b.startedAt!).inMinutes} mins (${(b.completedAt!.difference(b.startedAt!).inMinutes / 60.0).toStringAsFixed(1)} hrs)"
+                          : "In progress (${DateTime.now().difference(b.startedAt!).inMinutes} mins)",
+                    ),
+                  ],
+                  _buildAuditRow(
+                    "Base Labor (First 45m)",
+                    b.parsedFareBreakdown != null ? b.parsedFareBreakdown!.formattedBase : "₹149",
+                  ),
+                  if (b.parsedFareBreakdown != null && b.parsedFareBreakdown!.timeExtensionFare > 0)
+                    _buildAuditRow(
+                      "Overtime (${b.parsedFareBreakdown!.timeExtensionSlabs} slabs @ ₹60/30m)",
+                      b.parsedFareBreakdown!.formattedTimeExtension,
+                      highlightColor: const Color(0xFFB45309),
+                    ),
+                  if (b.parsedFareBreakdown != null && b.parsedFareBreakdown!.distanceTransitFare > 0)
+                    _buildAuditRow(
+                      "Transit Fuel Allowance (${b.parsedFareBreakdown!.formattedDistance})",
+                      b.parsedFareBreakdown!.formattedTransit,
+                    ),
+                  if (b.parsedFareBreakdown != null && b.parsedFareBreakdown!.toolAllowance > 0)
+                    _buildAuditRow(
+                      "Tool Fee (${b.parsedFareBreakdown!.toolType ?? 'Machinery'})",
+                      b.parsedFareBreakdown!.formattedToolAllowance,
+                    ),
+                  if (b.parsedFareBreakdown != null && b.parsedFareBreakdown!.experienceBonus > 0)
+                    _buildAuditRow(
+                      "Master Craftsman Bonus",
+                      b.parsedFareBreakdown!.formattedExperienceBonus,
+                    ),
+                  if (b.urgencyBonus > 0)
+                    _buildAuditRow(
+                      "Customer Tip (100% to Worker)",
+                      "+₹${b.urgencyBonus.toStringAsFixed(0)}",
+                      highlightColor: const Color(0xFF047857),
+                    ),
+                  const Divider(color: Color(0xFFE2E8F0), height: 12),
+                  _buildAuditRow(
+                    "Co-op Welfare Pool (2% PMJJBY/PMSBY)",
+                    b.parsedFareBreakdown != null
+                        ? "-${b.parsedFareBreakdown!.formattedWelfare}"
+                        : "-₹${(b.amount * 0.02).toStringAsFixed(1)}",
+                    highlightColor: const Color(0xFF059669),
+                  ),
+                  _buildAuditRow(
+                    "Artisan Direct Take-Home (98%)",
+                    b.parsedFareBreakdown != null
+                        ? b.parsedFareBreakdown!.formattedWorkerTakeHome
+                        : "₹${(b.amount * 0.98).toStringAsFixed(0)}",
+                    highlightColor: const Color(0xFF065F46),
+                    isBold: true,
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24),
 
             ElevatedButton(
@@ -441,12 +532,53 @@ class _BookingsOverviewScreenState extends State<BookingsOverviewScreen> {
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AX.body(fontSize: 13, color: AX.textSecondary)),
-          Text(value, style: AX.heading(fontSize: 13, color: AX.textPrimary)),
+          Expanded(
+            child: Text(
+              label,
+              style: AX.body(fontSize: 13, color: AX.textSecondary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: AX.heading(fontSize: 13, color: AX.textPrimary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditRow(String label, String value, {Color? highlightColor, bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AX.body(fontSize: 12, color: AX.textSecondary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: isBold
+                ? AX.display(fontSize: 13, color: highlightColor ?? AX.textPrimary)
+                : AX.mono(fontSize: 12, color: highlightColor ?? AX.textPrimary, fontWeight: FontWeight.bold),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );

@@ -3,6 +3,39 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking.dart';
 import '../models/worker.dart';
 import '../localization/trade_localization.dart';
+import 'trade_tool_catalog.dart';
+
+/// Thrown when an artisan attempts to accept a dispatch that has already been taken by another artisan.
+class BookingAlreadyAcceptedException implements Exception {
+  final String message;
+  const BookingAlreadyAcceptedException([
+    this.message = "Another artisan has already accepted this dispatch. Keep your radar active!",
+  ]);
+  @override
+  String toString() => message;
+}
+
+/// Thrown when an artisan attempts to accept a dispatch while already having an active service in progress.
+class WorkerHasActiveJobException implements Exception {
+  final String message;
+  final String? activeBookingId;
+  const WorkerHasActiveJobException([
+    this.message = "You have an ongoing service in progress. Complete current service before accepting new dispatches.",
+    this.activeBookingId,
+  ]);
+  @override
+  String toString() => message;
+}
+
+/// Thrown when a booking document does not exist.
+class BookingNotFoundException implements Exception {
+  final String message;
+  const BookingNotFoundException([
+    this.message = "This dispatch request was cancelled or no longer exists.",
+  ]);
+  @override
+  String toString() => message;
+}
 
 class BookingService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -59,11 +92,20 @@ class BookingService {
     String? customerPhone,
     String? customerEmail,
     String? customerIssueDetails,
+    List<String>? suggestedToolsNeeded,
+    Map<String, dynamic>? fareBreakdown,
   }) async {
     final docRef = _db.collection("bookings").doc();
 
     // Generate secure 4-digit Start OTP (e.g. 1000 - 9999)
     final randomOtp = (1000 + Random().nextInt(9000)).toString();
+
+    final effectiveTools = (suggestedToolsNeeded != null && suggestedToolsNeeded.isNotEmpty)
+        ? suggestedToolsNeeded
+        : TradeToolCatalog.getRecommendedTools(
+            serviceType: serviceType,
+            issueText: customerIssueDetails,
+          );
 
     final booking = Booking(
       id: docRef.id,
@@ -91,6 +133,8 @@ class BookingService {
       customerPhone: customerPhone,
       customerEmail: customerEmail,
       customerIssueDetails: customerIssueDetails,
+      suggestedToolsNeeded: effectiveTools,
+      fareBreakdown: fareBreakdown,
     );
 
     await docRef.set(booking.toFirestore());
@@ -260,7 +304,30 @@ class BookingService {
         });
   }
 
-  /// Worker accepts a booking. Atomically locks the job and sets worker location.
+  /// Retrieves the single ongoing active booking for a worker if one exists.
+  Future<Booking?> getWorkerActiveJob(String workerId) async {
+    try {
+      final snap = await _db
+          .collection("bookings")
+          .where("workerId", isEqualTo: workerId)
+          .where("status", whereIn: [
+            BookingStatus.accepted.name,
+            BookingStatus.inProgress.name,
+            BookingStatus.paymentPending.name,
+          ])
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) return null;
+      return Booking.fromFirestore(snap.docs.first);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Worker accepts a booking.
+  /// Enforces two critical constraints:
+  /// 1. Single Active Service: Artisan cannot accept a new booking if they already have an ongoing job.
+  /// 2. Atomic Mutual Exclusion: Uses a Firestore Transaction so no two artisans can accept the same dispatch.
   Future<void> acceptBooking(
     String bookingId,
     String workerId, {
@@ -269,6 +336,31 @@ class BookingService {
     double? initialWorkerLat,
     double? initialWorkerLng,
   }) async {
+    // ── 1. Enforce Single Active Job Constraint ──────────────────────────────
+    // Query if this artisan currently has any booking in accepted / inProgress / paymentPending
+    final ongoingSnapshot = await _db
+        .collection("bookings")
+        .where("workerId", isEqualTo: workerId)
+        .where("status", whereIn: [
+          BookingStatus.accepted.name,
+          BookingStatus.inProgress.name,
+          BookingStatus.paymentPending.name,
+        ])
+        .limit(1)
+        .get();
+
+    if (ongoingSnapshot.docs.isNotEmpty) {
+      final existingDoc = ongoingSnapshot.docs.first;
+      // Idempotency: if this artisan already accepted this exact booking, allow re-entry
+      if (existingDoc.id != bookingId) {
+        throw WorkerHasActiveJobException(
+          "You have an ongoing service in progress. Complete your current job before accepting new dispatches.",
+          existingDoc.id,
+        );
+      }
+    }
+
+    // ── 2. Resolve Artisan Display Name ──────────────────────────────────────
     String? resolvedName = workerName?.trim();
     if (resolvedName == null || resolvedName.isEmpty || Booking.isGenericArtisanName(resolvedName)) {
       try {
@@ -299,7 +391,36 @@ class BookingService {
       updateData["workerLongitude"] = initialWorkerLng;
     }
 
-    await _db.collection("bookings").doc(bookingId).update(updateData);
+    // ── 3. Atomic Firestore Transaction (Mutual Exclusion) ────────────────────
+    // Guarantees that if 2 artisans tap Accept simultaneously, only the first transaction commits;
+    // the second transaction detects that the booking is no longer 'pending' and throws BookingAlreadyAcceptedException.
+    await _db.runTransaction((transaction) async {
+      final bookingRef = _db.collection("bookings").doc(bookingId);
+      final snapshot = await transaction.get(bookingRef);
+
+      if (!snapshot.exists) {
+        throw const BookingNotFoundException();
+      }
+
+      final data = snapshot.data() ?? {};
+      final currentStatus = data["status"]?.toString();
+      final currentWorkerId = data["workerId"]?.toString();
+
+      // If already accepted by THIS worker, succeed idempotently
+      if (currentWorkerId == workerId &&
+          (currentStatus == BookingStatus.accepted.name ||
+           currentStatus == BookingStatus.inProgress.name)) {
+        return;
+      }
+
+      // Check if already taken by another artisan or no longer in pending state
+      if (currentStatus != BookingStatus.pending.name ||
+          (currentWorkerId != null && currentWorkerId.isNotEmpty && currentWorkerId != workerId)) {
+        throw const BookingAlreadyAcceptedException();
+      }
+
+      transaction.update(bookingRef, updateData);
+    });
   }
 
   /// Persists updated radius in Firestore so customer-side visibility and worker reception stay in real-time sync.
@@ -410,13 +531,23 @@ class BookingService {
     required String bookingId,
     required String proofPhotoBase64,
     required Map<String, dynamic> c2paManifest,
+    DateTime? completedAt,
+    Map<String, dynamic>? fareBreakdown,
+    double? finalAmount,
   }) async {
     final Map<String, dynamic> updateData = {
       "status": BookingStatus.paymentPending.name,
       "proofSubmittedAt": FieldValue.serverTimestamp(),
+      "completedAt": completedAt != null ? Timestamp.fromDate(completedAt) : FieldValue.serverTimestamp(),
       "proofPhotoBase64": proofPhotoBase64,
       "c2paManifest": c2paManifest,
     };
+    if (fareBreakdown != null) {
+      updateData["fareBreakdown"] = fareBreakdown;
+    }
+    if (finalAmount != null) {
+      updateData["amount"] = finalAmount;
+    }
     await _db.collection("bookings").doc(bookingId).update(updateData);
   }
 
