@@ -3760,7 +3760,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         meshColor1: Color(0xFFDDD6FE),
         meshColor2: Color(0xFFFED7AA),
       ),
-      // 2. Carpentry (Rich Cedar & Honey Woodcraft)
+      // 2. Carpentry (carpentry.gif animated asset)
       const _CraftServiceItem(
         key: "cat_carpentry",
         name: "Carpentry",
@@ -3770,14 +3770,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         description:
             "Custom woodwork, door fixes, lock repair & furniture care.",
         icon: Icons.carpenter_rounded,
-        assetPath: "",
-        isAnimatedAsset: false,
+        assetPath: "assets/images/carpentry.gif",
+        isAnimatedAsset: true,
         price: "From ₹199",
         priceAmount: 199,
         meshColor1: Color(0xFFFED7AA),
         meshColor2: Color(0xFFFDE68A),
       ),
-      // 3. Cleaning (Fresh Mint & Pure Aqua)
+      // 3. Cleaning (cleaning.gif animated asset)
       const _CraftServiceItem(
         key: "cat_cleaning",
         name: "Cleaning",
@@ -3786,14 +3786,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         taglineKey: "tagline_deep_clean",
         description: "Deep home sanitation, kitchen scrub & spotless hygiene.",
         icon: Icons.cleaning_services_rounded,
-        assetPath: "",
-        isAnimatedAsset: false,
+        assetPath: "assets/images/cleaning.gif",
+        isAnimatedAsset: true,
         price: "From ₹129",
         priceAmount: 129,
         meshColor1: Color(0xFFA7F3D0),
         meshColor2: Color(0xFFBAE6FD),
       ),
-      // 4. Painting (Pastel Rose & Soft Lilac)
+      // 4. Painting (painting.gif animated asset)
       const _CraftServiceItem(
         key: "cat_painting",
         name: "Painting",
@@ -3803,8 +3803,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         description:
             "Interior wall coats, waterproof primer & smooth finishes.",
         icon: Icons.format_paint_rounded,
-        assetPath: "",
-        isAnimatedAsset: false,
+        assetPath: "assets/images/painting.gif",
+        isAnimatedAsset: true,
         price: "From ₹249",
         priceAmount: 249,
         meshColor1: Color(0xFFFECDD3),
@@ -3836,7 +3836,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         description:
             "Tile fixing, wall grouting, plastering & structural repair.",
         icon: Icons.foundation_rounded,
-        assetPath: "",
+        assetPath: "packages/workgo_core/assets/images/crafts/masonry.jpg",
         isAnimatedAsset: false,
         price: "From ₹299",
         priceAmount: 299,
@@ -3852,7 +3852,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         taglineKey: "tagline_lawn_soil",
         description: "Lawn maintenance, organic soil care & terrace greenery.",
         icon: Icons.yard_rounded,
-        assetPath: "",
+        assetPath: "packages/workgo_core/assets/images/crafts/gardening.jpg",
         isAnimatedAsset: false,
         price: "From ₹149",
         priceAmount: 149,
@@ -3866,7 +3866,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         final index = entry.key;
         final item = entry.value;
         return Padding(
-          padding: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.only(bottom: 14),
           child: _AlternatingCraftRowCard(
             item: item,
             index: index,
@@ -6410,6 +6410,190 @@ class _BlueprintGridPainter extends CustomPainter {
   bool shouldRepaint(covariant _BlueprintGridPainter oldDelegate) => false;
 }
 
+// ──────────────────────────────────────────────────────
+//  TASKELLO-STYLE ASYMMETRICAL FOLDER TAB CLIPPER & PAINTER
+// ──────────────────────────────────────────────────────
+class _FolderTabClipper extends CustomClipper<Path> {
+  final bool isLeftTab;
+  final double tabHeightDelta;
+  final double tabWidthFactor;
+  final double cornerRadius;
+
+  const _FolderTabClipper({
+    this.isLeftTab = true,
+    this.tabHeightDelta = 18.0,
+    this.tabWidthFactor = 0.52,
+    this.cornerRadius = 20.0,
+  });
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+    final r = cornerRadius;
+    final deltaH = tabHeightDelta;
+
+    if (isLeftTab) {
+      final tabEndX = w * tabWidthFactor;
+      path.moveTo(0, h - r);
+      path.lineTo(0, r);
+      path.quadraticBezierTo(0, 0, r, 0);
+      path.lineTo(tabEndX - 14, 0);
+      path.cubicTo(
+        tabEndX - 3,
+        0,
+        tabEndX,
+        deltaH * 0.4,
+        tabEndX + 6,
+        deltaH * 0.7,
+      );
+      path.cubicTo(
+        tabEndX + 11,
+        deltaH,
+        tabEndX + 16,
+        deltaH,
+        tabEndX + 24,
+        deltaH,
+      );
+      path.lineTo(w - r, deltaH);
+      path.quadraticBezierTo(w, deltaH, w, deltaH + r);
+      path.lineTo(w, h - r);
+      path.quadraticBezierTo(w, h, w - r, h);
+      path.lineTo(r, h);
+      path.quadraticBezierTo(0, h, 0, h - r);
+    } else {
+      final shelfEndX = w * (1.0 - tabWidthFactor);
+      path.moveTo(0, h - r);
+      path.lineTo(0, deltaH + r);
+      path.quadraticBezierTo(0, deltaH, r, deltaH);
+      path.lineTo(shelfEndX - 24, deltaH);
+      path.cubicTo(
+        shelfEndX - 16,
+        deltaH,
+        shelfEndX - 11,
+        deltaH,
+        shelfEndX - 6,
+        deltaH * 0.7,
+      );
+      path.cubicTo(
+        shelfEndX,
+        deltaH * 0.4,
+        shelfEndX + 3,
+        0,
+        shelfEndX + 14,
+        0,
+      );
+      path.lineTo(w - r, 0);
+      path.quadraticBezierTo(w, 0, w, r);
+      path.lineTo(w, h - r);
+      path.quadraticBezierTo(w, h, w - r, h);
+      path.lineTo(r, h);
+      path.quadraticBezierTo(0, h, 0, h - r);
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant _FolderTabClipper oldClipper) =>
+      oldClipper.isLeftTab != isLeftTab ||
+      oldClipper.tabHeightDelta != tabHeightDelta ||
+      oldClipper.tabWidthFactor != tabWidthFactor;
+}
+
+class _FolderTabBorderPainter extends CustomPainter {
+  final bool isLeftTab;
+  final double tabHeightDelta;
+  final double tabWidthFactor;
+  final double cornerRadius;
+
+  const _FolderTabBorderPainter({
+    this.isLeftTab = true,
+    this.tabHeightDelta = 18.0,
+    this.tabWidthFactor = 0.52,
+    this.cornerRadius = 20.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final r = cornerRadius;
+    final deltaH = tabHeightDelta;
+    final strokePath = Path();
+
+    if (isLeftTab) {
+      final tabEndX = w * tabWidthFactor;
+      strokePath.moveTo(0, r + 4);
+      strokePath.quadraticBezierTo(0, 0, r, 0);
+      strokePath.lineTo(tabEndX - 14, 0);
+      strokePath.cubicTo(
+        tabEndX - 3,
+        0,
+        tabEndX,
+        deltaH * 0.4,
+        tabEndX + 6,
+        deltaH * 0.7,
+      );
+      strokePath.cubicTo(
+        tabEndX + 11,
+        deltaH,
+        tabEndX + 16,
+        deltaH,
+        tabEndX + 24,
+        deltaH,
+      );
+      strokePath.lineTo(w - r, deltaH);
+      strokePath.quadraticBezierTo(w, deltaH, w, deltaH + r + 4);
+    } else {
+      final shelfEndX = w * (1.0 - tabWidthFactor);
+      strokePath.moveTo(0, deltaH + r + 4);
+      strokePath.quadraticBezierTo(0, deltaH, r, deltaH);
+      strokePath.lineTo(shelfEndX - 24, deltaH);
+      strokePath.cubicTo(
+        shelfEndX - 16,
+        deltaH,
+        shelfEndX - 11,
+        deltaH,
+        shelfEndX - 6,
+        deltaH * 0.7,
+      );
+      strokePath.cubicTo(
+        shelfEndX,
+        deltaH * 0.4,
+        shelfEndX + 3,
+        0,
+        shelfEndX + 14,
+        0,
+      );
+      strokePath.lineTo(w - r, 0);
+      strokePath.quadraticBezierTo(w, 0, w, r + 4);
+    }
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFFFFFFF),
+          Color(0xFFFDE68A),
+          Color(0xFFF59E0B),
+        ],
+        stops: [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawPath(strokePath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _FolderTabBorderPainter oldDelegate) =>
+      oldDelegate.isLeftTab != isLeftTab ||
+      oldDelegate.tabHeightDelta != tabHeightDelta;
+}
+
 class _AlternatingCraftRowCard extends StatefulWidget {
   const _AlternatingCraftRowCard({
     required this.item,
@@ -6461,8 +6645,8 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
     final localizedTagline = item.taglineKey.tr();
     final displayTagline =
         (localizedTagline.isNotEmpty && localizedTagline != item.taglineKey)
-        ? localizedTagline
-        : item.tagline;
+            ? localizedTagline
+            : item.tagline;
 
     return GestureDetector(
       onTapDown: (_) => _ctrl.forward(),
@@ -6477,38 +6661,142 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
         builder: (_, child) =>
             Transform.scale(scale: _scale.value, child: child),
         child: Container(
+          height: 235,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white, width: 3.5),
+            color: const Color(0xFFFFFDF5),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFFDE68A), width: 1.4),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x10000000),
-                blurRadius: 26,
-                offset: Offset(0, 10),
+                color: Color(0x0A000000),
+                blurRadius: 16,
+                offset: Offset(0, 4),
               ),
               BoxShadow(
-                color: Color(0x06000000),
-                blurRadius: 8,
-                offset: Offset(0, 3),
+                color: Color(0x14F59E0B),
+                blurRadius: 18,
+                offset: Offset(0, 6),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(28.5),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
+            borderRadius: BorderRadius.circular(22.6),
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                // 1. Top Visual Zone (height: 200px)
-                _buildTopVisualZone(item, isEven: isEven),
+                // 1. 3/4 Visual Zone (Top 73% height = 172px of 235px total)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 172,
+                  child: _buildVisualZone(item, isEven: isEven),
+                ),
 
-                // 2. Bottom Content Zone (Pure White with Service Details)
-                _buildBottomContentZone(
-                  displayName: displayName,
-                  displayTagline: displayTagline,
-                  item: item,
-                  isEven: isEven,
+                // 2. Floating Exposed Media Badge (Top shelf side)
+                Positioned(
+                  top: 10,
+                  right: isEven ? 10 : null,
+                  left: isEven ? null : 10,
+                  child: _buildExposedMediaBadge(displayName, item.icon),
+                ),
+
+                // 3. Taskello-Style Folder Tab Overlay (White to Yellow Gradient)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 98,
+                  child: ClipPath(
+                    clipper: _FolderTabClipper(
+                      isLeftTab: isEven,
+                      tabHeightDelta: 18.0,
+                      cornerRadius: 20.0,
+                    ),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFFFFFFFF), // Pure white
+                            Color(0xFFFFFDF2), // Warm ivory
+                            Color(0xFFFFFBEB), // Soft warm cream
+                            Color(0xFFFDE68A), // Luminous gold yellow
+                          ],
+                          stops: [0.0, 0.25, 0.60, 1.0],
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          // Ambient Golden Glow on elevated tab
+                          Positioned(
+                            top: 0,
+                            left: isEven ? 0 : null,
+                            right: isEven ? null : 0,
+                            width: 130,
+                            height: 50,
+                            child: IgnorePointer(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: RadialGradient(
+                                    center: isEven
+                                        ? Alignment.topLeft
+                                        : Alignment.topRight,
+                                    radius: 1.1,
+                                    colors: [
+                                      const Color(0xFFFDE68A)
+                                          .withValues(alpha: 0.35),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Metallic Golden Rim Stroke along folder cut
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _FolderTabBorderPainter(
+                                isLeftTab: isEven,
+                                tabHeightDelta: 18.0,
+                                cornerRadius: 20.0,
+                              ),
+                            ),
+                          ),
+
+                          // Content within the tab
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 7, 14, 9),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Top: Title + Category Tagline
+                                _buildTabHeader(
+                                  displayName,
+                                  displayTagline,
+                                  item,
+                                  isEven: isEven,
+                                ),
+
+                                // Bottom: Price Pill + Tactile Liquid-Gold Action Button
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildPricePill(item),
+                                    _buildLaunchButton(),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -6518,281 +6806,264 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
     );
   }
 
-  Widget _buildTopVisualZone(_CraftServiceItem item, {required bool isEven}) {
-    return SizedBox(
-      height: 200,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Ambient Pastel Mesh Gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isEven
-                    ? [
-                        item.meshColor1,
-                        item.meshColor2,
-                        item.meshColor1.withValues(alpha: 0.45),
-                      ]
-                    : [
-                        item.meshColor2,
-                        item.meshColor1,
-                        item.meshColor2.withValues(alpha: 0.45),
-                      ],
-                stops: const [0.0, 0.65, 1.0],
-                begin: isEven ? Alignment.topLeft : Alignment.topRight,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
+  Widget _buildVisualZone(_CraftServiceItem item, {required bool isEven}) {
+    if (item.assetPath.isNotEmpty) {
+      return ShaderMask(
+        shaderCallback: (rect) {
+          return const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black,
+              Colors.black,
+              Color(0xB0000000),
+              Colors.transparent,
+            ],
+            stops: [0.0, 0.65, 0.85, 1.0],
+          ).createShader(rect);
+        },
+        blendMode: BlendMode.dstIn,
+        child: Image.asset(
+          item.assetPath,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (_, __, ___) =>
+              _buildFallbackVisual(item, isEven: isEven),
+        ),
+      );
+    }
 
-          // Blueprint Architectural Grid (Top-Right for even, Top-Left for odd)
-          Positioned(
-            top: 0,
-            bottom: 0,
-            left: isEven ? null : 0,
-            right: isEven ? 0 : null,
-            width: 190,
-            child: IgnorePointer(
-              child: ShaderMask(
-                shaderCallback: (rect) {
-                  return LinearGradient(
-                    colors: const [
-                      Colors.white,
-                      Colors.white,
-                      Colors.transparent,
+    return _buildFallbackVisual(item, isEven: isEven);
+  }
+
+  Widget _buildFallbackVisual(_CraftServiceItem item, {required bool isEven}) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isEven
+                  ? [
+                      item.meshColor1,
+                      item.meshColor2,
+                      item.meshColor1.withValues(alpha: 0.45),
+                    ]
+                  : [
+                      item.meshColor2,
+                      item.meshColor1,
+                      item.meshColor2.withValues(alpha: 0.45),
                     ],
-                    stops: const [0.0, 0.45, 1.0],
-                    begin: isEven ? Alignment.topRight : Alignment.topLeft,
-                    end: isEven ? Alignment.bottomLeft : Alignment.bottomRight,
-                  ).createShader(rect);
-                },
-                child: const CustomPaint(
-                  painter: _BlueprintGridPainter(lineColor: Color(0x60FFFFFF)),
+              stops: const [0.0, 0.65, 1.0],
+              begin: isEven ? Alignment.topLeft : Alignment.topRight,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        Center(
+          child: Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.35),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.70),
+                width: 1.8,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: item.meshColor1.withValues(alpha: 0.35),
+                  blurRadius: 16,
+                  spreadRadius: 2,
                 ),
+              ],
+            ),
+            child: Center(
+              child: Icon(
+                item.icon,
+                size: 28,
+                color: const Color(0xFFD97706),
               ),
             ),
           ),
-
-          // Artwork: 100% Solid Animated GIF or Floating Glassmorphic Badge
-          if (item.isAnimatedAsset && item.assetPath.isNotEmpty)
-            Positioned.fill(
-              child: ShaderMask(
-                shaderCallback: (rect) {
-                  return const LinearGradient(
-                    colors: [Colors.black, Colors.black, Colors.transparent],
-                    stops: [0.0, 0.85, 1.0],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ).createShader(rect);
-                },
-                blendMode: BlendMode.dstIn,
-                child: Image.asset(
-                  item.assetPath,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  filterQuality: FilterQuality.medium,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
-            )
-          else
-            Center(
-              child: Container(
-                width: 78,
-                height: 78,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.32),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.65),
-                    width: 2.0,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: item.meshColor1.withValues(alpha: 0.40),
-                      blurRadius: 22,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Icon(
-                    item.icon,
-                    size: 40,
-                    color: Colors.white.withValues(alpha: 0.95),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildBottomContentZone({
-    required String displayName,
-    required String displayTagline,
-    required _CraftServiceItem item,
-    required bool isEven,
-  }) {
+  Widget _buildExposedMediaBadge(String displayName, IconData icon) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(22, 18, 22, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Top Row: Service Icon on Left (even) / Right (odd), Tagline on Opposite
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (isEven) ...[
-                _buildIconBadge(item),
-                _buildTaglineChip(displayTagline),
-              ] else ...[
-                _buildTaglineChip(displayTagline),
-                _buildIconBadge(item),
-              ],
-            ],
-          ),
-
-          const SizedBox(height: 14),
-
-          // Title
-          Text(
-            displayName,
-            style: const TextStyle(
-              color: Color(0xFF0F172A),
-              fontSize: 21,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-              height: 1.2,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          const SizedBox(height: 6),
-
-          // Editorial Description
-          Text(
-            item.description,
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w400,
-              height: 1.45,
-              letterSpacing: -0.1,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          const SizedBox(height: 16),
-
-          // Bottom Bar: Alternating Price Pill & Launch Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (isEven) ...[
-                _buildPricePill(item),
-                _buildLaunchButton(),
-              ] else ...[
-                _buildLaunchButton(),
-                _buildPricePill(item),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIconBadge(_CraftServiceItem item) {
-    return Container(
-      width: 40,
-      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.1),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x10000000),
             blurRadius: 6,
             offset: Offset(0, 2),
           ),
         ],
       ),
-      child: Center(
-        child: Icon(item.icon, size: 21, color: const Color(0xFF0F172A)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: const Color(0xFFD97706)),
+          const SizedBox(width: 4),
+          Text(
+            displayName,
+            style: const TextStyle(
+              color: Color(0xFF141416),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Container(
+            width: 3.5,
+            height: 3.5,
+            decoration: const BoxDecoration(
+              color: Color(0xFF10B981),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 3.5),
+          const Text(
+            "Active Pro",
+            style: TextStyle(
+              color: Color(0xFF059669),
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTaglineChip(String tagline) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+  Widget _buildTabHeader(
+    String displayName,
+    String displayTagline,
+    _CraftServiceItem item, {
+    required bool isEven,
+  }) {
+    final iconOrb = Container(
+      width: 28,
+      height: 28,
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
-      child: Text(
-        tagline,
-        style: const TextStyle(
-          color: Color(0xFF64748B),
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      child: Center(
+        child: Icon(item.icon, size: 15, color: const Color(0xFFD97706)),
       ),
     );
+
+    final titles = Column(
+      crossAxisAlignment:
+          isEven ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          displayName,
+          style: const TextStyle(
+            color: Color(0xFF141416),
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.3,
+            height: 1.15,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 1),
+        Text(
+          displayTagline,
+          style: const TextStyle(
+            color: Color(0xFF92400E),
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            height: 1.15,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+
+    if (isEven) {
+      return Row(
+        children: [
+          iconOrb,
+          const SizedBox(width: 8),
+          Expanded(child: titles),
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          Expanded(child: titles),
+          const SizedBox(width: 8),
+          iconOrb,
+        ],
+      );
+    }
   }
 
   Widget _buildPricePill(_CraftServiceItem item) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.0),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(
-            Icons.flash_on_rounded,
-            size: 13,
+            Icons.bolt_rounded,
+            size: 12,
             color: Color(0xFFD97706),
           ),
-          const SizedBox(width: 3),
+          const SizedBox(width: 2.5),
           const Text(
             "15M",
             style: TextStyle(
-              color: Color(0xFF1E293B),
-              fontSize: 11,
+              color: Color(0xFF141416),
+              fontSize: 10,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
+              letterSpacing: 0.1,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           Container(
-            width: 3,
-            height: 3,
+            width: 2.5,
+            height: 2.5,
             decoration: const BoxDecoration(
-              color: Color(0xFF94A3B8),
+              color: Color(0xFFD97706),
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           Text(
             "From ₹${item.priceAmount}",
             style: const TextStyle(
-              color: Color(0xFF0F172A),
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
+              color: Color(0xFFD97706),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -6802,21 +7073,38 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
 
   Widget _buildLaunchButton() {
     return Container(
-      width: 34,
-      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        shape: BoxShape.circle,
-        boxShadow: [
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.22),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Color(0x25D97706),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
-      child: const Center(
-        child: Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "book_now".tr(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 3),
+          const Icon(
+            Icons.arrow_forward_rounded,
+            size: 11,
+            color: Colors.white,
+          ),
+        ],
       ),
     );
   }

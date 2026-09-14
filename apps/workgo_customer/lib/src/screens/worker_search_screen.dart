@@ -54,16 +54,16 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
       _minPrice > 99.0 ||
       _maxPrice < 2000.0;
 
-  final List<({String key, String emoji, String title, Color color, LinearGradient gradient})> _categories = [
-    (key: "All", emoji: "🌐", title: "All Trades", color: CX.cyan, gradient: CX.auroraVioletCyan),
-    (key: "Plumbing", emoji: "🚰", title: "Plumbing", color: CX.cyan, gradient: CX.auroraVioletCyan),
-    (key: "Electrical", emoji: "⚡", title: "Electrical", color: CX.amber, gradient: CX.auroraVioletAmber),
-    (key: "Carpentry", emoji: "🪵", title: "Carpentry", color: const Color(0xFFF97316), gradient: const LinearGradient(colors: [Color(0xFF9A3412), Color(0xFFF97316)])),
-    (key: "Cleaning", emoji: "🧹", title: "Cleaning", color: const Color(0xFF34D399), gradient: const LinearGradient(colors: [Color(0xFF065F46), Color(0xFF34D399)])),
-    (key: "Painting", emoji: "🎨", title: "Painting", color: const Color(0xFFA78BFA), gradient: const LinearGradient(colors: [Color(0xFF5B21B6), Color(0xFFA78BFA)])),
-    (key: "Appliance Repair", emoji: "❄️", title: "Appliance Repair", color: const Color(0xFFF43F5E), gradient: const LinearGradient(colors: [Color(0xFF9F1239), Color(0xFFF43F5E)])),
-    (key: "Masonry", emoji: "🧱", title: "Masonry", color: const Color(0xFF94A3B8), gradient: const LinearGradient(colors: [Color(0xFF1E3A5F), Color(0xFF64748B)])),
-    (key: "Gardening", emoji: "🪴", title: "Gardening", color: const Color(0xFF10B981), gradient: const LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF10B981)])),
+  final List<({String key, IconData icon, String title, Color color, LinearGradient gradient})> _categories = [
+    (key: "All", icon: Icons.explore_outlined, title: "All Trades", color: CX.cyan, gradient: CX.auroraVioletCyan),
+    (key: "Plumbing", icon: Icons.plumbing_rounded, title: "Plumbing", color: CX.cyan, gradient: CX.auroraVioletCyan),
+    (key: "Electrical", icon: Icons.electric_bolt_rounded, title: "Electrical", color: CX.amber, gradient: CX.auroraVioletAmber),
+    (key: "Carpentry", icon: Icons.carpenter_rounded, title: "Carpentry", color: const Color(0xFFF97316), gradient: const LinearGradient(colors: [Color(0xFF9A3412), Color(0xFFF97316)])),
+    (key: "Cleaning", icon: Icons.cleaning_services_rounded, title: "Cleaning", color: const Color(0xFF34D399), gradient: const LinearGradient(colors: [Color(0xFF065F46), Color(0xFF34D399)])),
+    (key: "Painting", icon: Icons.format_paint_rounded, title: "Painting", color: const Color(0xFFA78BFA), gradient: const LinearGradient(colors: [Color(0xFF5B21B6), Color(0xFFA78BFA)])),
+    (key: "Appliance Repair", icon: Icons.kitchen_rounded, title: "Appliance Repair", color: const Color(0xFFF43F5E), gradient: const LinearGradient(colors: [Color(0xFF9F1239), Color(0xFFF43F5E)])),
+    (key: "Masonry", icon: Icons.foundation_rounded, title: "Masonry", color: const Color(0xFF94A3B8), gradient: const LinearGradient(colors: [Color(0xFF1E3A5F), Color(0xFF64748B)])),
+    (key: "Gardening", icon: Icons.yard_rounded, title: "Gardening", color: const Color(0xFF10B981), gradient: const LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF10B981)])),
   ];
 
   @override
@@ -324,6 +324,10 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
               height: 40,
               child: _buildCategoryPillsRail(),
             ),
+            if (_hasActiveFilter) ...[
+              const SizedBox(height: 8),
+              _buildActiveFiltersRail(),
+            ],
             const SizedBox(height: 8),
 
             // 4. Workers Results Stream
@@ -332,6 +336,188 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  ACCURATE FILTERING & PRICING HELPERS
+  // ──────────────────────────────────────────
+  double _calculateWorkerVisitFare(Worker w) {
+    final trade = w.skills.isNotEmpty
+        ? w.skills.first
+        : (_selectedCategory != "All" ? _selectedCategory : "Plumbing");
+    final fare = CooperativePricingEngine.instance.calculateFare(
+      category: trade,
+      distanceKm: w.distanceKm,
+      experienceYears: w.experienceYears,
+      customBaseRate: w.baseRate,
+      customPerKmRate: w.perKmRate,
+    );
+    return fare.totalEstimatedFare;
+  }
+
+  bool _matchesTradeCategory(Worker w, String category) {
+    if (category == "All") return true;
+    final cat = category.toLowerCase().trim();
+    return w.skills.any((s) {
+      final skill = s.toLowerCase().trim();
+      if (skill == cat || skill.contains(cat) || cat.contains(skill)) return true;
+      if (cat.contains("plumb") && skill.contains("plumb")) return true;
+      if (cat.contains("electr") && skill.contains("electr")) return true;
+      if (cat.contains("carpen") && skill.contains("carpen")) return true;
+      if (cat.contains("clean") && skill.contains("clean")) return true;
+      if (cat.contains("paint") && skill.contains("paint")) return true;
+      if ((cat.contains("appliance") || cat.contains("repair")) &&
+          (skill.contains("appliance") || skill.contains("repair") || skill.contains("ac") || skill.contains("fridge"))) {
+        return true;
+      }
+      if ((cat.contains("mason") || cat.contains("brick") || cat.contains("tile")) &&
+          (skill.contains("mason") || skill.contains("brick") || skill.contains("tile"))) {
+        return true;
+      }
+      if ((cat.contains("garden") || cat.contains("lawn")) &&
+          (skill.contains("garden") || skill.contains("lawn") || skill.contains("plant"))) {
+        return true;
+      }
+      return false;
+    });
+  }
+
+  // ──────────────────────────────────────────
+  //  ACTIVE FILTERS RAIL (INTERACTIVE CHIPS)
+  // ──────────────────────────────────────────
+  Widget _buildActiveFiltersRail() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          // Clear all button
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() {
+                _minPrice = 99.0;
+                _maxPrice = 2000.0;
+                _statusFilter = "all";
+                _radiusKm = -1.0;
+                _sortBy = "nearest";
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.close_rounded, size: 13, color: Color(0xFFDC2626)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'clear_all'.trSafe("Clear All"),
+                    style: const TextStyle(
+                      color: Color(0xFFDC2626),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // Status Filter Chip
+          if (_statusFilter != "all") ...[
+            _buildActiveFilterChip(
+              icon: _statusFilter == "checked_in" ? Icons.check_circle_rounded : Icons.offline_bolt_outlined,
+              label: _statusFilter == "checked_in" ? 'filter_checked_in'.tr() : 'filter_checked_out'.tr(),
+              onRemove: () => setState(() => _statusFilter = "all"),
+            ),
+            const SizedBox(width: 6),
+          ],
+
+          // Radius Filter Chip
+          if (_radiusKm > 0) ...[
+            _buildActiveFilterChip(
+              icon: Icons.location_on_outlined,
+              label: "${_radiusKm.toInt()} km",
+              onRemove: () => setState(() => _radiusKm = -1.0),
+            ),
+            const SizedBox(width: 6),
+          ],
+
+          // Price Filter Chip
+          if (_minPrice > 99.0 || _maxPrice < 2000.0) ...[
+            _buildActiveFilterChip(
+              icon: Icons.currency_rupee_rounded,
+              label: _maxPrice >= 2000.0
+                  ? "₹${_minPrice.toInt()}+"
+                  : "₹${_minPrice.toInt()} - ₹${_maxPrice.toInt()}",
+              onRemove: () => setState(() {
+                _minPrice = 99.0;
+                _maxPrice = 2000.0;
+              }),
+            ),
+            const SizedBox(width: 6),
+          ],
+
+          // Sort Filter Chip
+          if (_sortBy != "nearest") ...[
+            _buildActiveFilterChip(
+              icon: _sortBy == "rating"
+                  ? Icons.star_rounded
+                  : (_sortBy == "fare_desc" ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded),
+              label: _sortBy == "rating"
+                  ? 'sorted_by_rating'.tr()
+                  : (_sortBy == "fare_desc" ? 'sort_price_high_low'.tr() : 'sort_price_low_high'.tr()),
+              onRemove: () => setState(() => _sortBy = "nearest"),
+            ),
+            const SizedBox(width: 6),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFilterChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onRemove,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12.5, color: const Color(0xFF2563EB)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF1E40AF),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 5),
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onRemove();
+            },
+            child: const Icon(Icons.close_rounded, size: 13, color: Color(0xFF3B82F6)),
+          ),
+        ],
       ),
     );
   }
@@ -533,9 +719,10 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  cat.emoji,
-                  style: const TextStyle(fontSize: 13),
+                Icon(
+                  cat.icon,
+                  size: 14,
+                  color: isSelected ? Colors.white : cat.color,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -563,7 +750,6 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
   Widget _buildWorkersStream() {
     return StreamBuilder<List<Worker>>(
       stream: _workerService.streamAvailableWorkers(
-        skill: _selectedCategory == "All" ? null : _selectedCategory,
         onlineOnly: false,
       ),
       builder: (context, snapshot) {
@@ -624,22 +810,29 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             .map((w) => w.withCalculatedDistance(_customerLat, _customerLng))
             .toList();
 
-        // 1. Search text filtering
+        // 0. Trade Category Filtering (enforced when selectedCategory != "All")
+        if (_selectedCategory != "All") {
+          workers = workers.where((w) => _matchesTradeCategory(w, _selectedCategory)).toList();
+        }
+
+        // 1. Search text filtering (artisan name, specific skills, trade, base area, or worker ID)
         final query = _searchController.text.trim().toLowerCase();
         if (query.isNotEmpty) {
           workers = workers.where((w) {
             return w.name.toLowerCase().contains(query) ||
                 w.skills.any((s) => s.toLowerCase().contains(query)) ||
-                w.id.toLowerCase().contains(query);
+                w.id.toLowerCase().contains(query) ||
+                (w.baseArea?.toLowerCase().contains(query) ?? false) ||
+                (w.serviceKeywords.any((k) => k.toLowerCase().contains(query)));
           }).toList();
         }
 
-        // 2. Cost / Visit Rate Range Filtering
+        // 2. Cost / Visit Fare Range Filtering (compares with the REAL dynamic cooperative visit fare)
         if (_minPrice > 99.0 || _maxPrice < 2000.0) {
           workers = workers.where((w) {
-            final rate = w.baseRate;
-            final matchMin = rate >= _minPrice;
-            final matchMax = _maxPrice >= 2000.0 ? true : rate <= _maxPrice;
+            final fareAmount = _calculateWorkerVisitFare(w);
+            final matchMin = fareAmount >= _minPrice;
+            final matchMax = _maxPrice >= 2000.0 ? true : fareAmount <= _maxPrice;
             return matchMin && matchMax;
           }).toList();
         }
@@ -653,23 +846,18 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
 
         // 4. Radius filtering with real geodesic distance
         if (_radiusKm > 0) {
-          final withinRadius = workers.where((w) {
-            return w.distanceKm <= _radiusKm + 2.0;
-          }).toList();
-          if (withinRadius.isNotEmpty) {
-            workers = withinRadius;
-          }
+          workers = workers.where((w) => w.distanceKm <= _radiusKm).toList();
         }
 
         // 5. Sorting (Proximity, Rating, Price: Low to High, Price: High to Low)
         if (_sortBy == "rating") {
           workers.sort((a, b) => b.avgRating.compareTo(a.avgRating));
         } else if (_sortBy == "fare" || _sortBy == "fare_asc") {
-          // Low to High
-          workers.sort((a, b) => a.baseRate.compareTo(b.baseRate));
+          // Low to High by REAL calculated visit fare
+          workers.sort((a, b) => _calculateWorkerVisitFare(a).compareTo(_calculateWorkerVisitFare(b)));
         } else if (_sortBy == "fare_desc") {
-          // High to Low
-          workers.sort((a, b) => b.baseRate.compareTo(a.baseRate));
+          // High to Low by REAL calculated visit fare
+          workers.sort((a, b) => _calculateWorkerVisitFare(b).compareTo(_calculateWorkerVisitFare(a)));
         } else {
           // Nearest: Online/Checked-in artisans prioritized, then closest distance
           workers.sort((a, b) {
@@ -713,27 +901,47 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                       ),
                       const SizedBox(width: 8),
                       Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            _sortBy == "rating"
-                                ? 'sorted_by_rating'.tr()
-                                : (_sortBy == "fare_asc" || _sortBy == "fare"
-                                    ? 'sorted_by_price_low_high'.tr()
-                                    : (_sortBy == "fare_desc"
-                                        ? 'sorted_by_price_high_low'.tr()
-                                        : 'sorted_by_proximity'.tr())),
-                            style: const TextStyle(
-                              color: Color(0xFF334155),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            _showFilterBottomSheet();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.sort_rounded,
+                                  size: 13,
+                                  color: Color(0xFF475569),
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    _sortBy == "rating"
+                                        ? 'sorted_by_rating'.tr()
+                                        : (_sortBy == "fare_asc" || _sortBy == "fare"
+                                            ? 'sorted_by_price_low_high'.tr()
+                                            : (_sortBy == "fare_desc"
+                                                ? 'sorted_by_price_high_low'.tr()
+                                                : 'sorted_by_proximity'.tr())),
+                                    style: const TextStyle(
+                                      color: Color(0xFF334155),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -1129,15 +1337,17 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                                 values: RangeValues(tempMin, tempMax),
                                 min: 99.0,
                                 max: 2000.0,
-                                divisions: 38,
                                 labels: RangeLabels(
                                   "₹${tempMin.toInt()}",
                                   tempMax >= 2000.0 ? "₹2000+" : "₹${tempMax.toInt()}",
                                 ),
                                 onChanged: (RangeValues vals) {
                                   setModalState(() {
-                                    tempMin = vals.start.roundToDouble();
-                                    tempMax = vals.end.roundToDouble();
+                                    final rawMin = (vals.start / 10).round() * 10.0;
+                                    final rawMax = (vals.end / 10).round() * 10.0;
+                                    tempMin = rawMin < 99.0 ? 99.0 : rawMin;
+                                    tempMax = rawMax > 2000.0 ? 2000.0 : rawMax;
+                                    if (tempMin > tempMax) tempMin = tempMax;
                                   });
                                 },
                               ),
@@ -1149,8 +1359,9 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                               runSpacing: 6,
                               children: [
                                 _buildModalFilterChip(
+                                  icon: Icons.all_inclusive_rounded,
                                   label: 'filter_all_rates'.tr(),
-                                  isSelected: tempMin <= 99.0 && tempMax >= 2000.0,
+                                  isSelected: tempMin <= 100.0 && tempMax >= 1990.0,
                                   onTap: () {
                                     setModalState(() {
                                       tempMin = 99.0;
@@ -1159,8 +1370,9 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                                   },
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.savings_outlined,
                                   label: 'filter_under_299'.tr(),
-                                  isSelected: tempMin <= 99.0 && tempMax == 299.0,
+                                  isSelected: tempMin <= 100.0 && tempMax <= 300.0 && tempMax > 100.0,
                                   onTap: () {
                                     setModalState(() {
                                       tempMin = 99.0;
@@ -1169,8 +1381,9 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                                   },
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.payments_outlined,
                                   label: "₹300 - ₹799",
-                                  isSelected: tempMin == 300.0 && tempMax == 799.0,
+                                  isSelected: tempMin >= 280.0 && tempMin <= 320.0 && tempMax >= 780.0 && tempMax <= 820.0,
                                   onTap: () {
                                     setModalState(() {
                                       tempMin = 300.0;
@@ -1179,8 +1392,9 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                                   },
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.workspace_premium_outlined,
                                   label: "₹800+",
-                                  isSelected: tempMin == 800.0 && tempMax >= 2000.0,
+                                  isSelected: tempMin >= 780.0 && tempMax >= 1990.0,
                                   onTap: () {
                                     setModalState(() {
                                       tempMin = 800.0;
@@ -1211,21 +1425,25 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                               runSpacing: 8,
                               children: [
                                 _buildModalFilterChip(
+                                  icon: Icons.near_me_rounded,
                                   label: 'sort_proximity'.tr(),
                                   isSelected: tempSort == "nearest",
                                   onTap: () => setModalState(() => tempSort = "nearest"),
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.arrow_upward_rounded,
                                   label: 'sort_price_low_high'.tr(),
                                   isSelected: tempSort == "fare_asc" || tempSort == "fare",
                                   onTap: () => setModalState(() => tempSort = "fare_asc"),
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.arrow_downward_rounded,
                                   label: 'sort_price_high_low'.tr(),
                                   isSelected: tempSort == "fare_desc",
                                   onTap: () => setModalState(() => tempSort = "fare_desc"),
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.star_rounded,
                                   label: 'sort_top_rated'.tr(),
                                   isSelected: tempSort == "rating",
                                   onTap: () => setModalState(() => tempSort = "rating"),
@@ -1253,16 +1471,19 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                               runSpacing: 8,
                               children: [
                                 _buildModalFilterChip(
+                                  icon: Icons.people_outline_rounded,
                                   label: 'filter_all_artisans'.tr(),
                                   isSelected: tempStatus == "all",
                                   onTap: () => setModalState(() => tempStatus = "all"),
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.check_circle_outline_rounded,
                                   label: 'filter_checked_in'.tr(),
                                   isSelected: tempStatus == "checked_in",
                                   onTap: () => setModalState(() => tempStatus = "checked_in"),
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.schedule_rounded,
                                   label: 'filter_checked_out'.tr(),
                                   isSelected: tempStatus == "checked_out",
                                   onTap: () => setModalState(() => tempStatus = "checked_out"),
@@ -1290,21 +1511,25 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                               runSpacing: 8,
                               children: [
                                 _buildModalFilterChip(
+                                  icon: Icons.public_rounded,
                                   label: 'all_distances'.tr(),
                                   isSelected: tempRadius <= 0,
                                   onTap: () => setModalState(() => tempRadius = -1.0),
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.radar_rounded,
                                   label: 'within_10km'.tr(),
                                   isSelected: tempRadius == 10.0,
                                   onTap: () => setModalState(() => tempRadius = 10.0),
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.radar_rounded,
                                   label: 'within_25km'.tr(),
                                   isSelected: tempRadius == 25.0,
                                   onTap: () => setModalState(() => tempRadius = 25.0),
                                 ),
                                 _buildModalFilterChip(
+                                  icon: Icons.radar_rounded,
                                   label: 'within_50km'.tr(),
                                   isSelected: tempRadius == 50.0,
                                   onTap: () => setModalState(() => tempRadius = 50.0),
@@ -1373,6 +1598,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
+    IconData? icon,
   }) {
     return GestureDetector(
       onTap: () {
@@ -1399,13 +1625,26 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                 ]
               : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF475569),
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 13.5,
+                color: isSelected ? Colors.white : const Color(0xFF64748B),
+              ),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFF475569),
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1684,7 +1923,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                             (c) => c.key == e.key,
                             orElse: () => (
                               key: e.key,
-                              emoji: "🔧",
+                              icon: Icons.handyman_rounded,
                               title: e.key,
                               color: const Color(0xFF2563EB),
                               gradient: const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)]),
@@ -1708,7 +1947,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(meta.emoji, style: const TextStyle(fontSize: 13)),
+                                  Icon(meta.icon, size: 14, color: meta.color),
                                   const SizedBox(width: 6),
                                   Text(
                                     "${meta.key == 'All' ? 'all_trades'.tr() : meta.title.toLocalizedTrade()} (${e.value})",
@@ -2482,9 +2721,10 @@ class _RadarScanningBeaconState extends State<_RadarScanningBeacon>
 }
 
 // ──────────────────────────────────────────────────────
-//  PREMIUM WORKER CARD WITH RAPIDO-STYLE DYNAMIC PRICING
 // ──────────────────────────────────────────────────────
-class _WorkerCard extends StatelessWidget {
+//  PREMIUM WORKER CARD WITH TEMPLATE HERO DESIGN
+// ──────────────────────────────────────────────────────
+class _WorkerCard extends StatefulWidget {
   const _WorkerCard({
     required this.worker,
     required this.selectedCategory,
@@ -2498,6 +2738,32 @@ class _WorkerCard extends StatelessWidget {
   final String customerId;
   final double? customerLat;
   final double? customerLng;
+
+  @override
+  State<_WorkerCard> createState() => _WorkerCardState();
+}
+
+class _WorkerCardState extends State<_WorkerCard> {
+  bool _isBookmarked = false;
+
+  String _getTradeAssetImage(String trade) {
+    final t = trade.toLowerCase();
+    if (t.contains('plumb')) return 'packages/workgo_core/assets/images/crafts/plumbing.jpg';
+    if (t.contains('electr')) return 'packages/workgo_core/assets/images/crafts/electrical.jpg';
+    if (t.contains('carpen') || t.contains('wood')) return 'packages/workgo_core/assets/images/crafts/carpentry.jpg';
+    if (t.contains('clean')) return 'packages/workgo_core/assets/images/crafts/cleaning.jpg';
+    if (t.contains('paint')) return 'packages/workgo_core/assets/images/crafts/painting.jpg';
+    if (t.contains('appliance') || t.contains('ac') || t.contains('fridge')) {
+      return 'packages/workgo_core/assets/images/crafts/appliance.jpg';
+    }
+    if (t.contains('mason') || t.contains('tile') || t.contains('brick')) {
+      return 'packages/workgo_core/assets/images/crafts/masonry.jpg';
+    }
+    if (t.contains('garden') || t.contains('lawn')) {
+      return 'packages/workgo_core/assets/images/crafts/gardening.jpg';
+    }
+    return 'packages/workgo_core/assets/images/crafts/plumbing.jpg';
+  }
 
   void _showFareBreakdownSheet(BuildContext context, FareBreakdown fare) {
     showModalBottomSheet(
@@ -2565,7 +2831,7 @@ class _WorkerCard extends StatelessWidget {
                         Text(
                           'transparent_pricing_with_worker'.tr(args: [
                             MlTranslationService.instance.translateSync(
-                              worker.name,
+                              widget.worker.name,
                               context.locale.languageCode,
                             ),
                           ]),
@@ -2706,11 +2972,11 @@ class _WorkerCard extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => BookingCreationScreen(
                         serviceCategory: fare.category,
-                        customerId: customerId,
-                        targetWorkerId: worker.id,
-                        worker: worker.withCalculatedDistance(customerLat, customerLng),
-                        customerLat: customerLat,
-                        customerLng: customerLng,
+                        customerId: widget.customerId,
+                        targetWorkerId: widget.worker.id,
+                        worker: widget.worker.withCalculatedDistance(widget.customerLat, widget.customerLng),
+                        customerLat: widget.customerLat,
+                        customerLng: widget.customerLng,
                       ),
                     ),
                   );
@@ -2807,6 +3073,12 @@ class _WorkerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final worker = widget.worker;
+    final customerLat = widget.customerLat;
+    final customerLng = widget.customerLng;
+    final customerId = widget.customerId;
+    final selectedCategory = widget.selectedCategory;
+
     final tradeCategory = worker.skills.isNotEmpty
         ? worker.skills.first
         : (selectedCategory != "All" ? selectedCategory : "Plumbing");
@@ -2840,62 +3112,192 @@ class _WorkerCard extends StatelessWidget {
         : (worker.totalRatings > 0 ? 'jobs_count'.tr(args: [worker.totalRatings.toString()]) : 'verified_pro'.tr());
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 16,
-            offset: Offset(0, 4),
+            color: Color(0x0A000000),
+            blurRadius: 18,
+            offset: Offset(0, 5),
+          ),
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── 1. Header: Avatar + Name + Verified Badge + Star Rating ───────
-          Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (ctx) => BookingCreationScreen(
+                  serviceCategory: tradeCategory,
+                  customerId: customerId,
+                  targetWorkerId: worker.id,
+                  worker: worker.withCalculatedDistance(customerLat, customerLng),
+                  customerLat: customerLat,
+                  customerLng: customerLng,
+                ),
+              ),
+            );
+          },
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar with online status
-              Stack(
-                children: [
-                  WorkGoAvatar(
-                    name: displayName,
-                    avatarBase64: worker.avatarBase64,
-                    radius: 26,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
+              // ── 1. Hero Atmospheric Asset Banner with Overlapping Avatar ────
+              SizedBox(
+                height: 144,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Atmospheric Craft Background Image with Misty Dissolve
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 118,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.asset(
+                            _getTradeAssetImage(tradeCategory),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFFE2E8F0), Color(0xFFCBD5E1)],
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Soft Misty Gradient Dissolving into White Card Surface
+                          Positioned.fill(
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  stops: [0.0, 0.45, 0.82, 1.0],
+                                  colors: [
+                                    Colors.transparent,
+                                    Color(0x2EFFFFFF),
+                                    Color(0xCCFFFFFF),
+                                    Colors.white,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                    ),
+
+                    // Floating Bookmark Button (Top Right)
+                    Positioned(
+                      top: 10,
+                      right: 12,
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          setState(() => _isBookmarked = !_isBookmarked);
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.94),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x1A000000),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                            size: 18,
+                            color: _isBookmarked ? const Color(0xFFD97706) : const Color(0xFF1E293B),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 12),
 
-              // Info column
-              Expanded(
+                    // Overlapping Avatar with White Halo & Live Status Dot
+                    Positioned(
+                      bottom: 0,
+                      left: 16,
+                      child: Container(
+                        padding: const EdgeInsets.all(3.5),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            WorkGoAvatar(
+                              name: displayName,
+                              avatarBase64: worker.avatarBase64,
+                              radius: 26,
+                            ),
+                            // Real-time live status indicator dot
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                ),
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                    boxShadow: isCheckedIn
+                                        ? [
+                                            BoxShadow(
+                                              color: const Color(0xFF10B981).withValues(alpha: 0.6),
+                                              blurRadius: 4,
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── 2. Card Body Content ─────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Worker Name & Verification Checkmark
                     Row(
                       children: [
                         Flexible(
@@ -2911,342 +3313,308 @@ class _WorkerCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        const Icon(
-                          Icons.verified_rounded,
-                          color: Color(0xFF10B981),
-                          size: 16,
-                        ),
+                        if (worker.isApproved || worker.trustSignalCount >= 3) ...[
+                          const SizedBox(width: 5),
+                          const Icon(
+                            Icons.verified_rounded,
+                            color: Color(0xFF10B981),
+                            size: 16,
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2.5),
+
+                    // Artisan Skills Subtitle
                     Text(
-                      "${worker.skills.map((s) => s.toLocalizedTrade()).join(', ')} • ${'years_exp'.tr(args: [worker.experienceYears.toString()])}",
+                      worker.skills.isNotEmpty
+                          ? worker.skills.map((s) => s.toLocalizedTrade()).join(', ')
+                          : tradeCategory.toLocalizedTrade(),
                       style: const TextStyle(
                         color: Color(0xFF64748B),
-                        fontSize: 11.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isCheckedIn ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: isCheckedIn ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1),
-                          width: 0.9,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6.5,
-                            height: 6.5,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
-                              boxShadow: isCheckedIn
-                                  ? [
-                                      BoxShadow(
-                                        color: const Color(0xFF10B981).withValues(alpha: 0.5),
-                                        blurRadius: 3,
-                                      ),
-                                    ]
-                                  : null,
+                    const SizedBox(height: 7),
+
+                    // Metadata Row: Trade • Distance • Safety Cover • Status Pill
+                    Row(
+                      children: [
+                        const Icon(Icons.work_outline_rounded, size: 12.5, color: Color(0xFF64748B)),
+                        const SizedBox(width: 3.5),
+                        Flexible(
+                          child: Text(
+                            tradeCategory.toLocalizedTrade(),
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 4.5),
-                          Flexible(
-                            child: Text(
-                              isCheckedIn ? 'filter_checked_in'.tr() : 'filter_checked_out'.tr(),
-                              style: TextStyle(
-                                color: isCheckedIn ? const Color(0xFF065F46) : const Color(0xFF475569),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Star Rating Pill (Image 1 Style)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFDE68A)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.star_rounded, color: Color(0xFFD97706), size: 14),
-                    const SizedBox(width: 3),
-                    Text(
-                      ratingDisplay,
-                      style: const TextStyle(
-                        color: Color(0xFFB45309),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (reviewCount > 0) ...[
-                      const SizedBox(width: 2),
-                      Text(
-                        " ($reviewCount)",
-                        style: const TextStyle(
-                          color: Color(0xFFB45309),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
+                        const SizedBox(width: 8),
 
-          const SizedBox(height: 12),
-
-          // ── 2. Trust & Social Proof Row ──
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Homes / Customers Serviced
-                Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.home_work_rounded,
-                        color: Color(0xFF059669),
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          homesDisplay,
-                          style: const TextStyle(
-                            color: Color(0xFF334155),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
-                ),
-
-                // Distance
-                Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.location_on_rounded, color: Color(0xFF2563EB), size: 13),
-                      const SizedBox(width: 3),
-                      Flexible(
-                        child: Text(
+                        const Icon(Icons.location_on_outlined, size: 12.5, color: Color(0xFF2563EB)),
+                        const SizedBox(width: 2.5),
+                        Text(
                           worker.formattedDistanceString(customerLat, customerLng),
                           style: const TextStyle(
                             color: Color(0xFF2563EB),
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Container(width: 1, height: 14, color: const Color(0xFFE2E8F0)),
-                ),
+                        const SizedBox(width: 8),
 
-                // Escrow Safety
-                Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.shield_rounded, color: Color(0xFF7C3AED), size: 13),
-                      const SizedBox(width: 3),
-                      Flexible(
-                        child: Text(
-                          'k50_cover'.tr(),
-                          style: const TextStyle(
-                            color: Color(0xFF7C3AED),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                        const Icon(Icons.shield_outlined, size: 12.5, color: Color(0xFF059669)),
+                        const SizedBox(width: 2.5),
+                        Flexible(
+                          child: Text(
+                            'k50_cover'.tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF059669),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          // Divider
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Divider(color: Color(0xFFF1F5F9), height: 1),
-          ),
+                        const Spacer(),
 
-          // ── 3. Price + Action Row (Image 1 Style Dark Pill Button) ────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Dynamic Fare Info
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _showFareBreakdownSheet(context, fare),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              'est_fare'.tr(),
-                              style: const TextStyle(
-                                color: Color(0xFF94A3B8),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                        // Checked-in / Checked-out Status Pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: isCheckedIn ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isCheckedIn ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1),
+                              width: 0.8,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.info_outline_rounded,
-                            color: Color(0xFFD97706),
-                            size: 12,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            "₹${fare.totalEstimatedFare.toStringAsFixed(0)}",
-                            style: WorkGoFonts.numeric(
-                              color: const Color(0xFF141416),
-                              fontSize: 19,
-                              fontWeight: FontWeight.w900,
+                          child: Text(
+                            isCheckedIn ? 'filter_checked_in'.tr() : 'filter_checked_out'.tr(),
+                            style: TextStyle(
+                              color: isCheckedIn ? const Color(0xFF065F46) : const Color(0xFF475569),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              "(${fare.formattedBase} + ${fare.formattedTransit})",
-                              style: const TextStyle(
-                                color: Color(0xFF64748B),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Sleek Dark Pill Action Button (Image 1 Style)
-              Flexible(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (ctx) => BookingCreationScreen(
-                          serviceCategory: tradeCategory,
-                          customerId: customerId,
-                          targetWorkerId: worker.id,
-                          worker: worker.withCalculatedDistance(customerLat, customerLng),
-                          customerLat: customerLat,
-                          customerLng: customerLng,
                         ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isCheckedIn ? const Color(0xFF141416) : const Color(0xFF334155),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    minimumSize: const Size(0, 42),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
+                      ],
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          isCheckedIn ? 'book_live'.tr() : 'book_artisan'.tr(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
+
+                    // Subtle Divider
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Divider(color: Color(0xFFF1F5F9), height: 1),
+                    ),
+
+                    // ── 3. Three Metrics Columns + Dark Pill CTA Button ──────────────
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Three Metric Columns
+                        Expanded(
+                          child: Row(
+                            children: [
+                              // 1. Rating Column
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.star_rounded, color: Color(0xFFD97706), size: 14),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          ratingDisplay,
+                                          style: const TextStyle(
+                                            color: Color(0xFF141416),
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        if (reviewCount > 0)
+                                          Flexible(
+                                            child: Text(
+                                              " ($reviewCount)",
+                                              style: const TextStyle(
+                                                color: Color(0xFF94A3B8),
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'rating_stat'.trSafe('Rating'),
+                                      style: const TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Column Divider
+                              Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                              const SizedBox(width: 6),
+
+                              // 2. Experience / Homes Column
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      worker.experienceYears > 0
+                                          ? "${worker.experienceYears} yrs"
+                                          : homesDisplay,
+                                      style: const TextStyle(
+                                        color: Color(0xFF141416),
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'sort_experience'.trSafe('Experience'),
+                                      style: const TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Column Divider
+                              Container(width: 1, height: 24, color: const Color(0xFFE2E8F0)),
+                              const SizedBox(width: 6),
+
+                              // 3. Visit Fare Column (Tappable for breakdown sheet)
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _showFareBreakdownSheet(context, fare),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            "₹${fare.totalEstimatedFare.toStringAsFixed(0)}",
+                                            style: WorkGoFonts.numeric(
+                                              color: const Color(0xFF141416),
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          const Icon(
+                                            Icons.info_outline_rounded,
+                                            color: Color(0xFFD97706),
+                                            size: 11,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'est_fare'.tr(),
+                                        style: const TextStyle(
+                                          color: Color(0xFF94A3B8),
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white24,
+
+                        const SizedBox(width: 10),
+
+                        // Tactile Dark Pill CTA Button
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (ctx) => BookingCreationScreen(
+                                  serviceCategory: tradeCategory,
+                                  customerId: customerId,
+                                  targetWorkerId: worker.id,
+                                  worker: worker.withCalculatedDistance(customerLat, customerLng),
+                                  customerLat: customerLat,
+                                  customerLng: customerLng,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isCheckedIn ? const Color(0xFF141416) : const Color(0xFF27272A),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                            minimumSize: const Size(0, 38),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isCheckedIn ? 'book_live'.tr() : 'book_artisan'.tr(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 13),
+                            ],
+                          ),
                         ),
-                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
