@@ -192,6 +192,22 @@ class WorkerEarningsScreen extends StatefulWidget {
 class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
   int _selectedPeriodIndex =
       0; // 0: Today, 1: This Week, 2: This Month, 3: All Time
+  late Stream<List<Booking>> _jobsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _jobsStream = BookingService().streamWorkerActiveJobs(widget.worker.id);
+  }
+
+  @override
+  void didUpdateWidget(WorkerEarningsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.worker.id != oldWidget.worker.id) {
+      _jobsStream = BookingService().streamWorkerActiveJobs(widget.worker.id);
+    }
+  }
+
   final List<String> _periodKeys = [
     "period_today",
     "period_this_week",
@@ -262,7 +278,6 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bookingService = BookingService();
     final now = DateTime.now();
     final dateSubtitle = DateFormat('EEE, d MMM').format(now);
 
@@ -298,10 +313,11 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
       ),
       body: SafeArea(
         child: StreamBuilder<List<Booking>>(
-          stream: bookingService.streamWorkerActiveJobs(widget.worker.id),
+          stream: _jobsStream,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
               return ListView(
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(18, 10, 18, 90),
                 children: const [
                   KaryaShimmer(height: 220, borderRadius: 34),
@@ -344,6 +360,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                 : 0.0;
 
             return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
               padding: const EdgeInsets.fromLTRB(18, 6, 18, 90),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -784,10 +801,10 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
     HapticFeedback.lightImpact();
     if (jobs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("No completed jobs to export for this period."),
+        SnackBar(
+          content: Text('no_completed_jobs_export'.trSafe('No completed jobs to export for this period.')),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFF141416),
+          backgroundColor: const Color(0xFF141416),
         ),
       );
       return;

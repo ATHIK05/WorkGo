@@ -83,7 +83,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
     if (_selectedSkills.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Select at least one trade skill"),
+          content: Text('select_at_least_one_skill'.trSafe('Select at least one trade skill')),
           backgroundColor: KX.rose,
         ),
       );
@@ -164,7 +164,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
             children: [
               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
               const SizedBox(width: 10),
-              const Text("Artisan profile & skills updated!"),
+              Text('profile_skills_updated'.trSafe("Artisan profile & skills updated!")),
             ],
           ),
           backgroundColor: const Color(0xFF047857),
@@ -178,9 +178,9 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return KaryaScaffold(
-      appBar: const KaryaAppBar(
-        title: "Artisan Skills & Coverage",
-        subtitle: "Customize your trade dispatch matrix",
+      appBar: KaryaAppBar(
+        title: 'artisan_skills_coverage_title'.trSafe("Artisan Skills & Coverage"),
+        subtitle: 'artisan_skills_coverage_sub'.trSafe("Customize your trade dispatch matrix"),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -207,7 +207,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                "Artisan Display Name",
+                                'artisan_display_name_label'.trSafe("Artisan Display Name"),
                                 style: WorkGoFonts.heading(
                                   color: KX.textPrimary,
                                   fontSize: 13,
@@ -230,7 +230,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                             color: KX.textPrimary,
                           ),
                           decoration: InputDecoration(
-                            hintText: "Enter full name (e.g. Ramesh Kumar)",
+                            hintText: 'enter_full_name_hint'.trSafe("Enter full name (e.g. Ramesh Kumar)"),
                             hintStyle: const TextStyle(
                               color: KX.textSecondary,
                               fontSize: 13,
@@ -300,9 +300,9 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                 KSlideFadeIn(
                   delay: const Duration(milliseconds: 60),
                   child: _SliderCard(
-                    title: "Trade Experience",
+                    title: 'trade_experience_label'.trSafe("Trade Experience"),
                     value: _experience,
-                    displayValue: "${_experience.toInt()} Years",
+                    displayValue: "${_experience.toInt()} ${'years_abbr'.trSafe('Years')}",
                     min: 1.0,
                     max: 30.0,
                     divisions: 29,
@@ -318,7 +318,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                 KSlideFadeIn(
                   delay: const Duration(milliseconds: 100),
                   child: _SliderCard(
-                    title: "Dispatch Service Radius",
+                    title: 'dispatch_radius_label'.trSafe("Dispatch Service Radius"),
                     value: _serviceRadius,
                     displayValue: "${_serviceRadius.toInt()} km",
                     min: 1.0,
@@ -434,7 +434,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                 KSlideFadeIn(
                   delay: const Duration(milliseconds: 140),
                   child: KaryaButton(
-                    label: "Save Artisan Matrix",
+                    label: 'save_artisan_matrix_btn'.trSafe("Save Artisan Matrix"),
                     icon: Icons.save_rounded,
                     isLoading: _isSaving,
                     onPressed: _saveProfile,
@@ -584,15 +584,19 @@ class _SliderCard extends StatelessWidget {
                 child: Icon(icon, color: Colors.white, size: 16),
               ),
               const SizedBox(width: 10),
-              Text(
-                title,
-                style: WorkGoFonts.heading(
-                  color: KX.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  title,
+                  style: WorkGoFonts.heading(
+                    color: KX.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(

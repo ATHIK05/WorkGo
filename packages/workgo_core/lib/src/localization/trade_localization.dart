@@ -1,4 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'locale_config.dart';
 import '../models/booking.dart';
 import '../models/worker.dart';
 
@@ -825,16 +826,24 @@ extension SafeTranslationExtension on String {
   /// Translates key or returns fallback if key is missing or unresolved.
   String trSafe([String? fallback, List<String>? args]) {
     try {
-      // In-memory zero-warning fallback resolver
+      // 1. Primary lookup via EasyLocalization asset files
+      final res = args != null && args.isNotEmpty ? this.tr(args: args) : this.tr();
+      if (res != this && res.isNotEmpty) {
+        return res;
+      }
+
+      // 2. In-memory fallback resolver
       if (_embeddedTranslations.containsKey(this)) {
         final entry = _embeddedTranslations[this]!;
-        String locale = 'en';
-        try {
-          final cur = Intl.getCurrentLocale();
-          if (cur.isNotEmpty) {
-            locale = cur.split('_').first.toLowerCase();
-          }
-        } catch (_) {}
+        String locale = WorkGoLocale.currentCode;
+        if (locale.isEmpty || locale == 'en') {
+          try {
+            final cur = Intl.defaultLocale ?? Intl.getCurrentLocale();
+            if (cur.isNotEmpty && cur != 'en' && cur != 'en_US') {
+              locale = cur.split('_').first.toLowerCase();
+            }
+          } catch (_) {}
+        }
         var val = entry[locale] ?? entry['en'] ?? fallback ?? this;
         if (args != null && args.isNotEmpty) {
           for (final a in args) {
@@ -844,8 +853,7 @@ extension SafeTranslationExtension on String {
         return val;
       }
 
-      final res = args != null && args.isNotEmpty ? this.tr(args: args) : this.tr();
-      if (res == this && fallback != null && fallback.isNotEmpty) {
+      if (fallback != null && fallback.isNotEmpty) {
         return fallback;
       }
       return res;
@@ -865,6 +873,24 @@ extension SafeTranslationExtension on String {
       result = result.replaceAllMapped(regex, (m) => val);
     });
     return result;
+  }
+}
+
+/// Extension on tool names to provide localized labels for tool checklists
+extension ToolNameLocalization on String {
+  String toLocalizedTool() {
+    final lower = toLowerCase().trim();
+    if (lower.contains('pipe wrench')) return 'tool_pipe_wrench'.trSafe(this);
+    if (lower.contains('adjustable spanner') || lower.contains('adjustable wrench')) return 'tool_adjustable_spanner'.trSafe(this);
+    if (lower.contains('basin wrench')) return 'tool_basin_wrench'.trSafe(this);
+    if (lower.contains('plunger')) return 'tool_plunger'.trSafe(this);
+    if (lower.contains('slip-joint') || lower.contains('pliers')) return 'tool_pliers'.trSafe(this);
+    if (lower.contains('thread seal') || lower.contains('ptfe') || lower.contains('teflon')) return 'tool_ptfe_tape'.trSafe(this);
+    if (lower.contains('washer')) return 'tool_washers'.trSafe(this);
+    if (lower.contains('silicone') || lower.contains('sealant')) return 'tool_sealant'.trSafe(this);
+    if (lower.contains('gloves')) return 'tool_gloves'.trSafe(this);
+    if (lower.contains('glasses') || lower.contains('goggles')) return 'tool_safety_glasses'.trSafe(this);
+    return this;
   }
 }
 

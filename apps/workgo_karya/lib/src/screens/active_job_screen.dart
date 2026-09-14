@@ -155,9 +155,9 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         }
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("OTP Verified — Service started."),
-              backgroundColor: Color(0xFF047857),
+            SnackBar(
+              content: Text("otp_verified_started".trSafe("OTP Verified — Service started.")),
+              backgroundColor: const Color(0xFF047857),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -202,7 +202,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("Camera capture error: $e"),
+                    content: Text("${'camera_capture_error'.trSafe('Camera capture error')}: $e"),
                     backgroundColor: Colors.redAccent,
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -597,7 +597,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         setState(() => _isSigningC2pa = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Error completing job: $e"),
+            content: Text("${'error_completing_job'.trSafe('Error completing job')}: $e"),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -750,7 +750,10 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
       } catch (e) {
         if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error confirming cash: $e"), backgroundColor: Colors.redAccent),
+            SnackBar(
+              content: Text("${'error_confirming_cash'.trSafe('Error confirming cash')}: $e"),
+              backgroundColor: Colors.redAccent,
+            ),
           );
         }
       }
@@ -784,8 +787,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
 
         return KaryaScaffold(
           appBar: KaryaAppBar(
-            title: "Tactical Job HUD",
-            subtitle: "Booking #$shortId · ${currentBooking.serviceType}",
+            title: "tactical_job_hud_title".trSafe("Tactical Job HUD"),
+            subtitle: "${'booking_label'.trSafe('Booking')} #$shortId · ${currentBooking.serviceType.toLocalizedTrade()}",
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 12),
@@ -1121,7 +1124,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         children: [
           KaryaSlideAction(
             key: const ValueKey("slide_start_otp"),
-            label: "Slide when Arrived at Doorstep",
+            label: "slide_arrived_doorstep".trSafe("Slide when Arrived at Doorstep"),
             icon: Icons.arrow_forward_ios_rounded,
             gradient: const LinearGradient(
               colors: [Color(0xFF2E1065), Color(0xFF4C1D95)],
@@ -1143,12 +1146,16 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
               }
             },
             icon: const Icon(Icons.swap_horiz_rounded, color: KX.amber, size: 18),
-            label: const Text(
-              "Hand Off to Specialist (Co-op Relay · Earn ₹50)",
-              style: TextStyle(
-                color: KX.amber,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w800,
+            label: Flexible(
+              child: Text(
+                "handoff_specialist_btn".trSafe("Hand Off to Specialist (Co-op Relay · Earn ₹50)"),
+                style: const TextStyle(
+                  color: KX.amber,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             style: OutlinedButton.styleFrom(
@@ -1189,7 +1196,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
     return Column(
       children: [
         KaryaButton(
-          label: "Capture Work & Complete Service",
+          label: "slide_complete_service".trSafe("Capture Work & Complete Service"),
           icon: Icons.camera_alt_rounded,
           onPressed: _advanceJob,
           gradient: KX.auroraAccept,
@@ -1573,7 +1580,7 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      booking.serviceType.tr(),
+                      booking.serviceType.toLocalizedTrade(),
                       style: WorkGoFonts.display(
                         color: KX.textPrimary,
                         fontSize: 16,
@@ -1591,15 +1598,17 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              "EMERGENCY",
+                              'emergency_badge'.trSafe("EMERGENCY"),
                               style: WorkGoFonts.badge(color: KX.rose, fontSize: 9.5),
                             ),
                           ),
                           const SizedBox(width: 6),
                         ],
                         Text(
-                          booking.isDiagnosticVisit ? "Smart Diagnostic Visit" : "Direct Dispatch",
-                          style: TextStyle(color: KX.textSecondary, fontSize: 11),
+                          booking.isDiagnosticVisit
+                              ? 'smart_diagnostic_visit'.trSafe("Smart Diagnostic Visit")
+                              : 'direct_dispatch'.trSafe("Direct Dispatch"),
+                          style: const TextStyle(color: KX.textSecondary, fontSize: 11),
                         ),
                       ],
                     ),
@@ -1630,7 +1639,7 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                           ? _resolvedCustomerName!
                           : (booking.customerName?.isNotEmpty == true
                               ? booking.customerName!
-                              : "Valued Customer"),
+                              : "valued_customer".trSafe("Valued Customer")),
                       style: const TextStyle(
                         color: KX.textPrimary,
                         fontSize: 13,
@@ -1677,7 +1686,7 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Calling $phone...',
+                            "${'calling_phone_prefix'.trSafe('Calling')} $phone...",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1692,8 +1701,8 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                      horizontal: 10,
+                      vertical: 5,
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFD1FAE5),
@@ -1711,16 +1720,14 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                           color: Color(0xFF065F46),
                           size: 13,
                         ),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 4),
                         Text(
-                          'call_customer'.tr(),
+                          'call_action'.trSafe('Call'),
                           style: const TextStyle(
                             color: Color(0xFF065F46),
-                            fontSize: 11,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w800,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -1739,8 +1746,8 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
               Expanded(
                 child: Text(
                   booking.customerAddressText?.isNotEmpty == true
-                      ? booking.customerAddressText!
-                      : "Customer Doorstep Address",
+                      ? booking.customerAddressText!.toLocalizedAddress(context.locale.languageCode)
+                      : "customer_doorstep_address".trSafe("Customer Doorstep Address"),
                   style: const TextStyle(color: KX.textSecondary, fontSize: 12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1815,7 +1822,7 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                         child: Text(
                           booking.equipmentTag?.isNotEmpty == true
                               ? "Target: ${booking.equipmentTag}"
-                              : "Diagnostic Context",
+                              : 'diagnostic_context_title'.trSafe("Diagnostic Context"),
                           style: const TextStyle(
                             color: KX.textPrimary,
                             fontSize: 13,
@@ -1851,12 +1858,12 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                       children: [
                         const Icon(Icons.handyman_rounded, size: 13, color: Color(0xFFD97706)),
                         const SizedBox(width: 5),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            "AI Recommended Gear Checklist",
-                            style: TextStyle(
+                            'ai_recommended_gear_title'.trSafe("AI Recommended Gear"),
+                            style: const TextStyle(
                               color: Color(0xFFB45309),
-                              fontSize: 11.5,
+                              fontSize: 12,
                               fontWeight: FontWeight.w800,
                             ),
                             maxLines: 1,
@@ -1865,14 +1872,15 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          "${_verifiedTools.length}/${_effectiveTools(booking).length} ${'tools_packed'.tr()}",
+                          'tools_packed_count'.trSafe(
+                            "${_verifiedTools.length}/${_effectiveTools(booking).length} packed",
+                            ["${_verifiedTools.length}/${_effectiveTools(booking).length}"],
+                          ),
                           style: const TextStyle(
                             color: KX.textSecondary,
-                            fontSize: 10.5,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -1919,7 +1927,7 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
-                                    tool,
+                                    tool.toLocalizedTool(),
                                     style: TextStyle(
                                       color: isChecked ? const Color(0xFF065F46) : KX.textPrimary,
                                       fontSize: 11,
@@ -1994,7 +2002,7 @@ class _ArrivalStartOtpPromptCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Arrival Verification Gate",
+                      'arrival_verification_gate'.trSafe("Arrival Verification"),
                       style: WorkGoFonts.display(
                         color: KX.textPrimary,
                         fontSize: 14,
@@ -2002,9 +2010,9 @@ class _ArrivalStartOtpPromptCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      "Ask customer for the 4-digit OTP shown on their phone",
-                      style: TextStyle(color: KX.textSecondary, fontSize: 11),
+                    Text(
+                      'ask_customer_otp_hint'.trSafe("Ask customer for the 4-digit OTP shown on their phone"),
+                      style: const TextStyle(color: KX.textSecondary, fontSize: 11),
                     ),
                   ],
                 ),
@@ -2018,9 +2026,9 @@ class _ArrivalStartOtpPromptCard extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: onEnterOtp,
               icon: const Icon(Icons.pin_rounded, size: 18, color: Color(0xFF0F172A)),
-              label: const Text(
-                "Enter Customer Start OTP",
-                style: TextStyle(
+              label: Text(
+                'enter_customer_start_otp'.trSafe("Enter Customer Start OTP"),
+                style: const TextStyle(
                   color: Color(0xFF0F172A),
                   fontSize: 13.5,
                   fontWeight: FontWeight.w900,
@@ -2204,6 +2212,8 @@ class _PayoutLedgerCard extends StatelessWidget {
     final gross = booking.amount;
     final welfare = fare?.welfareContributionFare ?? (gross * 0.02);
     final netPayout = fare?.workerTakeHomeFare ?? (gross - welfare);
+    final basePortion = (gross * 0.7).roundToDouble();
+    final allowancePortion = gross - basePortion;
 
     return KaryaCard(
       padding: const EdgeInsets.all(16),
@@ -2228,7 +2238,7 @@ class _PayoutLedgerCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                "₹${netPayout.toStringAsFixed(0)} Net",
+                "₹${netPayout.toStringAsFixed(0)} ${'net_label'.trSafe('Net')}",
                 style: WorkGoFonts.display(
                   color: KX.gold,
                   fontSize: 16,
@@ -2242,19 +2252,29 @@ class _PayoutLedgerCard extends StatelessWidget {
           // Base Visit & Diagnostics (covers first 45 mins)
           _buildRow(
             'base_visit_fare'.tr(),
-            fare != null ? fare.formattedBase : "₹${(gross * 0.7).toStringAsFixed(0)}",
+            fare != null ? fare.formattedBase : "₹${basePortion.toStringAsFixed(0)}",
             subtitle: 'first_45_mins_included'.tr(),
           ),
+
+          // Service & labor allowance when detailed breakdown not yet computed
+          if (fare == null && allowancePortion > 0) ...[
+            const SizedBox(height: 6),
+            _buildRow(
+              'service_allowance_fare'.trSafe('Service & Transit Allowance'),
+              "₹${allowancePortion.toStringAsFixed(0)}",
+              subtitle: 'direct_artisan_payout'.trSafe('Direct artisan labor allowance'),
+            ),
+          ],
 
           // Duration / Overtime Extensions
           if (fare != null && fare.actualDurationMinutes > 0) ...[
             const SizedBox(height: 6),
             _buildRow(
               'actual_time_spent'.tr(),
-              "${fare.actualDurationMinutes} mins",
+              "${fare.actualDurationMinutes} ${'minutes_abbr'.trSafe('mins')}",
               subtitle: fare.timeExtensionSlabs > 0
                   ? "${fare.timeExtensionSlabs} x ₹60 (${fare.formattedTimeExtension})"
-                  : "Within 45 min base window",
+                  : "within_base_window".trSafe("Within 45 min base window"),
               isBonus: fare.timeExtensionFare > 0,
             ),
           ] else if (fare != null) ...[
@@ -2292,7 +2312,7 @@ class _PayoutLedgerCard extends StatelessWidget {
             _buildRow(
               'experience_bonus'.tr(),
               fare.formattedExperienceBonus,
-              subtitle: "${fare.experienceYears} yrs experience",
+              subtitle: "${fare.experienceYears} ${'years_experience'.trSafe('yrs experience')}",
               isBonus: true,
             ),
           ],
@@ -2303,7 +2323,7 @@ class _PayoutLedgerCard extends StatelessWidget {
             _buildRow(
               'urgency_priority_tip'.tr(),
               "+₹${booking.urgencyBonus.toStringAsFixed(0)}",
-              subtitle: "100% direct artisan tip",
+              subtitle: "direct_artisan_tip_desc".trSafe("100% direct artisan tip"),
               isBonus: true,
             ),
           ],
@@ -2315,9 +2335,9 @@ class _PayoutLedgerCard extends StatelessWidget {
 
           // Co-op Welfare
           _buildRow(
-            'coop_welfare_contribution'.tr(),
+            'coop_welfare_pool'.trSafe('Cooperative Welfare Pool (2%)'),
             "-₹${welfare.toStringAsFixed(1)}",
-            subtitle: 'welfare_fund_benefit'.tr(),
+            subtitle: 'welfare_fund_benefit'.trSafe('PMJJBY / PMSBY social security insurance'),
             isWelfare: true,
           ),
 
@@ -2396,6 +2416,8 @@ class _PayoutLedgerCard extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

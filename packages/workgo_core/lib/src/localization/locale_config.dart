@@ -41,6 +41,18 @@ class WorkGoLanguageInfo {
 class WorkGoLocale {
   WorkGoLocale._();
 
+  /// Active runtime language code (e.g. 'en', 'ta', 'hi')
+  static String currentCode = 'en';
+
+  /// Sets active locale code and synchronizes Intl.defaultLocale
+  static void setLocaleCode(String code) {
+    if (code.isEmpty) return;
+    currentCode = code;
+    try {
+      Intl.defaultLocale = code;
+    } catch (_) {}
+  }
+
   /// Default asset loader using Firestore dynamic caching and asset fallback
   static const FirestoreAssetLoader loader = FirestoreAssetLoader();
 
@@ -283,6 +295,7 @@ class WorkGoMaterialLocalizationsDelegate extends LocalizationsDelegate<Material
 
   @override
   Future<MaterialLocalizations> load(Locale locale) async {
+    WorkGoLocale.setLocaleCode(locale.languageCode);
     const devanagariLangs = {'sa', 'mai', 'doi', 'kok', 'ks'};
     final target = devanagariLangs.contains(locale.languageCode) ? const Locale('hi') : const Locale('en');
     return await GlobalMaterialLocalizations.delegate.load(target);

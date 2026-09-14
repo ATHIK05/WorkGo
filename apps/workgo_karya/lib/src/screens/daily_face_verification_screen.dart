@@ -672,14 +672,14 @@ class _DailyFaceVerificationScreenState extends State<DailyFaceVerificationScree
                         TextButton.icon(
                           onPressed: _fallbackPickAndVerify,
                           icon: const Icon(Icons.photo_library_rounded, size: 16, color: Colors.white70),
-                          label: const Text("Choose Photo", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                          label: Text('choose_photo_btn'.trSafe("Choose Photo"), style: const TextStyle(color: Colors.white70, fontSize: 12)),
                         ),
                         if (kDebugMode) ...[
                           const SizedBox(width: 8),
                           TextButton.icon(
                             onPressed: _bypassForTesting,
                             icon: const Icon(Icons.developer_mode_rounded, size: 16, color: KaryaColors.brandYellow),
-                            label: const Text("Bypass (Dev)", style: TextStyle(color: KaryaColors.brandYellow, fontSize: 12)),
+                            label: Text('bypass_dev_btn'.trSafe("Bypass (Dev)"), style: const TextStyle(color: KaryaColors.brandYellow, fontSize: 12)),
                           ),
                         ],
                       ],

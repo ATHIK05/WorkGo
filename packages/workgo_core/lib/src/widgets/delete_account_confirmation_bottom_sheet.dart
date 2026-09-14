@@ -20,10 +20,12 @@ class _DeleteAccountSheetContent extends StatefulWidget {
   const _DeleteAccountSheetContent();
 
   @override
-  State<_DeleteAccountSheetContent> createState() => _DeleteAccountSheetContentState();
+  State<_DeleteAccountSheetContent> createState() =>
+      _DeleteAccountSheetContentState();
 }
 
-class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> {
+class _DeleteAccountSheetContentState
+    extends State<_DeleteAccountSheetContent> {
   bool _consentChecked = false;
 
   @override
@@ -131,10 +133,14 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildWarningBullet(Icons.face_retouching_off_rounded, "All 3D facial biometric recordings, hashes, and liveness logs will be destroyed."),
-                _buildWarningBullet(Icons.badge_outlined, "Aadhaar e-KYC records and Police Clearance documents will be permanently purged."),
-                _buildWarningBullet(Icons.account_balance_wallet_outlined, "Earnings history, C2PA trust credentials, and artisan ratings will be irreversibly erased."),
-                _buildWarningBullet(Icons.phonelink_erase_rounded, "Your phone/email login will be unlinked from the cooperative federation."),
+                _buildWarningBullet(Icons.face_retouching_off_rounded,
+                    "All 3D facial biometric recordings, hashes, and liveness logs will be destroyed."),
+                _buildWarningBullet(Icons.badge_outlined,
+                    "Aadhaar e-KYC records and Police Clearance documents will be permanently purged."),
+                _buildWarningBullet(Icons.account_balance_wallet_outlined,
+                    "Earnings history, C2PA trust credentials, and artisan ratings will be irreversibly erased."),
+                _buildWarningBullet(Icons.phonelink_erase_rounded,
+                    "Your phone/email login will be unlinked from the cooperative federation."),
               ],
             ),
           ),
@@ -147,11 +153,13 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                 value: _consentChecked,
                 activeColor: const Color(0xFFE11D48),
                 checkColor: Colors.white,
-                onChanged: (val) => setState(() => _consentChecked = val ?? false),
+                onChanged: (val) =>
+                    setState(() => _consentChecked = val ?? false),
               ),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => setState(() => _consentChecked = !_consentChecked),
+                  onTap: () =>
+                      setState(() => _consentChecked = !_consentChecked),
                   child: Text(
                     "I acknowledge that this action is permanent and cannot be undone.",
                     style: TextStyle(
@@ -190,12 +198,14 @@ class _DeleteAccountSheetContentState extends State<_DeleteAccountSheetContent> 
                     disabledBackgroundColor: const Color(0xFFE5E0D8),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                   ),
                   icon: const Icon(Icons.delete_forever_rounded, size: 20),
                   label: const Text(
                     "Permanently Delete",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
                   ),
                 ),
               ),

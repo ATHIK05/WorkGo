@@ -113,12 +113,16 @@ class _EshramCardWidgetState extends State<EshramCardWidget> {
                   color: Color(0xFF16A34A), size: 20),
             ),
             const SizedBox(width: 12),
-            Text(
-              "eshram_verified_badge".tr(),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF15803D),
+            Expanded(
+              child: Text(
+                "eshram_verified_badge".tr(),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF15803D),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -150,6 +154,8 @@ class _EshramCardWidgetState extends State<EshramCardWidget> {
                     color: Color(0xFF78350F),
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -219,12 +225,19 @@ class _EshramCardWidgetState extends State<EshramCardWidget> {
         ),
         const SizedBox(height: 6),
 
-        // Row: Register link + Skip
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Register link + Skip (Protected with Wrap to eliminate any possible overflow across all languages)
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
           children: [
             TextButton.icon(
               onPressed: _submitting ? null : _openEshramPortal,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                alignment: Alignment.centerLeft,
+              ),
               icon: const Icon(Icons.open_in_new_rounded,
                   size: 14, color: WorkGoColors.info),
               label: Text(
@@ -233,14 +246,21 @@ class _EshramCardWidgetState extends State<EshramCardWidget> {
                     fontSize: 12,
                     color: WorkGoColors.info,
                     fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             TextButton(
               onPressed: _submitting ? null : widget.onSkip,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ),
               child: Text(
                 "eshram_skip_prompt".tr(),
                 style: const TextStyle(
                     fontSize: 12, color: WorkGoColors.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

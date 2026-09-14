@@ -513,23 +513,23 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               }
             },
             itemBuilder: (ctx) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: "reset_step2",
                 child: Row(
                   children: [
-                    Icon(Icons.replay_rounded, color: KX.gold, size: 18),
-                    SizedBox(width: 8),
-                    Text("Re-do Aadhaar eKYC (Step 2)", style: TextStyle(color: KX.textPrimary, fontSize: 12.5)),
+                    const Icon(Icons.replay_rounded, color: KX.gold, size: 18),
+                    const SizedBox(width: 8),
+                    Text('redo_aadhaar_ekyc'.trSafe("Re-do Aadhaar eKYC (Step 2)"), style: const TextStyle(color: KX.textPrimary, fontSize: 12.5)),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: "reset_all",
                 child: Row(
                   children: [
-                    Icon(Icons.restart_alt_rounded, color: Color(0xFFEF4444), size: 18),
-                    SizedBox(width: 8),
-                    Text("Restart Verification (Step 1)", style: TextStyle(color: KX.textPrimary, fontSize: 12.5)),
+                    const Icon(Icons.restart_alt_rounded, color: Color(0xFFEF4444), size: 18),
+                    const SizedBox(width: 8),
+                    Text('restart_verification_step1'.trSafe("Restart Verification (Step 1)"), style: const TextStyle(color: KX.textPrimary, fontSize: 12.5)),
                   ],
                 ),
               ),
@@ -1159,7 +1159,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                       ),
                       TextButton(
                         onPressed: _pickAadhaarFile,
-                        child: const Text("Change", style: TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
+                        child: Text('change_btn'.trSafe("Change"), style: const TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -1347,7 +1347,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
                   icon: const Icon(Icons.refresh_rounded, size: 14),
-                  label: const Text("Retake", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  label: Text('retake_btn'.trSafe("Retake"), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
             ],
           ),
@@ -1365,9 +1365,9 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildPreviewThumb("Center", _centerBytes!),
-                  _buildPreviewThumb("Left 👈", _leftBytes ?? _centerBytes!),
-                  _buildPreviewThumb("Right 👉", _rightBytes ?? _centerBytes!),
+                  _buildPreviewThumb('biometric_angle_center'.trSafe("Center"), _centerBytes!),
+                  _buildPreviewThumb('biometric_angle_left'.trSafe("Left"), _leftBytes ?? _centerBytes!),
+                  _buildPreviewThumb('biometric_angle_right'.trSafe("Right"), _rightBytes ?? _centerBytes!),
                 ],
               ),
               const SizedBox(height: 16),
@@ -1383,7 +1383,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: const Text("Retake", style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text('retake_btn'.trSafe("Retake"), style: const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1400,7 +1400,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                       icon: _isLoading
                           ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.check_circle_rounded, size: 18),
-                      label: const Text("Save & Continue", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                      label: Text('save_continue_btn'.trSafe("Save & Continue"), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                     ),
                   ),
                 ],
@@ -1627,7 +1627,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen>
                 ),
                 child: _isLoading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const SafeText("Submit for Cooperative Certification", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                    : SafeText('submit_coop_cert_btn'.trSafe("Submit for Cooperative Certification"), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
               ),
             ),
           ],

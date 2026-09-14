@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
@@ -161,7 +162,7 @@ class _KaryaStartOtpSheetState extends State<KaryaStartOtpSheet> {
   Future<void> _verifyOtp() async {
     final otp = _fullOtp;
     if (otp.length != 4) {
-      setState(() => _errorText = "Please enter all 4 digits");
+      setState(() => _errorText = "otp_error_all_digits".tr());
       HapticFeedback.vibrate();
       return;
     }
@@ -193,7 +194,7 @@ class _KaryaStartOtpSheetState extends State<KaryaStartOtpSheet> {
         HapticFeedback.vibrate();
         setState(() {
           _isVerifying = false;
-          _errorText = "Incorrect OTP. Please ask customer to confirm.";
+          _errorText = "otp_error_incorrect".tr();
           _c1.clear();
           _c2.clear();
           _c3.clear();
@@ -205,7 +206,7 @@ class _KaryaStartOtpSheetState extends State<KaryaStartOtpSheet> {
       if (!mounted) return;
       setState(() {
         _isVerifying = false;
-        _errorText = "Verification error: $e";
+        _errorText = "otp_error_verification".tr(args: [e.toString()]);
       });
     }
   }
@@ -341,9 +342,9 @@ class _KaryaStartOtpSheetState extends State<KaryaStartOtpSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Enter Customer Start OTP",
-                      style: TextStyle(
+                    Text(
+                      "otp_sheet_title".tr(),
+                      style: const TextStyle(
                         color: Color(0xFF0F172A),
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
@@ -353,9 +354,9 @@ class _KaryaStartOtpSheetState extends State<KaryaStartOtpSheet> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
-                    const Text(
-                      "Ask the customer for the 4-digit code shown on their screen",
-                      style: TextStyle(
+                    Text(
+                      "otp_sheet_sub".tr(),
+                      style: const TextStyle(
                         color: Color(0xFF64748B),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -441,13 +442,13 @@ class _KaryaStartOtpSheetState extends State<KaryaStartOtpSheet> {
           // Security Trust Shield
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.shield_rounded, color: Color(0xFF059669), size: 14),
-              SizedBox(width: 5),
+            children: [
+              const Icon(Icons.shield_rounded, color: Color(0xFF059669), size: 14),
+              const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  "OTP verification guarantees authentic dispatch & customer authorization",
-                  style: TextStyle(
+                  "otp_sheet_trust".tr(),
+                  style: const TextStyle(
                     color: Color(0xFF059669),
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -484,16 +485,20 @@ class _KaryaStartOtpSheetState extends State<KaryaStartOtpSheet> {
                     )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF0F172A)),
-                        SizedBox(width: 8),
-                        Text(
-                          "Verify & Start Service",
-                          style: TextStyle(
-                            color: Color(0xFF0F172A),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.2,
+                      children: [
+                        const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF0F172A)),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            "otp_sheet_verify_btn".tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF0F172A),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],

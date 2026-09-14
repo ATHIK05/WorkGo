@@ -267,13 +267,18 @@ class KaryaAppBar extends StatelessWidget implements PreferredSizeWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            title,
-            style: WorkGoFonts.display(
-              color: KX.textPrimary,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.4,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              title,
+              style: WorkGoFonts.display(
+                color: KX.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
+              maxLines: 1,
             ),
           ),
           if (subtitle != null) ...[
@@ -285,6 +290,8 @@ class KaryaAppBar extends StatelessWidget implements PreferredSizeWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ],

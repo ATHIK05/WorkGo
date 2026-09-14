@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -250,23 +251,28 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Step Pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: KX.gold.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: KX.gold.withValues(alpha: 0.6)),
-                    ),
-                    child: Text(
-                      "FEATURE GUIDE · STEP ${_currentIndex + 1} OF ${_steps.length}",
-                      style: const TextStyle(
-                        color: KX.gold,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: KX.gold.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: KX.gold.withValues(alpha: 0.6)),
+                      ),
+                      child: Text(
+                        "tour_feature_guide_step".tr(args: ['${_currentIndex + 1}', '${_steps.length}']),
+                        style: const TextStyle(
+                          color: KX.gold,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
 
                   // Skip Button
                   GestureDetector(
@@ -277,13 +283,15 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                         color: KX.canvasElevated,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        "Skip Tour",
-                        style: TextStyle(
+                      child: Text(
+                        "tour_skip".tr(),
+                        style: const TextStyle(
                           color: KX.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -355,7 +363,12 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text("Previous", style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Text(
+                              "tour_previous".tr(),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -377,11 +390,15 @@ class _KaryaAppTourDialogState extends State<KaryaAppTourDialog> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                isLastStep ? "Get Started 🚀" : "Next Feature",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
+                              Flexible(
+                                child: Text(
+                                  isLastStep ? "tour_get_started".tr() : "tour_next_feature".tr(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(width: 6),

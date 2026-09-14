@@ -40,28 +40,28 @@ class TrustStatusCard extends StatelessWidget {
         label: "trust_score_live".tr(),
         badgeColor: const Color(0xFF10B981),
         subMessage: "trust_score_live_sub".tr(),
-        tierPill: "Live · Auto-Approved",
+        tierPill: "trust_tier_live".tr(),
       );
     } else if (score == 4) {
       return _StatusData(
         label: "trust_score_almost".tr(),
         badgeColor: const Color(0xFF2563EB),
         subMessage: "trust_score_almost_sub".tr(),
-        tierPill: "Fast-Track · 24h",
+        tierPill: "trust_tier_fast_track".tr(),
       );
     } else if (score == 3) {
       return _StatusData(
         label: "trust_score_pending".tr(),
         badgeColor: const Color(0xFFF59E0B),
         subMessage: "trust_score_pending_sub".tr(),
-        tierPill: "Standard · 48h",
+        tierPill: "trust_tier_standard".tr(),
       );
     } else {
       return _StatusData(
         label: "trust_score_action_needed".tr(),
         badgeColor: const Color(0xFFEF4444),
         subMessage: "trust_score_action_sub".tr(),
-        tierPill: "Action Needed",
+        tierPill: "trust_tier_action_needed".tr(),
       );
     }
   }
@@ -93,47 +93,56 @@ class TrustStatusCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: themeColor.withAlpha(25),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        trustScore >= 5 ? Icons.verified_user_rounded : Icons.shield_rounded,
-                        color: themeColor,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "5-Signal Trust Index",
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF141416),
-                            letterSpacing: -0.15,
-                          ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: themeColor.withAlpha(25),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        const SizedBox(height: 1),
-                        Text(
-                          status.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: themeColor,
-                          ),
+                        child: Icon(
+                          trustScore >= 5 ? Icons.verified_user_rounded : Icons.shield_rounded,
+                          color: themeColor,
+                          size: 18,
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "trust_index_title".tr(),
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF141416),
+                                letterSpacing: -0.15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              status.label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: themeColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
                   decoration: BoxDecoration(
@@ -149,6 +158,8 @@ class TrustStatusCard extends StatelessWidget {
                       color: themeColor,
                       letterSpacing: 0.2,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -370,9 +381,9 @@ class _SegmentedTrustRing extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 2),
-                            const Text(
-                              "SIGNALS",
-                              style: TextStyle(
+                            Text(
+                              "trust_signals_unit".tr(),
+                              style: const TextStyle(
                                 fontSize: 7,
                                 fontWeight: FontWeight.w900,
                                 color: WorkGoColors.textSecondary,
@@ -546,7 +557,7 @@ class _SignalRow extends StatelessWidget {
                   border: Border.all(color: const Color(0xFFFDE68A), width: 0.8),
                 ),
                 child: Text(
-                  onTap != null ? "+ Link" : "Recommended",
+                  onTap != null ? "trust_link_action".tr() : "trust_recommended_tag".tr(),
                   style: const TextStyle(
                     fontSize: 9.5,
                     color: Color(0xFFB45309),

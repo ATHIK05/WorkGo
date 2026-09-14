@@ -126,7 +126,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Error during erasure: $e"),
+              content: Text("${'error_during_erasure'.trSafe('Error during erasure')}: $e"),
               backgroundColor: const Color(0xFFE11D48),
             ),
           );
@@ -245,9 +245,9 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                         return null;
                       },
                       decoration: InputDecoration(
-                        labelText: "Full Name",
+                        labelText: 'full_name_label'.trSafe("Full Name"),
                         labelStyle: const TextStyle(color: KX.textSecondary, fontSize: 13),
-                        hintText: "e.g. Ramesh Kumar",
+                        hintText: 'name_hint'.trSafe("e.g. Ramesh Kumar"),
                         hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
                         counterText: "",
                         filled: true,
@@ -394,7 +394,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
       if (sheetContext.mounted) {
         ScaffoldMessenger.of(sheetContext).showSnackBar(
           SnackBar(
-            content: Text("Failed to update name: $e"),
+            content: Text("${'failed_update_name'.trSafe('Failed to update name')}: $e"),
             backgroundColor: const Color(0xFFE11D48),
           ),
         );
@@ -718,7 +718,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               children: [
                 _buildCircularAction(
                   icon: Icons.edit_rounded,
-                  label: "Edit",
+                  label: 'edit_btn'.trSafe("Edit"),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (ctx) => WorkerProfileSetupScreen(
@@ -731,7 +731,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                 const SizedBox(width: 14),
                 _buildCircularAction(
                   icon: Icons.person_add_alt_1_rounded,
-                  label: "Refer",
+                  label: 'refer_btn'.trSafe("Refer"),
                   onTap: _showReferPeerDialog,
                 ),
               ],
@@ -797,7 +797,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             // Mint Green Card (Experience)
             Expanded(
               child: _buildBentoStatCard(
-                title: "Experience",
+                title: 'profile_stat_experience'.trSafe("Experience"),
                 value: expYears,
                 bgColor: const Color(0xFFD1FAE5),
                 textColor: const Color(0xFF065F46),
@@ -808,8 +808,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             // Sky Blue Card (Jobs Done)
             Expanded(
               child: _buildBentoStatCard(
-                title: "Jobs Done",
-                value: "$totalJobsCount Done",
+                title: 'profile_stat_jobs_done'.trSafe("Jobs Done"),
+                value: "$totalJobsCount ${'jobs_done_suffix'.trSafe('Done')}",
                 bgColor: const Color(0xFFD6EBFF),
                 textColor: const Color(0xFF1E3A8A),
               ),
@@ -819,7 +819,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
             // Pastel Amber Card (Rating)
             Expanded(
               child: _buildBentoStatCard(
-                title: "Co-op Rating",
+                title: 'profile_stat_rating'.trSafe("Co-op Rating"),
                 value: ratingVal,
                 bgColor: const Color(0xFFFFDE9C),
                 textColor: const Color(0xFF92400E),
@@ -853,6 +853,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
@@ -863,6 +865,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               fontWeight: FontWeight.w900,
             ),
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1075,8 +1079,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         children: [
           _buildMenuItem(
             icon: Icons.location_on_rounded,
-            title: "Operating Base Station",
-            subtitle: "$area · ${worker.serviceRadiusKm.toInt()} km Radius",
+            title: 'op_base_station_title'.trSafe("Operating Base Station"),
+            subtitle: "$area · ${worker.serviceRadiusKm.toInt()} km ${'radius_abbr'.trSafe('Radius')}",
             onTap: () => showAddressManagementSheet(
               context,
               userId: worker.id,
@@ -1086,8 +1090,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.construction_rounded,
-            title: "Trade Skills & Rates",
-            subtitle: "$skillsStr · ₹${worker.baseRate.toInt()} Base",
+            title: 'trade_skills_rates_title'.trSafe("Trade Skills & Rates"),
+            subtitle: "$skillsStr · ₹${worker.baseRate.toInt()} ${'base_rate_abbr'.trSafe('Base')}",
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (ctx) => WorkerProfileSetupScreen(
@@ -1100,10 +1104,10 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.psychology_rounded,
-            title: "Equipment & Specializations",
+            title: 'equipment_specialization_title'.trSafe("Equipment & Specializations"),
             subtitle: matchPercent >= 85
-                ? "$matchPercent% Strength · Priority Triage Active"
-                : "$matchPercent% Strength · Add equipment to reach 85%+",
+                ? "$matchPercent% ${'strength_elite_active'.trSafe('Strength · Priority Triage Active')}"
+                : "$matchPercent% ${'strength_reach_elite'.trSafe('Strength · Add equipment to reach 85%+')}",
             badgeColor: matchPercent >= 85 ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
             badgeTextColor: matchPercent >= 85 ? const Color(0xFF065F46) : const Color(0xFF92400E),
             badgeText: matchPercent >= 85 ? "$matchPercent% ELITE" : "$matchPercent%",
@@ -1116,12 +1120,12 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.verified_user_rounded,
-            title: "eKYC & Certification",
+            title: 'ekyc_certification_title'.trSafe("eKYC & Certification"),
             subtitle: isKycApproved
-                ? "Co-op Verified"
+                ? 'coop_verified_label'.trSafe("Co-op Verified")
                 : (worker.trustScore > 0
-                    ? "Trust Score: ${worker.trustScore}/5 Signals"
-                    : "Verification Pending"),
+                    ? "${'trust_score_label'.trSafe('Trust Score')}: ${worker.trustScore}/5 ${'signals_label'.trSafe('Signals')}"
+                    : 'verification_pending_label'.trSafe("Verification Pending")),
             badgeColor: isKycApproved ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7),
             badgeTextColor: isKycApproved ? const Color(0xFF065F46) : const Color(0xFF92400E),
             badgeText: isKycApproved
@@ -1139,8 +1143,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.health_and_safety_rounded,
-            title: "₹2 Lakh Welfare Shield",
-            subtitle: worker.insuranceStatus ? "PMSBY / PMJJBY Active" : "Co-op Welfare Cover",
+            title: 'welfare_shield_menu_title'.trSafe("₹2 Lakh Welfare Shield"),
+            subtitle: worker.insuranceStatus ? 'pmsby_pmjjby_active'.trSafe("PMSBY / PMJJBY Active") : 'coop_welfare_cover'.trSafe("Co-op Welfare Cover"),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (ctx) => WorkerWelfareScreen(worker: worker)),
             ),
@@ -1148,15 +1152,15 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.groups_rounded,
-            title: "Peer Referral Network",
-            subtitle: "2% Bonus · ${worker.referralCount} Referred",
+            title: 'peer_referral_title'.trSafe("Peer Referral Network"),
+            subtitle: "2% ${'bonus_label'.trSafe('Bonus')} · ${worker.referralCount} ${'referred_label'.trSafe('Referred')}",
             onTap: _showReferPeerDialog,
           ),
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.explore_rounded,
-            title: "Interactive App Tour",
-            subtitle: "Explore features & operational tools",
+            title: 'interactive_tour_title'.trSafe("Interactive App Tour"),
+            subtitle: 'interactive_tour_desc'.trSafe("Explore features & operational tools"),
             onTap: () {
               HapticFeedback.lightImpact();
               KaryaHomeScreen.launchLiveSpotlightTour(context);
@@ -1198,12 +1202,16 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        title,
-                        style: WorkGoFonts.heading(
-                          color: KX.textPrimary,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: WorkGoFonts.heading(
+                            color: KX.textPrimary,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (badgeText != null) ...[
@@ -1233,6 +1241,8 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                       color: KX.textSecondary,
                       fontSize: 11.5,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -1327,11 +1337,11 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.fingerprint_rounded, color: Colors.white, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(child: Text("Biometric verification cancelled. Check-in aborted.")),
+                  const Icon(Icons.fingerprint_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('biometric_checkin_aborted'.trSafe("Biometric verification cancelled. Check-in aborted."))),
                 ],
               ),
               backgroundColor: const Color(0xFFE11D48),
@@ -1355,11 +1365,11 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Row(
+                content: Row(
                   children: [
-                    Icon(Icons.face_retouching_off_rounded, color: Colors.white, size: 20),
-                    SizedBox(width: 10),
-                    Expanded(child: Text("3D Face verification cancelled or failed. Check-in aborted.")),
+                    const Icon(Icons.face_retouching_off_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('face_checkin_aborted'.trSafe("3D Face verification cancelled or failed. Check-in aborted."))),
                   ],
                 ),
                 backgroundColor: const Color(0xFFE11D48),
@@ -1473,19 +1483,19 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Complete Verification Now", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-                    SizedBox(width: 6),
-                    Icon(Icons.arrow_forward_rounded, size: 18),
+                    Text('complete_verification_now'.trSafe("Complete Verification Now"), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.arrow_forward_rounded, size: 18),
                   ],
                 ),
               ),
               const SizedBox(height: 10),
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text("I'll do it later", style: TextStyle(color: Color(0xFF9CA3AF))),
+                child: Text('do_it_later_btn'.trSafe("I'll do it later"), style: const TextStyle(color: Color(0xFF9CA3AF))),
               ),
             ],
           ),

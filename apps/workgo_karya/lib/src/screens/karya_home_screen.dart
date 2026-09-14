@@ -74,6 +74,18 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   final GlobalKey _keyProfileHub = GlobalKey();
   final GlobalKey _keyProfileKyc = GlobalKey();
 
+  // Location broadcasting throttling to prevent frequent Firestore document updates & root rebuilds
+  double? _lastBroadcastLat;
+  double? _lastBroadcastLng;
+  DateTime? _lastBroadcastTime;
+
+  // Cached streams for dock badge & cockpit active jobs to eliminate rebuild lag
+  Stream<List<Booking>>? _dockIncomingStream;
+  String? _dockWorkerId;
+  Stream<Booking?>? _cachedActiveJobStream;
+  Stream<List<Booking>>? _cachedHandoffStream;
+  String? _cachedActiveJobWorkerId;
+
   @override
   void initState() {
     super.initState();
@@ -115,7 +127,27 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     LocationService.instance.startRealtimeBroadcast(
       onLocationUpdate: (lat, lng) async {
         if (lat != 0.0 && lng != 0.0) {
-          await _workerService.updateWorkerLocation(workerId, lat, lng);
+          final now = DateTime.now();
+          final hasMoved =
+              _lastBroadcastLat == null ||
+              _lastBroadcastLng == null ||
+              LocationService().calculateDistanceKm(
+                    _lastBroadcastLat!,
+                    _lastBroadcastLng!,
+                    lat,
+                    lng,
+                  ) >=
+                  0.035; // Moved at least 35 meters
+          final timeElapsed =
+              _lastBroadcastTime == null ||
+              now.difference(_lastBroadcastTime!).inSeconds >= 45;
+
+          if (hasMoved || timeElapsed) {
+            _lastBroadcastLat = lat;
+            _lastBroadcastLng = lng;
+            _lastBroadcastTime = now;
+            await _workerService.updateWorkerLocation(workerId, lat, lng);
+          }
         }
       },
     );
@@ -150,61 +182,85 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyAvailabilitySwitch,
         navIndex: 0,
-        pageTitle: "Home Cockpit",
+        pageTitle: 'spotlight_page_cockpit'.trSafe('Home Cockpit'),
         stepNumber: "1",
-        title: "1. Autonomous Shift & Check-In Switch",
-        description:
-            "Tap here anytime to go live on customer radars across your district. Verification is required before your first check-in.",
-        badgeText: "AVAILABILITY",
+        title: 'spotlight_title_1'.trSafe(
+          '1. Autonomous Shift & Check-In Switch',
+        ),
+        description: 'spotlight_desc_1'.trSafe(
+          'Tap here anytime to go live on customer radars across your district. Verification is required before your first check-in.',
+        ),
+        badgeText: 'spotlight_badge_availability'.trSafe('AVAILABILITY'),
         icon: Icons.power_settings_new_rounded,
         bulletPoints: [
-          "1-Tap Check-In toggles incoming job dispatch radar",
-          "Automatic verification check protects artisan earnings",
+          'spotlight_bullet_1_1'.trSafe(
+            '1-Tap Check-In toggles incoming job dispatch radar',
+          ),
+          'spotlight_bullet_1_2'.trSafe(
+            'Automatic verification check protects artisan earnings',
+          ),
         ],
       ),
       SpotlightTarget(
         key: _keyFuelGauge,
         navIndex: 0,
-        pageTitle: "Home Cockpit",
+        pageTitle: 'spotlight_page_cockpit'.trSafe('Home Cockpit'),
         stepNumber: "2",
-        title: "2. Daily Fuel Gauge & Earnings Cockpit",
-        description:
-            "Track today's jobs, total earnings, active hours, and performance incentives with a strict 0% commission guarantee.",
-        badgeText: "0% COMMISSION",
+        title: 'spotlight_title_2'.trSafe(
+          '2. Daily Fuel Gauge & Earnings Cockpit',
+        ),
+        description: 'spotlight_desc_2'.trSafe(
+          "Track today's jobs, total earnings, active hours, and performance incentives with a strict 0% commission guarantee.",
+        ),
+        badgeText: 'spotlight_badge_zero_commission'.trSafe('0% COMMISSION'),
         icon: Icons.speed_rounded,
         bulletPoints: [
-          "Live progress tracker towards daily earning milestones",
-          "Instant 1-tap UPI / Bank payout settlements",
+          'spotlight_bullet_2_1'.trSafe(
+            'Live progress tracker towards daily earning milestones',
+          ),
+          'spotlight_bullet_2_2'.trSafe(
+            'Instant 1-tap UPI / Bank payout settlements',
+          ),
         ],
       ),
       SpotlightTarget(
         key: _keyRadar,
         navIndex: 0,
-        pageTitle: "Home Cockpit",
+        pageTitle: 'spotlight_page_cockpit'.trSafe('Home Cockpit'),
         stepNumber: "3",
-        title: "3. Live Dispatch Radar & Job Match",
-        description:
-            "Nearby service requests flash in real time with distance, upfront pricing, and a 30-second priority acceptance countdown.",
-        badgeText: "PRIORITY RADAR",
+        title: 'spotlight_title_3'.trSafe('3. Live Dispatch Radar & Job Match'),
+        description: 'spotlight_desc_3'.trSafe(
+          'Nearby service requests flash in real time with distance, upfront pricing, and a 30-second priority acceptance countdown.',
+        ),
+        badgeText: 'spotlight_badge_priority_radar'.trSafe('PRIORITY RADAR'),
         icon: Icons.radar_rounded,
         bulletPoints: [
-          "30s audio chime countdown to accept before others",
-          "Upfront pricing and customer pickup distance shown",
+          'spotlight_bullet_3_1'.trSafe(
+            '30s audio chime countdown to accept before others',
+          ),
+          'spotlight_bullet_3_2'.trSafe(
+            'Upfront pricing and customer pickup distance shown',
+          ),
         ],
       ),
       SpotlightTarget(
         key: _keyBentoGrid,
         navIndex: 0,
-        pageTitle: "Home Cockpit",
+        pageTitle: 'spotlight_page_cockpit'.trSafe('Home Cockpit'),
         stepNumber: "4",
-        title: "4. Tactical Action Matrix",
-        description:
-            "Quick access to government Aadhaar & Video KYC, ₹2L welfare cover, and peer referral network.",
-        badgeText: "ACTION MATRIX",
+        title: 'spotlight_title_4'.trSafe('4. Tactical Action Matrix'),
+        description: 'spotlight_desc_4'.trSafe(
+          'Quick access to government Aadhaar & Video KYC, ₹2L welfare cover, and peer referral network.',
+        ),
+        badgeText: 'spotlight_badge_action_matrix'.trSafe('ACTION MATRIX'),
         icon: Icons.grid_view_rounded,
         bulletPoints: [
-          "Complete Video KYC to earn the trusted Co-op Certified badge",
-          "₹2,00,000 accidental and disability insurance coverage",
+          'spotlight_bullet_4_1'.trSafe(
+            'Complete Video KYC to earn the trusted Co-op Certified badge',
+          ),
+          'spotlight_bullet_4_2'.trSafe(
+            '₹2,00,000 accidental and disability insurance coverage',
+          ),
         ],
       ),
 
@@ -212,16 +268,23 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyRequestsHub,
         navIndex: 1,
-        pageTitle: "Requests & Radar",
+        pageTitle: 'spotlight_page_requests'.trSafe('Requests & Radar'),
         stepNumber: "5",
-        title: "5. Real-Time Dispatch Broadcast Hub",
-        description:
-            "Live radar listening for broadcasts in your trade skills. Instant cards alert you with customer location, price, and distance.",
-        badgeText: "JOB ALERTS",
+        title: 'spotlight_title_5'.trSafe(
+          '5. Real-Time Dispatch Broadcast Hub',
+        ),
+        description: 'spotlight_desc_5'.trSafe(
+          'Live radar listening for broadcasts in your trade skills. Instant cards alert you with customer location, price, and distance.',
+        ),
+        badgeText: 'spotlight_badge_job_alerts'.trSafe('JOB ALERTS'),
         icon: Icons.cell_tower_rounded,
         bulletPoints: [
-          "30-second priority allocation before secondary dispatch",
-          "1-tap Accept to claim job and start secure turn-by-turn navigation",
+          'spotlight_bullet_5_1'.trSafe(
+            '30-second priority allocation before secondary dispatch',
+          ),
+          'spotlight_bullet_5_2'.trSafe(
+            '1-tap Accept to claim job and start secure turn-by-turn navigation',
+          ),
         ],
       ),
 
@@ -229,16 +292,23 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyEarningsHero,
         navIndex: 2,
-        pageTitle: "Earnings Ledger",
+        pageTitle: 'spotlight_page_earnings'.trSafe('Earnings Ledger'),
         stepNumber: "6",
-        title: "6. Direct Wage Payouts (0% Commission)",
-        description:
-            "All customer payments go 100% directly to you. WorkGo charges 0% platform commission with a tiny 2% allocated to your welfare fund.",
-        badgeText: "ZERO DEDUCTIONS",
+        title: 'spotlight_title_6'.trSafe(
+          '6. Direct Wage Payouts (0% Commission)',
+        ),
+        description: 'spotlight_desc_6'.trSafe(
+          'All customer payments go 100% directly to you. WorkGo charges 0% platform commission with a tiny 2% allocated to your welfare fund.',
+        ),
+        badgeText: 'spotlight_badge_zero_deductions'.trSafe('ZERO DEDUCTIONS'),
         icon: Icons.account_balance_wallet_rounded,
         bulletPoints: [
-          "Instant 1-tap UPI transfer straight into your bank account",
-          "Complete transaction receipt log for every serviced booking",
+          'spotlight_bullet_6_1'.trSafe(
+            'Instant 1-tap UPI transfer straight into your bank account',
+          ),
+          'spotlight_bullet_6_2'.trSafe(
+            'Complete transaction receipt log for every serviced booking',
+          ),
         ],
       ),
 
@@ -246,16 +316,23 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyWelfareShield,
         navIndex: 3,
-        pageTitle: "Welfare & Insurance",
+        pageTitle: 'spotlight_page_welfare'.trSafe('Welfare & Insurance'),
         stepNumber: "7",
-        title: "7. ₹2 Lakh Welfare Shield & Protection",
-        description:
-            "Every verified cooperative artisan receives ₹2,00,000 accidental & disability cover (PMSBY / PMJJBY) on duty.",
-        badgeText: "SAFETY SHIELD",
+        title: 'spotlight_title_7'.trSafe(
+          '7. ₹2 Lakh Welfare Shield & Protection',
+        ),
+        description: 'spotlight_desc_7'.trSafe(
+          'Every verified cooperative artisan receives ₹2,00,000 accidental & disability cover (PMSBY / PMJJBY) on duty.',
+        ),
+        badgeText: 'spotlight_badge_safety_shield'.trSafe('SAFETY SHIELD'),
         icon: Icons.health_and_safety_rounded,
         bulletPoints: [
-          "Digital Holographic ID Card with verified policy number",
-          "24/7 Emergency SOS beacon and health claim support",
+          'spotlight_bullet_7_1'.trSafe(
+            'Digital Holographic ID Card with verified policy number',
+          ),
+          'spotlight_bullet_7_2'.trSafe(
+            '24/7 Emergency SOS beacon and health claim support',
+          ),
         ],
       ),
 
@@ -263,31 +340,45 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       SpotlightTarget(
         key: _keyProfileHub,
         navIndex: 3,
-        pageTitle: "Profile & Hub",
+        pageTitle: 'spotlight_page_profile'.trSafe('Profile & Hub'),
         stepNumber: "8",
-        title: "8. Operating Bases & Service Radius",
-        description:
-            "Configure your workshop base, set coverage radius (1–30 km), manage trade skills, and customize working shift hours.",
-        badgeText: "BASE & RADIUS",
+        title: 'spotlight_title_8'.trSafe(
+          '8. Operating Bases & Service Radius',
+        ),
+        description: 'spotlight_desc_8'.trSafe(
+          'Configure your workshop base, set coverage radius (1–30 km), manage trade skills, and customize working shift hours.',
+        ),
+        badgeText: 'spotlight_badge_base_radius'.trSafe('BASE & RADIUS'),
         icon: Icons.location_on_rounded,
         bulletPoints: [
-          "Set multiple operating bases (Primary Workshop & Home)",
-          "Adjust radar dispatch radius to match your vehicle range",
+          'spotlight_bullet_8_1'.trSafe(
+            'Set multiple operating bases (Primary Workshop & Home)',
+          ),
+          'spotlight_bullet_8_2'.trSafe(
+            'Adjust radar dispatch radius to match your vehicle range',
+          ),
         ],
       ),
       SpotlightTarget(
         key: _keyProfileKyc,
         navIndex: 3,
-        pageTitle: "Profile & Hub",
+        pageTitle: 'spotlight_page_profile'.trSafe('Profile & Hub'),
         stepNumber: "9",
-        title: "9. Identity Verification & Language Hub",
-        description:
-            "Access your government eKYC records, trigger Video KYC reviews, and switch app language instantly (தமிழ், हिंदी, English).",
-        badgeText: "KYC & VERNACULAR",
+        title: 'spotlight_title_9'.trSafe(
+          '9. Identity Verification & Language Hub',
+        ),
+        description: 'spotlight_desc_9'.trSafe(
+          'Access your government eKYC records, trigger Video KYC reviews, and switch app language instantly (தமிழ், हिंदी, English).',
+        ),
+        badgeText: 'spotlight_badge_kyc_vernacular'.trSafe('KYC & VERNACULAR'),
         icon: Icons.verified_user_rounded,
         bulletPoints: [
-          "Tamper-proof C2PA proof of work verification",
-          "Full vernacular audio voice support for illiterate artisans",
+          'spotlight_bullet_9_1'.trSafe(
+            'Tamper-proof C2PA proof of work verification',
+          ),
+          'spotlight_bullet_9_2'.trSafe(
+            'Full vernacular audio voice support for illiterate artisans',
+          ),
         ],
       ),
     ];
@@ -828,7 +919,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         final lat = (data['latitude'] as num?)?.toDouble();
         final lng = (data['longitude'] as num?)?.toDouble();
         final audioBase64 = (data['audioBase64'] as String?) ?? '';
-        final hasAudio = (data['hasAudio'] as bool? ?? false) && audioBase64.isNotEmpty;
+        final hasAudio =
+            (data['hasAudio'] as bool? ?? false) && audioBase64.isNotEmpty;
         final policeMap = data['nearestPoliceStation'] as Map<String, dynamic>?;
         final policeInfo = PoliceStationInfo.fromMap(policeMap);
 
@@ -889,7 +981,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEE2E2),
                       borderRadius: BorderRadius.circular(999),
@@ -921,7 +1016,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFF6B7280)),
+                  const Icon(
+                    Icons.location_on_rounded,
+                    size: 13,
+                    color: Color(0xFF6B7280),
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -940,23 +1039,35 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               if (policeInfo.name.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFFCA5A5), width: 0.8),
+                    border: Border.all(
+                      color: const Color(0xFFFCA5A5),
+                      width: 0.8,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.local_police_rounded, size: 12, color: Color(0xFFB91C1C)),
+                      const Icon(
+                        Icons.local_police_rounded,
+                        size: 12,
+                        color: Color(0xFFB91C1C),
+                      ),
                       const SizedBox(width: 5),
                       Flexible(
                         child: Text(
-                          'sos_nearest_police_station'.tr(args: [
-                            policeInfo.name,
-                            policeInfo.distanceKm.toStringAsFixed(1),
-                          ]),
+                          'sos_nearest_police_station'.tr(
+                            args: [
+                              policeInfo.name,
+                              policeInfo.distanceKm.toStringAsFixed(1),
+                            ],
+                          ),
                           style: const TextStyle(
                             color: Color(0xFF991B1B),
                             fontSize: 11,
@@ -978,24 +1089,30 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     onPressed: () async {
                       if (isPlayingThisAudio) {
                         await EmergencySosService.instance.stopAudioPlayback();
-                        if (mounted) setState(() => _playingPeerSosAudioDocId = null);
+                        if (mounted)
+                          setState(() => _playingPeerSosAudioDocId = null);
                       } else {
                         setState(() => _playingPeerSosAudioDocId = topDoc.id);
                         await EmergencySosService.instance.playAudioBase64(
                           audioBase64,
                           onComplete: () {
-                            if (mounted) setState(() => _playingPeerSosAudioDocId = null);
+                            if (mounted)
+                              setState(() => _playingPeerSosAudioDocId = null);
                           },
                         );
                       }
                     },
                     icon: Icon(
-                      isPlayingThisAudio ? Icons.stop_circle_rounded : Icons.play_circle_filled_rounded,
+                      isPlayingThisAudio
+                          ? Icons.stop_circle_rounded
+                          : Icons.play_circle_filled_rounded,
                       size: 16,
                       color: const Color(0xFFB91C1C),
                     ),
                     label: Text(
-                      isPlayingThisAudio ? 'sos_stop_audio_proof'.tr() : 'sos_play_audio_proof'.tr(),
+                      isPlayingThisAudio
+                          ? 'sos_stop_audio_proof'.tr()
+                          : 'sos_play_audio_proof'.tr(),
                       style: const TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
@@ -1005,10 +1122,20 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       overflow: TextOverflow.ellipsis,
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFEF4444), width: 1.2),
-                      backgroundColor: isPlayingThisAudio ? const Color(0xFFFEE2E2) : Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      side: const BorderSide(
+                        color: Color(0xFFEF4444),
+                        width: 1.2,
+                      ),
+                      backgroundColor: isPlayingThisAudio
+                          ? const Color(0xFFFEE2E2)
+                          : Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
@@ -1030,7 +1157,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           'sos_call_peer'.tr(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFEF4444),
@@ -1050,12 +1180,19 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       onPressed: () async {
                         Uri? uri;
                         if (lat != null && lng != null) {
-                          uri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+                          uri = Uri.parse(
+                            'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
+                          );
                         } else if (address.isNotEmpty) {
-                          uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}');
+                          uri = Uri.parse(
+                            'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}',
+                          );
                         }
                         if (uri != null && await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
                         }
                       },
                       icon: const Icon(Icons.near_me_rounded, size: 14),
@@ -1063,11 +1200,17 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         'sos_nav_peer'.tr(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF991B1B),
-                        side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
+                        side: const BorderSide(
+                          color: Color(0xFFFCA5A5),
+                          width: 1.2,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -1089,7 +1232,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         'sos_call_police_112'.tr(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E293B),
@@ -1426,39 +1572,46 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                 : const Color(0xFF8E8E93),
                           ),
                           if (isRadar)
-                            StreamBuilder<List<Booking>>(
-                              stream: _bookingService
-                                  .streamWorkerIncomingRequests(
-                                    workerId: worker.id,
-                                    skills: worker.skills,
-                                  ),
-                              builder: (context, snap) {
-                                final reqCount = snap.data?.length ?? 0;
-                                if (reqCount == 0) {
-                                  return const SizedBox.shrink();
-                                }
+                            () {
+                              if (_dockIncomingStream == null ||
+                                  _dockWorkerId != worker.id) {
+                                _dockWorkerId = worker.id;
+                                _dockIncomingStream = _bookingService
+                                    .streamWorkerIncomingRequests(
+                                      workerId: worker.id,
+                                      skills: worker.skills,
+                                    );
+                              }
+                              return StreamBuilder<List<Booking>>(
+                                stream: _dockIncomingStream,
+                                builder: (context, snap) {
+                                  final reqCount = snap.data?.length ?? 0;
+                                  if (reqCount == 0) {
+                                    return const SizedBox.shrink();
+                                  }
 
-                                return Positioned(
-                                  top: -4,
-                                  right: -6,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: KX.rose,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Text(
-                                      "$reqCount",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 8.5,
-                                        fontWeight: FontWeight.w900,
+                                  return Positioned(
+                                    top: -4,
+                                    right: -6,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: KX.rose,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        "$reqCount",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
+                                  );
+                                },
+                              );
+                            }(),
                         ],
                       ),
                     ),
@@ -1485,6 +1638,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     return SafeArea(
       child: SingleChildScrollView(
         controller: _scrollController,
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 90),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1511,27 +1667,38 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             ],
 
             // ── 2.5 Live Active Mission Card (If artisan has an accepted or in-progress booking)
-            StreamBuilder<Booking?>(
-              stream: _bookingService.streamCurrentActiveJob(worker.id),
-              builder: (context, activeSnap) {
-                final activeBooking = activeSnap.data;
-                if (activeBooking == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: KSlideFadeIn(
-                    child: _buildActiveMissionCockpitCard(
-                      context,
-                      activeBooking,
-                      worker,
-                    ),
-                  ),
+            () {
+              if (_cachedActiveJobStream == null ||
+                  _cachedActiveJobWorkerId != worker.id) {
+                _cachedActiveJobWorkerId = worker.id;
+                _cachedActiveJobStream = _bookingService.streamCurrentActiveJob(
+                  worker.id,
                 );
-              },
-            ),
+                _cachedHandoffStream = _bookingService
+                    .streamWorkerHandoffRequests(worker.id);
+              }
+              return StreamBuilder<Booking?>(
+                stream: _cachedActiveJobStream,
+                builder: (context, activeSnap) {
+                  final activeBooking = activeSnap.data;
+                  if (activeBooking == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: KSlideFadeIn(
+                      child: _buildActiveMissionCockpitCard(
+                        context,
+                        activeBooking,
+                        worker,
+                      ),
+                    ),
+                  );
+                },
+              );
+            }(),
 
             // ── 2.6 Incoming Specialist Co-op Relay Alert (Mutual Acknowledgment)
             StreamBuilder<List<Booking>>(
-              stream: _bookingService.streamWorkerHandoffRequests(worker.id),
+              stream: _cachedHandoffStream,
               builder: (context, handoffSnap) {
                 final requests = handoffSnap.data ?? [];
                 if (requests.isEmpty) return const SizedBox.shrink();
@@ -1740,7 +1907,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     BuildContext context,
   ) {
     final now = DateTime.now();
-    final dateStr = "Today, ${DateFormat('d MMM').format(now)}";
+    final dateStr =
+        "${'today_label'.trSafe('Today')}, ${DateFormat('d MMM', context.locale.languageCode).format(now)}";
 
     return Row(
       children: [
@@ -1788,7 +1956,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Hello, $name",
+                'greeting_hello'.trSafe('Hello, {}', [name]),
                 style: GoogleFonts.plusJakartaSans(
                   color: KX.textPrimary,
                   fontSize: 17.5,
@@ -1877,8 +2045,12 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
     return PopupMenuButton<String>(
       onSelected: (code) async {
+        WorkGoLocale.setLocaleCode(code);
         await context.setLocale(Locale(code));
-        await KaryaTtsService.instance.updateLanguage(code, announceChange: true);
+        await KaryaTtsService.instance.updateLanguage(
+          code,
+          announceChange: true,
+        );
         setState(() {});
       },
       shape: RoundedRectangleBorder(
@@ -1907,7 +2079,6 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           ),
         );
       }).toList(),
-
 
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
@@ -1993,20 +2164,30 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         final goalProgress = (selectedDayEarnings / dailyGoal).clamp(0.0, 1.0);
 
         final cardTitle = isToday
-            ? "Daily challenge"
+            ? 'daily_challenge_title'.trSafe("Daily challenge")
             : isYesterday
-            ? "Yesterday's earnings"
+            ? 'yesterdays_earnings_title'.trSafe("Yesterday's earnings")
             : isTomorrow
-            ? "Tomorrow's target"
+            ? 'tomorrows_target_title'.trSafe("Tomorrow's target")
             : isFuture
-            ? "Forecast · ${DateFormat('EEE, d MMM').format(_selectedDate)}"
-            : "Earnings · ${DateFormat('EEE, d MMM').format(_selectedDate)}";
+            ? 'forecast_title'.trSafe("Forecast · {}", [
+                DateFormat(
+                  'EEE, d MMM',
+                  context.locale.languageCode,
+                ).format(_selectedDate),
+              ])
+            : 'earnings_title'.trSafe("Earnings · {}", [
+                DateFormat(
+                  'EEE, d MMM',
+                  context.locale.languageCode,
+                ).format(_selectedDate),
+              ]);
 
         final cardSubtitle = isToday
-            ? "Payout target: ₹2,000 today"
+            ? 'payout_target_today'.trSafe("Payout target: ₹2,000 today")
             : isFuture
-            ? "Target: ₹2,000 · Planned shift"
-            : "Target: ₹2,000 · Shift log";
+            ? 'target_planned_shift'.trSafe("Target: ₹2,000 · Planned shift")
+            : 'target_shift_log'.trSafe("Target: ₹2,000 · Shift log");
 
         return Container(
           width: double.infinity,
@@ -2076,7 +2257,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            "${(goalProgress * 100).toInt()}% ${isFuture ? 'Target' : 'Done'}",
+                            "${(goalProgress * 100).toInt()}% ${isFuture ? 'goal_target_label'.trSafe('Target') : 'goal_done_label'.trSafe('Done')}",
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -2195,8 +2376,18 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       anchor.day,
     ).subtract(Duration(days: anchor.weekday % 7));
     final weekDays = List.generate(7, (i) => sunday.add(Duration(days: i)));
-    final dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    final monthLabel = DateFormat('MMMM yyyy').format(weekDays[3]);
+    final dayNames = List.generate(7, (i) {
+      try {
+        return DateFormat('E', context.locale.languageCode).format(weekDays[i]);
+      } catch (_) {
+        const fallbacks = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        return fallbacks[i];
+      }
+    });
+    final monthLabel = DateFormat(
+      'MMMM yyyy',
+      context.locale.languageCode,
+    ).format(weekDays[3]);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -2240,16 +2431,16 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Icon(
+                            children: [
+                              const Icon(
                                 Icons.today_rounded,
                                 size: 11,
                                 color: Colors.white,
                               ),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
-                                "Today",
-                                style: TextStyle(
+                                'today_label'.trSafe("Today"),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -2498,32 +2689,37 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         );
 
         final planDateLabel = isToday
-            ? "Today"
+            ? 'today_label'.trSafe("Today")
             : isTomorrow
-            ? "Tomorrow"
+            ? 'tomorrow_label'.trSafe("Tomorrow")
             : isYesterday
-            ? "Yesterday"
-            : DateFormat('EEE, d MMM').format(_selectedDate);
+            ? 'yesterday_label'.trSafe("Yesterday")
+            : DateFormat(
+                'EEE, d MMM',
+                context.locale.languageCode,
+              ).format(_selectedDate);
 
         final planTag = isToday
-            ? (hasRequest ? "Priority" : "Standby")
+            ? (hasRequest
+                  ? 'priority_label'.trSafe("Priority")
+                  : 'standby_label'.trSafe("Standby"))
             : isFuture
-            ? "Scheduled"
-            : "Shift Log";
+            ? 'scheduled_label'.trSafe("Scheduled")
+            : 'shift_log_label'.trSafe("Shift Log");
 
         final planTitle = isToday
             ? (hasRequest
                   ? topReq!.serviceType.toLocalizedTrade()
                   : (worker.skills.isNotEmpty
-                        ? "${worker.skills.first} Shift"
-                        : "Artisan Standby"))
+                        ? "${worker.skills.first.toLocalizedTrade()} ${'shift_label'.trSafe('Shift')}"
+                        : 'artisan_standby_label'.trSafe("Artisan Standby")))
             : isFuture
             ? (worker.skills.isNotEmpty
-                  ? "${worker.skills.first} Shift"
-                  : "Planned Standby")
+                  ? "${worker.skills.first.toLocalizedTrade()} ${'shift_label'.trSafe('Shift')}"
+                  : 'planned_standby_label'.trSafe("Planned Standby"))
             : (worker.skills.isNotEmpty
-                  ? "${worker.skills.first} Completed"
-                  : "Shift Logged");
+                  ? "${worker.skills.first.toLocalizedTrade()} ${'completed_label'.trSafe('Completed')}"
+                  : 'shift_logged_label'.trSafe("Shift Logged"));
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2532,7 +2728,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Your plan · $planDateLabel",
+                  'your_plan_header'.trSafe("Your plan · {}", [planDateLabel]),
                   style: GoogleFonts.plusJakartaSans(
                     color: KX.textPrimary,
                     fontSize: 20,
@@ -2671,7 +2867,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                       booking: topReq,
                                       worker: worker,
                                     );
-                                    if (context.mounted && ModalRoute.of(context)?.isCurrent == true) {
+                                    if (context.mounted &&
+                                        ModalRoute.of(context)?.isCurrent ==
+                                            true) {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
                                           builder: (ctx) => ActiveJobScreen(
@@ -2687,10 +2885,14 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        backgroundColor: const Color(0xFF141416),
+                                        backgroundColor: const Color(
+                                          0xFF141416,
+                                        ),
                                         behavior: SnackBarBehavior.floating,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
                                         ),
                                         content: Text(
                                           e.message,
@@ -2700,17 +2902,25 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                           ),
                                         ),
                                         action: SnackBarAction(
-                                          label: "Go to Job",
+                                          label: 'go_to_job'.trSafe(
+                                            'Go to Job',
+                                          ),
                                           textColor: const Color(0xFFFFDE59),
                                           onPressed: () async {
-                                            final ongoing = await _bookingService.getWorkerActiveJob(worker.id);
-                                            if (ongoing != null && context.mounted) {
+                                            final ongoing =
+                                                await _bookingService
+                                                    .getWorkerActiveJob(
+                                                      worker.id,
+                                                    );
+                                            if (ongoing != null &&
+                                                context.mounted) {
                                               Navigator.of(context).push(
                                                 MaterialPageRoute(
-                                                  builder: (ctx) => ActiveJobScreen(
-                                                    booking: ongoing,
-                                                    worker: worker,
-                                                  ),
+                                                  builder: (ctx) =>
+                                                      ActiveJobScreen(
+                                                        booking: ongoing,
+                                                        worker: worker,
+                                                      ),
                                                 ),
                                               );
                                             }
@@ -2724,10 +2934,14 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        backgroundColor: const Color(0xFF141416),
+                                        backgroundColor: const Color(
+                                          0xFF141416,
+                                        ),
                                         behavior: SnackBarBehavior.floating,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
                                         ),
                                         content: Row(
                                           children: [
@@ -2754,7 +2968,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                 } catch (e) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text("Error: $e")),
+                                      SnackBar(
+                                        content: Text(
+                                          "${'error_prefix'.trSafe('Error')}: $e",
+                                        ),
+                                      ),
                                     );
                                   }
                                 }
@@ -2812,7 +3030,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "WorkGo Co-op",
+                                        'workgo_coop_label'.trSafe(
+                                          "WorkGo Co-op",
+                                        ),
                                         style: GoogleFonts.plusJakartaSans(
                                           color: const Color(0xFF1E1035),
                                           fontSize: 10.5,
@@ -2820,7 +3040,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                         ),
                                       ),
                                       Text(
-                                        "Ready for jobs",
+                                        'ready_for_jobs_label'.trSafe(
+                                          "Ready for jobs",
+                                        ),
                                         style: GoogleFonts.plusJakartaSans(
                                           color: const Color(0xFF78350F),
                                           fontSize: 9.5,
@@ -2924,7 +3146,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   Text(
                                     hasRequest
                                         ? topReq!.serviceType.toLocalizedTrade()
-                                        : "Live Radar",
+                                        : 'live_radar'.trSafe('Live Radar'),
                                     style: GoogleFonts.plusJakartaSans(
                                       color: const Color(0xFF1E3A8A),
                                       fontSize: 15,
@@ -2935,11 +3157,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   ),
                                   Text(
                                     hasRequest
-                                        ? "₹${topReq!.amount.toStringAsFixed(0)} • ${(topReq.customerAddressText?.isNotEmpty == true ? topReq.customerAddressText! : 'Nearby')}"
+                                        ? "₹${topReq!.amount.toStringAsFixed(0)} • ${(topReq.customerAddressText?.isNotEmpty == true ? topReq.customerAddressText!.toLocalizedAddress(context.locale.languageCode) : 'nearby_label'.trSafe('Nearby'))}"
                                         : (worker.availabilityStatus ==
                                                   AvailabilityStatus.online
-                                              ? "${worker.serviceRadiusKm.toInt()} km coverage\nListening..."
-                                              : "Radar Standby\nTap to go live"),
+                                              ? "${worker.serviceRadiusKm.toInt()} km ${'coverage_abbr'.trSafe('coverage')}\n${'listening_radar'.trSafe('Listening...')}"
+                                              : "${'radar_standby'.trSafe('Radar Standby')}\n${'tap_to_go_live'.trSafe('Tap to go live')}"),
                                     style: GoogleFonts.plusJakartaSans(
                                       color: hasRequest
                                           ? const Color(0xFF1D4ED8)
@@ -3199,7 +3421,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           Row(
                             children: [
                               Text(
-                                "OPERATING BASE",
+                                'operating_base_header'.trSafe(
+                                  "OPERATING BASE",
+                                ),
                                 style: GoogleFonts.plusJakartaSans(
                                   color: const Color(0xFFB45309),
                                   fontSize: 9.5,
@@ -3218,7 +3442,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  "${worker.serviceRadiusKm.toInt()} km Range",
+                                  'km_range_label'.trSafe(
+                                    "${worker.serviceRadiusKm.toInt()} km Range",
+                                    ["${worker.serviceRadiusKm.toInt()}"],
+                                  ),
                                   style: const TextStyle(
                                     color: Color(0xFF065F46),
                                     fontSize: 9.5,
@@ -3284,18 +3511,18 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         color: KX.dockBlack,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.edit_location_alt_rounded,
                             color: Colors.white,
                             size: 11,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            "Change",
-                            style: TextStyle(
+                            'btn_change'.trSafe("Change"),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10.5,
                               fontWeight: FontWeight.w800,
@@ -3311,101 +3538,6 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           ),
         ),
         const SizedBox(height: 12),
-
-        // ── Peer Referral Banner
-        GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            showPeerReferralNetworkSheet(context, worker: worker);
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x06000000),
-                  blurRadius: 12,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF3D6),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.groups_rounded,
-                    color: KX.gold,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            "Refer Artisan & Earn 2%",
-                            style: GoogleFonts.plusJakartaSans(
-                              color: KX.textPrimary,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 5,
-                              vertical: 1.5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: KX.gold.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              "2% CUT",
-                              style: TextStyle(
-                                color: Color(0xFFB45309),
-                                fontSize: 8.5,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        "Refer peer artisans to earn direct co-op incentives",
-                        style: GoogleFonts.plusJakartaSans(
-                          color: KX.textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Color(0xFF8E8E93),
-                  size: 13,
-                ),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -3422,7 +3554,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     final isInProgress = booking.status == BookingStatus.inProgress;
 
     final tradeTitle = booking.serviceType.toLocalizedTrade();
-    final address = booking.customerAddressText ?? "Customer Doorstep Address";
+    final address = (booking.customerAddressText?.isNotEmpty == true)
+        ? booking.customerAddressText!.toLocalizedAddress(
+            context.locale.languageCode,
+          )
+        : 'customer_doorstep_address'.trSafe('Customer Doorstep Address');
 
     return GestureDetector(
       onTap: () {
@@ -3499,8 +3635,12 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       const SizedBox(width: 6),
                       Text(
                         isAccepted
-                            ? "📍 ARRIVAL · ENTER OTP"
-                            : "🟢 SERVICE IN PROGRESS",
+                            ? 'arrival_enter_otp_status'.trSafe(
+                                "📍 ARRIVAL · ENTER OTP",
+                              )
+                            : 'service_in_progress_status'.trSafe(
+                                "🟢 SERVICE IN PROGRESS",
+                              ),
                         style: TextStyle(
                           color: isAccepted
                               ? const Color(0xFFFDE68A)
@@ -3540,7 +3680,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
             // Trade Title
             Text(
-              "$tradeTitle Mission",
+              "${tradeTitle.toLocalizedTrade()} ${'mission_suffix'.trSafe('Mission')}",
               style: GoogleFonts.plusJakartaSans(
                 color: Colors.white,
                 fontSize: 18,
@@ -3676,8 +3816,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         size: 17,
                         color: Color(0xFF0F172A),
                       ),
-                      label: const Text(
-                        "Enter OTP",
+                      label: Text(
+                        'enter_otp_action'.trSafe("Enter OTP"),
                         style: TextStyle(
                           color: Color(0xFF0F172A),
                           fontSize: 13,
@@ -3743,8 +3883,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       size: 16,
                       color: Colors.white,
                     ),
-                    label: const Text(
-                      "HUD",
+                    label: Text(
+                      'view_hud_action'.trSafe("Details"),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -3818,9 +3958,13 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       onSuccess: () {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("OTP Verified! Service started successfully."),
-              backgroundColor: Color(0xFF047857),
+            SnackBar(
+              content: Text(
+                'otp_verified_started'.trSafe(
+                  'OTP Verified! Service started successfully.',
+                ),
+              ),
+              backgroundColor: const Color(0xFF047857),
               behavior: SnackBarBehavior.floating,
             ),
           );

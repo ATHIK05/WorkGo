@@ -2894,9 +2894,9 @@ class _WorkerCardState extends State<_WorkerCard> {
                     ],
                     const Divider(color: Color(0xFFE2E8F0), height: 18),
                     _fareRow(
-                      'coop_welfare_contribution'.tr(),
+                      'coop_welfare_pool'.trSafe('Cooperative Welfare Pool (2%)'),
                       fare.formattedWelfare,
-                      subtitle: 'welfare_fund_benefit'.tr(),
+                      subtitle: 'welfare_fund_benefit'.trSafe('PMJJBY / PMSBY social security insurance'),
                       isBonus: true,
                     ),
                     const Divider(color: Color(0xFFE2E8F0), height: 18),

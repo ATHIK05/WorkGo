@@ -130,22 +130,26 @@ class _AadhaarQrScannerState extends State<AadhaarQrScanner> {
                             const SizedBox(height: 10),
                             Text(
                               error.errorCode == MobileScannerErrorCode.permissionDenied
-                                  ? "Camera permission is required to scan QR code."
-                                  : "Unable to start camera. Please restart or check permissions.",
+                                  ? "camera_permission_required".tr()
+                                  : "camera_start_error".tr(),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 12),
                             ElevatedButton.icon(
                               onPressed: _restartScanner,
                               icon: const Icon(Icons.refresh_rounded, size: 16),
-                              label: const Text(
-                                "Retry Camera",
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              label: Text(
+                                "retry_camera".tr(),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFFFB800),
@@ -216,21 +220,23 @@ class _AadhaarQrScannerState extends State<AadhaarQrScanner> {
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
+                              children: [
+                                const Icon(
                                   Icons.refresh_rounded,
                                   color: Colors.white,
                                   size: 16,
                                 ),
-                                SizedBox(width: 5),
+                                const SizedBox(width: 5),
                                 Text(
-                                  "Retry",
-                                  style: TextStyle(
+                                  "retry_btn".tr(),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.2,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -259,16 +265,18 @@ class _AadhaarQrScannerState extends State<AadhaarQrScanner> {
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Icon(Icons.replay_rounded, size: 14, color: Color(0xFFFFB800)),
-                              SizedBox(width: 6),
+                            children: [
+                              const Icon(Icons.replay_rounded, size: 14, color: Color(0xFFFFB800)),
+                              const SizedBox(width: 6),
                               Text(
-                                "Tap to Retry Scan",
-                                style: TextStyle(
+                                "tap_retry_scan".tr(),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -304,10 +312,15 @@ class _AadhaarQrScannerState extends State<AadhaarQrScanner> {
             const Icon(Icons.qr_code_rounded,
                 size: 14, color: WorkGoColors.textSecondary),
             const SizedBox(width: 6),
-            Text(
-              "aadhaar_qr_scan_hint".tr(),
-              style: const TextStyle(
-                  fontSize: 12, color: WorkGoColors.textSecondary),
+            Flexible(
+              child: Text(
+                "aadhaar_qr_scan_hint".tr(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 12, color: WorkGoColors.textSecondary),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -318,10 +331,13 @@ class _AadhaarQrScannerState extends State<AadhaarQrScanner> {
             onPressed: widget.onFallback,
             child: Text(
               "aadhaar_qr_failed_fallback".tr(),
+              textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize: 12,
                   color: WorkGoColors.textSecondary,
                   decoration: TextDecoration.underline),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
@@ -360,6 +376,8 @@ class _SuccessPanel extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF15803D),
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

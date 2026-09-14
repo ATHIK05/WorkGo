@@ -247,10 +247,10 @@ class _JobPreparationToolsSheetState extends State<JobPreparationToolsSheet> {
     final checkedCount = _checkedTools.length;
     final customerName = widget.booking.customerName?.isNotEmpty == true
         ? widget.booking.customerName!
-        : "Valued Customer";
+        : "customer_valued".tr();
     final addressText = widget.booking.customerAddressText?.isNotEmpty == true
-        ? widget.booking.customerAddressText!
-        : "Doorstep Location";
+        ? widget.booking.customerAddressText!.toLocalizedAddress(context.locale.languageCode)
+        : "doorstep_location".tr();
 
     return Container(
       constraints: BoxConstraints(
@@ -419,7 +419,10 @@ class _JobPreparationToolsSheetState extends State<JobPreparationToolsSheet> {
                             Padding(
                               padding: const EdgeInsets.only(left: 24),
                               child: Text(
-                                "Doorstep GPS: ${widget.booking.customerLatitude!.toStringAsFixed(5)}, ${widget.booking.customerLongitude!.toStringAsFixed(5)}",
+                                "doorstep_gps".tr(args: [
+                                  widget.booking.customerLatitude!.toStringAsFixed(5),
+                                  widget.booking.customerLongitude!.toStringAsFixed(5),
+                                ]),
                                 style: const TextStyle(
                                   color: Color(0xFF9CA3AF),
                                   fontSize: 10.5,
@@ -440,16 +443,21 @@ class _JobPreparationToolsSheetState extends State<JobPreparationToolsSheet> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "Equipment Kit Checklist",
-                          style: const TextStyle(
-                            color: KX.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
+                        Expanded(
+                          child: Text(
+                            "equipment_kit_checklist".tr(),
+                            style: const TextStyle(
+                              color: KX.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
-                          "$checkedCount / $totalTools packed",
+                          "tools_packed_count".tr(args: ['$checkedCount', '$totalTools']),
                           style: TextStyle(
                             color: checkedCount == totalTools
                                 ? const Color(0xFF059669)
@@ -457,6 +465,8 @@ class _JobPreparationToolsSheetState extends State<JobPreparationToolsSheet> {
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),

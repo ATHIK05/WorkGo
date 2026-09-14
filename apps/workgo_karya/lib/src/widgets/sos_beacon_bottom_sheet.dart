@@ -323,15 +323,15 @@ class _SosBeaconBottomSheetState extends State<SosBeaconBottomSheet>
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
-          const Text(
-            "Broadcast your live GPS coordinates to cooperative admins and active artisans within 5 km for immediate assistance.",
+          Text(
+            'sos_beacon_desc'.tr(),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: KX.textSecondary,
               fontSize: 12,
               height: 1.35,
             ),
-            maxLines: 2,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 14),
@@ -412,12 +412,14 @@ class _SosBeaconBottomSheetState extends State<SosBeaconBottomSheet>
                       OutlinedButton.icon(
                         onPressed: _checkLocationAndAcquireGps,
                         icon: const Icon(Icons.refresh_rounded, size: 14),
-                        label: const Text(
-                          'Retry',
-                          style: TextStyle(
+                        label: Text(
+                          'retry_btn'.tr(),
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF991B1B),
@@ -504,17 +506,19 @@ class _SosBeaconBottomSheetState extends State<SosBeaconBottomSheet>
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'sos_recording_audio_proof'.tr(
-                          args: ['$_recordingSecondsRemaining'],
+                      Flexible(
+                        child: Text(
+                          'sos_recording_audio_proof'.tr(
+                            args: ['$_recordingSecondsRemaining'],
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFF991B1B),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        style: const TextStyle(
-                          color: Color(0xFF991B1B),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

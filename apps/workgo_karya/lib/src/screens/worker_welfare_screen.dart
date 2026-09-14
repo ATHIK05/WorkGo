@@ -140,8 +140,8 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 1: Accident (PMSBY)
                   _SchemeBenefitCard(
-                    title: "Accidental Disability Cover (PMSBY)",
-                    subtitle: "24/7 on-duty emergency protection across all job dispatches",
+                    title: 'scheme_pmsby_title'.trSafe('Accidental Disability Cover (PMSBY)'),
+                    subtitle: 'scheme_pmsby_desc'.trSafe('24/7 on-duty emergency protection across all job dispatches'),
                     amount: "₹2,00,000",
                     badgeColor: const Color(0xFFD6EBFF),
                     badgeTextColor: const Color(0xFF1E3A8A),
@@ -152,8 +152,8 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 2: Life (PMJJBY)
                   _SchemeBenefitCard(
-                    title: "Artisan Life Insurance (PMJJBY)",
-                    subtitle: "Zero-fee family security & nominee welfare disbursement",
+                    title: 'scheme_pmjjby_title'.trSafe('Artisan Life Insurance (PMJJBY)'),
+                    subtitle: 'scheme_pmjjby_desc'.trSafe('Zero-fee family security & nominee welfare disbursement'),
                     amount: "₹2,00,000",
                     badgeColor: const Color(0xFFD1FAE5),
                     badgeTextColor: const Color(0xFF065F46),
@@ -164,8 +164,8 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 3: Medical Relief
                   _SchemeBenefitCard(
-                    title: "Medical & Emergency Micro-Relief",
-                    subtitle: "Instant 0% interest cooperative emergency advance",
+                    title: 'scheme_medical_title'.trSafe('Medical & Emergency Micro-Relief'),
+                    subtitle: 'scheme_medical_desc'.trSafe('Instant 0% interest cooperative emergency advance'),
                     amount: "₹25,000",
                     badgeColor: const Color(0xFFFFE0A3),
                     badgeTextColor: const Color(0xFF92400E),
@@ -486,6 +486,8 @@ class _SchemeBenefitCard extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -495,6 +497,8 @@ class _SchemeBenefitCard extends StatelessWidget {
                     fontSize: 11,
                     height: 1.35,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -589,7 +593,7 @@ class _HelplineDeskCard extends StatelessWidget {
               HapticFeedback.selectionClick();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text("Connecting to Cooperative Claim Desk (1800-425-WORKGO)…"),
+                  content: Text('connecting_claim_desk'.trSafe('Connecting to Cooperative Claim Desk (1800-425-WORKGO)…')),
                   backgroundColor: const Color(0xFF10B981),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -597,7 +601,7 @@ class _HelplineDeskCard extends StatelessWidget {
               );
             },
             icon: const Icon(Icons.phone_rounded, size: 14),
-            label: const Text("Call Desk", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+            label: Text('call_desk_btn'.trSafe('Call Desk'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFB800),
               foregroundColor: Colors.black,

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -307,15 +308,15 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.white24),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          "Skip Tour",
-                          style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
+                          "tour_skip".tr(),
+                          style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.close_rounded, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.close_rounded, color: Colors.white, size: 14),
                       ],
                     ),
                   ),
@@ -473,7 +474,7 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text("Back", style: TextStyle(fontSize: 12)),
+                  child: Text("tour_back".tr(), style: const TextStyle(fontSize: 12)),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -490,9 +491,13 @@ class _KaryaSpotlightTourOverlayState extends State<KaryaSpotlightTourOverlay>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        isLast ? "Complete Full App Tour 🚀" : "Next Page / Feature",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                      Flexible(
+                        child: Text(
+                          isLast ? "tour_complete".tr() : "tour_next".tr(),
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Icon(isLast ? Icons.check_circle_rounded : Icons.arrow_forward_rounded, size: 16),

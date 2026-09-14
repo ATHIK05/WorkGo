@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
@@ -288,19 +289,23 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'AI Match Strength & Equipment Tags',
+                        'ai_match_strength_title'.tr(),
                         style: WorkGoFonts.heading(
                           color: KX.textPrimary,
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        'Tag your machinery & specialized tools to receive targeted dispatch',
+                        'ai_match_strength_subtitle'.tr(),
                         style: WorkGoFonts.body(
                           color: KX.textSecondary,
                           fontSize: 11.5,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -314,21 +319,28 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'AI Triage Match Score',
-                style: WorkGoFonts.body(
-                  color: KX.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  'ai_triage_match_score'.tr(),
+                  style: WorkGoFonts.body(
+                    color: KX.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
-                '$percent% Strength',
+                'percent_strength'.tr(args: ['$percent']),
                 style: WorkGoFonts.heading(
                   color: percent >= 80 ? KX.emerald : KX.amber,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -348,12 +360,14 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
 
           // Active Tags & Keywords
           Text(
-            'Active Equipment & Specializations (${_equipmentTags.length + _serviceKeywords.length})',
+            'active_equipment_count'.tr(args: ['${_equipmentTags.length + _serviceKeywords.length}']),
             style: WorkGoFonts.heading(
               color: KX.textPrimary,
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
 
@@ -361,7 +375,7 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Text(
-                'No specialized equipment tags added yet. Select suggestions below or add custom machinery keywords.',
+                'no_equipment_tags_hint'.tr(),
                 style: WorkGoFonts.body(
                   color: KX.textSecondary,
                   fontSize: 11.5,
@@ -414,12 +428,14 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
           // Quick Suggested Tags
           if (suggestions.isNotEmpty) ...[
             Text(
-              'Recommended for your craft:',
+              'recommended_for_craft'.tr(),
               style: WorkGoFonts.body(
                 color: KX.textSecondary,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -461,7 +477,7 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
                     controller: _customKeywordCtrl,
                     style: WorkGoFonts.body(color: KX.textPrimary, fontSize: 12),
                     decoration: InputDecoration(
-                      hintText: 'Add custom tag (e.g. Borewell, Winding)',
+                      hintText: 'add_custom_tag_hint'.tr(),
                       hintStyle: WorkGoFonts.body(color: const Color(0xFF94A3B8), fontSize: 11.5),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -503,12 +519,14 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
                     )
                   : const Icon(Icons.check_circle_outline_rounded, size: 18),
               label: Text(
-                _isSaving ? 'Saving...' : 'Save Profile Specializations',
+                _isSaving ? 'saving_btn'.tr() : 'save_specializations_btn'.tr(),
                 style: WorkGoFonts.body(
                   color: const Color(0xFF141416),
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
@@ -584,19 +602,23 @@ class _ArtisanKeywordOffcanvasSheet extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Specializations & Tools",
+                            "specializations_and_tools".tr(),
                             style: WorkGoFonts.heading(
                               color: KX.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            "Offcanvas Equipment & Triage Manager",
+                            "equipment_triage_manager".tr(),
                             style: WorkGoFonts.body(
                               color: KX.textSecondary,
                               fontSize: 11.5,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),

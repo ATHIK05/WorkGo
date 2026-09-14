@@ -148,7 +148,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
       HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Please select at least one trade skill you can do"),
+          content: Text('select_at_least_one_skill_onboarding'.trSafe("Please select at least one trade skill you can do")),
           backgroundColor: KX.rose,
           behavior: SnackBarBehavior.floating,
         ),
@@ -240,7 +240,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Error saving profile: $e"),
+            content: Text("${'error_saving_profile'.trSafe('Error saving profile')}: $e"),
             backgroundColor: KX.rose,
           ),
         );
@@ -310,8 +310,8 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
               // Section 1: Jobs You Can Do
               _buildSectionCard(
-                title: "1. Jobs / Trades You Can Do",
-                subtitle: "Select all the services you are certified & ready to provide",
+                title: 'onboarding_step1_title'.trSafe("1. Jobs / Trades You Can Do"),
+                subtitle: 'onboarding_step1_sub'.trSafe("Select all the services you are certified & ready to provide"),
                 icon: Icons.handyman_rounded,
                 child: GridView.builder(
                   shrinkWrap: true,
@@ -394,8 +394,8 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
               // Section 2: Work Location & Coverage Radius
               _buildSectionCard(
-                title: "2. Your Location & Coverage Area",
-                subtitle: "Set your exact operating workshop/base and coverage radius",
+                title: 'onboarding_step2_title'.trSafe("2. Your Location & Coverage Area"),
+                subtitle: 'onboarding_step2_sub'.trSafe("Set your exact operating workshop/base and coverage radius"),
                 icon: Icons.location_on_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,7 +534,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       controller: _streetAreaCtrl,
                       style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                       decoration: InputDecoration(
-                        hintText: "e.g. 20, Mosikeeranar Street, Indira Nagar",
+                        hintText: 'address_hint_eg'.trSafe("e.g. 20, Mosikeeranar Street, Indira Nagar"),
                         hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
                         filled: true,
                         fillColor: KX.canvasElevated,
@@ -679,13 +679,13 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
               // Section 3: Available Hours
               _buildSectionCard(
-                title: "3. Daily Available Working Hours",
-                subtitle: "When would you like to receive service requests?",
+                title: 'onboarding_step3_title'.trSafe("3. Daily Available Working Hours"),
+                subtitle: 'onboarding_step3_sub'.trSafe("When would you like to receive service requests?"),
                 icon: Icons.access_time_filled_rounded,
                 child: Row(
                   children: [
                     Expanded(
-                      child: _buildTimeSlotBadge("Start Time", _workingHoursStart, () async {
+                      child: _buildTimeSlotBadge('start_time_label'.trSafe("Start Time"), _workingHoursStart, () async {
                         final picked = await showTimePicker(
                           context: context,
                           initialTime: const TimeOfDay(hour: 8, minute: 0),
@@ -700,7 +700,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildTimeSlotBadge("End Time", _workingHoursEnd, () async {
+                      child: _buildTimeSlotBadge('end_time_label'.trSafe("End Time"), _workingHoursEnd, () async {
                         final picked = await showTimePicker(
                           context: context,
                           initialTime: const TimeOfDay(hour: 20, minute: 0),
@@ -720,7 +720,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
               // Complete CTA
               KaryaButton(
-                label: "Activate Artisan Cockpit",
+                label: 'activate_artisan_cockpit_btn'.trSafe("Activate Artisan Cockpit"),
                 icon: Icons.rocket_launch_rounded,
                 isLoading: _isSaving,
                 onPressed: _completeOnboarding,
@@ -768,6 +768,8 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       subtitle,
@@ -775,6 +777,8 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                         color: KX.textSecondary,
                         fontSize: 11,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -801,7 +805,12 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11)),
+            Text(
+              label,
+              style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 4),
             Row(
               children: [
