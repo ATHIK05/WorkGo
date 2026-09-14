@@ -6224,7 +6224,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                _buildLangPill(context),
+                _buildLanguageDropdown(context),
               ],
             ),
           ),
@@ -6309,50 +6309,111 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   }
 
   // ──────────────────────────────────────────
-  //  LANGUAGE PILL
+  //  LANGUAGE DROPDOWN (All 22 Scheduled Indian Languages + English)
   // ──────────────────────────────────────────
-  Widget _buildLangPill(BuildContext context) {
-    final currentLang = context.locale.languageCode;
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: CX.glassCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CX.glassBorder),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _langOption(context, "en", "EN", currentLang == "en"),
-          _langOption(context, "hi", "HI", currentLang == "hi"),
-          _langOption(context, "ta", "TA", currentLang == "ta"),
-        ],
-      ),
+  Widget _buildLanguageDropdown(BuildContext context) {
+    final currentCode = context.locale.languageCode;
+    final currentLang = WorkGoLocale.allLanguages.firstWhere(
+      (l) => l.code == currentCode,
+      orElse: () => WorkGoLocale.allLanguages.first,
     );
-  }
 
-  Widget _langOption(
-    BuildContext context,
-    String code,
-    String label,
-    bool active,
-  ) {
-    return GestureDetector(
-      onTap: () => context.setLocale(Locale(code)),
-      child: AnimatedContainer(
-        duration: CAnim.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-        decoration: BoxDecoration(
-          gradient: active ? CX.auroraVioletCyan : null,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? Colors.white : CX.textMuted,
-            fontSize: 11,
-            fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+    return PopupMenuButton<String>(
+      tooltip: "Select Language",
+      initialValue: currentCode,
+      onSelected: (code) async {
+        WorkGoLocale.setLocaleCode(code);
+        await context.setLocale(Locale(code));
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.user.uid)
+              .update({'preferredLanguage': code});
+        } catch (_) {}
+        if (mounted) setState(() {});
+      },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      color: Colors.white,
+      elevation: 6,
+      constraints: const BoxConstraints(maxHeight: 380, maxWidth: 280),
+      itemBuilder: (ctx) => WorkGoLocale.allLanguages.map((lang) {
+        final isSelected = lang.code == currentCode;
+        return PopupMenuItem<String>(
+          value: lang.code,
+          height: 44,
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      lang.nativeName,
+                      style: TextStyle(
+                        color: isSelected
+                            ? const Color(0xFF2563EB)
+                            : const Color(0xFF141416),
+                        fontSize: 13.5,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${lang.englishName} • ${lang.region}',
+                      style: TextStyle(
+                        color: isSelected
+                            ? const Color(0xFF3B82F6)
+                            : const Color(0xFF9CA3AF),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 18,
+                ),
+            ],
           ),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFBFDBFE), width: 1.1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${currentLang.nativeName} (${currentLang.code.toUpperCase()})',
+              style: const TextStyle(
+                color: Color(0xFF1D4ED8),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 16,
+              color: Color(0xFF1D4ED8),
+            ),
+          ],
         ),
       ),
     );
