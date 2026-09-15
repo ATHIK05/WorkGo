@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:google_fonts/google_fonts.dart";
 import "../../models/app_user.dart";
+import "../../localization/locale_config.dart";
 import "customer_auth_sheet.dart";
 
 /// State-of-the-art Editorial Consumer Onboarding & Welcome Screen.
@@ -80,22 +81,31 @@ class _CustomerEditorialWelcomeScreenState
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      Text(
-                        "hero_lets_make".tr(),
-                        style: _headlineSansStyle(context, isCompact: isCompact),
-                        textAlign: TextAlign.center,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          "hero_lets_make".tr(),
+                          style: _headlineSansStyle(context, isCompact: isCompact),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      Text(
-                        widget.role == UserRole.worker
-                            ? "hero_your_craft".tr()
-                            : "hero_your_home".tr(),
-                        style: _headlineSerifStyle(context, isCompact: isCompact),
-                        textAlign: TextAlign.center,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          widget.role == UserRole.worker
+                              ? "hero_your_craft".tr()
+                              : "hero_your_home".tr(),
+                          style: _headlineSerifStyle(context, isCompact: isCompact),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      Text(
-                        "hero_effortless".tr(),
-                        style: _headlineSansStyle(context, isCompact: isCompact),
-                        textAlign: TextAlign.center,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          "hero_effortless".tr(),
+                          style: _headlineSansStyle(context, isCompact: isCompact),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                       SizedBox(height: isCompact ? 10 : 16),
                       Text(
@@ -352,168 +362,324 @@ class _CustomerEditorialWelcomeScreenState
     );
   }
 
-  // ── LOCALIZED TYPOGRAPHY SYSTEM (Same Font Style in EN, HI, TA) ──
+  // ── LOCALIZED TYPOGRAPHY SYSTEM (Uniform Font Sizes Across All Languages) ──
+
+  TextStyle _getSansFont(
+    String lang, {
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color color,
+    double? letterSpacing,
+    double? height,
+  }) {
+    switch (lang) {
+      case "hi":
+      case "mr":
+      case "ne":
+      case "sa":
+      case "mai":
+      case "kok":
+      case "doi":
+      case "brx":
+        return GoogleFonts.mukta(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? -0.2,
+          height: height ?? 1.12,
+        );
+      case "ta":
+        return GoogleFonts.catamaran(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? -0.2,
+          height: height ?? 1.15,
+        );
+      case "te":
+        return GoogleFonts.notoSansTelugu(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+      case "kn":
+        return GoogleFonts.notoSansKannada(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+      case "ml":
+        return GoogleFonts.notoSansMalayalam(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+      case "bn":
+      case "as":
+      case "mni":
+        return GoogleFonts.notoSansBengali(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+      case "gu":
+        return GoogleFonts.notoSansGujarati(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+      case "pa":
+        return GoogleFonts.notoSansGurmukhi(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+      case "or":
+        return GoogleFonts.notoSansOriya(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+      case "ur":
+      case "ks":
+      case "sd":
+        return GoogleFonts.notoSansArabic(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+      default:
+        return GoogleFonts.plusJakartaSans(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+    }
+  }
+
+  TextStyle _getSerifFont(
+    String lang, {
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color color,
+    FontStyle? fontStyle,
+    double? letterSpacing,
+    double? height,
+  }) {
+    switch (lang) {
+      case "hi":
+      case "mr":
+      case "ne":
+      case "sa":
+      case "mai":
+      case "kok":
+      case "doi":
+      case "brx":
+        return GoogleFonts.notoSerifDevanagari(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height ?? 1.08,
+        );
+      case "ta":
+        return GoogleFonts.notoSerifTamil(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height ?? 1.12,
+        );
+      case "te":
+        return GoogleFonts.notoSerifTelugu(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height,
+        );
+      case "kn":
+        return GoogleFonts.notoSerifKannada(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height,
+        );
+      case "ml":
+        return GoogleFonts.notoSerifMalayalam(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height,
+        );
+      case "bn":
+      case "as":
+      case "mni":
+        return GoogleFonts.notoSerifBengali(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height,
+        );
+      case "gu":
+        return GoogleFonts.notoSerifGujarati(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height,
+        );
+      case "pa":
+        return GoogleFonts.notoSerifGurmukhi(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height,
+        );
+      case "or":
+        return GoogleFonts.notoSerifOriya(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height,
+        );
+      case "ur":
+      case "ks":
+      case "sd":
+        return GoogleFonts.notoNaskhArabic(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing ?? 0.0,
+          height: height,
+        );
+      default:
+        return GoogleFonts.playfairDisplay(
+          fontSize: fontSize,
+          fontStyle: fontStyle,
+          fontWeight: fontWeight,
+          color: color,
+          letterSpacing: letterSpacing,
+          height: height,
+        );
+    }
+  }
 
   TextStyle _headlineSansStyle(BuildContext context,
       {required bool isCompact}) {
     final lang = context.locale.languageCode;
     const color = Color(0xFF141416);
-    if (lang == "hi") {
-      return GoogleFonts.mukta(
-        fontSize: isCompact ? 34 : 42,
-        fontWeight: FontWeight.w800,
-        color: color,
-        letterSpacing: -0.2,
-        height: 1.12,
-      );
-    } else if (lang == "ta") {
-      return GoogleFonts.catamaran(
-        fontSize: isCompact ? 32 : 39,
-        fontWeight: FontWeight.w800,
-        color: color,
-        letterSpacing: -0.2,
-        height: 1.15,
-      );
-    } else {
-      return GoogleFonts.plusJakartaSans(
-        fontSize: isCompact ? 40 : 48,
-        fontWeight: FontWeight.w800,
-        color: color,
-        letterSpacing: -1.6,
-        height: 1.02,
-      );
-    }
+    // Uniform font size across all languages
+    final fontSize = isCompact ? 38.0 : 46.0;
+    return _getSansFont(
+      lang,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w800,
+      color: color,
+      letterSpacing: lang == "en" ? -1.4 : -0.2,
+      height: 1.05,
+    );
   }
 
   TextStyle _headlineSerifStyle(BuildContext context,
       {required bool isCompact}) {
     final lang = context.locale.languageCode;
     const color = Color(0xFF141416);
-    if (lang == "hi") {
-      return GoogleFonts.notoSerifDevanagari(
-        fontSize: isCompact ? 40 : 50,
-        fontStyle: FontStyle.italic,
-        fontWeight: FontWeight.w700,
-        color: color,
-        letterSpacing: 0.0,
-        height: 1.08,
-      );
-    } else if (lang == "ta") {
-      return GoogleFonts.notoSerifTamil(
-        fontSize: isCompact ? 38 : 46,
-        fontStyle: FontStyle.italic,
-        fontWeight: FontWeight.w700,
-        color: color,
-        letterSpacing: 0.0,
-        height: 1.12,
-      );
-    } else {
-      return GoogleFonts.playfairDisplay(
-        fontSize: isCompact ? 48 : 58,
-        fontStyle: FontStyle.italic,
-        fontWeight: FontWeight.w700,
-        color: color,
-        letterSpacing: -0.6,
-        height: 0.96,
-      );
-    }
+    // Uniform font size across all languages
+    final fontSize = isCompact ? 44.0 : 52.0;
+    return _getSerifFont(
+      lang,
+      fontSize: fontSize,
+      fontStyle: FontStyle.italic,
+      fontWeight: FontWeight.w700,
+      color: color,
+      letterSpacing: lang == "en" ? -0.6 : 0.0,
+      height: 0.98,
+    );
   }
 
   TextStyle _subtitleStyle(BuildContext context, {required bool isCompact}) {
     final lang = context.locale.languageCode;
     const color = Color(0xFF262626);
-    if (lang == "hi") {
-      return GoogleFonts.mukta(
-        fontSize: isCompact ? 13.5 : 15,
-        fontWeight: FontWeight.w600,
-        color: color,
-        height: 1.25,
-      );
-    } else if (lang == "ta") {
-      return GoogleFonts.catamaran(
-        fontSize: isCompact ? 13.5 : 15,
-        fontWeight: FontWeight.w600,
-        color: color,
-        height: 1.25,
-      );
-    } else {
-      return GoogleFonts.plusJakartaSans(
-        fontSize: isCompact ? 13.5 : 15,
-        fontWeight: FontWeight.w600,
-        color: color,
-        letterSpacing: -0.1,
-      );
-    }
+    final fontSize = isCompact ? 13.5 : 15.0;
+    return _getSansFont(
+      lang,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w600,
+      color: color,
+      height: 1.25,
+      letterSpacing: -0.1,
+    );
   }
 
   TextStyle _pillTextStyle(BuildContext context, {required Color textColor}) {
     final lang = context.locale.languageCode;
-    if (lang == "hi") {
-      return GoogleFonts.notoSerifDevanagari(
-        fontSize: 14.5,
-        fontWeight: FontWeight.w600,
-        color: textColor,
-        height: 1.18,
-      );
-    } else if (lang == "ta") {
-      return GoogleFonts.notoSerifTamil(
-        fontSize: 14.0,
-        fontWeight: FontWeight.w600,
-        color: textColor,
-        height: 1.18,
-      );
-    } else {
-      return GoogleFonts.newsreader(
-        fontSize: 15.5,
-        fontWeight: FontWeight.w600,
-        color: textColor,
-      );
-    }
+    const fontSize = 14.0;
+    return _getSerifFont(
+      lang,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w600,
+      color: textColor,
+      height: 1.18,
+    );
   }
 
   TextStyle _buttonTextStyle(BuildContext context) {
     final lang = context.locale.languageCode;
-    if (lang == "hi") {
-      return GoogleFonts.mukta(
-        fontSize: 16.5,
-        fontWeight: FontWeight.w700,
-      );
-    } else if (lang == "ta") {
-      return GoogleFonts.catamaran(
-        fontSize: 16.0,
-        fontWeight: FontWeight.w700,
-      );
-    } else {
-      return GoogleFonts.plusJakartaSans(
-        fontSize: 16.5,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
-      );
-    }
+    const fontSize = 16.0;
+    return _getSansFont(
+      lang,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w700,
+      color: Colors.white,
+      letterSpacing: -0.2,
+    );
   }
 
   TextStyle _secondaryButtonTextStyle(BuildContext context) {
     final lang = context.locale.languageCode;
     const color = Color(0xFF141416);
-    if (lang == "hi") {
-      return GoogleFonts.mukta(
-        fontSize: 14.5,
-        fontWeight: FontWeight.w600,
-        color: color,
-      );
-    } else if (lang == "ta") {
-      return GoogleFonts.catamaran(
-        fontSize: 14.0,
-        fontWeight: FontWeight.w600,
-        color: color,
-      );
-    } else {
-      return GoogleFonts.plusJakartaSans(
-        fontSize: 14.5,
-        fontWeight: FontWeight.w600,
-        color: color,
-      );
-    }
+    const fontSize = 14.0;
+    return _getSansFont(
+      lang,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w600,
+      color: color,
+      letterSpacing: 0.0,
+    );
   }
 
   Widget _buildCircleCraftIcon({
@@ -545,20 +711,23 @@ class _CustomerEditorialWelcomeScreenState
 
   Widget _buildLanguageSwitcher(BuildContext context) {
     final current = context.locale.languageCode;
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _langChip(context, code: "en", label: "EN", active: current == "en"),
-          _langChip(context, code: "hi", label: "HI", active: current == "hi"),
-          _langChip(context, code: "ta", label: "TA", active: current == "ta"),
-        ],
+    final activeIndex = WorkGoLocale.allLanguages
+        .indexWhere((l) => l.code == current)
+        .clamp(0, WorkGoLocale.allLanguages.length - 1);
+
+    return SizedBox(
+      height: 36,
+      child: _WelcomeScrollToActiveLangStrip(
+        activeIndex: activeIndex,
+        children: WorkGoLocale.allLanguages.map((lang) {
+          final isActive = lang.code == current;
+          return _langChip(
+            context,
+            code: lang.code,
+            label: lang.nativeName,
+            active: isActive,
+          );
+        }).toList(),
       ),
     );
   }
@@ -576,19 +745,103 @@ class _CustomerEditorialWelcomeScreenState
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFF141416) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          color: active ? const Color(0xFF141416) : const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: active ? const Color(0xFF141416) : const Color(0xFFE5E7EB),
+            width: 1.0,
+          ),
         ),
         child: Text(
           label,
+          // Prevent system accessibility scaling from making some scripts
+          // appear larger than others in the pill strip.
+          textScaler: TextScaler.noScaling,
+          // forceStrutHeight clamps every script to the same line-box height
+          strutStyle: const StrutStyle(
+            fontSize: 11,
+            height: 1.0,
+            forceStrutHeight: true,
+          ),
           style: TextStyle(
-            fontSize: 10.5,
+            fontSize: 11,
             fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-            color: active ? Colors.white : const Color(0xFF6B7280),
+            color: active ? Colors.white : const Color(0xFF4B5563),
+            height: 1.0,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Horizontal scrollable strip that auto-scrolls to the active language pill
+class _WelcomeScrollToActiveLangStrip extends StatefulWidget {
+  const _WelcomeScrollToActiveLangStrip({
+    required this.activeIndex,
+    required this.children,
+  });
+
+  final int activeIndex;
+  final List<Widget> children;
+
+  @override
+  State<_WelcomeScrollToActiveLangStrip> createState() =>
+      _WelcomeScrollToActiveLangStripState();
+}
+
+class _WelcomeScrollToActiveLangStripState
+    extends State<_WelcomeScrollToActiveLangStrip> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
+  }
+
+  @override
+  void didUpdateWidget(covariant _WelcomeScrollToActiveLangStrip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeIndex != widget.activeIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
+    }
+  }
+
+  void _scrollToActive() {
+    if (!_controller.hasClients) return;
+    const itemEstimate = 75.0;
+    final target = (widget.activeIndex * itemEstimate) -
+        (_controller.position.viewportDimension / 2) +
+        (itemEstimate / 2);
+    final clamped = target.clamp(0.0, _controller.position.maxScrollExtent);
+    _controller.animateTo(
+      clamped,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _controller,
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: widget.children,
       ),
     );
   }

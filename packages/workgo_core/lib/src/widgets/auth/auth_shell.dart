@@ -15,6 +15,7 @@ import 'sign_in_form.dart';
 import 'sign_up_form.dart';
 import 'phone_otp_form.dart';
 import 'customer_editorial_welcome_screen.dart';
+import '../../localization/locale_config.dart';
 
 enum AuthMode { signIn, signUp, forgotPassword, phoneOtp }
 
@@ -568,30 +569,24 @@ class _AuthShellState extends State<AuthShell>
 
   Widget _buildLanguageSelector(BuildContext context) {
     final currentLang = context.locale.languageCode;
+    // Find the active language index to auto-scroll to it on build
+    final activeIndex = WorkGoLocale.allLanguages
+        .indexWhere((l) => l.code == currentLang)
+        .clamp(0, WorkGoLocale.allLanguages.length - 1);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFEFECE6),
-          width: 1.0,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _langOption(context, code: 'en', label: 'EN', active: currentLang == 'en'),
-          _langOption(context, code: 'hi', label: 'HI', active: currentLang == 'hi'),
-          _langOption(context, code: 'ta', label: 'TA', active: currentLang == 'ta'),
-        ],
+    return SizedBox(
+      height: 36,
+      child: _ScrollToActiveLangStrip(
+        activeIndex: activeIndex,
+        children: WorkGoLocale.allLanguages.map((lang) {
+          final isActive = lang.code == currentLang;
+          return _langOption(
+            context,
+            code: lang.code,
+            label: lang.nativeName,
+            active: isActive,
+          );
+        }).toList(),
       ),
     );
   }
@@ -610,7 +605,8 @@ class _AuthShellState extends State<AuthShell>
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           gradient: active
               ? const LinearGradient(
@@ -619,8 +615,14 @@ class _AuthShellState extends State<AuthShell>
                   colors: [Color(0xFFFFB800), Color(0xFFF59E0B)],
                 )
               : null,
-          color: active ? null : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          color: active ? null : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: active
+                ? const Color(0xFFF59E0B)
+                : const Color(0xFFEFECE6),
+            width: active ? 1.5 : 1.0,
+          ),
           boxShadow: active
               ? [
                   BoxShadow(
@@ -629,14 +631,30 @@ class _AuthShellState extends State<AuthShell>
                     offset: const Offset(0, 2),
                   ),
                 ]
-              : null,
+              : [
+                  const BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 4,
+                  ),
+                ],
         ),
         child: Text(
           label,
+          // Prevent system accessibility scaling from making some scripts
+          // appear larger than others in the pill strip.
+          textScaler: TextScaler.noScaling,
+          // forceStrutHeight clamps every script to the same line-box height
+          // so Devanagari, Tamil, Malayalam, Arabic all look visually equal.
+          strutStyle: const StrutStyle(
+            fontSize: 11,
+            height: 1.0,
+            forceStrutHeight: true,
+          ),
           style: TextStyle(
             color: active ? const Color(0xFF1A1A1A) : const Color(0xFF78716C),
-            fontSize: 11.5,
+            fontSize: 11,
             fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+            height: 1.0,
           ),
         ),
       ),
@@ -866,6 +884,70 @@ class _AuthShellState extends State<AuthShell>
         ),
         Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
       ],
+    );
+  }
+}
+
+/// Scrollable horizontal language pill strip that auto-scrolls to the active
+/// language after the first frame so it is always visible.
+class _ScrollToActiveLangStrip extends StatefulWidget {
+  const _ScrollToActiveLangStrip({
+    required this.activeIndex,
+    required this.children,
+  });
+
+  final int activeIndex;
+  final List<Widget> children;
+
+  @override
+  State<_ScrollToActiveLangStrip> createState() =>
+      _ScrollToActiveLangStripState();
+}
+
+class _ScrollToActiveLangStripState extends State<_ScrollToActiveLangStrip> {
+  final ScrollController _sc = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
+  }
+
+  @override
+  void didUpdateWidget(_ScrollToActiveLangStrip old) {
+    super.didUpdateWidget(old);
+    if (old.activeIndex != widget.activeIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
+    }
+  }
+
+  void _scrollToActive() {
+    if (!_sc.hasClients) return;
+    // Approximate pill width: native name text ~60px + margins 6px + padding 20px
+    const approxPillWidth = 86.0;
+    final offset = (widget.activeIndex * approxPillWidth) -
+        (_sc.position.viewportDimension / 2) +
+        (approxPillWidth / 2);
+    _sc.animateTo(
+      offset.clamp(0.0, _sc.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _sc.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      controller: _sc,
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      children: widget.children,
     );
   }
 }

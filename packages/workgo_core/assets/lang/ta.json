@@ -395,6 +395,7 @@
   "tap_to_book": "அருகில் உள்ள கைவினைஞரை புக் செய்யுங்கள்",
   "matching_pro": "நிபுணர் தேடுகிறோம்",
   "assigned_artisan_label": "ஒதுக்கப்பட்ட கைவினைஞர்",
+  "recently": "சமீபத்தில்",
   "book_pro_now": "இப்போது புக் செய்க",
   "rapid_radar": "விரைவு ரேடார்",
   "broadcast_nearby": "அருகில் உள்ள நிபுணர்களுக்கு கோரிக்கை அனுப்பு",
@@ -1400,5 +1401,13 @@
   "tool_washers": "வாஷர்கள்",
   "tool_sealant": "சிலிகான் சீலண்ட்",
   "tool_gloves": "பாதுகாப்பு கையுறைகள்",
-  "tool_safety_glasses": "பாதுகாப்பு கண்ணாடிகள்"
+  "tool_safety_glasses": "பாதுகாப்பு கண்ணாடிகள்",
+  "map_layers_title": "வரைபட அடுக்குகள்",
+  "layer_radar_dark": "ரேடார் / இருண்ட",
+  "layer_radar_dark_sub": "நேரலை கண்காணிப்பு",
+  "layer_street_title": "தெரு பார்வை",
+  "layer_street_sub": "தெளிவான சாலைகள்",
+  "layer_satellite_title": "செயற்கைக்கோள்",
+  "layer_satellite_sub": "விமானப் படங்கள்",
+  "artisan_pro": "கைவினைஞர்"
 }

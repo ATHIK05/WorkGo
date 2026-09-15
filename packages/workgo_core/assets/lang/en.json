@@ -1423,5 +1423,13 @@
   "tool_washers": "Assorted Washers",
   "tool_sealant": "Silicone Sealant",
   "tool_gloves": "Waterproof Work Gloves",
-  "tool_safety_glasses": "Safety Glasses"
+  "tool_safety_glasses": "Safety Glasses",
+  "map_layers_title": "Map View & Layers",
+  "layer_radar_dark": "Radar / Dark",
+  "layer_radar_dark_sub": "Sleek high-contrast radar",
+  "layer_street_title": "Street View",
+  "layer_street_sub": "Crisp Carto roads & landmarks",
+  "layer_satellite_title": "Satellite View",
+  "layer_satellite_sub": "Real aerial imagery",
+  "artisan_pro": "Artisan"
 }

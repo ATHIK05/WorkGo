@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -54,14 +55,23 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
       _minPrice > 99.0 ||
       _maxPrice < 2000.0;
 
+  Timer? _searchDebounce;
+
+  void _onSearchQueryChanged(String _) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 180), () {
+      if (mounted) setState(() {});
+    });
+  }
+
   final List<({String key, IconData icon, String title, Color color, LinearGradient gradient})> _categories = [
     (key: "All", icon: Icons.explore_outlined, title: "All Trades", color: CX.cyan, gradient: CX.auroraVioletCyan),
     (key: "Plumbing", icon: Icons.plumbing_rounded, title: "Plumbing", color: CX.cyan, gradient: CX.auroraVioletCyan),
-    (key: "Electrical", icon: Icons.electric_bolt_rounded, title: "Electrical", color: CX.amber, gradient: CX.auroraVioletAmber),
     (key: "Carpentry", icon: Icons.carpenter_rounded, title: "Carpentry", color: const Color(0xFFF97316), gradient: const LinearGradient(colors: [Color(0xFF9A3412), Color(0xFFF97316)])),
-    (key: "Cleaning", icon: Icons.cleaning_services_rounded, title: "Cleaning", color: const Color(0xFF34D399), gradient: const LinearGradient(colors: [Color(0xFF065F46), Color(0xFF34D399)])),
     (key: "Painting", icon: Icons.format_paint_rounded, title: "Painting", color: const Color(0xFFA78BFA), gradient: const LinearGradient(colors: [Color(0xFF5B21B6), Color(0xFFA78BFA)])),
+    (key: "Electrical", icon: Icons.electric_bolt_rounded, title: "Electrical", color: CX.amber, gradient: CX.auroraVioletAmber),
     (key: "Appliance Repair", icon: Icons.kitchen_rounded, title: "Appliance Repair", color: const Color(0xFFF43F5E), gradient: const LinearGradient(colors: [Color(0xFF9F1239), Color(0xFFF43F5E)])),
+    (key: "Cleaning", icon: Icons.cleaning_services_rounded, title: "Cleaning", color: const Color(0xFF34D399), gradient: const LinearGradient(colors: [Color(0xFF065F46), Color(0xFF34D399)])),
     (key: "Masonry", icon: Icons.foundation_rounded, title: "Masonry", color: const Color(0xFF94A3B8), gradient: const LinearGradient(colors: [Color(0xFF1E3A5F), Color(0xFF64748B)])),
     (key: "Gardening", icon: Icons.yard_rounded, title: "Gardening", color: const Color(0xFF10B981), gradient: const LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF10B981)])),
   ];
@@ -200,6 +210,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _searchFocusCtrl.dispose();
     _searchFocus.dispose();
@@ -580,14 +591,17 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(vertical: 12),
               ),
-              onChanged: (_) => setState(() {}),
+              onChanged: _onSearchQueryChanged,
             ),
           ),
 
           // Trailing Actions (Clear, Filter Sliders, Mic)
           if (_searchController.text.isNotEmpty) ...[
             GestureDetector(
-              onTap: () => setState(() => _searchController.clear()),
+              onTap: () {
+                _searchDebounce?.cancel();
+                setState(() => _searchController.clear());
+              },
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4),
                 child: Icon(
@@ -951,12 +965,15 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
 
                 Expanded(
                   child: ListView.separated(
+                    cacheExtent: 800,
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                     itemCount: workers.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 14),
                     itemBuilder: (context, index) {
-                      return SlideFadeIn(
-                        delay: Duration(milliseconds: index * 40),
+                      return RepaintBoundary(
                         child: _WorkerCard(
                           worker: workers[index],
                           selectedCategory: _selectedCategory,
@@ -3343,68 +3360,85 @@ class _WorkerCardState extends State<_WorkerCard> {
                     // Metadata Row: Trade • Distance • Safety Cover • Status Pill
                     Row(
                       children: [
-                        const Icon(Icons.work_outline_rounded, size: 12.5, color: Color(0xFF64748B)),
-                        const SizedBox(width: 3.5),
-                        Flexible(
-                          child: Text(
-                            tradeCategory.toLocalizedTrade(),
-                            style: const TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        Expanded(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.work_outline_rounded, size: 12.5, color: Color(0xFF64748B)),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                flex: 3,
+                                child: Text(
+                                  tradeCategory.toLocalizedTrade(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+
+                              const Icon(Icons.location_on_outlined, size: 12.5, color: Color(0xFF2563EB)),
+                              const SizedBox(width: 2.5),
+                              Flexible(
+                                flex: 2,
+                                child: Text(
+                                  worker.formattedDistanceString(customerLat, customerLng),
+                                  style: const TextStyle(
+                                    color: Color(0xFF2563EB),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+
+                              const Icon(Icons.shield_outlined, size: 12.5, color: Color(0xFF059669)),
+                              const SizedBox(width: 2.5),
+                              Flexible(
+                                flex: 2,
+                                child: Text(
+                                  'k50_cover'.tr(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF059669),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-
-                        const Icon(Icons.location_on_outlined, size: 12.5, color: Color(0xFF2563EB)),
-                        const SizedBox(width: 2.5),
-                        Text(
-                          worker.formattedDistanceString(customerLat, customerLng),
-                          style: const TextStyle(
-                            color: Color(0xFF2563EB),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        const Icon(Icons.shield_outlined, size: 12.5, color: Color(0xFF059669)),
-                        const SizedBox(width: 2.5),
-                        Flexible(
-                          child: Text(
-                            'k50_cover'.tr(),
-                            style: const TextStyle(
-                              color: Color(0xFF059669),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-
-                        const Spacer(),
+                        const SizedBox(width: 6),
 
                         // Checked-in / Checked-out Status Pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                          decoration: BoxDecoration(
-                            color: isCheckedIn ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isCheckedIn ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1),
-                              width: 0.8,
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: isCheckedIn ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isCheckedIn ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1),
+                                width: 0.8,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            isCheckedIn ? 'filter_checked_in'.tr() : 'filter_checked_out'.tr(),
-                            style: TextStyle(
-                              color: isCheckedIn ? const Color(0xFF065F46) : const Color(0xFF475569),
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
+                            child: Text(
+                              isCheckedIn ? 'filter_checked_in'.tr() : 'filter_checked_out'.tr(),
+                              style: TextStyle(
+                                color: isCheckedIn ? const Color(0xFF065F46) : const Color(0xFF475569),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
@@ -3433,16 +3467,21 @@ class _WorkerCardState extends State<_WorkerCard> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Row(
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisSize: MainAxisSize.max,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         const Icon(Icons.star_rounded, color: Color(0xFFD97706), size: 14),
                                         const SizedBox(width: 2),
-                                        Text(
-                                          ratingDisplay,
-                                          style: const TextStyle(
-                                            color: Color(0xFF141416),
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w800,
+                                        Flexible(
+                                          child: Text(
+                                            ratingDisplay,
+                                            style: const TextStyle(
+                                              color: Color(0xFF141416),
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                         if (reviewCount > 0)
@@ -3526,14 +3565,19 @@ class _WorkerCardState extends State<_WorkerCard> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Row(
-                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisSize: MainAxisSize.max,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
-                                          Text(
-                                            "₹${fare.totalEstimatedFare.toStringAsFixed(0)}",
-                                            style: WorkGoFonts.numeric(
-                                              color: const Color(0xFF141416),
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w900,
+                                          Flexible(
+                                            child: Text(
+                                              "₹${fare.totalEstimatedFare.toStringAsFixed(0)}",
+                                              style: WorkGoFonts.numeric(
+                                                color: const Color(0xFF141416),
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                           const SizedBox(width: 2),
@@ -3594,12 +3638,16 @@ class _WorkerCardState extends State<_WorkerCard> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                isCheckedIn ? 'book_live'.tr() : 'book_artisan'.tr(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
+                              Flexible(
+                                child: Text(
+                                  isCheckedIn ? 'book_live'.tr() : 'book_artisan'.tr(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(width: 4),

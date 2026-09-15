@@ -32,6 +32,8 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   double? _myLat;
   double? _myLng;
   double _selectedBroadcastRadius = 10.0;
+  String? _realtimeAddress;
+  bool _isResolvingAddress = false;
 
   @override
   void initState() {
@@ -43,12 +45,38 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
     try {
       final coords = await LocationService.instance.getCurrentCoordinates();
       if (mounted) {
+        final lat = coords["latitude"];
+        final lng = coords["longitude"];
         setState(() {
-          _myLat = coords["latitude"];
-          _myLng = coords["longitude"];
+          _myLat = lat;
+          _myLng = lng;
         });
+        if (lat != null && lng != null && lat > 1.0 && lng > 1.0) {
+          _resolveRealtimeAddress(lat, lng);
+        }
       }
     } catch (_) {}
+  }
+
+  void _resolveRealtimeAddress(double lat, double lng) async {
+    if (_isResolvingAddress || _realtimeAddress != null) return;
+    _isResolvingAddress = true;
+    try {
+      final decoded = await LocationService.instance.reverseGeocode(lat, lng);
+      if (mounted) {
+        final text = decoded.streetArea.isNotEmpty
+            ? '${decoded.streetArea}, ${decoded.city}'
+            : decoded.formattedAddress;
+        if (text.isNotEmpty && !text.toLowerCase().contains('mumbai')) {
+          setState(() {
+            _realtimeAddress = text;
+          });
+        }
+      }
+    } catch (_) {
+    } finally {
+      _isResolvingAddress = false;
+    }
   }
 
   void _raiseFare(double extraBonus) async {
@@ -128,14 +156,6 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
           _selectedBroadcastRadius = booking.broadcastRadiusKm;
         }
 
-        final currentTotal = booking?.totalAmount ?? widget.initialAmount;
-        final currentBonus = booking?.urgencyBonus ?? 0.0;
-        String address = booking?.customerAddressText ?? widget.pickupAddress;
-        if (address.toLowerCase().contains("mumbai") ||
-            address.toLowerCase().contains("bombay") ||
-            address.trim().isEmpty) {
-          address = 'current_live_location'.tr();
-        }
         final custLat = booking?.customerLatitude;
         final custLng = booking?.customerLongitude;
         final effectivePickupLat = (_myLat != null && _myLat! > 1.0)
@@ -144,6 +164,31 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
         final effectivePickupLng = (_myLng != null && _myLng! > 1.0)
             ? _myLng
             : ((custLng != null && custLng > 1.0) ? custLng : null);
+
+        if (_realtimeAddress == null &&
+            !_isResolvingAddress &&
+            effectivePickupLat != null &&
+            effectivePickupLng != null &&
+            effectivePickupLat > 1.0 &&
+            effectivePickupLng > 1.0) {
+          _resolveRealtimeAddress(effectivePickupLat, effectivePickupLng);
+        }
+
+        final currentTotal = booking?.totalAmount ?? widget.initialAmount;
+        final currentBonus = booking?.urgencyBonus ?? 0.0;
+        String address = _realtimeAddress ??
+            booking?.customerAddressText ??
+            widget.pickupAddress;
+        if (address.toLowerCase().contains("mumbai") ||
+            address.toLowerCase().contains("bombay") ||
+            address.trim().isEmpty) {
+          address = 'current_live_location'.tr();
+        } else {
+          address = MlTranslationService.instance.translateAddressSync(
+            address,
+            context.locale.languageCode,
+          );
+        }
 
         return AuroraScaffold(
           appBar: AuroraAppBar(
@@ -187,6 +232,29 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                             myLocationLongitude: _myLng,
                             nearbyWorkers: onlineWorkers,
                             nearbyWorkerLocations: coords,
+                            broadcastRadiusKm: _selectedBroadcastRadius,
+                            onRadiusChanged: (newRad) async {
+                              HapticFeedback.lightImpact();
+                              final messenger = ScaffoldMessenger.of(context);
+                              setState(() => _selectedBroadcastRadius = newRad);
+                              await _bookingService.expandBroadcastRadius(
+                                widget.bookingId,
+                                newRad,
+                              );
+                              if (mounted) {
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text('searching_within_radius'
+                                        .tr(args: [newRad.toInt().toString()])),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                           const SizedBox(height: 20),
 
@@ -250,10 +318,11 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                   ),
                                 ),
                               ),
-                              if (onlineWorkers.isEmpty) ...[
-                                const SizedBox(height: 16),
-                                _buildExpandRadarSection(_selectedBroadcastRadius),
-                              ],
+                              const SizedBox(height: 16),
+                              _buildExpandRadarSection(
+                                _selectedBroadcastRadius,
+                                hasWorkers: onlineWorkers.isNotEmpty,
+                              ),
                             ],
                           ),
                         ],
@@ -490,31 +559,49 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   // ──────────────────────────────────────────────────────────────
   //  EXPAND RADAR RADIUS ENLARGEMENT SECTION
   // ──────────────────────────────────────────────────────────────
-  Widget _buildExpandRadarSection(double currentRadius) {
+  Widget _buildExpandRadarSection(double currentRadius, {bool hasWorkers = false}) {
     final expandOptions = [15.0, 20.0, 25.0, 35.0]
         .where((r) => r > currentRadius)
         .toList();
+
+    if (expandOptions.isEmpty) return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
+        color: hasWorkers
+            ? const Color(0xFF150B28)
+            : const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        border: Border.all(
+          color: hasWorkers
+              ? const Color(0x408B5CF6)
+              : const Color(0xFFFDE68A),
+        ),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.radar_rounded, size: 16, color: Color(0xFFD97706)),
+              Icon(
+                Icons.radar_rounded,
+                size: 16,
+                color: hasWorkers
+                    ? const Color(0xFFA78BFA)
+                    : const Color(0xFFD97706),
+              ),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  'expand_radius_prompt'.tr(args: [currentRadius.toInt().toString()]),
-                  style: const TextStyle(
-                    color: Color(0xFF92400E),
+                  hasWorkers
+                      ? '${'active_radius_coverage'.tr(args: [currentRadius.toInt().toString()])} · ${'expand_search_radius'.tr()}'
+                      : 'expand_radius_prompt'.tr(args: [currentRadius.toInt().toString()]),
+                  style: TextStyle(
+                    color: hasWorkers
+                        ? const Color(0xFFE2E8F0)
+                        : const Color(0xFF92400E),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -524,73 +611,89 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               ),
             ],
           ),
-          if (expandOptions.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: expandOptions.map((targetRad) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: InkWell(
-                      onTap: () async {
-                        HapticFeedback.lightImpact();
-                        setState(() => _selectedBroadcastRadius = targetRad);
-                        await _bookingService.expandBroadcastRadius(
-                          widget.bookingId,
-                          targetRad,
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: expandOptions.map((targetRad) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: InkWell(
+                    onTap: () async {
+                      HapticFeedback.lightImpact();
+                      setState(() => _selectedBroadcastRadius = targetRad);
+                      await _bookingService.expandBroadcastRadius(
+                        widget.bookingId,
+                        targetRad,
+                      );
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('searching_within_radius'
+                                .tr(args: [targetRad.toInt().toString()])),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            duration: const Duration(seconds: 1),
+                          ),
                         );
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('searching_within_radius'.tr(args: [targetRad.toInt().toString()])),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFF59E0B), width: 1.2),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0A000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: hasWorkers
+                            ? const Color(0xFF281545)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: hasWorkers
+                              ? const Color(0xFF8B5CF6)
+                              : const Color(0xFFF59E0B),
+                          width: 1.2,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.zoom_out_map_rounded, size: 12, color: Color(0xFFD97706)),
-                            const SizedBox(width: 4),
-                            Text(
-                              'expand_radar_to'.tr(args: [targetRad.toInt().toString()]),
-                              style: const TextStyle(
-                                color: Color(0xFFB45309),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                              ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x0A000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.zoom_out_map_rounded,
+                            size: 12,
+                            color: hasWorkers
+                                ? const Color(0xFFA78BFA)
+                                : const Color(0xFFD97706),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'expand_radar_to'
+                                .tr(args: [targetRad.toInt().toString()]),
+                            style: TextStyle(
+                              color: hasWorkers
+                                  ? Colors.white
+                                  : const Color(0xFFB45309),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                );
+              }).toList(),
             ),
-          ],
+          ),
         ],
       ),
     );

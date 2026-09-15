@@ -395,6 +395,7 @@
   "tap_to_book": "पास के कारीगर को बुक करें",
   "matching_pro": "प्रो खोज रहे हैं",
   "assigned_artisan_label": "सौंपा गया कारीगर",
+  "recently": "हाल ही में",
   "book_pro_now": "अभी बुक करें",
   "rapid_radar": "रैपिड रडार",
   "broadcast_nearby": "पास के प्रो को अनुरोध भेजें",
@@ -1398,5 +1399,13 @@
   "tool_washers": "वॉशर",
   "tool_sealant": "सिलिकॉन सीलेंट",
   "tool_gloves": "वाटरप्रूफ वर्क ग्लव्स",
-  "tool_safety_glasses": "सुरक्षा चश्मा"
+  "tool_safety_glasses": "सुरक्षा चश्मा",
+  "map_layers_title": "मानचित्र परतें",
+  "layer_radar_dark": "रडार / डार्क",
+  "layer_radar_dark_sub": "हाई-कंट्रास्ट लाइव रडार",
+  "layer_street_title": "स्ट्रीट व्यू",
+  "layer_street_sub": "सड़कें और नेविगेशन",
+  "layer_satellite_title": "सैटेलाइट व्यू",
+  "layer_satellite_sub": "हवाई छवियां",
+  "artisan_pro": "कारीगर"
 }

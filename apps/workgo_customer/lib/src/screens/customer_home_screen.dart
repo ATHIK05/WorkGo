@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -70,6 +69,27 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       _checkAndPromptLocation();
       _loadCustomerLocation();
     });
+  }
+
+  bool _hasPrecachedAssets = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasPrecachedAssets) {
+      _hasPrecachedAssets = true;
+      const craftImages = [
+        "assets/images/plumber.gif",
+        "assets/images/carpentry.gif",
+        "assets/images/painting.gif",
+        "assets/images/electrian.gif",
+        "assets/images/home_appliances.gif",
+        "assets/images/cleaning.gif",
+      ];
+      for (final asset in craftImages) {
+        precacheImage(AssetImage(asset), context);
+      }
+    }
   }
 
   @override
@@ -420,31 +440,31 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           children: [
             // 1. Editorial Hero Card (Yellow & White Ambient Mesh Canvas)
             // Hosts: User Header + Address Selector + Safety SOS + Editorial Headline with Hand-Drawn Pen Marker Loop + Pill Search + Detached Obsidian Mic Button
-            _buildEditorialHeroCard(),
+            RepaintBoundary(child: _buildEditorialHeroCard()),
             const SizedBox(height: 18),
 
             // 2. Interactive Category Filter Bar ("Category" horizontal pill strip)
-            _buildCategoryFilterBar(),
+            RepaintBoundary(child: _buildCategoryFilterBar()),
             const SizedBox(height: 18),
 
             // 3. "Artisans matched with you" Bento Cards (Real Stream Data with Trade Watermark, Master title & Occupation Marker Loop)
-            _buildArtisansMatchedWithYouSection(),
+            RepaintBoundary(child: _buildArtisansMatchedWithYouSection()),
             const SizedBox(height: 20),
 
             // 4. Customer Live Order Radar & 1-Tap Rebook Hub
-            _buildCustomerLiveHubAndRebookStrip(),
+            RepaintBoundary(child: _buildCustomerLiveHubAndRebookStrip()),
             const SizedBox(height: 16),
 
             // 5. Emergency Rapid 10-Min SOS Dispatch Row
-            _buildEmergencyRapidDispatchBar(),
+            RepaintBoundary(child: _buildEmergencyRapidDispatchBar()),
             const SizedBox(height: 16),
 
             // 6. Cooperative Fair-Pricing & Quality Guarantee Badges
-            _buildCooperativeGuaranteeStrip(),
+            RepaintBoundary(child: _buildCooperativeGuaranteeStrip()),
             const SizedBox(height: 22),
 
             // 7. "Active Bookings & Fast Action" Bento Grid (Real Stream Data)
-            _buildCustomerWorkGoBentoGrid(),
+            RepaintBoundary(child: _buildCustomerWorkGoBentoGrid()),
             const SizedBox(height: 24),
 
             // 8. Section Header: Explore Craft Services
@@ -870,19 +890,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         icon: Icons.water_drop_rounded,
       ),
       (
-        key: "Electrical",
-        label: "cat_electrical".tr(),
-        icon: Icons.bolt_rounded,
-      ),
-      (
         key: "Carpentry",
         label: "cat_carpentry".tr(),
         icon: Icons.carpenter_rounded,
-      ),
-      (
-        key: "Cleaning",
-        label: "cat_cleaning".tr(),
-        icon: Icons.cleaning_services_rounded,
       ),
       (
         key: "Painting",
@@ -890,9 +900,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         icon: Icons.format_paint_rounded,
       ),
       (
+        key: "Electrical",
+        label: "cat_electrical".tr(),
+        icon: Icons.bolt_rounded,
+      ),
+      (
         key: "Appliance Repair",
         label: "cat_appliances".tr(),
         icon: Icons.kitchen_rounded,
+      ),
+      (
+        key: "Cleaning",
+        label: "cat_cleaning".tr(),
+        icon: Icons.cleaning_services_rounded,
       ),
       (key: "AC Repair", label: "AC Repair", icon: Icons.ac_unit_rounded),
     ];
@@ -941,63 +961,68 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   HapticFeedback.selectionClick();
                   setState(() => _selectedCategory = cat.key);
                 },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF141416) : Colors.white,
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF141416)
-                          : const Color(0xFFE2E8F0),
-                      width: 1.2,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 140),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
                     ),
-                    boxShadow: isSelected
-                        ? const [
-                            BoxShadow(
-                              color: Color(0x24000000),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ]
-                        : const [
-                            BoxShadow(
-                              color: Color(0x05000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        cat.icon,
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF141416) : Colors.white,
+                      borderRadius: BorderRadius.circular(50),
+                      border: Border.all(
                         color: isSelected
-                            ? const Color(0xFFF59E0B)
-                            : const Color(0xFF64748B),
-                        size: 16,
+                            ? const Color(0xFF141416)
+                            : const Color(0xFFE2E8F0),
+                        width: 1.2,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        cat.label,
-                        style: TextStyle(
+                      boxShadow: isSelected
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x24000000),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ]
+                          : const [
+                              BoxShadow(
+                                color: Color(0x05000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          cat.icon,
                           color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF334155),
-                          fontSize: 12.5,
-                          fontWeight: isSelected
-                              ? FontWeight.w800
-                              : FontWeight.w600,
+                              ? const Color(0xFFF59E0B)
+                              : const Color(0xFF64748B),
+                          size: 16,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            cat.label,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF334155),
+                              fontSize: 12.5,
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -3744,24 +3769,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         meshColor1: Color(0xFFC7D2FE),
         meshColor2: Color(0xFFBAE6FD),
       ),
-      // 1. Electrical (electrian.gif animated asset)
-      const _CraftServiceItem(
-        key: "cat_electrical",
-        name: "Electrical",
-        categoryName: "Electrical",
-        tagline: "Wiring & Power",
-        taglineKey: "tagline_wiring_power",
-        description:
-            "Licensed wiring, switches, breaker fixes & expert lighting.",
-        icon: Icons.bolt_rounded,
-        assetPath: "assets/images/electrian.gif",
-        isAnimatedAsset: true,
-        price: "From ₹149",
-        priceAmount: 149,
-        meshColor1: Color(0xFFDDD6FE),
-        meshColor2: Color(0xFFFED7AA),
-      ),
-      // 2. Carpentry (carpentry.gif animated asset)
+      // 1. Carpentry (carpentry.gif animated asset)
       const _CraftServiceItem(
         key: "cat_carpentry",
         name: "Carpentry",
@@ -3778,23 +3786,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         meshColor1: Color(0xFFFED7AA),
         meshColor2: Color(0xFFFDE68A),
       ),
-      // 3. Cleaning (cleaning.gif animated asset)
-      const _CraftServiceItem(
-        key: "cat_cleaning",
-        name: "Cleaning",
-        categoryName: "Cleaning",
-        tagline: "Deep Home Clean",
-        taglineKey: "tagline_deep_clean",
-        description: "Deep home sanitation, kitchen scrub & spotless hygiene.",
-        icon: Icons.cleaning_services_rounded,
-        assetPath: "assets/images/cleaning.gif",
-        isAnimatedAsset: true,
-        price: "From ₹129",
-        priceAmount: 129,
-        meshColor1: Color(0xFFA7F3D0),
-        meshColor2: Color(0xFFBAE6FD),
-      ),
-      // 4. Painting (painting.gif animated asset)
+      // 2. Painting (painting.gif animated asset)
       const _CraftServiceItem(
         key: "cat_painting",
         name: "Painting",
@@ -3811,7 +3803,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         meshColor1: Color(0xFFFECDD3),
         meshColor2: Color(0xFFDDD6FE),
       ),
-      // 5. Appliance Repair (home_appliances.gif animated asset)
+      // 3. Electrical (electrian.gif animated asset)
+      const _CraftServiceItem(
+        key: "cat_electrical",
+        name: "Electrical",
+        categoryName: "Electrical",
+        tagline: "Wiring & Power",
+        taglineKey: "tagline_wiring_power",
+        description:
+            "Licensed wiring, switches, breaker fixes & expert lighting.",
+        icon: Icons.bolt_rounded,
+        assetPath: "assets/images/electrian.gif",
+        isAnimatedAsset: true,
+        price: "From ₹149",
+        priceAmount: 149,
+        meshColor1: Color(0xFFDDD6FE),
+        meshColor2: Color(0xFFFED7AA),
+      ),
+      // 4. Appliance Repair (home_appliances.gif animated asset)
       const _CraftServiceItem(
         key: "cat_appliance",
         name: "Appliance",
@@ -3826,6 +3835,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         priceAmount: 179,
         meshColor1: Color(0xFFE9D5FF),
         meshColor2: Color(0xFFFBCFE8),
+      ),
+      // 5. Cleaning (cleaning.gif animated asset)
+      const _CraftServiceItem(
+        key: "cat_cleaning",
+        name: "Cleaning",
+        categoryName: "Cleaning",
+        tagline: "Deep Home Clean",
+        taglineKey: "tagline_deep_clean",
+        description: "Deep home sanitation, kitchen scrub & spotless hygiene.",
+        icon: Icons.cleaning_services_rounded,
+        assetPath: "assets/images/cleaning.gif",
+        isAnimatedAsset: true,
+        price: "From ₹129",
+        priceAmount: 129,
+        meshColor1: Color(0xFFA7F3D0),
+        meshColor2: Color(0xFFBAE6FD),
       ),
       // 6. Masonry (Warm Terracotta & Sand)
       const _CraftServiceItem(
@@ -3868,16 +3893,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         final item = entry.value;
         return Padding(
           padding: const EdgeInsets.only(bottom: 14),
-          child: _AlternatingCraftRowCard(
-            item: item,
-            index: index,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (ctx) => BookingCreationScreen(
-                  serviceCategory: item.categoryName,
-                  customerId: widget.user.uid,
-                  customerLat: _customerLat,
-                  customerLng: _customerLng,
+          child: RepaintBoundary(
+            child: _AlternatingCraftRowCard(
+              item: item,
+              index: index,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => BookingCreationScreen(
+                    serviceCategory: item.categoryName,
+                    customerId: widget.user.uid,
+                    customerLat: _customerLat,
+                    customerLng: _customerLng,
+                  ),
                 ),
               ),
             ),
@@ -4086,106 +4113,111 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               : null;
 
           return CustomScrollView(
+            cacheExtent: 1000,
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
             slivers: [
               // 1. Header Bar
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'my_bookings'.tr(),
-                              style: WorkGoFonts.heading(
-                                color: const Color(0xFF141416),
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
+                child: RepaintBoundary(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'my_bookings'.tr(),
+                                style: WorkGoFonts.heading(
+                                  color: const Color(0xFF141416),
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'invoice_receipt'.tr(),
-                              style: WorkGoFonts.body(
-                                color: const Color(0xFF6B7280),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                              const SizedBox(height: 2),
+                              Text(
+                                'invoice_receipt'.tr(),
+                                style: WorkGoFonts.body(
+                                  color: const Color(0xFF6B7280),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Flexible(
-                        child: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            _onNavTap(1);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF141416),
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x1A000000),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.add_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 4),
-                                Flexible(
-                                  child: Text(
-                                    'book_pro_now'.tr(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _onNavTap(1);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF141416),
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x1A000000),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.add_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      'book_pro_now'.tr(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
 
-              // 1.5 Glassmorphic Spending & Missions Insight Bar
+              // 1.5 Spending & Missions Insight Bar
               if (allBookings.isNotEmpty)
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-                    child: _buildSpendingOverviewHUD(allBookings),
+                  child: RepaintBoundary(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                      child: _buildSpendingOverviewHUD(allBookings),
+                    ),
                   ),
                 ),
 
@@ -4194,50 +4226,54 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   _bookingFilter != "completed" &&
                   _bookingFilter != "cancelled")
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    child: _buildActiveBookingPipelineHUD(latestActive),
+                  child: RepaintBoundary(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                      child: _buildActiveBookingPipelineHUD(latestActive),
+                    ),
                   ),
                 ),
 
               // 3. Segmented Filter Tabs
               SliverToBoxAdapter(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      _buildBookingFilterPill(
-                        "all",
-                        'filter_all'.tr(),
-                        allCount,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildBookingFilterPill(
-                        "active",
-                        'filter_active'.tr(),
-                        activeCount,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildBookingFilterPill(
-                        "completed",
-                        'filter_completed'.tr(),
-                        completedCount,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildBookingFilterPill(
-                        "unrated",
-                        'filter_unrated'.tr(),
-                        unratedCount,
-                      ),
-                      const SizedBox(width: 8),
-                      _buildBookingFilterPill(
-                        "cancelled",
-                        'filter_cancelled'.tr(),
-                        cancelledCount,
-                      ),
-                    ],
+                child: RepaintBoundary(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        _buildBookingFilterPill(
+                          "all",
+                          'filter_all'.tr(),
+                          allCount,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildBookingFilterPill(
+                          "active",
+                          'filter_active'.tr(),
+                          activeCount,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildBookingFilterPill(
+                          "completed",
+                          'filter_completed'.tr(),
+                          completedCount,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildBookingFilterPill(
+                          "unrated",
+                          'filter_unrated'.tr(),
+                          unratedCount,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildBookingFilterPill(
+                          "cancelled",
+                          'filter_cancelled'.tr(),
+                          cancelledCount,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -4269,30 +4305,48 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final b = filteredBookings[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: _BookingListTile(
-                          booking: b,
-                          onTap: () => _navigateToActiveBooking(context, b),
-                          onBookAgain: () {
-                            HapticFeedback.lightImpact();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => BookingCreationScreen(
-                                  serviceCategory: b.serviceType,
-                                  customerId: widget.user.uid,
-                                  customerLat: _customerLat,
-                                  customerLng: _customerLng,
-                                ),
-                              ),
-                            );
-                          },
-                          onDelete: () => _confirmDeleteBooking(b),
-                        ),
-                      );
-                    }, childCount: filteredBookings.length),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final b = filteredBookings[index];
+                        return Padding(
+                          key: ValueKey(b.id),
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: RepaintBoundary(
+                            child: _BookingListTile(
+                              key: ValueKey('tile_${b.id}'),
+                              booking: b,
+                              onTap: () => _navigateToActiveBooking(context, b),
+                              onBookAgain: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => BookingCreationScreen(
+                                      serviceCategory: b.serviceType,
+                                      customerId: widget.user.uid,
+                                      customerLat: _customerLat,
+                                      customerLng: _customerLng,
+                                    ),
+                                  ),
+                                );
+                              },
+                              onDelete: () => _confirmDeleteBooking(b),
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: filteredBookings.length,
+                      findChildIndexCallback: (Key key) {
+                        final ValueKey<String>? valueKey =
+                            key is ValueKey<String> ? key : null;
+                        if (valueKey == null) return null;
+                        final id = valueKey.value.startsWith('tile_')
+                            ? valueKey.value.substring(5)
+                            : valueKey.value;
+                        final index =
+                            filteredBookings.indexWhere((b) => b.id == id);
+                        return index == -1 ? null : index;
+                      },
+                    ),
                   ),
                 ),
             ],
@@ -4312,12 +4366,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             b.paymentStatus == PaymentStatus.paid)
         .fold<double>(0.0, (acc, b) => acc + b.totalAmount);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -4519,9 +4569,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 
   Widget _buildActiveBookingPipelineHUD(Booking booking) {
@@ -6694,29 +6742,6 @@ class _CraftServiceItem {
   });
 }
 
-class _BlueprintGridPainter extends CustomPainter {
-  const _BlueprintGridPainter({this.lineColor = const Color(0x60FFFFFF)});
-  final Color lineColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-
-    const cellSize = 22.0;
-    for (double x = size.width; x >= 0; x -= cellSize) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y <= size.height; y += cellSize) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _BlueprintGridPainter oldDelegate) => false;
-}
 
 // ──────────────────────────────────────────────────────
 //  TASKELLO-STYLE ASYMMETRICAL FOLDER TAB CLIPPER & PAINTER
@@ -6942,6 +6967,12 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
   Widget build(BuildContext context) {
     final item = widget.item;
     final isEven = widget.index % 2 == 0;
+    // For RTL locales (Urdu, Arabic, Farsi, Hebrew) flip the folder side so
+    // the elevated tab and all content remain visible in the reading direction.
+    // Uses locale language code to avoid TextDirection import shadowing issues.
+    final _lang = Localizations.localeOf(context).languageCode;
+    final isRTL = const {'ur', 'ar', 'fa', 'he', 'ps', 'sd'}.contains(_lang);
+    final effectiveEven = isRTL ? !isEven : isEven;
     final localizedName = item.key.tr();
     final displayName = (localizedName.isNotEmpty && localizedName != item.key)
         ? localizedName
@@ -6994,14 +7025,14 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
                   left: 0,
                   right: 0,
                   height: 172,
-                  child: _buildVisualZone(item, isEven: isEven),
+                  child: _buildVisualZone(item, isEven: effectiveEven),
                 ),
 
                 // 2. Floating Exposed Media Badge (Top shelf side)
                 Positioned(
                   top: 10,
-                  right: isEven ? 10 : null,
-                  left: isEven ? null : 10,
+                  right: effectiveEven ? 10 : null,
+                  left: effectiveEven ? null : 10,
                   child: _buildExposedMediaBadge(displayName, item.icon),
                 ),
 
@@ -7013,7 +7044,7 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
                   height: 98,
                   child: ClipPath(
                     clipper: _FolderTabClipper(
-                      isLeftTab: isEven,
+                      isLeftTab: effectiveEven,
                       tabHeightDelta: 18.0,
                       cornerRadius: 20.0,
                     ),
@@ -7036,15 +7067,15 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
                           // Ambient Golden Glow on elevated tab
                           Positioned(
                             top: 0,
-                            left: isEven ? 0 : null,
-                            right: isEven ? null : 0,
+                            left: effectiveEven ? 0 : null,
+                            right: effectiveEven ? null : 0,
                             width: 130,
                             height: 50,
                             child: IgnorePointer(
                               child: Container(
                                 decoration: BoxDecoration(
                                   gradient: RadialGradient(
-                                    center: isEven
+                                    center: effectiveEven
                                         ? Alignment.topLeft
                                         : Alignment.topRight,
                                     radius: 1.1,
@@ -7064,16 +7095,19 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
                           Positioned.fill(
                             child: CustomPaint(
                               painter: _FolderTabBorderPainter(
-                                isLeftTab: isEven,
+                                isLeftTab: effectiveEven,
                                 tabHeightDelta: 18.0,
                                 cornerRadius: 20.0,
                               ),
                             ),
                           ),
 
-                          // Content within the tab
+                          // Content within the tab.
+                          // Top padding MUST exceed tabHeightDelta (18px) so that
+                          // content on the non-raised side is never hidden by the
+                          // ClipPath boundary. 20px > 18px = always visible.
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 7, 14, 9),
+                            padding: const EdgeInsets.fromLTRB(14, 20, 14, 8),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -7083,7 +7117,7 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
                                   displayName,
                                   displayTagline,
                                   item,
-                                  isEven: isEven,
+                                  isEven: effectiveEven,
                                 ),
 
                                 // Bottom: Price Pill + Tactile Liquid-Gold Action Button
@@ -7091,8 +7125,15 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    _buildPricePill(item),
-                                    _buildLaunchButton(),
+                                    // Price pill gets remaining space after button
+                                    Flexible(child: _buildPricePill(item)),
+                                    const SizedBox(width: 8),
+                                    // Button capped so it never bleeds on long RTL translations
+                                    ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 120),
+                                      child: _buildLaunchButton(),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -7113,29 +7154,42 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
 
   Widget _buildVisualZone(_CraftServiceItem item, {required bool isEven}) {
     if (item.assetPath.isNotEmpty) {
-      return ShaderMask(
-        shaderCallback: (rect) {
-          return const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black,
-              Colors.black,
-              Color(0xB0000000),
-              Colors.transparent,
-            ],
-            stops: [0.0, 0.65, 0.85, 1.0],
-          ).createShader(rect);
-        },
-        blendMode: BlendMode.dstIn,
-        child: Image.asset(
-          item.assetPath,
-          fit: BoxFit.cover,
-          alignment: Alignment.topCenter,
-          filterQuality: FilterQuality.medium,
-          errorBuilder: (_, __, ___) =>
-              _buildFallbackVisual(item, isEven: isEven),
-        ),
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          RepaintBoundary(
+            child: Image.asset(
+              item.assetPath,
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              gaplessPlayback: true,
+              cacheWidth: 800,
+              filterQuality: FilterQuality.low,
+              errorBuilder: (_, __, ___) =>
+                  _buildFallbackVisual(item, isEven: isEven),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 64,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFFFFFDF5).withValues(alpha: 0.0),
+                    const Color(0xFFFFFDF5).withValues(alpha: 0.70),
+                    const Color(0xFFFFFDF5),
+                  ],
+                  stops: const [0.0, 0.65, 1.0],
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -7195,53 +7249,63 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
   }
 
   Widget _buildExposedMediaBadge(String displayName, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFDE68A), width: 1.1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x10000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: const Color(0xFFD97706)),
-          const SizedBox(width: 4),
-          Text(
-            displayName,
-            style: const TextStyle(
-              color: Color(0xFF141416),
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
+    return ConstrainedBox(
+      // Prevent badge from ever exceeding card width minus margins
+      constraints: const BoxConstraints(maxWidth: 200),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFDE68A), width: 1.1),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x10000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
             ),
-          ),
-          const SizedBox(width: 5),
-          Container(
-            width: 3.5,
-            height: 3.5,
-            decoration: const BoxDecoration(
-              color: Color(0xFF10B981),
-              shape: BoxShape.circle,
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 11, color: const Color(0xFFD97706)),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                displayName,
+                style: const TextStyle(
+                  color: Color(0xFF141416),
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          const SizedBox(width: 3.5),
-          const Text(
-            "Active Pro",
-            style: TextStyle(
-              color: Color(0xFF059669),
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
+            const SizedBox(width: 5),
+            Container(
+              width: 3.5,
+              height: 3.5,
+              decoration: const BoxDecoration(
+                color: Color(0xFF10B981),
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 3.5),
+            const Text(
+              "Active Pro",
+              style: TextStyle(
+                color: Color(0xFF059669),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -7273,6 +7337,8 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
     );
 
     final titles = Column(
+      // For RTL the text alignment is flipped via effectiveEven so it reads
+      // naturally from right-to-left without being hidden under the clipped tab.
       crossAxisAlignment: isEven
           ? CrossAxisAlignment.start
           : CrossAxisAlignment.end,
@@ -7282,20 +7348,21 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
           displayName,
           style: const TextStyle(
             color: Color(0xFF141416),
-            fontSize: 15,
+            // 13px @ 1.15 height: 2 lines = ~30px, fits in the 20px-padded tab
+            fontSize: 13,
             fontWeight: FontWeight.w900,
-            letterSpacing: -0.3,
+            letterSpacing: -0.2,
             height: 1.15,
           ),
-          maxLines: 1,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 1),
+        const SizedBox(height: 2),
         Text(
           displayTagline,
           style: const TextStyle(
             color: Color(0xFF92400E),
-            fontSize: 10.5,
+            fontSize: 9.5,
             fontWeight: FontWeight.w700,
             height: 1.15,
           ),
@@ -7307,6 +7374,7 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
 
     if (isEven) {
       return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           iconOrb,
           const SizedBox(width: 8),
@@ -7315,6 +7383,7 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
       );
     } else {
       return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(child: titles),
           const SizedBox(width: 8),
@@ -7345,6 +7414,8 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
               fontWeight: FontWeight.w800,
               letterSpacing: 0.1,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(width: 4),
           Container(
@@ -7356,12 +7427,16 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
             ),
           ),
           const SizedBox(width: 4),
-          Text(
-            "From ₹${item.priceAmount}",
-            style: const TextStyle(
-              color: Color(0xFFD97706),
-              fontSize: 10.5,
-              fontWeight: FontWeight.w900,
+          Flexible(
+            child: Text(
+              "From ₹${item.priceAmount}",
+              style: const TextStyle(
+                color: Color(0xFFD97706),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w900,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -7388,12 +7463,16 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            "book_now".tr(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
+          Flexible(
+            child: Text(
+              "book_now".tr(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 3),
@@ -7408,7 +7487,6 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
   }
 }
 
-typedef _MasonryCraftCard = _AlternatingCraftRowCard;
 
 // ──────────────────────────────────────────────────────
 //  QUICK SOLUTION CHIP (1-Tap Horizontal Rail)
@@ -7807,6 +7885,7 @@ class _ArtisanSpotlightCard extends StatelessWidget {
 // ──────────────────────────────────────────────────────
 class _BookingListTile extends StatefulWidget {
   const _BookingListTile({
+    super.key,
     required this.booking,
     required this.onTap,
     this.onBookAgain,
@@ -7823,12 +7902,47 @@ class _BookingListTile extends StatefulWidget {
 }
 
 class _BookingListTileState extends State<_BookingListTile> {
+  static final Map<String, Worker> _workerCache = {};
+  static final Set<String> _pendingWorkerFetches = {};
   bool _showFareDetails = false;
 
   Booking get booking => widget.booking;
   VoidCallback get onTap => widget.onTap;
   VoidCallback? get onBookAgain => widget.onBookAgain;
   VoidCallback? get onDelete => widget.onDelete;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWorkerIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant _BookingListTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.booking.workerId != widget.booking.workerId) {
+      _fetchWorkerIfNeeded();
+    }
+  }
+
+  void _fetchWorkerIfNeeded() {
+    final wId = widget.booking.workerId;
+    if (wId != null && wId.isNotEmpty) {
+      if (!_workerCache.containsKey(wId) && !_pendingWorkerFetches.contains(wId)) {
+        _pendingWorkerFetches.add(wId);
+        WorkerService().getWorker(wId).then((worker) {
+          _pendingWorkerFetches.remove(wId);
+          if (worker != null && mounted) {
+            setState(() {
+              _workerCache[wId] = worker;
+            });
+          }
+        }).catchError((_) {
+          _pendingWorkerFetches.remove(wId);
+        });
+      }
+    }
+  }
 
   _CockpitTheme _getCockpitTheme() {
     switch (booking.status) {
@@ -7954,6 +8068,19 @@ class _BookingListTileState extends State<_BookingListTile> {
     required bool isLive,
     required bool isPending,
   }) {
+    final worker = (booking.workerId != null && booking.workerId!.isNotEmpty)
+        ? _workerCache[booking.workerId!]
+        : null;
+
+    final String cleanName =
+        (booking.acceptedWorkerName != null &&
+                booking.acceptedWorkerName!.trim().isNotEmpty &&
+                !Booking.isGenericArtisanName(
+                  booking.acceptedWorkerName,
+                ))
+            ? booking.acceptedWorkerName!.trim()
+            : (worker?.name.isNotEmpty == true ? worker!.name : '');
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
@@ -7961,141 +8088,140 @@ class _BookingListTileState extends State<_BookingListTile> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: theme.deckBorder, width: 1.2),
       ),
-      child: StreamBuilder<Worker?>(
-        stream: (booking.workerId != null && booking.workerId!.isNotEmpty)
-            ? WorkerService().streamWorker(booking.workerId!)
-            : Stream.value(null),
-        builder: (context, snap) {
-          final worker = snap.data;
-          final String cleanName =
-              (booking.acceptedWorkerName != null &&
-                      booking.acceptedWorkerName!.trim().isNotEmpty &&
-                      !Booking.isGenericArtisanName(
-                        booking.acceptedWorkerName,
-                      ))
-                  ? booking.acceptedWorkerName!.trim()
-                  : (worker?.name.isNotEmpty == true ? worker!.name : '');
+      child: _buildArtisanOrBroadcastContent(
+        booking: booking,
+        theme: theme,
+        cleanName: cleanName,
+        worker: worker,
+        isPending: isPending,
+      ),
+    );
+  }
 
-          if (cleanName.isNotEmpty) {
-            return Row(
+  Widget _buildArtisanOrBroadcastContent({
+    required Booking booking,
+    required _CockpitTheme theme,
+    required String cleanName,
+    required Worker? worker,
+    required bool isPending,
+  }) {
+    if (cleanName.isNotEmpty) {
+      return Row(
+        children: [
+          WorkGoAvatar(
+            name: cleanName,
+            avatarBase64: worker?.avatarBase64,
+            radius: 17,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                WorkGoAvatar(
-                  name: cleanName,
-                  avatarBase64: worker?.avatarBase64,
-                  radius: 17,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TranslatedText(
-                        cleanName,
-                        style: const TextStyle(
-                          color: Color(0xFF141416),
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        'assigned_artisan_label'.tr(),
-                        style: const TextStyle(
-                          color: Color(0xFF6B7280),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3.5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFECFDF5),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0xFFA7F3D0),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.verified_rounded,
-                        size: 11,
-                        color: Color(0xFF059669),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'verified_pro'.tr(),
-                        style: const TextStyle(
-                          color: Color(0xFF059669),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }
-
-          if (isPending) {
-            return Row(
-              children: [
-                const PulsingDot(color: Color(0xFFD97706), size: 8),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'broadcasting_specialists'.tr(
-                      args: [booking.broadcastRadiusKm.toInt().toString()],
-                    ),
-                    style: const TextStyle(
-                      color: Color(0xFF92400E),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            );
-          }
-
-          return Row(
-            children: [
-              const Icon(
-                Icons.verified_user_rounded,
-                color: Color(0xFFD97706),
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${booking.serviceType.toLocalizedTrade()} ${'specialist_assigned'.tr()}',
+                TranslatedText(
+                  cleanName,
                   style: const TextStyle(
                     color: Color(0xFF141416),
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 1),
+                Text(
+                  'assigned_artisan_label'.tr(),
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 3.5,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFFA7F3D0),
               ),
-            ],
-          );
-        },
-      ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.verified_rounded,
+                  size: 11,
+                  color: Color(0xFF059669),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'verified_pro'.tr(),
+                  style: const TextStyle(
+                    color: Color(0xFF059669),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (isPending) {
+      return Row(
+        children: [
+          const PulsingDot(color: Color(0xFFD97706), size: 8),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'broadcasting_specialists'.tr(
+                args: [booking.broadcastRadiusKm.toInt().toString()],
+              ),
+              style: const TextStyle(
+                color: Color(0xFF92400E),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        const Icon(
+          Icons.verified_user_rounded,
+          color: Color(0xFFD97706),
+          size: 16,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            '${booking.serviceType.toLocalizedTrade()} ${'specialist_assigned'.tr()}',
+            style: const TextStyle(
+              color: Color(0xFF141416),
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -8524,7 +8650,7 @@ class _BookingListTileState extends State<_BookingListTile> {
     final isCancelled = booking.status == BookingStatus.cancelled;
     final isPaid = booking.paymentStatus == PaymentStatus.paid;
 
-    String dateStr = 'recently'.tr();
+    String dateStr = 'recently'.trSafe('Recently');
     if (booking.scheduledAt != null) {
       final dt = booking.scheduledAt!;
       final now = DateTime.now();
@@ -8540,12 +8666,8 @@ class _BookingListTileState extends State<_BookingListTile> {
         ? booking.id.substring(0, booking.id.length.clamp(0, 6)).toUpperCase()
         : 'REF';
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          width: double.infinity,
+    return Container(
+      width: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -9088,9 +9210,7 @@ class _BookingListTileState extends State<_BookingListTile> {
               ],
             ),
           ),
-        ),
-      ),
-    );
+        );
   }
 
   Widget _buildSpentBreakdownDrawer(Booking booking) {
