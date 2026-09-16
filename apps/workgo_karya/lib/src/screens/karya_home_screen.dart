@@ -1089,15 +1089,17 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     onPressed: () async {
                       if (isPlayingThisAudio) {
                         await EmergencySosService.instance.stopAudioPlayback();
-                        if (mounted)
+                        if (mounted) {
                           setState(() => _playingPeerSosAudioDocId = null);
+                        }
                       } else {
                         setState(() => _playingPeerSosAudioDocId = topDoc.id);
                         await EmergencySosService.instance.playAudioBase64(
                           audioBase64,
                           onComplete: () {
-                            if (mounted)
+                            if (mounted) {
                               setState(() => _playingPeerSosAudioDocId = null);
+                            }
                           },
                         );
                       }
@@ -1641,7 +1643,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         physics: const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         ),
-        padding: const EdgeInsets.fromLTRB(18, 12, 18, 90),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 130),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1955,16 +1957,19 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'greeting_hello'.trSafe('Hello, {}', [name]),
-                style: GoogleFonts.plusJakartaSans(
-                  color: KX.textPrimary,
-                  fontSize: 17.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'greeting_hello'.trSafe('Hello, {}', [name]),
+                  style: GoogleFonts.plusJakartaSans(
+                    color: KX.textPrimary,
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                  maxLines: 1,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 1),
               Text(
@@ -3805,100 +3810,84 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               children: [
                 if (isAccepted) ...[
                   Expanded(
-                    child: ElevatedButton.icon(
+                    flex: 5,
+                    child: ElevatedButton(
                       onPressed: () => _showStartOtpDialogForBooking(
                         context,
                         booking,
                         worker,
                       ),
-                      icon: const Icon(
-                        Icons.key_rounded,
-                        size: 17,
-                        color: Color(0xFF0F172A),
-                      ),
-                      label: Text(
-                        'enter_otp_action'.trSafe("Enter OTP"),
-                        style: TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFBBF24),
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => _launchMapsNavigation(
-                      booking.customerAddressText,
-                      booking.customerLatitude,
-                      booking.customerLongitude,
-                    ),
-                    icon: const Icon(
-                      Icons.near_me_rounded,
-                      size: 16,
-                      color: Color(0xFFFBBF24),
-                    ),
-                    label: Text(
-                      'hud_navigate'.tr(),
-                      style: const TextStyle(
-                        color: Color(0xFFFBBF24),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: const Color(0xFFFBBF24).withValues(alpha: 0.6),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.key_rounded,
+                            size: 16,
+                            color: Color(0xFF0F172A),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'enter_start_otp_btn'.trSafe("OTP மூலம் சரிபார்க்கவும்"),
+                                style: const TextStyle(
+                                  color: Color(0xFF0F172A),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.1,
+                                ),
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (ctx) =>
-                              ActiveJobScreen(booking: booking, worker: worker),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.navigation_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      'view_hud_action'.trSafe("Details"),
-                      style: TextStyle(
+                  Expanded(
+                    flex: 3,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (ctx) =>
+                                ActiveJobScreen(booking: booking, worker: worker),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.navigation_rounded,
+                        size: 16,
                         color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
                       ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 12,
+                      label: Text(
+                        'view_hud_action'.trSafe("Details"),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
                   ),

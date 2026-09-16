@@ -273,7 +273,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Registered Trade Skills",
+                        'registered_trade_skills'.trSafe("Registered Trade Skills"),
                         style: WorkGoFonts.display(
                           color: KX.textPrimary,
                           fontSize: 16,
@@ -283,7 +283,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "Tap trades to activate incoming dispatch alerts",
+                        'tap_trades_desc'.trSafe("Tap trades to activate incoming dispatch alerts"),
                         style: WorkGoFonts.body(
                           color: KX.textSecondary,
                           fontSize: 11.5,
@@ -434,7 +434,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                 KSlideFadeIn(
                   delay: const Duration(milliseconds: 140),
                   child: KaryaButton(
-                    label: 'save_artisan_matrix_btn'.trSafe("Save Artisan Matrix"),
+                    label: 'save_artisan_matrix_btn'.trSafe("Save Settings"),
                     icon: Icons.save_rounded,
                     isLoading: _isSaving,
                     onPressed: _saveProfile,
@@ -443,12 +443,32 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                     height: 50,
                   ),
                 ),
+                const SizedBox(height: 32),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  String _getLocalizedSkill(String skill) {
+    final key = switch (skill.toLowerCase()) {
+      'plumbing' => 'cat_plumbing',
+      'electrical' => 'cat_electrical',
+      'carpentry' => 'cat_carpentry',
+      'cleaning' => 'cat_cleaning',
+      'painting' => 'cat_painting',
+      'appliance repair' || 'air conditioner' => 'cat_appliance',
+      'masonry' => 'cat_masonry',
+      'gardening' => 'cat_gardening',
+      _ => null,
+    };
+    if (key != null) {
+      final trVal = key.tr();
+      if (trVal.isNotEmpty && trVal != key) return trVal;
+    }
+    return skill;
   }
 
   Widget _buildSkillGrid() {
@@ -511,7 +531,7 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                       color: KX.textMuted.withValues(alpha: 0.7), size: 20),
                 const SizedBox(height: 5),
                 Text(
-                  skill,
+                  _getLocalizedSkill(skill),
                   style: WorkGoFonts.heading(
                     color: isSelected ? Colors.white : KX.textSecondary,
                     fontSize: 9.5,

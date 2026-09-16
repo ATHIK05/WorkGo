@@ -143,6 +143,25 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
     }
   }
 
+  String _getLocalizedSkill(String skill) {
+    final key = switch (skill.toLowerCase()) {
+      'plumbing' => 'cat_plumbing',
+      'electrical' => 'cat_electrical',
+      'carpentry' => 'cat_carpentry',
+      'cleaning' => 'cat_cleaning',
+      'painting' => 'cat_painting',
+      'appliance repair' || 'air conditioner' => 'cat_appliance',
+      'masonry' => 'cat_masonry',
+      'gardening' => 'cat_gardening',
+      _ => null,
+    };
+    if (key != null) {
+      final trVal = key.tr();
+      if (trVal.isNotEmpty && trVal != key) return trVal;
+    }
+    return skill;
+  }
+
   Future<void> _completeOnboarding() async {
     if (_selectedSkills.isEmpty) {
       HapticFeedback.heavyImpact();
@@ -274,7 +293,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       const Icon(Icons.verified_user_rounded, color: KX.gold, size: 16),
                       const SizedBox(width: 6),
                       Text(
-                        "COOPERATIVE ARTISAN ONBOARDING",
+                        'coop_artisan_onboarding_badge'.trSafe("COOPERATIVE ARTISAN ONBOARDING"),
                         style: WorkGoFonts.badge(
                           color: KX.gold,
                           fontSize: 10.5,
@@ -288,7 +307,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
               const SizedBox(height: 14),
 
               Text(
-                "Welcome to WorkGo Karya!",
+                'welcome_karya_title'.trSafe("Welcome to WorkGo Karya!"),
                 style: WorkGoFonts.display(
                   color: KX.textPrimary,
                   fontSize: 24,
@@ -298,7 +317,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                "Tell us what jobs you can do and where you'd like to receive incoming service requests.",
+                'onboarding_welcome_sub'.trSafe("Tell us what jobs you can do and where you'd like to receive incoming service requests."),
                 style: WorkGoFonts.body(
                   color: KX.textSecondary,
                   fontSize: 13,
@@ -371,7 +390,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                skill,
+                                _getLocalizedSkill(skill),
                                 style: WorkGoFonts.heading(
                                   color: isSelected ? const Color(0xFF1E1035) : KX.textSecondary,
                                   fontSize: 12.5,
@@ -438,7 +457,9 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _isDetectingGps ? "Detecting real-time GPS..." : "Live Hardware GPS Location",
+                                  _isDetectingGps
+                                      ? 'detecting_gps'.trSafe("Detecting real-time GPS...")
+                                      : 'live_hardware_gps_loc'.trSafe("Live Hardware GPS Location"),
                                   style: WorkGoFonts.heading(
                                     color: KX.textPrimary,
                                     fontSize: 12.5,
@@ -467,7 +488,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             ),
                             child: Text(
-                              "Re-detect",
+                              'redetect_btn'.trSafe("Re-detect"),
                               style: WorkGoFonts.badge(
                                 color: KX.gold,
                                 fontSize: 11,
@@ -482,7 +503,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
                     // District / City Selector Dropdown
                     Text(
-                      "Operating District / City",
+                      'operating_district_city'.trSafe("Operating District / City"),
                       style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5),
                     ),
                     const SizedBox(height: 6),
@@ -526,7 +547,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
                     // Detailed Street / Area Text Input
                     Text(
-                      "Street / Area / Landmark",
+                      'street_area_landmark'.trSafe("Street / Area / Landmark"),
                       style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5),
                     ),
                     const SizedBox(height: 6),
@@ -557,7 +578,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
 
                     // Pincode Input
                     Text(
-                      "Postal Pincode",
+                      'postal_pincode'.trSafe("Postal Pincode"),
                       style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 11.5),
                     ),
                     const SizedBox(height: 6),
@@ -566,7 +587,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       keyboardType: TextInputType.number,
                       style: const TextStyle(color: KX.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                       decoration: InputDecoration(
-                        hintText: "e.g. 638001",
+                        hintText: 'pincode_hint'.trSafe("e.g. 638001"),
                         hintStyle: TextStyle(color: KX.textMuted.withValues(alpha: 0.6), fontSize: 12),
                         filled: true,
                         fillColor: KX.canvasElevated,
@@ -635,7 +656,7 @@ class _WorkerOnboardingScreenState extends State<WorkerOnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Service Dispatch Radius",
+                          'service_dispatch_radius'.trSafe("Service Dispatch Radius"),
                           style: WorkGoFonts.body(color: KX.textSecondary, fontSize: 12.5),
                         ),
                         Container(

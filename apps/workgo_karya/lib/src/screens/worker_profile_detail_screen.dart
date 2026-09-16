@@ -873,6 +873,29 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     );
   }
 
+  String _getLocalizedTag(String tag) {
+    final key = switch (tag.trim().toLowerCase()) {
+      'inverter split ac' => 'tag_inverter_split_ac',
+      'ac gas leak / flare nut' => 'tag_ac_gas_leak',
+      'outdoor compressor' => 'tag_outdoor_compressor',
+      'washing machine drum' => 'tag_washing_machine_drum',
+      'ro uv membrane' => 'tag_ro_uv_membrane',
+      'refrigerator thermostat' => 'tag_refrigerator_thermostat',
+      'microwave magnetron' => 'tag_microwave_magnetron',
+      'drain pump motor' => 'tag_drain_pump_motor',
+      'submersible pump' => 'tag_submersible_pump',
+      'motor rewinding' => 'tag_motor_rewinding',
+      'inverter battery' => 'tag_inverter_battery',
+      'mcb tripping' => 'tag_mcb_tripping',
+      _ => null,
+    };
+    if (key != null) {
+      final trVal = key.tr();
+      if (trVal.isNotEmpty && trVal != key) return trVal;
+    }
+    return tag;
+  }
+
   Widget _buildAiMatchStrengthProfileCard(Worker worker) {
     final matchScore = ArtisanKeywordUpliftWidget.calculateMatchStrength(worker);
     final matchPercent = (matchScore * 100).round();
@@ -918,7 +941,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                       children: [
                         Flexible(
                           child: Text(
-                            "AI Match Strength",
+                            'ai_match_strength_title'.trSafe("AI Match Strength"),
                             style: WorkGoFonts.heading(
                               color: KX.textPrimary,
                               fontSize: 14,
@@ -936,7 +959,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            "$matchPercent% ELITE",
+                            "$matchPercent% ${'elite_badge'.trSafe('ELITE')}",
                             style: const TextStyle(
                               color: Color(0xFF065F46),
                               fontSize: 9.5,
@@ -948,7 +971,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "Priority Symptom Triage Active",
+                      'priority_triage_active'.trSafe("Priority Symptom Triage Active"),
                       style: WorkGoFonts.body(
                         color: KX.textSecondary,
                         fontSize: 11,
@@ -975,12 +998,12 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.tune_rounded, size: 13, color: KX.gold),
-                      SizedBox(width: 4),
+                    children: [
+                      const Icon(Icons.tune_rounded, size: 13, color: KX.gold),
+                      const SizedBox(width: 4),
                       Text(
-                        "Manage",
-                        style: TextStyle(
+                        'manage_btn'.trSafe("Manage"),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1012,7 +1035,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                         const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF10B981)),
                         const SizedBox(width: 4),
                         Text(
-                          tag,
+                          _getLocalizedTag(tag),
                           style: WorkGoFonts.body(
                             color: KX.textPrimary,
                             fontSize: 11,
@@ -1038,7 +1061,7 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                         border: Border.all(color: const Color(0xFFE9D5FF)),
                       ),
                       child: Text(
-                        "+${tags.length - 3} more",
+                        "+${tags.length - 3} ${'more_tag'.trSafe('more')}",
                         style: WorkGoFonts.body(
                           color: const Color(0xFF7E22CE),
                           fontSize: 11,
@@ -1055,9 +1078,30 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     );
   }
 
+  String _getLocalizedSkill(String skill) {
+    final key = switch (skill.toLowerCase()) {
+      'plumbing' => 'cat_plumbing',
+      'electrical' => 'cat_electrical',
+      'carpentry' => 'cat_carpentry',
+      'cleaning' => 'cat_cleaning',
+      'painting' => 'cat_painting',
+      'appliance repair' || 'air conditioner' => 'cat_appliance',
+      'masonry' => 'cat_masonry',
+      'gardening' => 'cat_gardening',
+      _ => null,
+    };
+    if (key != null) {
+      final trVal = key.tr();
+      if (trVal.isNotEmpty && trVal != key) return trVal;
+    }
+    return skill;
+  }
+
   Widget _buildMenuMatrix(Worker worker) {
     final area = worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : (worker.baseArea ?? "Erode Central");
-    final skillsStr = worker.skills.isNotEmpty ? worker.skills.take(2).join(', ') : "General Trades";
+    final skillsStr = worker.skills.isNotEmpty
+        ? worker.skills.take(2).map((s) => _getLocalizedSkill(s)).join(', ')
+        : "General Trades";
     final isKycApproved = worker.verificationStatus == VerificationStatus.approved;
     final matchScore = ArtisanKeywordUpliftWidget.calculateMatchStrength(worker);
     final matchPercent = (matchScore * 100).round();
@@ -1142,25 +1186,27 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           ),
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
-            icon: Icons.health_and_safety_rounded,
-            title: 'welfare_shield_menu_title'.trSafe("₹2 Lakh Welfare Shield"),
-            subtitle: worker.insuranceStatus ? 'pmsby_pmjjby_active'.trSafe("PMSBY / PMJJBY Active") : 'coop_welfare_cover'.trSafe("Co-op Welfare Cover"),
+            icon: Icons.shield_rounded,
+            title: 'rs_two_lakh_cover_title'.trSafe("₹2 Lakh Welfare Shield"),
+            subtitle: 'coop_welfare_benefit_desc'.trSafe("Co-op welfare & insurance"),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (ctx) => WorkerWelfareScreen(worker: worker)),
+              MaterialPageRoute(
+                builder: (ctx) => WorkerWelfareScreen(worker: worker),
+              ),
             ),
           ),
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
-            icon: Icons.groups_rounded,
-            title: 'peer_referral_title'.trSafe("Peer Referral Network"),
-            subtitle: "2% ${'bonus_label'.trSafe('Bonus')} · ${worker.referralCount} ${'referred_label'.trSafe('Referred')}",
+            icon: Icons.people_alt_rounded,
+            title: 'peer_network_title'.trSafe("Peer Referral Network"),
+            subtitle: "2% ${'bonus_tag'.trSafe('Bonus')} · ${worker.referralCount} ${'peers_referred_label'.trSafe('Referred')}",
             onTap: _showReferPeerDialog,
           ),
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
             icon: Icons.explore_rounded,
-            title: 'interactive_tour_title'.trSafe("Interactive App Tour"),
-            subtitle: 'interactive_tour_desc'.trSafe("Explore features & operational tools"),
+            title: 'karya_guide_title'.trSafe("Efficiency App Guide"),
+            subtitle: 'explore_tools_desc'.trSafe("Explore features and tools"),
             onTap: () {
               HapticFeedback.lightImpact();
               KaryaHomeScreen.launchLiveSpotlightTour(context);
@@ -1176,9 +1222,9 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    String? badgeText,
     Color? badgeColor,
     Color? badgeTextColor,
+    String? badgeText,
   }) {
     return InkWell(
       onTap: onTap,
@@ -1188,12 +1234,12 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: const Color(0xFFF9F6EE),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: const Color(0xFF141416), size: 18),
+              child: Icon(icon, color: const Color(0xFF141416), size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1234,14 +1280,14 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle,
                     style: WorkGoFonts.body(
                       color: KX.textSecondary,
                       fontSize: 11.5,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -1267,39 +1313,52 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isCheckedIn ? "Titan Dispatch Active" : "Titan Standby",
-                    style: WorkGoFonts.heading(
-                      color: KX.textPrimary,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                    ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isCheckedIn
+                            ? 'titan_dispatch_active_title'.trSafe("Titan Dispatch Active")
+                            : 'titan_standby_title'.trSafe("Titan Standby"),
+                        style: WorkGoFonts.heading(
+                          color: KX.textPrimary,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        isCheckedIn
+                            ? 'titan_dispatch_active_desc'.trSafe("Receiving live broadcasts")
+                            : 'titan_offline_desc'.trSafe("Offline · Tap to go live"),
+                        style: WorkGoFonts.body(
+                          color: KX.textSecondary,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  Text(
-                    isCheckedIn ? "Receiving live broadcasts" : "Offline · Tap to go live",
-                    style: WorkGoFonts.body(
-                      color: KX.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 10),
           ElevatedButton(
             onPressed: () => _toggleTitanCheckIn(worker),
             style: ElevatedButton.styleFrom(
@@ -1310,7 +1369,9 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
               elevation: 0,
             ),
             child: Text(
-              isCheckedIn ? "Check Out" : "Go Live",
+              isCheckedIn
+                  ? 'check_out_btn'.trSafe("Check Out")
+                  : 'go_live_btn'.trSafe("Go Live"),
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
             ),
           ),

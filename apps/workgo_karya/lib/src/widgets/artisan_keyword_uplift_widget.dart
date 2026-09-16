@@ -187,6 +187,29 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
     });
   }
 
+  String _getLocalizedTag(String tag) {
+    final key = switch (tag.trim().toLowerCase()) {
+      'inverter split ac' => 'tag_inverter_split_ac',
+      'ac gas leak / flare nut' => 'tag_ac_gas_leak',
+      'outdoor compressor' => 'tag_outdoor_compressor',
+      'washing machine drum' => 'tag_washing_machine_drum',
+      'ro uv membrane' => 'tag_ro_uv_membrane',
+      'refrigerator thermostat' => 'tag_refrigerator_thermostat',
+      'microwave magnetron' => 'tag_microwave_magnetron',
+      'drain pump motor' => 'tag_drain_pump_motor',
+      'submersible pump' => 'tag_submersible_pump',
+      'motor rewinding' => 'tag_motor_rewinding',
+      'inverter battery' => 'tag_inverter_battery',
+      'mcb tripping' => 'tag_mcb_tripping',
+      _ => null,
+    };
+    if (key != null) {
+      final trVal = key.tr();
+      if (trVal.isNotEmpty && trVal != key) return trVal;
+    }
+    return tag;
+  }
+
   void _removeTag(String tag) {
     HapticFeedback.selectionClick();
     setState(() {
@@ -393,7 +416,7 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
                     side: BorderSide(color: KX.violet.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     label: Text(
-                      tag,
+                      _getLocalizedTag(tag),
                       style: WorkGoFonts.body(
                         color: KX.textPrimary,
                         fontSize: 11.5,
@@ -410,7 +433,7 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
                     side: const BorderSide(color: Color(0xFFBFDBFE)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     label: Text(
-                      kw,
+                      _getLocalizedTag(kw),
                       style: WorkGoFonts.body(
                         color: const Color(0xFF1E40AF),
                         fontSize: 11.5,
@@ -448,7 +471,7 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   avatar: const Icon(Icons.add_rounded, size: 14, color: KX.amber),
                   label: Text(
-                    s,
+                    _getLocalizedTag(s),
                     style: WorkGoFonts.body(
                       color: KX.textPrimary,
                       fontSize: 11,
@@ -477,7 +500,7 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
                     controller: _customKeywordCtrl,
                     style: WorkGoFonts.body(color: KX.textPrimary, fontSize: 12),
                     decoration: InputDecoration(
-                      hintText: 'add_custom_tag_hint'.tr(),
+                      hintText: 'add_custom_tag_hint_short'.tr(),
                       hintStyle: WorkGoFonts.body(color: const Color(0xFF94A3B8), fontSize: 11.5),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
