@@ -14,9 +14,9 @@ start /b "" wsl sleep infinity >nul 2>&1
 
 echo [3/3] Launching SIP Dual Bridge (UDP/TCP + Dynamic Voice RTP)...
 echo ================================================================
-echo Connect MizuDroid to:
-echo   Domain / Server : (Your LAN IP shown below)
-echo   Username        : workgo_26089
+echo Connect MizuDroid (Up to 4 Mobile Phones):
+echo   Domain / Server : 192.168.1.7:5060
+echo   Usernames       : workgo_1, workgo_2, workgo_3, workgo_4
 echo   Password        : workgoSecretPassword123
 echo   Dial Extension  : 1000
 echo ================================================================
