@@ -37,7 +37,10 @@ class AmiClient extends EventEmitter {
     return new Promise((resolve, reject) => {
       if (this._connected) return resolve();
 
-      const host = process.env.ASTERISK_AMI_HOST || "127.0.0.1";
+      const host = process.env.ASTERISK_AMI_HOST;
+      if (!host) {
+        return reject(new Error("ASTERISK_AMI_HOST not configured"));
+      }
       const port = parseInt(process.env.ASTERISK_AMI_PORT || "5038", 10);
       const user = process.env.ASTERISK_AMI_USER || "workgo_node";
       const secret = process.env.ASTERISK_AMI_SECRET || "nodeSecret123";
@@ -317,6 +320,11 @@ async function triggerOtpFlashCall(workerPhone, otpCode, language = "hi") {
  * Attempt to connect AMI on startup. Non-fatal if Asterisk isn't running yet.
  */
 async function initVoiceEngine() {
+  if (!process.env.ASTERISK_AMI_HOST) {
+    // Asterisk PBX is not configured in this environment.
+    // Telephony calls run via Android SIM Gateway (MacroDroid HTTP webhook).
+    return;
+  }
   try {
     await amiClient.connect();
     console.log("[VoiceEngine] Ready. Asterisk AMI connected.");
