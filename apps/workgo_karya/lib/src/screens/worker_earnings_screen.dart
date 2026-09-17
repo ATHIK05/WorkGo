@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -351,7 +352,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
 
             final totalGross = completedJobs.fold<double>(
               0.0,
-              (sum, b) => sum + b.totalAmount,
+              (runningTotal, b) => runningTotal + b.totalAmount,
             );
             final welfareReserve = totalGross * 0.02;
             final netPayout = totalGross - welfareReserve;
@@ -438,6 +439,9 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
                     ],
                   ],
                   const SizedBox(height: 16),
+
+                  // ── 7.5 Dial Karya Peer KYC Bounties
+                  _buildPeerKycBountiesSection(widget.worker),
 
                   // ── 8. Linked settlement dock
                   _buildLinkedBankCard(widget.worker),
@@ -791,6 +795,209 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // ── Dial Karya: Peer KYC Bounty Ledger Section ───────────────────────────
+  Widget _buildPeerKycBountiesSection(Worker worker) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('wallet_transactions')
+          .where('workerId', isEqualTo: worker.id)
+          .where('type', isEqualTo: 'PEER_KYC_BOUNTY')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+        final totalBounties = docs.fold<double>(
+          0.0,
+          (runningTotal, doc) =>
+              runningTotal +
+              ((doc.data() as Map<String, dynamic>)['amount'] as num? ?? 150)
+                  .toDouble(),
+        );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: const Color(0xFFF0EDE6),
+              width: 1.2,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: KX.brandAmber.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.people_alt_rounded,
+                      color: KX.brandAmber,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'peer_kyc_bounties_title'.trSafe("Dial Karya Peer KYC Bounties"),
+                          style: const TextStyle(
+                            color: KX.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          'peer_kyc_bounties_subtitle'.trSafe("₹150 earned per verified feature-phone artisan"),
+                          style: const TextStyle(
+                            color: KX.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: KX.brandAmber,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "₹${totalBounties.toStringAsFixed(0)}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (docs.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                const Divider(height: 1, color: Color(0xFFF3F0EA)),
+                const SizedBox(height: 10),
+                ...docs.take(5).map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final desc =
+                      data['description'] as String? ?? 'peer_kyc_bounty_item'.trSafe('Peer KYC Bounty');
+                  final amt = (data['amount'] as num?)?.toDouble() ?? 150.0;
+                  final createdAt = data['createdAt'] as String?;
+                  String dateStr = 'Recently';
+                  if (createdAt != null) {
+                    final dt = DateTime.tryParse(createdAt);
+                    if (dt != null) {
+                      dateStr = DateFormat('dd MMM, hh:mm a').format(dt);
+                    }
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.verified_user_rounded,
+                          color: Color(0xFF10B981),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                desc,
+                                style: const TextStyle(
+                                  color: KX.textPrimary,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                dateStr,
+                                style: TextStyle(
+                                  color: KX.textSecondary,
+                                  fontSize: 10.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF10B981).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "+₹${amt.toStringAsFixed(0)}",
+                            style: const TextStyle(
+                              color: Color(0xFF059669),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ] else ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAF9F6),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        color: KX.brandAmber,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'peer_kyc_bounty_hint'.trSafe("Verify nearby dial workers via home alerts to earn ₹150 instantly into your wallet."),
+                          style: const TextStyle(
+                            color: KX.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 

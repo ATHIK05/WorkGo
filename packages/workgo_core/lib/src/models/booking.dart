@@ -74,6 +74,14 @@ class Booking {
   final List<String> reviewTags;
   final DateTime? ratedAt;
 
+  // ── Dial Karya Fields ───────────────────────────────────────────────────────
+  /// True when this booking is assigned to a feature-phone (non-smartphone) worker
+  final bool isAssignedToDialWorker;
+  /// IVR call state for the assigned dial worker: 'none' | 'alerting' | 'accepted' | 'taken' | 'rejected'
+  final String dialCallStatus;
+  /// Phone number of the dial worker assigned to this booking (for direct customer call-through)
+  final String? dialWorkerPhone;
+
   Booking({
     this.fareBreakdown,
     required this.id,
@@ -137,6 +145,9 @@ class Booking {
     this.reviewComment,
     this.reviewTags = const [],
     this.ratedAt,
+    this.isAssignedToDialWorker = false,
+    this.dialCallStatus = 'none',
+    this.dialWorkerPhone,
   });
 
   /// Real-time geodesic Haversine distance in kilometers from customer pickup location to target coordinates.
@@ -267,6 +278,9 @@ class Booking {
       reviewTags: List<String>.from(d["reviewTags"] ?? d["tags"] ?? []),
       ratedAt: (d["ratedAt"] as Timestamp?)?.toDate() ?? (d["reviewedAt"] as Timestamp?)?.toDate(),
       fareBreakdown: d["fareBreakdown"] != null ? Map<String, dynamic>.from(d["fareBreakdown"] as Map) : null,
+      isAssignedToDialWorker: d["isAssignedToDialWorker"] ?? false,
+      dialCallStatus: d["dialCallStatus"] ?? 'none',
+      dialWorkerPhone: d["dialWorkerPhone"],
     );
   }
 
@@ -332,6 +346,9 @@ class Booking {
     "reviewComment": reviewComment,
     "reviewTags": reviewTags,
     "ratedAt": ratedAt != null ? Timestamp.fromDate(ratedAt!) : null,
+    "isAssignedToDialWorker": isAssignedToDialWorker,
+    "dialCallStatus": dialCallStatus,
+    "dialWorkerPhone": dialWorkerPhone,
   };
 
   Booking copyWith({

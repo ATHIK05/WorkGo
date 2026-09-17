@@ -115,6 +115,44 @@ const NOTIFICATION_TEMPLATES = {
     },
   },
 
+  // ── Dial Karya: Peer KYC Bounty Templates ───────────────────────────────────
+  PEER_KYC_BOUNTY_ALERT: {
+    channelId: "workgo_kyc_channel",
+    sound: "alert_chime.mp3",
+    priority: "high",
+    en: {
+      title: "⚡ Verify Dial Worker Nearby — Earn ₹{amount}!",
+      body: "{workerName} ({trade}) needs verification near you. Complete 5-min KYC & earn ₹{amount} instantly.",
+    },
+    hi: {
+      title: "⚡ नजदीक डायल वर्कर — ₹{amount} कमाएं!",
+      body: "{workerName} ({trade}) आपके पास verification के लिए तैयार हैं। 5 मिनट में KYC करें और ₹{amount} पाएं।",
+    },
+    ta: {
+      title: "⚡ அருகில் டயல் வொர்க்கர் — ₹{amount} சம்பாதிக்கவும்!",
+      body: "{workerName} ({trade}) அருகில் சரிபார்ப்புக்கு தயாராக உள்ளார். 5 நிமிடத்தில் KYC செய்து ₹{amount} பெறுங்கள்.",
+    },
+  },
+
+  PEER_KYC_BOUNTY_CREDITED: {
+    channelId: "workgo_kyc_channel",
+    sound: "cash_register.mp3",
+    priority: "high",
+    en: {
+      title: "₹{amount} Credited to Your Wallet! 🎉",
+      body: "You successfully verified {workerName} as a Dial Karya member. Great work, Karya Mitra!",
+    },
+    hi: {
+      title: "₹{amount} आपके wallet में जमा! 🎉",
+      body: "{workerName} का verification पूरा हुआ। शाबाश, करिया मित्र!",
+    },
+    ta: {
+      title: "₹{amount} உங்கள் wallet-ல் சேர்ந்தது! 🎉",
+      body: "{workerName}-ஐ வெற்றிகரமாக சரிபார்த்தீர்கள். நன்று, கார்யா மித்ரா!",
+    },
+  },
+
+
   BOOKING_CANCELLED_BY_WORKER: {
     channelId: "workgo_booking_channel",
     sound: "default",
@@ -435,7 +473,10 @@ class NotificationEngine {
   }
 
   /**
-   * Broadcast a new booking request to all online, verified workers in radius matching the trade
+   * Broadcast a new booking request to all online, verified workers in radius matching the trade.
+   *
+   * Dial workers (isDialWorker: true) receive an outbound Asterisk robocall with dynamic
+   * Bhashini audio describing the job. Smartphone workers receive FCM push as before.
    */
   async broadcastNewBookingToNearbyWorkers(booking) {
     try {
@@ -444,7 +485,8 @@ class NotificationEngine {
       const netEarnings = (totalAmount * 0.90).toFixed(0); // 90% artisan payout
 
       const workersSnap = await this.db.collection("workers").get();
-      const eligibleWorkers = [];
+      const smartphoneWorkers = [];
+      const dialWorkers = [];
 
       for (const doc of workersSnap.docs) {
         const w = doc.data();
@@ -454,11 +496,17 @@ class NotificationEngine {
         const matchesTrade = serviceType === "All" || skills.includes(serviceType);
 
         if (isOnline && isVerified && matchesTrade) {
-          eligibleWorkers.push({ id: doc.id, userId: w.userId || doc.id });
+          if (w.isDialWorker === true) {
+            dialWorkers.push({ id: doc.id, phone: w.phoneForCalling, language: w.dialLanguage || "hi" });
+          } else {
+            smartphoneWorkers.push({ id: doc.id, userId: w.userId || doc.id });
+          }
         }
       }
 
-      console.log(`[NotificationEngine] Broadcasting booking #${id} to ${eligibleWorkers.length} eligible artisans.`);
+      console.log(
+        `[NotificationEngine] Broadcasting booking #${id} to ${smartphoneWorkers.length} app + ${dialWorkers.length} dial workers.`
+      );
 
       const eventKey = isEmergency ? "EMERGENCY_SOS_REQUEST" : "NEW_BROADCAST_REQUEST";
       const params = {
@@ -466,16 +514,62 @@ class NotificationEngine {
         amount: String(totalAmount),
         netEarnings: String(netEarnings),
         distanceKm: "1.8",
-        address: customerAddressText || "Thanjavur, Tamil Nadu",
+        address: customerAddressText || "",
         bonus: String(urgencyBonus || 0),
         bookingId: id,
       };
 
-      const results = await Promise.all(
-        eligibleWorkers.map((w) => this.sendToUser(w.userId, eventKey, params, { bookingId: id }))
+      // ── Smartphone workers: FCM push (existing behaviour) ──────────────────
+      const smartphoneResults = await Promise.all(
+        smartphoneWorkers.map((w) => this.sendToUser(w.userId, eventKey, params, { bookingId: id }))
       );
 
-      return { totalRecipients: eligibleWorkers.length, results };
+      // ── Dial workers: Asterisk outbound robocall ───────────────────────────
+      const dialResults = await Promise.allSettled(
+        dialWorkers.map(async (w) => {
+          if (!w.phone) return { skipped: true, reason: "no phone" };
+          try {
+            // Generate dynamic Bhashini TTS audio for this specific booking
+            const { generateBookingAlertAudio } = require("./bhashini_voice_service");
+            const { triggerOutboundJobAlertCall } = require("./voice_call_engine");
+
+            const audioFile = await generateBookingAlertAudio({
+              bookingId: id,
+              trade: serviceType,
+              address: customerAddressText || "",
+              payout: Math.round(totalAmount),
+              language: w.language,
+            });
+
+            const callResult = await triggerOutboundJobAlertCall({
+              workerPhone: w.phone,
+              bookingId: id,
+              trade: serviceType,
+              address: customerAddressText || "",
+              payout: Math.round(totalAmount),
+              language: w.language,
+              audioFile,
+            });
+
+            // Mark booking as currently alerting this dial worker
+            await this.db.collection("bookings").doc(id).update({
+              dialCallStatus: "alerting",
+              dialWorkerPhone: w.phone,
+            }).catch(() => {});
+
+            return callResult;
+          } catch (callErr) {
+            console.error(`[NotificationEngine] Robocall to ${w.phone} failed:`, callErr.message);
+            return { success: false, error: callErr.message };
+          }
+        })
+      );
+
+      return {
+        totalRecipients: smartphoneWorkers.length + dialWorkers.length,
+        smartphoneResults,
+        dialResults: dialResults.map((r) => r.value || r.reason),
+      };
     } catch (error) {
       console.error("[NotificationEngine] Broadcast error:", error);
       return { success: false, error: error.message };

@@ -819,6 +819,38 @@ const Map<String, Map<String, String>> _embeddedTranslations = {
     "hi": "नया कार्य लेने के लिए वर्तमान सेवा पूरी करें",
     "ta": "புதிய வேலைகளை ஏற்க தற்போதைய சேவையை முடிக்கவும்",
   },
+  "dial_karya_badge": {
+    "en": "Dial Karya Artisan",
+    "hi": "डायल कार्य कारीगर",
+    "ta": "டயல் கார்யா பணியாளர்",
+    "te": "డయల్ కార్య కళాకారుడు",
+    "kn": "ಡಯಲ್ ಕಾರ್ಯ ಕುಶಲಕರ್ಮಿ",
+    "ml": "ഡയൽ കാര്യ തൊഴിലാളി",
+  },
+  "dial_badge": {
+    "en": "DIAL",
+    "hi": "डायल",
+    "ta": "டயல்",
+    "te": "డయల్",
+    "kn": "ಡಯಲ್",
+    "ml": "ഡയൽ",
+  },
+  "peer_kyc_complete_title": {
+    "en": "Peer KYC Complete! 🎉",
+    "hi": "साथी KYC पूर्ण! 🎉",
+    "ta": "சக KYC முடிந்தது! 🎉",
+    "te": "పీర్ KYC పూర్తయింది! 🎉",
+    "kn": "ಪೀರ್ KYC ಪೂರ್ಣಗೊಂಡಿದೆ! 🎉",
+    "ml": "പിയർ KYC പൂർത്തിയായി! 🎉",
+  },
+  "peer_kyc_bounties_title": {
+    "en": "Dial Karya Peer KYC Bounties",
+    "hi": "डायल कार्य साथी KYC इनाम",
+    "ta": "டயல் கார்யா சக KYC வெகுமதிகள்",
+    "te": "డయల్ కార్య పీర్ KYC బహుమతులు",
+    "kn": "ಡಯಲ್ ಕಾರ್ಯ ಪೀರ್ KYC ಬೌಂಟಿ",
+    "ml": "ഡയൽ കാര്യ പിയർ KYC ബോണസ്",
+  },
 };
 
 /// Resilient string translation fallback extension.

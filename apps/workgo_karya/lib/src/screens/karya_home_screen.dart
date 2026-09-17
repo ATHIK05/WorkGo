@@ -20,6 +20,7 @@ import '../widgets/handoff_acknowledgment_dialog.dart';
 import '../widgets/karya_start_otp_sheet.dart';
 import '../widgets/sos_beacon_bottom_sheet.dart';
 import '../widgets/job_preparation_tools_sheet.dart';
+import 'refer_dial_member_screen.dart';
 
 class KaryaHomeScreen extends StatefulWidget {
   const KaryaHomeScreen({
@@ -890,9 +891,150 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   }
 
   // ──────────────────────────────────────────────────────────────
+  //  PEER KYC BOUNTY ALERT — Dial Karya (₹150 per verified member)
+  // ──────────────────────────────────────────────────────────────
+  Widget _buildPeerKycBountyAlerts(BuildContext context, Worker worker) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('workers')
+          .where('isDialWorker', isEqualTo: true)
+          .where('verificationStage', isEqualTo: 'pending_peer_kyc')
+          .limit(3)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final dialWorkerDocs = snapshot.data!.docs;
+
+        return Column(
+          children: dialWorkerDocs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final name = data['name'] as String? ?? 'Dial Worker';
+            final trade = (data['skills'] as List?)?.firstOrNull?.toString() ?? 'General';
+            final phone = data['phoneForCalling'] as String? ?? '';
+            final areas = (data['preferredAreas'] as List?)?.join(', ') ?? '';
+
+            return GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReferDialMemberScreen(
+                      mitraWorker: worker,
+                      dialWorkerId: doc.id,
+                      dialWorkerName: name,
+                      dialWorkerPhone: phone,
+                      dialWorkerTrade: trade,
+                      backendBaseUrl: const String.fromEnvironment(
+                        'BACKEND_BASE_URL',
+                        defaultValue: 'https://workgo-backend.onrender.com',
+                      ),
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      KX.pastelAmber.withValues(alpha: 0.95),
+                      KX.canvasElevated,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: KX.brandAmber.withValues(alpha: 0.45), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: KX.brandAmber.withValues(alpha: 0.15),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        gradient: KX.luminaVioletGold,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: KX.brandAmber.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'peer_kyc_alert_title'.trSafe('⚡ Earn ₹150 — Verify $name', [name]),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: KX.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            '$trade${areas.isNotEmpty ? " • $areas" : ""}',
+                            style: TextStyle(
+                              color: KX.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: KX.luminaVioletGold,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'peer_kyc_btn'.trSafe('KYC →'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────
   //  PEER ARTISAN SOS DISTRESS ALERT CARD RECEIVER
   // ──────────────────────────────────────────────────────────────
   Widget _buildPeerSosBeaconAlerts(BuildContext context, Worker worker) {
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('emergency_beacons')
@@ -1659,6 +1801,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             // ── 1.5 Peer Artisan SOS Distress Beacon Alert (Live Stream)
             _buildPeerSosBeaconAlerts(context, worker),
 
+            // ── 1.6 Peer KYC Bounty Alert (Dial Karya — Live Stream)
+            if (worker.verificationStatus == VerificationStatus.approved)
+              _buildPeerKycBountyAlerts(context, worker),
+
             // ── 2. Verification Alert Banner (if unverified)
             if (worker.verificationStatus != VerificationStatus.approved) ...[
               KSlideFadeIn(
@@ -1667,6 +1813,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               ),
               const SizedBox(height: 14),
             ],
+
 
             // ── 2.5 Live Active Mission Card (If artisan has an accepted or in-progress booking)
             () {

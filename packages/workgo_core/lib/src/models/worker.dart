@@ -409,6 +409,18 @@ class Worker {
   /// 0–5 integer: Phone + Aadhaar + Liveness + e-Shram + PCC
   final int trustScore;
 
+  // ── Dial Karya Fields ───────────────────────────────────────────────────────
+  /// True if this worker registered via IVR voice call (no smartphone)
+  final bool isDialWorker;
+  /// Preferred spoken language for IVR prompts (e.g. 'hi', 'mr', 'ta')
+  final String dialLanguage;
+  /// WorkerId of the smartphone artisan who completed this worker's Peer KYC
+  final String? peerKycMitraId;
+  /// Current IVR call state: 'idle' | 'on_alert_call' | 'booking_accepted'
+  final String callIvrStatus;
+  /// In-app wallet balance (includes ₹150 Peer KYC bounties + job earnings)
+  final double walletBalance;
+
   Worker({
     required this.id,
     required this.userId,
@@ -456,6 +468,11 @@ class Worker {
     this.serviceKeywords = const [],
     this.diagnosticAccuracyScore = 0.92,
     this.trustScore = 0,
+    this.isDialWorker = false,
+    this.dialLanguage = 'hi',
+    this.peerKycMitraId,
+    this.callIvrStatus = 'idle',
+    this.walletBalance = 0.0,
   });
 
   bool get isTitan =>
@@ -813,6 +830,11 @@ class Worker {
       serviceKeywords: srvKeywords,
       diagnosticAccuracyScore: diagAccuracy,
       trustScore: (d["trustScore"] as num?)?.toInt() ?? 0,
+      isDialWorker: d["isDialWorker"] ?? false,
+      dialLanguage: d["dialLanguage"] ?? 'hi',
+      peerKycMitraId: d["peerKycMitraId"],
+      callIvrStatus: d["callIvrStatus"] ?? 'idle',
+      walletBalance: (d["walletBalance"] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -864,6 +886,11 @@ class Worker {
         "equipmentTags": equipmentTags,
         "serviceKeywords": serviceKeywords,
         "diagnosticAccuracyScore": diagnosticAccuracyScore,
+        "isDialWorker": isDialWorker,
+        "dialLanguage": dialLanguage,
+        "peerKycMitraId": peerKycMitraId,
+        "callIvrStatus": callIvrStatus,
+        "walletBalance": walletBalance,
       };
 
   Worker copyWith({
@@ -912,6 +939,11 @@ class Worker {
     List<String>? equipmentTags,
     List<String>? serviceKeywords,
     double? diagnosticAccuracyScore,
+    bool? isDialWorker,
+    String? dialLanguage,
+    String? peerKycMitraId,
+    String? callIvrStatus,
+    double? walletBalance,
   }) {
     return Worker(
       id: id ?? this.id,
@@ -961,6 +993,11 @@ class Worker {
       serviceKeywords: serviceKeywords ?? this.serviceKeywords,
       diagnosticAccuracyScore:
           diagnosticAccuracyScore ?? this.diagnosticAccuracyScore,
+      isDialWorker: isDialWorker ?? this.isDialWorker,
+      dialLanguage: dialLanguage ?? this.dialLanguage,
+      peerKycMitraId: peerKycMitraId ?? this.peerKycMitraId,
+      callIvrStatus: callIvrStatus ?? this.callIvrStatus,
+      walletBalance: walletBalance ?? this.walletBalance,
     );
   }
 }

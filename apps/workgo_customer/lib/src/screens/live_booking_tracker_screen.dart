@@ -1804,16 +1804,18 @@ class _ArtisanCard extends StatelessWidget {
         // While pending acceptance or unassigned, neither party's number is shared.
         final isConfirmedJob = booking.status == BookingStatus.accepted ||
             booking.status == BookingStatus.inProgress;
+        final isDialArtisan = booking.isAssignedToDialWorker ||
+            (worker?.isDialWorker == true);
         final phone = isConfirmedJob
-            ? (booking.workerPhone ?? worker?.phoneForCalling)
+            ? (booking.dialWorkerPhone ?? booking.workerPhone ?? worker?.phoneForCalling)
             : null;
         final style = worker?.skills.isNotEmpty == true
             ? categoryStyle(worker!.skills.first)
             : categoryStyle(booking.serviceType);
 
         return AuroraCard(
-          glowColor: style.glow,
-          borderColor: style.glow.withValues(alpha: 0.3),
+          glowColor: isDialArtisan ? CX.amber : style.glow,
+          borderColor: (isDialArtisan ? CX.amber : style.glow).withValues(alpha: 0.3),
           child: Row(
             children: [
               Stack(
@@ -1832,7 +1834,10 @@ class _ArtisanCard extends StatelessWidget {
                         shape: BoxShape.circle,
                         color: CX.canvas,
                       ),
-                      child: const PulsingDot(color: CX.success, size: 9),
+                      child: PulsingDot(
+                        color: isDialArtisan ? CX.amber : CX.success,
+                        size: 9,
+                      ),
                     ),
                   ),
                 ],
@@ -1842,25 +1847,66 @@ class _ArtisanCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TranslatedText(
-                      artisanName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: CX.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: TranslatedText(
+                            artisanName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: CX.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        if (isDialArtisan) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFFDE68A)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.phone_in_talk_rounded, size: 10, color: Color(0xFFD97706)),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'dial_badge'.trSafe('DIAL'),
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFFD97706),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Flexible(
-                          child: AuroraBadge(
-                            label: 'verified_badge'.tr(),
-                            style: AuroraBadgeStyle.emerald,
+                        if (isDialArtisan) ...[
+                          Flexible(
+                            child: AuroraBadge(
+                              label: 'dial_karya_badge'.trSafe('Dial Karya Artisan'),
+                              style: AuroraBadgeStyle.amber,
+                            ),
                           ),
-                        ),
+                        ] else ...[
+                          Flexible(
+                            child: AuroraBadge(
+                              label: 'verified_badge'.tr(),
+                              style: AuroraBadgeStyle.emerald,
+                            ),
+                          ),
+                        ],
                         const SizedBox(width: 8),
                         if (worker != null && worker.avgRating > 0) ...[
                           AuroraStarRow(
@@ -1918,17 +1964,20 @@ class _ArtisanCard extends StatelessWidget {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: CX.auroraSuccess,
+                      gradient: isDialArtisan ? CX.auroraVioletAmber : CX.auroraSuccess,
                       boxShadow: [
                         BoxShadow(
-                          color: CX.emerald.withValues(alpha: 0.45),
+                          color: (isDialArtisan ? CX.amber : CX.emerald).withValues(alpha: 0.45),
                           blurRadius: 14,
                           spreadRadius: -4,
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.phone_rounded,
-                        color: Colors.white, size: 20),
+                    child: Icon(
+                      isDialArtisan ? Icons.phone_in_talk_rounded : Icons.phone_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

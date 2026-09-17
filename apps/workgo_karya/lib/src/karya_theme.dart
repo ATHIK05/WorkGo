@@ -39,6 +39,7 @@ class KX {
   static const Color yellowNeon = Color(0xFFFFCD4A);
   static const Color amber = Color(0xFFF59E0B);        // Warning
   static const Color amberDark = Color(0xFFD97706);
+  static const Color brandAmber = Color(0xFFE8A500);
   static const Color goldGlow = Color(0xFFFFB800);
 
   // Supporting Semantics

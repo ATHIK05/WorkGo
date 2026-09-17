@@ -5,7 +5,7 @@ services:
   - type: web
     name: workgo-api
     runtime: node
-    plan: starter
+    plan: free
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
@@ -18,6 +18,14 @@ services:
       - key: FIREBASE_PROJECT_ID
         value: workgo-sih2026
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
-        sync: false # Set securely in the Render Environment Dashboard (paste service account JSON string)
+        sync: false # Paste the service account JSON in Render Environment Dashboard
+      - key: BHASHINI_USER_ID
+        value: 3b9563b688a74cf081e3497d13ee6db8
+      - key: BHASHINI_API_KEY
+        sync: false # Paste the Inference API Key in Render Environment Dashboard
+      - key: BHASHINI_PIPELINE_ID
+        value: 64392f96daac500b55c543d6
+      - key: DIAL_KARYA_GATEWAY_NUMBER
+        value: "+919080262334"
       - key: SELF_PING_URL
         value: https://workgo-api.onrender.com/api/health

@@ -23,6 +23,8 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.text({ type: "*/*", limit: "10mb" }));
 
 // Global rate limit
 const limiter = rateLimit({
@@ -72,11 +74,20 @@ app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/locales", require("./routes/locales"));
 app.use("/api/ai", require("./routes/ai_triage")); // Gemini 1.5 Flash triage proxy + Firestore cache
 app.use("/api/ai", require("./routes/ai_transcribe")); // Cloud-assisted vernacular speech-to-text (Gemini Audio + Bhashini)
+app.use("/api/ivr/voice", require("./routes/ivr_voice")); // Dial Karya IVR (called by Asterisk — no Firebase auth)
 
 // ── Notification Cloud Functions Daemon (for Render background triggers) ────
 const { initFirestoreNotificationListeners } = require("./cloud_functions");
 if (process.env.NODE_ENV !== "test") {
   initFirestoreNotificationListeners(db, messaging);
+}
+
+// ── Dial Karya Voice Call Engine Startup ─────────────────────────────────────
+const { initVoiceEngine } = require("./services/voice_call_engine");
+const { prebakeIvrPrompts } = require("./services/bhashini_voice_service");
+if (process.env.NODE_ENV !== "test") {
+  initVoiceEngine().catch(() => {}); // Non-fatal: Asterisk may not be running locally
+  prebakeIvrPrompts().catch(() => {}); // Pre-generate all Hindi/Marathi/Tamil IVR prompts
 }
 
 // ── Demand Aggregation Cron (nightly) ────────────────────────────────────────
