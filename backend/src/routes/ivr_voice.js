@@ -143,29 +143,45 @@ router.all("/inbound", async (req, res) => {
 
 // ── 2. POST /api/ivr/voice/onboarding ────────────────────────────────────────
 /**
- * Called after Asterisk collects name (via Bhashini ASR), trade (DTMF 1-5 or ASR),
- * and pincode (DTMF 6-digits). Stores the data and triggers Peer KYC dispatch.
+ * Called after Asterisk collects name (via Bhashini ASR), trade & description (via ASR),
+ * and location / pincode. Stores the data and triggers Peer KYC dispatch + Admin KYC entry.
  */
 router.post("/onboarding", async (req, res) => {
   if (!validateAsteriskSecret(req, res)) return;
 
-  const { caller, name, tradeDtmf, tradeText, pincode, language = "hi" } = req.body;
+  const {
+    caller,
+    name,
+    trade: rawTrade,
+    tradeDtmf,
+    tradeText,
+    tradeDescription,
+    locationText,
+    pincode,
+    language = "en",
+  } = req.body;
   if (!caller) return res.status(400).json({ error: "caller required" });
 
   const tradeMap = {
     "1": "plumbing", "2": "electrical", "3": "carpentry",
     "4": "painting", "5": "cleaning",
   };
-  const trade = tradeMap[tradeDtmf] || tradeText?.toLowerCase() || "general";
+  const trade = rawTrade || tradeMap[tradeDtmf] || tradeText?.toLowerCase() || "general";
 
   try {
     const db = req.db;
     const { doc } = await getOrCreateDialWorker(db, caller);
 
+    const areas = [];
+    if (pincode) areas.push(pincode);
+    if (locationText) areas.push(locationText);
+
     await doc.ref.update({
-      name: name || "Dial Worker",
+      name: name || "Dial Artisan",
       skills: [trade],
-      preferredAreas: pincode ? [pincode] : [],
+      tradeDescription: tradeDescription || "",
+      locationText: locationText || "",
+      preferredAreas: areas,
       dialLanguage: language,
       verificationStage: "pending_peer_kyc",
       verificationStatus: "pending",
@@ -173,14 +189,33 @@ router.post("/onboarding", async (req, res) => {
       updatedAt: new Date().toISOString(),
     });
 
-    // Dispatch Peer KYC notification to nearby smartphone artisans
-    await dispatchPeerKycToNearbyArtisans(db, req.messaging, doc.id, {
-      name: name || "Dial Worker",
+    // 1. Log to Admin KYC Queue for admin dashboard visibility
+    const adminQueueRef = db.collection("admin_kyc_queue").doc(doc.id);
+    await adminQueueRef.set({
+      workerId: doc.id,
+      phone: caller,
+      name: name || "Dial Artisan",
       trade,
+      tradeDescription: tradeDescription || "",
+      locationText: locationText || "",
+      pincode: pincode || "",
+      language,
+      status: "pending_verification",
+      source: "IVR_VOICE_ONBOARDING",
+      createdAt: new Date().toISOString(),
+    }, { merge: true });
+
+    // 2. Dispatch Peer KYC notification to nearby smartphone artisans (Karya Mitra)
+    await dispatchPeerKycToNearbyArtisans(db, req.messaging, doc.id, {
+      name: name || "Dial Artisan",
+      trade,
+      tradeDescription: tradeDescription || "",
+      locationText: locationText || "",
       pincode,
       phone: caller,
     });
 
+    console.log(`[IVR Onboarding] Stored worker ${doc.id} (${name}, ${trade}, ${locationText || pincode}). Admin & Artisans notified.`);
     return res.json({ action: "registration_done", workerId: doc.id });
   } catch (err) {
     console.error("[IVR] /onboarding error:", err.message);
