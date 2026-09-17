@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -25,10 +26,13 @@ class PaymentReceiptScreen extends StatefulWidget {
 
 class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
   PaymentGatewayConfig _gatewayConfig = PaymentGatewayConfig.defaults();
-  String _selectedMethod = "upi";
+  String _selectedMethod = "phonepe";
   bool _isProcessing = false;
   bool _isPaid = false;
+  bool _isCustomerPaidAck = false;
+  bool _isWorkerReceivedAck = false;
   bool _showQrCode = false;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _bookingSub;
 
   bool _isRated = false;
   double _ratingValue = 5.0;
@@ -37,18 +41,22 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
 
   final TextEditingController _utrCtrl = TextEditingController();
   late String _effectiveWorkerName;
+  String _artisanUpiId = "workgo.artisan@upi";
+  bool _artisanAcceptsCash = false;
 
   @override
   void initState() {
     super.initState();
-    _isPaid = widget.booking.paymentStatus == PaymentStatus.paid;
+    _isCustomerPaidAck = widget.booking.isCustomerPaid || widget.booking.customerPaidAck == true;
+    _isWorkerReceivedAck = widget.booking.isWorkerReceived || widget.booking.workerReceivedAck == true;
+    _isPaid = widget.booking.paymentStatus == PaymentStatus.paid || _isWorkerReceivedAck;
 
     _effectiveWorkerName = (widget.booking.genuineArtisanName ??
         (!Booking.isGenericArtisanName(widget.workerName) ? widget.workerName : "")).trim();
     if (_effectiveWorkerName.isEmpty) {
       _effectiveWorkerName = widget.workerName;
     }
-    _resolveArtisanName();
+    _resolveArtisanDetails();
 
     _isRated = widget.booking.isRated || widget.booking.rating != null;
     if (_isRated) {
@@ -57,11 +65,39 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
       _reviewTags = List<String>.from(widget.booking.reviewTags);
     }
 
+    _listenToBookingStatus();
     _initGatewayConfig();
     _checkExistingRating();
   }
 
-  Future<void> _resolveArtisanName() async {
+  void _listenToBookingStatus() {
+    try {
+      if (Firebase.apps.isEmpty || widget.booking.id.isEmpty) return;
+      _bookingSub = FirebaseFirestore.instance
+          .collection("bookings")
+          .doc(widget.booking.id)
+          .snapshots()
+          .listen((snap) {
+        if (!snap.exists || snap.data() == null) return;
+        final b = Booking.fromFirestore(snap);
+        if (mounted) {
+          setState(() {
+            if (b.customerPaidAck == true || b.isCustomerPaid) {
+              _isCustomerPaidAck = true;
+            }
+            if (b.workerReceivedAck == true ||
+                b.paymentStatus == PaymentStatus.paid ||
+                b.status == BookingStatus.completed) {
+              _isWorkerReceivedAck = true;
+              _isPaid = true;
+            }
+          });
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _resolveArtisanDetails() async {
     try {
       if (Firebase.apps.isEmpty) return;
       final wId = widget.booking.workerId;
@@ -72,6 +108,17 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
       if (workerDoc.exists) {
         final data = workerDoc.data() ?? {};
         final realName = (data["name"] ?? data["displayName"] ?? data["artisanName"] ?? "").toString().trim();
+        final upi = (data["upiId"] ?? data["upi"] ?? "").toString().trim();
+        final acceptsCash = data["acceptsCash"] == true;
+        if (mounted) {
+          setState(() {
+            if (upi.isNotEmpty) _artisanUpiId = upi;
+            _artisanAcceptsCash = acceptsCash;
+            if ((upi.isEmpty || _artisanUpiId == "workgo.artisan@upi") && acceptsCash) {
+              _selectedMethod = "cash";
+            }
+          });
+        }
         if (realName.isNotEmpty && !Booking.isGenericArtisanName(realName)) {
           if (mounted) {
             setState(() => _effectiveWorkerName = realName);
@@ -86,6 +133,10 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
       if (userDoc.exists) {
         final data = userDoc.data() ?? {};
         final realName = (data["displayName"] ?? data["name"] ?? data["fullName"] ?? "").toString().trim();
+        final upi = (data["upiId"] ?? data["upi"] ?? "").toString().trim();
+        if (upi.isNotEmpty && mounted) {
+          setState(() => _artisanUpiId = upi);
+        }
         if (realName.isNotEmpty && !Booking.isGenericArtisanName(realName)) {
           if (mounted) {
             setState(() => _effectiveWorkerName = realName);
@@ -156,17 +207,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
           if (mounted) {
             setState(() {
               _gatewayConfig = cfg;
-              // If active primary is a gateway and not direct upi, preselect gateway
-              if (cfg.activeMetadata.category == PaymentCategory.indianGateway ||
-                  cfg.activeMetadata.category == PaymentCategory.globalGateway) {
-                _selectedMethod = "gateway";
-              } else if (cfg.activePrimaryProvider == PaymentProviderId.cashHandover) {
-                _selectedMethod = "cash";
-              } else if (cfg.activePrimaryProvider == PaymentProviderId.sandboxMock) {
-                _selectedMethod = "test";
-              } else {
-                _selectedMethod = "upi";
-              }
+              _selectedMethod = "phonepe";
             });
           }
         });
@@ -178,74 +219,138 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
 
   @override
   void dispose() {
+    _bookingSub?.cancel();
     _utrCtrl.dispose();
     super.dispose();
   }
 
   String _getLocalizedPaymentMode(String method) {
     final m = method.trim().toLowerCase();
-    if (m.contains('cash')) {
+    if (m.contains('phonepe')) {
+      return 'PhonePe UPI';
+    } else if (m.contains('gpay') || m.contains('google')) {
+      return 'Google Pay (GPay)';
+    } else if (m.contains('cash')) {
       return 'payment_mode_cash'.tr();
-    } else if (m.contains('card') || m.contains('netbanking') || m.contains('gateway')) {
-      return 'payment_mode_card'.tr();
     } else {
-      return 'payment_mode_upi'.tr();
+      return 'Direct P2P UPI';
     }
   }
 
-  Future<void> _processPayment(double totalAmount) async {
-    setState(() => _isProcessing = true);
+  Future<void> _launchSelectedUpiApp(double totalAmount) async {
     HapticFeedback.mediumImpact();
+    final utrVal = _utrCtrl.text.trim();
+    if (_selectedMethod == "phonepe") {
+      await PaymentService.instance.launchPhonePe(
+        vpa: _artisanUpiId,
+        payeeName: _effectiveWorkerName,
+        amount: totalAmount,
+        note: "WorkGo ${widget.booking.id}",
+        transactionRef: utrVal.isNotEmpty ? utrVal : null,
+      );
+    } else if (_selectedMethod == "gpay") {
+      await PaymentService.instance.launchGPay(
+        vpa: _artisanUpiId,
+        payeeName: _effectiveWorkerName,
+        amount: totalAmount,
+        note: "WorkGo ${widget.booking.id}",
+        transactionRef: utrVal.isNotEmpty ? utrVal : null,
+      );
+    } else {
+      final upiUri = PaymentService.instance.generateUpiUri(
+        vpa: _artisanUpiId,
+        payeeName: _effectiveWorkerName,
+        amount: totalAmount,
+        note: "WorkGo ${widget.booking.id}",
+        transactionRef: utrVal.isNotEmpty ? utrVal : null,
+      );
+      await PaymentService.instance.launchUpiIntent(upiUri);
+    }
+  }
+
+  Future<void> _acknowledgeCustomerPaid(double totalAmount) async {
+    setState(() => _isProcessing = true);
+    HapticFeedback.heavyImpact();
 
     try {
-      final cfg = _gatewayConfig;
-      final platformFee = totalAmount * (cfg.platformFeePercent / 100.0);
-      final welfareFund = totalAmount * (cfg.welfareFundPercent / 100.0);
       final utrVal = _utrCtrl.text.trim();
+      final isCash = _selectedMethod == "cash";
+      final appName = isCash
+          ? "CASH"
+          : (_selectedMethod == "phonepe"
+              ? "PhonePe"
+              : (_selectedMethod == "gpay" ? "Google Pay" : "UPI"));
 
-      // If user selected Direct UPI, launch native UPI app chooser first if available
-      if (_selectedMethod == "upi") {
-        final upiUri = PaymentService.instance.generateUpiUri(
-          vpa: cfg.cooperativeUpiVpa,
-          payeeName: cfg.cooperativePayeeName,
-          amount: totalAmount,
-          note: "WorkGo ${widget.booking.id}",
-          transactionRef: utrVal.isNotEmpty ? utrVal : null,
-        );
-
-        // Attempt launching external UPI application
-        await PaymentService.instance.launchUpiIntent(upiUri);
-        // Short delay for user context switch / confirmation
-        await Future.delayed(const Duration(milliseconds: 800));
-      } else {
-        // Standard simulated processing delay
-        await Future.delayed(const Duration(milliseconds: 1400));
-      }
-
-      // Record settlement in Firestore
-      await PaymentService.instance.recordPaymentSettlement(
-        bookingId: widget.booking.id,
-        paymentMethod: _selectedMethod,
-        providerId: cfg.activePrimaryProvider,
-        referenceId: utrVal.isNotEmpty ? utrVal : null,
-        platformFee: platformFee,
-        welfareFund: welfareFund,
+      await BookingService().acknowledgeCustomerPaid(
+        widget.booking.id,
+        upiReference: isCash ? "CASH" : (utrVal.isNotEmpty ? utrVal : null),
+        upiApp: appName,
       );
 
       if (mounted) {
         setState(() {
           _isProcessing = false;
-          _isPaid = true;
+          _isCustomerPaidAck = true;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'payment_marked_paid_toast'.tr(),
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF047857),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Payment error: $e"), backgroundColor: const Color(0xFFEF4444)),
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
         );
       }
     }
+  }
+
+  Future<void> _checkPaymentStatus() async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection("bookings").doc(widget.booking.id).get();
+      if (doc.exists && doc.data() != null) {
+        final b = Booking.fromFirestore(doc);
+        if (b.workerReceivedAck == true || b.paymentStatus == PaymentStatus.paid || b.status == BookingStatus.completed) {
+          if (mounted) {
+            setState(() {
+              _isWorkerReceivedAck = true;
+              _isPaid = true;
+            });
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('artisan_verifying_toast'.tr()),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -253,7 +358,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
     final baseAmount = widget.booking.amount > 0 ? widget.booking.amount : 450.0;
     final emergencyFee = widget.booking.isEmergency ? 150.0 : 0.0;
     final totalAmount = baseAmount + emergencyFee;
-    final coopDividend = totalAmount * (_gatewayConfig.welfareFundPercent / 100.0);
+    final coopDividend = 0.0;
 
     return Scaffold(
       backgroundColor: WorkGoColors.surfaceLight,
@@ -266,9 +371,150 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
           padding: const EdgeInsets.all(WorkGoSpacing.lg),
           child: _isPaid
               ? _buildReceiptView(context, totalAmount, coopDividend)
-              : _buildPaymentForm(context, baseAmount, emergencyFee, totalAmount),
+              : (_isCustomerPaidAck
+                  ? _buildAwaitingArtisanCard(totalAmount)
+                  : _buildPaymentForm(context, baseAmount, emergencyFee, totalAmount)),
         ),
       ),
+    );
+  }
+
+  Widget _buildAwaitingArtisanCard(double totalAmount) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14F59E0B),
+                blurRadius: 18,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFFFEF3C7),
+                ),
+                child: const Center(
+                  child: Icon(Icons.hourglass_top_rounded, color: Color(0xFFD97706), size: 34),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SafeText(
+                'awaiting_worker_ack_title'.tr(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF141416),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              SafeText(
+                'awaiting_worker_ack_desc'.tr(args: [
+                  "₹${totalAmount.toStringAsFixed(0)}",
+                  _effectiveWorkerName,
+                ]),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF4B5563),
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 16),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: SafeText(
+                        'customer_paid_verified_chip'.tr(args: ["₹${totalAmount.toStringAsFixed(0)}"]),
+                        style: const TextStyle(
+                          color: Color(0xFF065F46),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: Color(0xFFF3F4F6), height: 1),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFFD97706),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SafeText(
+                      'listening_for_artisan_sync'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 11.5,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: WorkGoSpacing.md),
+        OutlinedButton.icon(
+          onPressed: _checkPaymentStatus,
+          icon: const Icon(Icons.sync_rounded, size: 18),
+          label: SafeText(
+            'check_payment_status'.tr(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: WorkGoColors.textPrimary,
+            side: const BorderSide(color: Color(0xFFD1D5DB)),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -278,12 +524,6 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
     double emergencyFee,
     double totalAmount,
   ) {
-    final cfg = _gatewayConfig;
-    final activeMeta = cfg.activeMetadata;
-    final isGatewayActive = cfg.isProviderConfigured &&
-        activeMeta.category != PaymentCategory.sovereignZeroFee &&
-        cfg.activePrimaryProvider != PaymentProviderId.sandboxMock;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -298,6 +538,8 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                   color: WorkGoColors.textSecondary.withValues(alpha: 0.8),
                   fontSize: 14,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               SafeText(
@@ -307,6 +549,8 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                   fontSize: 34,
                   fontWeight: FontWeight.w900,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
               WorkGoBadge(
@@ -318,7 +562,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
         ),
         const SizedBox(height: WorkGoSpacing.lg),
 
-        // ── 2. Cost Breakdown Card ──
+        // ── 2. Cost Breakdown Card (Zero Platform Commission) ──
         GlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,6 +574,8 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const Divider(color: Color(0xFFF0EDE6), height: 24),
               _buildCostRow('service_fee'.tr(), "₹${baseAmount.toStringAsFixed(0)}"),
@@ -346,7 +592,11 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                 ),
               ],
               const SizedBox(height: 8),
-              _buildCostRow('platform_gst'.tr(), "₹${(totalAmount * (cfg.platformFeePercent / 100.0)).toStringAsFixed(0)}"),
+              _buildCostRow(
+                'zero_platform_fee_badge'.tr(),
+                "₹0 (0%)",
+                valueColor: const Color(0xFF059669),
+              ),
               const Divider(color: Color(0xFFF0EDE6), height: 24),
               _buildCostRow(
                 'total_amount'.tr(),
@@ -354,129 +604,169 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                 isBold: true,
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.handshake_outlined, size: 14, color: Color(0xFF059669)),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: SafeText(
-                      'cooperative_dividend_note'.tr(),
-                      style: const TextStyle(
-                        color: Color(0xFF059669),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_user_rounded, size: 16, color: Color(0xFF059669)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SafeText(
+                        'zero_platform_fee_desc'.tr(),
+                        style: const TextStyle(
+                          color: Color(0xFF065F46),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: WorkGoSpacing.lg),
 
-        // ── 3. Dynamic Payment Method Selector ──
+        // ── 3. Direct P2P UPI Payment Selector ──
         SafeText(
-          'payment_method'.tr(),
+          'direct_p2p_upi_title'.tr(),
           style: const TextStyle(
             color: WorkGoColors.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w800,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 4),
+        SafeText(
+          'direct_p2p_upi_sub'.tr(args: [_effectiveWorkerName]),
+          style: TextStyle(
+            color: WorkGoColors.textSecondary.withValues(alpha: 0.75),
+            fontSize: 12,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: WorkGoSpacing.md),
+
+        // Option 1: PhonePe
+        _buildPaymentOption(
+          id: "phonepe",
+          title: "PhonePe",
+          subtitle: 'pay_via_phonepe'.tr(),
+          icon: Icons.account_balance_wallet_rounded,
+          color: const Color(0xFF6739B7),
         ),
         const SizedBox(height: WorkGoSpacing.sm),
 
-        // Option A: Direct Sovereign UPI (Always visible if active or fallback allowed)
-        if (cfg.activePrimaryProvider == PaymentProviderId.directUpi ||
-            cfg.activePrimaryProvider == PaymentProviderId.artisanDirectUpi ||
-            cfg.allowDirectUpiFallback) ...[
-          _buildPaymentOption(
-            id: "upi",
-            title: 'upi_payment_title'.tr(),
-            subtitle: 'upi_payment_sub'.tr(),
-            icon: Icons.qr_code_2_rounded,
-            color: const Color(0xFF059669),
-          ),
-          const SizedBox(height: WorkGoSpacing.sm),
-        ],
+        // Option 2: Google Pay (GPay)
+        _buildPaymentOption(
+          id: "gpay",
+          title: "Google Pay (GPay)",
+          subtitle: 'pay_via_gpay'.tr(),
+          icon: Icons.g_mobiledata_rounded,
+          color: const Color(0xFF1A73E8),
+        ),
+        const SizedBox(height: WorkGoSpacing.sm),
 
-        // Option B: Active Commercial Gateway (Razorpay, Cashfree, PhonePe, Stripe)
-        if (isGatewayActive) ...[
-          _buildPaymentOption(
-            id: "gateway",
-            title: activeMeta.name,
-            subtitle: activeMeta.feeDescription,
-            icon: activeMeta.icon,
-            color: activeMeta.brandColor,
-          ),
-          const SizedBox(height: WorkGoSpacing.sm),
-        ],
+        // Option 3: UPI QR & Any UPI App
+        _buildPaymentOption(
+          id: "upi",
+          title: 'pay_via_any_upi'.tr(),
+          subtitle: 'scan_upi_qr_sub'.tr(),
+          icon: Icons.qr_code_2_rounded,
+          color: const Color(0xFF059669),
+        ),
+        const SizedBox(height: WorkGoSpacing.sm),
 
-        // Option C: Cash on Delivery (Artisan Handover)
-        if (cfg.allowCashHandover) ...[
+        // Option 4: Cash on Delivery (Cash Handover)
+        if (_artisanAcceptsCash || _artisanUpiId == "workgo.artisan@upi") ...[
           _buildPaymentOption(
             id: "cash",
-            title: 'cash_payment_title'.tr(),
-            subtitle: 'cash_payment_sub'.tr(),
+            title: 'pay_via_cash_title'.tr(),
+            subtitle: 'pay_via_cash_sub'.tr(),
             icon: Icons.payments_rounded,
-            color: const Color(0xFF10B981),
+            color: const Color(0xFFD97706),
           ),
           const SizedBox(height: WorkGoSpacing.sm),
         ],
 
-        // Option D: Sandbox Test Mode (Visible when not in live mode or provider is sandboxMock)
-        if (!cfg.isLiveMode || cfg.activePrimaryProvider == PaymentProviderId.sandboxMock) ...[
-          _buildPaymentOption(
-            id: "test",
-            title: "Interactive Sandbox (Test Mode)",
-            subtitle: "Simulated 1-Tap Instant Settle",
-            icon: Icons.science_rounded,
-            color: const Color(0xFFEA580C),
-          ),
-          const SizedBox(height: WorkGoSpacing.sm),
-        ],
-
-        // ── 4. Method Contextual Details Box ──
-        if (_selectedMethod == "upi")
-          _buildDirectUpiDetailBox(cfg, totalAmount)
-        else if (_selectedMethod == "cash")
+        // ── 4. Method Contextual Details & Quick Launch Station ──
+        if (_selectedMethod == "cash")
           _buildCashHandoverDetailBox(totalAmount)
-        else if (_selectedMethod == "test")
-          _buildSandboxDetailBox(),
+        else
+          _buildDirectUpiDetailBox(totalAmount),
 
         const SizedBox(height: WorkGoSpacing.xl),
 
-        // ── 5. Dynamic Pay Button ──
+        // ── 5. "I Have Paid" Dual Acknowledgment CTA ──
         WorkGoButton(
-          label: _getDynamicButtonLabel(totalAmount, activeMeta.name),
+          label: _selectedMethod == "cash"
+              ? 'i_have_paid_cash_btn'.tr(args: [totalAmount.toStringAsFixed(0)])
+              : 'i_have_paid_btn'.tr(args: [totalAmount.toStringAsFixed(0)]),
+          icon: Icons.check_circle_rounded,
           variant: WorkGoButtonVariant.primary,
           isLoading: _isProcessing,
-          onPressed: () => _processPayment(totalAmount),
+          onPressed: () => _acknowledgeCustomerPaid(totalAmount),
         ),
       ],
     );
   }
 
-  String _getDynamicButtonLabel(double amount, String gatewayName) {
-    final amtStr = amount.toStringAsFixed(0);
-    switch (_selectedMethod) {
-      case "cash":
-        return 'pay_via_cash_handover'.tr(args: [amtStr]);
-      case "gateway":
-        return 'pay_via_gateway_dynamic'.tr(args: [amtStr, gatewayName]);
-      case "test":
-        return 'pay_via_sandbox_test'.tr(args: [amtStr]);
-      case "upi":
-      default:
-        return 'pay_via_upi_app'.tr(args: [amtStr]);
-    }
+  Widget _buildCashHandoverDetailBox(double totalAmount) {
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.payments_rounded, color: Color(0xFFD97706), size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'cash_handover_instructions'.tr(),
+                  style: const TextStyle(
+                    color: Color(0xFF92400E),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'cash_handover_note'.tr(args: [totalAmount.toStringAsFixed(0), _effectiveWorkerName]),
+            style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, height: 1.4),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildDirectUpiDetailBox(PaymentGatewayConfig cfg, double totalAmount) {
+  Widget _buildDirectUpiDetailBox(double totalAmount) {
     return Container(
-      margin: const EdgeInsets.only(top: 10),
+      margin: const EdgeInsets.only(top: 6),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFF0FDF4),
@@ -492,11 +782,11 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 18),
+                    const Icon(Icons.person_pin_circle_rounded, color: Color(0xFF059669), size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SafeText(
-                        'sovereign_upi_active'.tr(),
+                        _effectiveWorkerName,
                         style: const TextStyle(
                           color: Color(0xFF065F46),
                           fontSize: 12.5,
@@ -512,7 +802,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               const SizedBox(width: 8),
               InkWell(
                 onTap: () {
-                  Clipboard.setData(ClipboardData(text: cfg.cooperativeUpiVpa));
+                  Clipboard.setData(ClipboardData(text: _artisanUpiId));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('vpa_copied_toast'.tr()),
@@ -521,7 +811,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                   );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(6),
@@ -533,8 +823,9 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                       const Icon(Icons.copy_rounded, color: Color(0xFF047857), size: 12),
                       const SizedBox(width: 4),
                       Text(
-                        cfg.cooperativeUpiVpa,
+                        _artisanUpiId,
                         style: const TextStyle(color: Color(0xFF047857), fontSize: 11, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -543,34 +834,49 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            'scan_upi_qr_sub'.tr(),
-            style: const TextStyle(color: Color(0xFF047857), fontSize: 11.5, fontWeight: FontWeight.w600),
+          // One-tap launch button
+          ElevatedButton.icon(
+            onPressed: () => _launchSelectedUpiApp(totalAmount),
+            icon: Icon(
+              _selectedMethod == "phonepe"
+                  ? Icons.account_balance_wallet_rounded
+                  : (_selectedMethod == "gpay" ? Icons.g_mobiledata_rounded : Icons.open_in_new_rounded),
+              size: 18,
+            ),
+            label: Text(
+              _selectedMethod == "phonepe"
+                  ? "Open PhonePe (₹${totalAmount.toStringAsFixed(0)})"
+                  : (_selectedMethod == "gpay"
+                      ? "Open Google Pay (₹${totalAmount.toStringAsFixed(0)})"
+                      : "Open Any UPI App (₹${totalAmount.toStringAsFixed(0)})"),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _selectedMethod == "phonepe"
+                  ? const Color(0xFF6739B7)
+                  : (_selectedMethod == "gpay" ? const Color(0xFF1A73E8) : const Color(0xFF059669)),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
           const SizedBox(height: 10),
-          // App Quick Launchers
-          Row(
-            children: [
-              _buildAppTile("GPay", const Color(0xFF4285F4), cfg, totalAmount),
-              const SizedBox(width: 8),
-              _buildAppTile("PhonePe", const Color(0xFF6739B7), cfg, totalAmount),
-              const SizedBox(width: 8),
-              _buildAppTile("Paytm", const Color(0xFF002E6E), cfg, totalAmount),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => setState(() => _showQrCode = !_showQrCode),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF047857),
-                    side: const BorderSide(color: Color(0xFF059669)),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  icon: Icon(_showQrCode ? Icons.expand_less : Icons.qr_code, size: 14),
-                  label: Text(_showQrCode ? "Hide QR" : "QR Code", style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
+          // Toggle QR Code Button
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _showQrCode = !_showQrCode),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF047857),
+              side: const BorderSide(color: Color(0xFF059669)),
+              minimumSize: const Size(double.infinity, 38),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: Icon(_showQrCode ? Icons.expand_less : Icons.qr_code_2_rounded, size: 16),
+            label: Text(
+              _showQrCode ? "Hide Artisan UPI QR Code" : "Show Artisan UPI QR Code",
+              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           if (_showQrCode) ...[
             const SizedBox(height: 14),
@@ -585,7 +891,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                 child: Column(
                   children: [
                     Image.network(
-                      "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${Uri.encodeComponent("upi://pay?pa=${cfg.cooperativeUpiVpa}&pn=${Uri.encodeComponent(cfg.cooperativePayeeName)}&am=${totalAmount.toStringAsFixed(2)}&cu=INR&tn=WorkGo")}",
+                      "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${Uri.encodeComponent("upi://pay?pa=$_artisanUpiId&pn=${Uri.encodeComponent(_effectiveWorkerName)}&am=${totalAmount.toStringAsFixed(2)}&cu=INR&tn=WorkGo")}",
                       width: 160,
                       height: 160,
                       errorBuilder: (_, __, ___) => Container(
@@ -597,8 +903,9 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "₹${totalAmount.toStringAsFixed(0)} · ${cfg.cooperativeUpiVpa}",
+                      "₹${totalAmount.toStringAsFixed(0)} · $_artisanUpiId",
                       style: const TextStyle(color: Color(0xFF0F172A), fontSize: 11, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -617,100 +924,6 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               fillColor: Colors.white,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF86EFAC))),
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAppTile(String name, Color color, PaymentGatewayConfig cfg, double totalAmount) {
-    return InkWell(
-      onTap: () async {
-        final upiUri = PaymentService.instance.generateUpiUri(
-          vpa: cfg.cooperativeUpiVpa,
-          payeeName: cfg.cooperativePayeeName,
-          amount: totalAmount,
-          note: "WorkGo ${widget.booking.id}",
-        );
-        await PaymentService.instance.launchUpiIntent(upiUri);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Text(
-          name,
-          style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCashHandoverDetailBox(double totalAmount) {
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.handshake_rounded, color: Color(0xFF10B981), size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Cash On Delivery Handshake",
-                  style: TextStyle(color: Color(0xFF065F46), fontSize: 12.5, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'cash_voucher_instruction'.tr(args: [totalAmount.toStringAsFixed(0)]),
-                  style: const TextStyle(color: Color(0xFF047857), fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSandboxDetailBox() {
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFED7AA)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.science_rounded, color: Color(0xFFEA580C), size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'demo_mode_active_badge'.tr(),
-                  style: const TextStyle(color: Color(0xFF9A3412), fontSize: 12.5, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  "Simulates instant bank settlement and generates an authentic C2PA invoice without actual charges.",
-                  style: TextStyle(color: Color(0xFFC2410C), fontSize: 11),
-                ),
-              ],
             ),
           ),
         ],
@@ -953,7 +1166,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
               ),
               const SizedBox(height: 14),
 
-              // Cooperative Worker Welfare Fund Callout
+              // Zero-Fee Direct P2P Settlement Callout
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
@@ -975,8 +1188,8 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: SafeText(
-                        'coop_welfare_contribution'.tr(args: [
-                          coopDividend.toStringAsFixed(1),
+                        'direct_settlement_note'.tr(args: [
+                          "₹${totalAmount.toStringAsFixed(0)}",
                           !Booking.isGenericArtisanName(_effectiveWorkerName)
                               ? _effectiveWorkerName
                               : MlTranslationService.instance.translateSync(

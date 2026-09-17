@@ -21,9 +21,9 @@ void main() {
       expect(config.activePrimaryProvider, PaymentProviderId.directUpi);
       expect(config.isLiveMode, false);
       expect(config.allowDirectUpiFallback, true);
-      expect(config.allowCashHandover, true);
-      expect(config.platformFeePercent, 5.0);
-      expect(config.welfareFundPercent, 2.0);
+      expect(config.allowCashHandover, false);
+      expect(config.platformFeePercent, 0.0);
+      expect(config.welfareFundPercent, 0.0);
       expect(config.cooperativeUpiVpa, "workgo@upi");
       expect(config.isProviderConfigured, true);
     });
@@ -119,6 +119,33 @@ void main() {
       expect(uri.queryParameters["cu"], "INR");
       expect(uri.queryParameters["tn"], "Booking #BK12345");
       expect(uri.queryParameters["tr"], "TXN98765");
+    });
+
+    test("PhonePe and GPay deep link generators produce dedicated intent schemes", () {
+      final phonePeUri = PaymentService.instance.generatePhonePeUri(
+        vpa: "artisan@ybl",
+        payeeName: "Ramesh Kumar",
+        amount: 500.0,
+        note: "WorkGo BK-999",
+      );
+      expect(phonePeUri.scheme, "phonepe");
+      expect(phonePeUri.host, "pay");
+      expect(phonePeUri.queryParameters["pa"], "artisan@ybl");
+      expect(phonePeUri.queryParameters["pn"], "Ramesh Kumar");
+      expect(phonePeUri.queryParameters["am"], "500.00");
+
+      final gPayUri = PaymentService.instance.generateGPayUri(
+        vpa: "artisan@okaxis",
+        payeeName: "Ramesh Kumar",
+        amount: 500.0,
+        note: "WorkGo BK-999",
+      );
+      expect(gPayUri.scheme, "tez");
+      expect(gPayUri.host, "upi");
+      expect(gPayUri.path, "/pay");
+      expect(gPayUri.queryParameters["pa"], "artisan@okaxis");
+      expect(gPayUri.queryParameters["pn"], "Ramesh Kumar");
+      expect(gPayUri.queryParameters["am"], "500.00");
     });
   });
 }

@@ -421,6 +421,13 @@ class Worker {
   /// In-app wallet balance (includes ₹150 Peer KYC bounties + job earnings)
   final double walletBalance;
 
+  /// Direct P2P settlement UPI handle (e.g. 'artisan@okaxis', '9876543210@ybl')
+  /// Used for zero-fee direct peer-to-peer customer payments.
+  final String? upiId;
+
+  /// Whether the artisan accepts direct Cash on Delivery (COD) / cash handover
+  final bool acceptsCash;
+
   Worker({
     required this.id,
     required this.userId,
@@ -473,7 +480,16 @@ class Worker {
     this.peerKycMitraId,
     this.callIvrStatus = 'idle',
     this.walletBalance = 0.0,
+    this.upiId,
+    this.acceptsCash = false,
   });
+
+  /// True if the worker has configured a valid UPI ID (containing '@')
+  bool get hasValidUpi =>
+      upiId != null && upiId!.trim().isNotEmpty && upiId!.contains('@');
+
+  /// True if the worker has configured at least one payment method (valid UPI or Cash on Delivery)
+  bool get canAcceptPayments => hasValidUpi || acceptsCash;
 
   bool get isTitan =>
       isCheckedIn && availabilityStatus == AvailabilityStatus.online;
@@ -835,6 +851,8 @@ class Worker {
       peerKycMitraId: d["peerKycMitraId"],
       callIvrStatus: d["callIvrStatus"] ?? 'idle',
       walletBalance: (d["walletBalance"] as num?)?.toDouble() ?? 0.0,
+      upiId: d["upiId"] as String?,
+      acceptsCash: d["acceptsCash"] ?? false,
     );
   }
 
@@ -891,6 +909,8 @@ class Worker {
         "peerKycMitraId": peerKycMitraId,
         "callIvrStatus": callIvrStatus,
         "walletBalance": walletBalance,
+        "upiId": upiId,
+        "acceptsCash": acceptsCash,
       };
 
   Worker copyWith({
@@ -944,6 +964,8 @@ class Worker {
     String? peerKycMitraId,
     String? callIvrStatus,
     double? walletBalance,
+    String? upiId,
+    bool? acceptsCash,
   }) {
     return Worker(
       id: id ?? this.id,
@@ -998,6 +1020,8 @@ class Worker {
       peerKycMitraId: peerKycMitraId ?? this.peerKycMitraId,
       callIvrStatus: callIvrStatus ?? this.callIvrStatus,
       walletBalance: walletBalance ?? this.walletBalance,
+      upiId: upiId ?? this.upiId,
+      acceptsCash: acceptsCash ?? this.acceptsCash,
     );
   }
 }

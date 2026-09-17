@@ -82,6 +82,20 @@ class Booking {
   /// Phone number of the dial worker assigned to this booking (for direct customer call-through)
   final String? dialWorkerPhone;
 
+  // ── Sovereign Direct P2P Payment Dual-Ack Fields ─────────────────────────
+  /// True when customer confirms having transferred payment via UPI
+  final bool customerPaidAck;
+  /// Timestamp when customer tapped 'I Have Paid'
+  final DateTime? customerPaidAt;
+  /// Customer entered UTR or UPI transaction reference
+  final String? customerUpiRef;
+  /// True when artisan confirms having received the amount in their UPI account
+  final bool workerReceivedAck;
+  /// Timestamp when artisan tapped 'Confirm Payment Received'
+  final DateTime? workerReceivedAt;
+  /// Active payment method/app (e.g. 'UPI', 'PhonePe', 'GPay')
+  final String? paymentMethod;
+
   Booking({
     this.fareBreakdown,
     required this.id,
@@ -148,6 +162,12 @@ class Booking {
     this.isAssignedToDialWorker = false,
     this.dialCallStatus = 'none',
     this.dialWorkerPhone,
+    this.customerPaidAck = false,
+    this.customerPaidAt,
+    this.customerUpiRef,
+    this.workerReceivedAck = false,
+    this.workerReceivedAt,
+    this.paymentMethod = 'UPI',
   });
 
   /// Real-time geodesic Haversine distance in kilometers from customer pickup location to target coordinates.
@@ -180,6 +200,11 @@ class Booking {
       c2paManifest != null ? C2paManifestRecord.fromMap(c2paManifest!) : null;
   FareBreakdown? get parsedFareBreakdown =>
       fareBreakdown != null ? FareBreakdown.fromMap(fareBreakdown!) : null;
+
+  /// Payment dual-acknowledgment status helpers
+  bool get isFullyAcknowledged => customerPaidAck && workerReceivedAck;
+  bool get isCustomerPaid => customerPaidAck || paymentStatus == PaymentStatus.paid;
+  bool get isWorkerReceived => workerReceivedAck;
 
   /// Returns true if [name] is a generic role/title or placeholder rather than an artisan's authentic personal name.
   static bool isGenericArtisanName(String? name) {
@@ -281,6 +306,12 @@ class Booking {
       isAssignedToDialWorker: d["isAssignedToDialWorker"] ?? false,
       dialCallStatus: d["dialCallStatus"] ?? 'none',
       dialWorkerPhone: d["dialWorkerPhone"],
+      customerPaidAck: d["customerPaidAck"] ?? false,
+      customerPaidAt: (d["customerPaidAt"] as Timestamp?)?.toDate(),
+      customerUpiRef: d["customerUpiRef"] ?? d["paymentReference"],
+      workerReceivedAck: d["workerReceivedAck"] ?? false,
+      workerReceivedAt: (d["workerReceivedAt"] as Timestamp?)?.toDate(),
+      paymentMethod: d["paymentMethod"] ?? 'UPI',
     );
   }
 
@@ -349,6 +380,12 @@ class Booking {
     "isAssignedToDialWorker": isAssignedToDialWorker,
     "dialCallStatus": dialCallStatus,
     "dialWorkerPhone": dialWorkerPhone,
+    "customerPaidAck": customerPaidAck,
+    "customerPaidAt": customerPaidAt != null ? Timestamp.fromDate(customerPaidAt!) : null,
+    "customerUpiRef": customerUpiRef,
+    "workerReceivedAck": workerReceivedAck,
+    "workerReceivedAt": workerReceivedAt != null ? Timestamp.fromDate(workerReceivedAt!) : null,
+    "paymentMethod": paymentMethod,
   };
 
   Booking copyWith({
@@ -414,6 +451,12 @@ class Booking {
     List<String>? reviewTags,
     DateTime? ratedAt,
     Map<String, dynamic>? fareBreakdown,
+    bool? customerPaidAck,
+    DateTime? customerPaidAt,
+    String? customerUpiRef,
+    bool? workerReceivedAck,
+    DateTime? workerReceivedAt,
+    String? paymentMethod,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -478,6 +521,12 @@ class Booking {
       reviewTags: reviewTags ?? this.reviewTags,
       ratedAt: ratedAt ?? this.ratedAt,
       fareBreakdown: fareBreakdown ?? this.fareBreakdown,
+      customerPaidAck: customerPaidAck ?? this.customerPaidAck,
+      customerPaidAt: customerPaidAt ?? this.customerPaidAt,
+      customerUpiRef: customerUpiRef ?? this.customerUpiRef,
+      workerReceivedAck: workerReceivedAck ?? this.workerReceivedAck,
+      workerReceivedAt: workerReceivedAt ?? this.workerReceivedAt,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 }

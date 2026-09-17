@@ -12,6 +12,7 @@ import 'worker_profile_setup_screen.dart';
 import 'worker_welfare_screen.dart';
 import 'daily_face_verification_screen.dart';
 import '../widgets/artisan_keyword_uplift_widget.dart';
+import 'refer_dial_member_screen.dart';
 
 class WorkerProfileDetailScreen extends StatefulWidget {
   const WorkerProfileDetailScreen({
@@ -135,9 +136,353 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
     }
   }
 
-  void _showReferPeerDialog() {
+  void _showDialKaryaGateway() {
     HapticFeedback.lightImpact();
-    showPeerReferralNetworkSheet(context, worker: widget.worker);
+    showDialKaryaGatewaySheet(
+      context,
+      worker: widget.worker,
+      onInitiatePeerKyc: (dialWorker) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ReferDialMemberScreen(
+              mitraWorker: widget.worker,
+              dialWorkerId: dialWorker['id'] ?? '',
+              dialWorkerName: dialWorker['name'] ?? 'Dial Worker',
+              dialWorkerPhone: dialWorker['phone'] ?? '',
+              dialWorkerTrade: dialWorker['trade'] ?? 'General',
+              dialWorkerLocation: [
+                dialWorker['locationText'] ?? '',
+                if ((dialWorker['pincode'] ?? '').toString().isNotEmpty) dialWorker['pincode'],
+              ].where((s) => s.toString().isNotEmpty).join(' • '),
+              dialWorkerTradeDescription: dialWorker['tradeDescription'],
+              backendBaseUrl: 'https://workgo-api.onrender.com',
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditUpiDialog(BuildContext context, Worker worker) {
+    final controller = TextEditingController(text: worker.upiId ?? "");
+    String? errorText;
+    bool isSaving = false;
+    bool acceptsCash = worker.acceptsCash;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+            return Container(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
+              decoration: const BoxDecoration(
+                color: KX.canvasCard,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4.5,
+                      decoration: BoxDecoration(
+                        color: KX.borderMuted,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          color: Color(0xFFD97706),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'upi_settlement_title'.trSafe("Direct Settlement UPI Code"),
+                              style: const TextStyle(
+                                color: KX.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'upi_settlement_sub'.trSafe("100% P2P Earnings · Zero Commission"),
+                              style: const TextStyle(
+                                color: KX.textSecondary,
+                                fontSize: 11.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(
+                      color: KX.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'enter_upi_id_label'.trSafe("UPI ID (Google Pay, PhonePe, Paytm)"),
+                      hintText: "e.g. name@okhdfcbank or 9876543210@ybl",
+                      errorText: errorText,
+                      filled: true,
+                      fillColor: Colors.white,
+                      prefixIcon: const Icon(Icons.alternate_email_rounded, color: KX.gold),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: KX.borderMuted),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: KX.gold, width: 1.6),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: ["@okaxis", "@okhdfcbank", "@ybl", "@paytm", "@upi"].map((handle) {
+                      return InkWell(
+                        onTap: () {
+                          final current = controller.text.split('@').first;
+                          if (current.isNotEmpty) {
+                            controller.text = "$current$handle";
+                          } else {
+                            controller.text = handle;
+                          }
+                          controller.selection = TextSelection.fromPosition(
+                            TextPosition(offset: controller.text.length),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Text(
+                            handle,
+                            style: const TextStyle(
+                              color: Color(0xFF475569),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // ── OR Divider ─────────────────────────────────────────
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          'or_divider'.trSafe("OR"),
+                          style: const TextStyle(
+                            color: KX.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Cash on Delivery Option Toggle ─────────────────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: acceptsCash ? const Color(0xFFECFDF5) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: acceptsCash ? const Color(0xFF10B981) : KX.borderMuted,
+                        width: acceptsCash ? 1.6 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: acceptsCash
+                                ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                : Colors.grey.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.payments_rounded,
+                            color: acceptsCash ? const Color(0xFF059669) : Colors.grey,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'accept_cod_title'.trSafe("Accept Cash on Delivery"),
+                                style: const TextStyle(
+                                  color: KX.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'accept_cod_sub'.trSafe("Customers can hand over physical cash directly upon completion"),
+                                style: const TextStyle(
+                                  color: KX.textSecondary,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: acceptsCash,
+                          activeTrackColor: const Color(0xFF10B981),
+                          onChanged: (val) {
+                            setSheetState(() {
+                              acceptsCash = val;
+                              errorText = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                          ),
+                          child: Text(
+                            'cancel'.trSafe("Cancel"),
+                            style: const TextStyle(color: KX.textSecondary, fontWeight: FontWeight.w700),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isSaving
+                              ? null
+                              : () async {
+                                  final text = controller.text.trim();
+                                  final hasUpi = text.contains('@') && text.length >= 5;
+                                  if (!hasUpi && !acceptsCash) {
+                                    setSheetState(() {
+                                      errorText = 'select_payment_mode_error'.trSafe('Please enter a valid UPI ID or enable Cash on Delivery');
+                                    });
+                                    return;
+                                  }
+                                  setSheetState(() => isSaving = true);
+                                  try {
+                                    await WorkerService().updateWorkerPaymentPreferences(
+                                      workerId: worker.id,
+                                      upiId: hasUpi ? text : (worker.upiId ?? ""),
+                                      acceptsCash: acceptsCash,
+                                    );
+                                    if (mounted) setState(() {});
+                                    if (sheetContext.mounted) {
+                                      Navigator.of(sheetContext).pop();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('payment_prefs_saved'.trSafe("Payment preferences updated successfully!")),
+                                          backgroundColor: const Color(0xFF10B981),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    setSheetState(() {
+                                      isSaving = false;
+                                      errorText = "Error: $e";
+                                    });
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                          child: isSaving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : Text(
+                                  'save_btn'.trSafe("Save"),
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showEditNameDialog(BuildContext context, Worker worker, String currentName) {
@@ -730,9 +1075,9 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
                 ),
                 const SizedBox(width: 14),
                 _buildCircularAction(
-                  icon: Icons.person_add_alt_1_rounded,
-                  label: 'refer_btn'.trSafe("Refer"),
-                  onTap: _showReferPeerDialog,
+                  icon: Icons.settings_phone_rounded,
+                  label: 'dial_karya_btn'.trSafe("Dial Karya"),
+                  onTap: _showDialKaryaGateway,
                 ),
               ],
             ),
@@ -1197,10 +1542,23 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
           ),
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(
-            icon: Icons.people_alt_rounded,
-            title: 'peer_network_title'.trSafe("Peer Referral Network"),
-            subtitle: "2% ${'bonus_tag'.trSafe('Bonus')} · ${worker.referralCount} ${'peers_referred_label'.trSafe('Referred')}",
-            onTap: _showReferPeerDialog,
+            icon: Icons.settings_phone_rounded,
+            title: 'dial_karya_gateway_title'.trSafe("Dial Karya Voice Gateway"),
+            subtitle: 'dial_karya_gateway_sub'.trSafe("Telephony Gateway & Peer KYC Station"),
+            onTap: _showDialKaryaGateway,
+          ),
+          const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
+          _buildMenuItem(
+            icon: Icons.account_balance_wallet_rounded,
+            title: 'payment_modes_title'.trSafe("Payment Modes & Settlement"),
+            subtitle: worker.hasValidUpi && worker.acceptsCash
+                ? "${worker.upiId!} · ${'cash_enabled_short'.trSafe('Cash Accepted')}"
+                : (worker.hasValidUpi
+                    ? "${worker.upiId!} · ${'upi_only_short'.trSafe('UPI Only')}"
+                    : (worker.acceptsCash
+                        ? 'cash_only_short'.trSafe("Cash on Delivery Only")
+                        : 'upi_not_configured'.trSafe("Configure UPI or Cash"))),
+            onTap: () => _showEditUpiDialog(context, worker),
           ),
           const Divider(height: 1, color: Color(0xFFF0EDE6), indent: 56),
           _buildMenuItem(

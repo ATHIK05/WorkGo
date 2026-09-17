@@ -39,6 +39,11 @@ class _AdminDialKaryaScreenState extends State<AdminDialKaryaScreen> {
             'trade': (data['skills'] as List?)?.firstOrNull?.toString() ??
                 data['trade'] ??
                 'General',
+            'tradeDescription': data['tradeDescription'] ?? '',
+            'locationText': data['locationText'] ??
+                ((data['preferredAreas'] as List?)?.firstOrNull?.toString()) ??
+                '',
+            'pincode': data['pincode'] ?? '',
             'status': data['verificationStatus'] ?? 'pending',
             'stage': data['verificationStage'] ?? 'signup',
             'callStatus': data['callIvrStatus'] ?? 'idle',
@@ -71,7 +76,10 @@ class _AdminDialKaryaScreenState extends State<AdminDialKaryaScreen> {
           final matchesSearch = _searchQuery.isEmpty ||
               w['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
               w['phone'].toString().contains(_searchQuery) ||
-              w['trade'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+              w['trade'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              w['tradeDescription'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              w['locationText'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              w['pincode'].toString().contains(_searchQuery);
 
           final isVerified = w['status'] == 'approved' ||
               w['status'] == 'verified' ||
@@ -543,15 +551,16 @@ class _AdminDialKaryaScreenState extends State<AdminDialKaryaScreen> {
         borderRadius: BorderRadius.circular(20),
         child: DataTable(
           horizontalMargin: 20,
-          columnSpacing: 24,
+          columnSpacing: 20,
           headingRowHeight: 48,
-          dataRowMinHeight: 56,
-          dataRowMaxHeight: 64,
+          dataRowMinHeight: 64,
+          dataRowMaxHeight: 76,
           headingRowColor: WidgetStateProperty.all(const Color(0xFFFAF9F6)),
           columns: const [
             DataColumn(label: Text("Artisan Name", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
             DataColumn(label: Text("Phone Number", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
             DataColumn(label: Text("Trade / Skill", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
+            DataColumn(label: Text("Location / Address", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
             DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
             DataColumn(label: Text("Call State", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
             DataColumn(label: Text("Language", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
@@ -591,16 +600,75 @@ class _AdminDialKaryaScreenState extends State<AdminDialKaryaScreen> {
                   ),
                 ),
                 DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      w['trade'],
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          w['trade'].toString().toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10.5,
+                            color: Color(0xFF334155),
+                          ),
+                        ),
+                      ),
+                      if ((w['tradeDescription'] ?? '').toString().isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 240),
+                          child: Text(
+                            w['tradeDescription'],
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                DataCell(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.location_on_rounded, size: 13, color: Color(0xFFD97706)),
+                          const SizedBox(width: 4),
+                          Text(
+                            (w['locationText'] ?? '').toString().isNotEmpty
+                                ? w['locationText']
+                                : '—',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      if ((w['pincode'] ?? '').toString().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 17, top: 1),
+                          child: Text(
+                            w['pincode'],
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              color: Color(0xFF94A3B8),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 DataCell(

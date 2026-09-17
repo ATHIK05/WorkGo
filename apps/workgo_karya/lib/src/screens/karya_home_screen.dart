@@ -251,7 +251,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         stepNumber: "4",
         title: 'spotlight_title_4'.trSafe('4. Tactical Action Matrix'),
         description: 'spotlight_desc_4'.trSafe(
-          'Quick access to government Aadhaar & Video KYC, ₹2L welfare cover, and peer referral network.',
+          'Quick access to government Aadhaar & Video KYC, ₹2L welfare cover, and Dial Karya Voice Gateway & Peer KYC.',
         ),
         badgeText: 'spotlight_badge_action_matrix'.trSafe('ACTION MATRIX'),
         icon: Icons.grid_view_rounded,
@@ -492,6 +492,31 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         return;
       }
 
+      // Mandatory Payment Mode Check before going live (UPI or Cash on Delivery)
+      if (!worker.canAcceptPayments) {
+        HapticFeedback.heavyImpact();
+        final success = await _showUpiRequiredModal(context, worker);
+        if (success != true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'payment_method_required_snack'.trSafe(
+                    'Please configure a UPI code or enable Cash on Delivery before going live.',
+                  ),
+                ),
+                backgroundColor: const Color(0xFFDC2626),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       // 1. Native Biometric Fingerprint/Face ID verification prompt
       final authenticated = await BiometricService().authenticate(
         reason:
@@ -665,6 +690,383 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     } else {
       KaryaTtsService.instance.announceOffline();
     }
+  }
+
+  void _openDialKaryaHub(BuildContext context, Worker worker) {
+    showDialKaryaGatewaySheet(
+      context,
+      worker: worker,
+      onInitiatePeerKyc: (dialWorker) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ReferDialMemberScreen(
+              mitraWorker: worker,
+              dialWorkerId: dialWorker['id'] ?? '',
+              dialWorkerName: dialWorker['name'] ?? 'Dial Worker',
+              dialWorkerPhone: dialWorker['phone'] ?? '',
+              dialWorkerTrade: dialWorker['trade'] ?? 'General',
+              dialWorkerLocation: [
+                dialWorker['locationText'] ?? '',
+                if ((dialWorker['pincode'] ?? '').toString().isNotEmpty) dialWorker['pincode'],
+              ].where((s) => s.toString().isNotEmpty).join(' • '),
+              dialWorkerTradeDescription: dialWorker['tradeDescription'],
+              backendBaseUrl: 'https://workgo-api.onrender.com',
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool?> _showUpiRequiredModal(BuildContext context, Worker worker) async {
+    final upiCtrl = TextEditingController(text: worker.upiId ?? "");
+    String? errorText;
+    bool isSaving = false;
+    bool acceptsCash = worker.acceptsCash;
+
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (sheetContext, setModalState) {
+          final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
+          return Container(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
+            decoration: const BoxDecoration(
+              color: KX.canvasCard,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4.5,
+                      decoration: BoxDecoration(
+                        color: KX.borderMuted,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          color: Color(0xFFD97706),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'payment_setup_title'.trSafe("Choose How You Get Paid"),
+                              style: GoogleFonts.plusJakartaSans(
+                                color: KX.textPrimary,
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'payment_setup_sub'.trSafe("100% Direct P2P Earnings · Zero Commission"),
+                              style: GoogleFonts.plusJakartaSans(
+                                color: KX.textSecondary,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline_rounded, color: Color(0xFFB45309), size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'upi_setup_explanation'.trSafe(
+                              "WorkGo operates on a 100% direct payment model. Customers pay you directly via PhonePe, Google Pay, or Cash on Delivery with zero platform fees.",
+                            ),
+                            style: GoogleFonts.plusJakartaSans(
+                              color: const Color(0xFF92400E),
+                              fontSize: 11.5,
+                              height: 1.35,
+                            ),
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: upiCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: KX.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'enter_upi_id_label'.trSafe("UPI ID (Google Pay, PhonePe, Paytm)"),
+                      hintText: "e.g. yourname@okhdfcbank or 9876543210@ybl",
+                      errorText: errorText,
+                      filled: true,
+                      fillColor: Colors.white,
+                      prefixIcon: const Icon(Icons.alternate_email_rounded, color: KX.gold),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: KX.borderMuted),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: KX.gold, width: 1.6),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: ["@okaxis", "@okhdfcbank", "@ybl", "@paytm", "@upi"].map((handle) {
+                      return InkWell(
+                        onTap: () {
+                          final current = upiCtrl.text.split('@').first;
+                          if (current.isNotEmpty) {
+                            upiCtrl.text = "$current$handle";
+                          } else {
+                            upiCtrl.text = handle;
+                          }
+                          upiCtrl.selection = TextSelection.fromPosition(
+                            TextPosition(offset: upiCtrl.text.length),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Text(
+                            handle,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: const Color(0xFF475569),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // ── OR Divider ─────────────────────────────────────────
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          'or_divider'.trSafe("OR"),
+                          style: GoogleFonts.plusJakartaSans(
+                            color: KX.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Cash on Delivery Option Toggle ─────────────────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: acceptsCash ? const Color(0xFFECFDF5) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: acceptsCash ? const Color(0xFF10B981) : KX.borderMuted,
+                        width: acceptsCash ? 1.6 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: acceptsCash
+                                ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                : Colors.grey.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.payments_rounded,
+                            color: acceptsCash ? const Color(0xFF059669) : Colors.grey,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'accept_cod_title'.trSafe("Accept Cash on Delivery"),
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: KX.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'accept_cod_sub'.trSafe("Customers can hand over physical cash directly upon completion"),
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: KX.textSecondary,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: acceptsCash,
+                          activeTrackColor: const Color(0xFF10B981),
+                          onChanged: (val) {
+                            setModalState(() {
+                              acceptsCash = val;
+                              errorText = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(sheetContext).pop(null),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                          ),
+                          child: Text(
+                            'cancel'.trSafe("Cancel"),
+                            style: GoogleFonts.plusJakartaSans(
+                              color: KX.textSecondary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isSaving
+                              ? null
+                              : () async {
+                                  final text = upiCtrl.text.trim();
+                                  final hasUpi = text.contains('@') && text.length >= 5;
+                                  if (!hasUpi && !acceptsCash) {
+                                    setModalState(() {
+                                      errorText = 'select_payment_mode_error'.trSafe('Please enter a valid UPI ID or enable Cash on Delivery');
+                                    });
+                                    return;
+                                  }
+                                  setModalState(() => isSaving = true);
+                                  try {
+                                    await _workerService.updateWorkerPaymentPreferences(
+                                      workerId: worker.id,
+                                      upiId: hasUpi ? text : (worker.upiId ?? ""),
+                                      acceptsCash: acceptsCash,
+                                    );
+                                    if (sheetContext.mounted) {
+                                      Navigator.of(sheetContext).pop(true);
+                                    }
+                                  } catch (e) {
+                                    setModalState(() {
+                                      isSaving = false;
+                                      errorText = "Failed to save: $e";
+                                    });
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                          child: isSaving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : Text(
+                                  'save_payment_pref_btn'.trSafe("Save & Go Live"),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showVerificationRequiredModal(BuildContext context, Worker worker) {
@@ -926,9 +1328,13 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       dialWorkerName: name,
                       dialWorkerPhone: phone,
                       dialWorkerTrade: trade,
+                      dialWorkerLocation: (data['locationText'] as String?)?.isNotEmpty == true
+                          ? (data['locationText'] as String)
+                          : areas,
+                      dialWorkerTradeDescription: data['tradeDescription'] as String?,
                       backendBaseUrl: const String.fromEnvironment(
                         'BACKEND_BASE_URL',
-                        defaultValue: 'https://workgo-backend.onrender.com',
+                        defaultValue: 'https://workgo-api.onrender.com',
                       ),
                     ),
                   ),
@@ -2091,41 +2497,41 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                 child: WorkGoAvatar(
                   avatarBase64: avatar,
                   name: name,
-                  radius: 20,
+                  radius: 19,
                 ),
               );
             },
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
 
         // Greeting & Subtitle
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'greeting_hello'.trSafe('Hello, {}', [name]),
-                  style: GoogleFonts.plusJakartaSans(
-                    color: KX.textPrimary,
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
-                  ),
-                  maxLines: 1,
+              Text(
+                'greeting_hello'.trSafe('Hello, {}', [name]),
+                style: GoogleFonts.plusJakartaSans(
+                  color: KX.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 1),
               Text(
                 dateStr,
                 style: GoogleFonts.plusJakartaSans(
                   color: KX.textSecondary,
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -2133,7 +2539,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
         // Compact Language Switcher
         _buildCompactLangPill(context),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
 
         // Titan Shift / Online Toggle Pill Button
         KeyedSubtree(
@@ -2142,7 +2548,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             onTap: () => _toggleAvailability(worker),
             child: AnimatedContainer(
               duration: KAnim.fast,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
               decoration: BoxDecoration(
                 color: isOnline ? KX.dockBlack : Colors.white,
                 borderRadius: BorderRadius.circular(999),
@@ -2171,13 +2577,20 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           : const Color(0xFF9CA3AF),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    isOnline ? "Online" : "Offline",
-                    style: GoogleFonts.plusJakartaSans(
-                      color: isOnline ? Colors.white : KX.textPrimary,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
+                  const SizedBox(width: 5),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 68),
+                    child: Text(
+                      isOnline
+                          ? 'online_ready'.trSafe("Online")
+                          : 'offline_status'.trSafe("Offline"),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: isOnline ? Colors.white : KX.textPrimary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -2233,7 +2646,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
       }).toList(),
 
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(999),
@@ -2252,14 +2665,14 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             const Icon(
               Icons.language_rounded,
               color: Color(0xFF8E8E93),
-              size: 14,
+              size: 13,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 3),
             Text(
               currentCode.toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
                 color: KX.textPrimary,
-                fontSize: 10.5,
+                fontSize: 10,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -2374,6 +2787,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -2383,6 +2798,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 14),
                     Wrap(
@@ -2415,6 +2832,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (isToday && selectedDayEarnings > 0)
@@ -2443,12 +2862,14 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                 ),
                                 const SizedBox(width: 2),
                                 Text(
-                                  "₹${(selectedDayEarnings / (DateTime.now().hour - 8).clamp(1, 10)).round()}/hr ${'earnings_velocity_label'.tr()}",
+                                  "₹${(selectedDayEarnings / (DateTime.now().hour - 8).clamp(1, 10)).round()}/hr ${'earnings_velocity_label'.trSafe('pace')}",
                                   style: const TextStyle(
                                     color: Color(0xFF047857),
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -2597,6 +3018,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -2879,13 +3302,17 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'your_plan_header'.trSafe("Your plan · {}", [planDateLabel]),
-                  style: GoogleFonts.plusJakartaSans(
-                    color: KX.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
+                Expanded(
+                  child: Text(
+                    'your_plan_header'.trSafe("Your plan · {}", [planDateLabel]),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: KX.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (hasRequest && isToday)
@@ -2956,6 +3383,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(height: 14),
@@ -2982,6 +3411,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
 
@@ -3138,21 +3569,25 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   color: KX.dockBlack,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.flash_on_rounded,
                                       color: KX.gold,
                                       size: 14,
                                     ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      "Accept Job",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w800,
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        'accept_job_btn'.trSafe("Accept Job"),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
@@ -3190,6 +3625,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                           fontSize: 10.5,
                                           fontWeight: FontWeight.w800,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       Text(
                                         'ready_for_jobs_label'.trSafe(
@@ -3199,6 +3636,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                           color: const Color(0xFF78350F),
                                           fontSize: 9.5,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ],
                                   ),
@@ -3272,7 +3711,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                         child: Text(
                                           hasRequest
                                               ? "${requests.length} LIVE"
-                                              : "Radar",
+                                              : 'radar_label'.trSafe("Radar"),
                                           style: GoogleFonts.plusJakartaSans(
                                             color: hasRequest
                                                 ? Colors.white
@@ -3280,6 +3719,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                             fontSize: 9.5,
                                             fontWeight: FontWeight.w800,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                       RotationTransition(
@@ -3366,11 +3807,12 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                     _showSosBeaconSheet(context, worker),
                               ),
                               _quickActionIconCircle(
-                                icon: Icons.groups_rounded,
-                                color: const Color(0xFF9D174D),
-                                onTap: () => showPeerReferralNetworkSheet(
+                                icon: Icons.settings_phone_rounded,
+                                color: const Color(0xFFB45309),
+                                tooltip: 'dial_karya_btn'.trSafe('Dial Karya'),
+                                onTap: () => _openDialKaryaHub(
                                   context,
-                                  worker: worker,
+                                  worker,
                                 ),
                               ),
                             ],
@@ -3392,8 +3834,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    String? tooltip,
   }) {
-    return GestureDetector(
+    final circle = GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();
@@ -3415,6 +3858,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         child: Icon(icon, color: color, size: 16),
       ),
     );
+
+    if (tooltip != null && tooltip.isNotEmpty) {
+      return Tooltip(message: tooltip, child: circle);
+    }
+    return circle;
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -3684,6 +4132,122 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       ),
                     ),
                   ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Dial Karya Telephony Gateway & Peer KYC Station Card
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _openDialKaryaHub(context, worker);
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFFBEB), Colors.white],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x08000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                  ),
+                  child: const Icon(
+                    Icons.settings_phone_rounded,
+                    color: Color(0xFFB45309),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'dial_karya_gateway_title'.trSafe("Dial Karya Voice Gateway"),
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFF141416),
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF16A34A),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  "EXT 1000",
+                                  style: TextStyle(
+                                    color: Color(0xFF15803D),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'dial_karya_gateway_sub'.trSafe("Telephony Gateway & Peer KYC Station"),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF78350F),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Color(0xFFB45309),
                 ),
               ],
             ),
@@ -3982,18 +4546,16 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           ),
                           const SizedBox(width: 6),
                           Flexible(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                'enter_start_otp_btn'.trSafe("OTP மூலம் சரிபார்க்கவும்"),
-                                style: const TextStyle(
-                                  color: Color(0xFF0F172A),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.1,
-                                ),
-                                maxLines: 1,
+                            child: Text(
+                              'enter_start_otp_btn'.trSafe("OTP மூலம் சரிபார்க்கவும்"),
+                              style: const TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.1,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

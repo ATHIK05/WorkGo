@@ -25,6 +25,7 @@ class KX {
   static const Color canvasMid = Color(0xFFFFF8EE);    // Mid surface
   static const Color canvasElevated = Color(0xFFFFF3D6); // Accent tint panel
   static const Color dividerLight = Color(0xFFF0EDE6);   // Subtle divider
+  static const Color borderMuted = Color(0xFFE5E2DA);   // Muted border outline
 
   // Primary — Amber Yellow (replaces violet/purple)
   static const Color purpleDeep = Color(0xFFE8A500);   // Pressed amber
@@ -268,19 +269,16 @@ class KaryaAppBar extends StatelessWidget implements PreferredSizeWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              title,
-              style: WorkGoFonts.display(
-                color: KX.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.3,
-              ),
-              maxLines: 1,
+          Text(
+            title,
+            style: WorkGoFonts.display(
+              color: KX.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 1),

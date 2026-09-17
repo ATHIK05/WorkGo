@@ -606,8 +606,14 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
     }
   }
 
-  Future<void> _showConfirmCashModal(Booking booking) async {
+  Future<void> _showConfirmPaymentReceivedModal(Booking booking) async {
     if (!mounted) return;
+    final isCash = booking.paymentMethod == 'CASH' ||
+        booking.customerUpiRef == 'CASH' ||
+        (!widget.worker.hasValidUpi && widget.worker.acceptsCash);
+    final artisanUpi = widget.worker.upiId?.trim().isNotEmpty == true
+        ? widget.worker.upiId!.trim()
+        : "Direct UPI";
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.white,
@@ -641,7 +647,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                         color: const Color(0xFFECFDF5),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.payments_rounded, color: Color(0xFF059669), size: 24),
+                      child: const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 24),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -649,20 +655,31 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "confirm_cash_modal_title".tr(),
+                            isCash
+                                ? 'confirm_cash_received_btn'.trSafe("Confirm Cash Received (₹{})", [booking.totalAmount.toStringAsFixed(0)])
+                                : "confirm_payment_received_modal_title".tr(),
                             style: WorkGoFonts.display(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
                               color: const Color(0xFF141416),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            "confirm_cash_modal_desc".tr(args: [booking.totalAmount.toStringAsFixed(0)]),
+                            isCash
+                                ? 'cash_handover_note'.trSafe("Have you verified that ₹{} in physical cash was handed over to you directly?", [booking.totalAmount.toStringAsFixed(0), "the customer"])
+                                : "confirm_payment_received_modal_desc".tr(args: [
+                                    booking.totalAmount.toStringAsFixed(0),
+                                    artisanUpi,
+                                  ]),
                             style: WorkGoFonts.body(
-                              fontSize: 13,
+                              fontSize: 12.5,
                               color: const Color(0xFF6B7280),
                             ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -687,6 +704,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF4B5563),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
@@ -701,12 +720,14 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                         child: Text(
-                          "confirm_cash_received".tr(),
+                          "confirm_payment_received_btn".tr(args: [booking.totalAmount.toStringAsFixed(0)]),
                           style: WorkGoFonts.display(
-                            fontSize: 14,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
@@ -721,10 +742,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
 
     if (confirmed == true && mounted) {
       try {
-        await _bookingService.markPaymentComplete(
-          booking.id,
-          paymentMethod: "cash",
-        );
+        await _bookingService.acknowledgeWorkerReceived(booking.id);
         HapticFeedback.heavyImpact();
         if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -735,8 +753,10 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "cash_payment_received_snack".tr(),
+                      "payment_received_success_snack".tr(args: [booking.totalAmount.toStringAsFixed(0)]),
                       style: WorkGoFonts.body(color: Colors.white),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -751,13 +771,17 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("${'error_confirming_cash'.trSafe('Error confirming cash')}: $e"),
+              content: Text("${'error_confirming_payment'.trSafe('Error confirming payment')}: $e"),
               backgroundColor: Colors.redAccent,
             ),
           );
         }
       }
     }
+  }
+
+  Future<void> _showConfirmCashModal(Booking booking) async {
+    await _showConfirmPaymentReceivedModal(booking);
   }
 
   @override
@@ -881,7 +905,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                       delay: const Duration(milliseconds: 20),
                       child: _AwaitingPaymentCard(
                         booking: currentBooking,
-                        onConfirmCash: () => _showConfirmCashModal(currentBooking),
+                        worker: widget.worker,
+                        onConfirmPaymentReceived: () => _showConfirmPaymentReceivedModal(currentBooking),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -1327,44 +1352,55 @@ class _StatusStageBar extends StatelessWidget {
 // ──────────────────────────────────────────────────────────────
 //  AWAITING CUSTOMER PAYMENT CARD (When paymentPending)
 // ──────────────────────────────────────────────────────────────
-class _AwaitingPaymentCard extends StatelessWidget {
+class _AwaitingPaymentCard extends StatefulWidget {
   const _AwaitingPaymentCard({
     required this.booking,
-    required this.onConfirmCash,
+    required this.worker,
+    required this.onConfirmPaymentReceived,
   });
 
   final Booking booking;
-  final VoidCallback onConfirmCash;
+  final Worker worker;
+  final VoidCallback onConfirmPaymentReceived;
+
+  @override
+  State<_AwaitingPaymentCard> createState() => _AwaitingPaymentCardState();
+}
+
+class _AwaitingPaymentCardState extends State<_AwaitingPaymentCard> {
+  bool _showQrCode = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final hasCustomerAck = widget.booking.isCustomerPaid || widget.booking.customerPaidAck == true;
+    final artisanUpi = (widget.worker.upiId ?? "").trim().isNotEmpty
+        ? widget.worker.upiId!.trim()
+        : "workgo.artisan@upi";
+    final totalAmtStr = widget.booking.totalAmount.toStringAsFixed(0);
+    final isCashMethod = widget.booking.paymentMethod == 'CASH' ||
+        widget.booking.customerUpiRef == 'CASH' ||
+        (!widget.worker.hasValidUpi && widget.worker.acceptsCash);
+
+    return KaryaCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: KX.canvasCard,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.6), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-            blurRadius: 14,
-            spreadRadius: 1,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      borderRadius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Header Status Row
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: hasCustomerAck ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFFD97706), size: 20),
+                child: Icon(
+                  hasCustomerAck ? Icons.verified_rounded : (isCashMethod ? Icons.payments_rounded : Icons.hourglass_top_rounded),
+                  color: hasCustomerAck ? const Color(0xFF059669) : const Color(0xFFD97706),
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1372,20 +1408,32 @@ class _AwaitingPaymentCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'awaiting_customer_payment'.tr(),
+                      hasCustomerAck
+                          ? (isCashMethod ? 'customer_cash_paid_title'.trSafe("Customer Confirmed Cash Handed Over") : 'customer_paid_verified_title'.tr())
+                          : (isCashMethod ? 'cash_payment_mode_label'.trSafe("Cash on Delivery · Direct Handover") : 'awaiting_customer_payment'.tr()),
                       style: WorkGoFonts.display(
                         color: KX.textPrimary,
-                        fontSize: 15,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w800,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'customer_paying_digital'.tr(),
+                      hasCustomerAck
+                          ? (isCashMethod
+                              ? 'cash_handover_instructions'.trSafe("Direct Cash Handover")
+                              : (widget.booking.customerUpiRef != null && widget.booking.customerUpiRef!.isNotEmpty
+                                  ? "${widget.booking.paymentMethod ?? 'UPI'} • UTR: ${widget.booking.customerUpiRef}"
+                                  : "${widget.booking.paymentMethod ?? 'UPI'} • Direct Transfer"))
+                          : (isCashMethod ? 'pay_via_cash_sub'.trSafe("Hand over physical cash directly to artisan") : 'customer_paying_digital'.tr()),
                       style: WorkGoFonts.body(
-                        color: KX.textSecondary,
-                        fontSize: 12,
+                        color: hasCustomerAck ? const Color(0xFF047857) : KX.textSecondary,
+                        fontSize: 11.5,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -1398,7 +1446,7 @@ class _AwaitingPaymentCard extends StatelessWidget {
                   border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
                 ),
                 child: Text(
-                  "₹${booking.totalAmount.toStringAsFixed(0)}",
+                  "₹$totalAmtStr",
                   style: WorkGoFonts.display(
                     color: const Color(0xFF047857),
                     fontSize: 16,
@@ -1408,17 +1456,128 @@ class _AwaitingPaymentCard extends StatelessWidget {
               ),
             ],
           ),
+
+          const SizedBox(height: 12),
+
+          // Settlement Details: Cash on Delivery or UPI Handle & QR Toggle
+          if (isCashMethod)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.payments_rounded, size: 16, color: Color(0xFFD97706)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'cash_payment_mode_label'.trSafe("Cash on Delivery · Direct Cash Handover"),
+                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.black12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.account_balance_rounded, size: 14, color: KX.textSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "${'upi_settlement_title'.tr()}: $artisanUpi",
+                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: KX.textPrimary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => setState(() => _showQrCode = !_showQrCode),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_showQrCode ? Icons.expand_less : Icons.qr_code_2_rounded, size: 13, color: const Color(0xFF047857)),
+                          const SizedBox(width: 4),
+                          Text(
+                            _showQrCode ? "Hide QR" : "Show QR",
+                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_showQrCode) ...[
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF10B981)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.network(
+                        "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${Uri.encodeComponent("upi://pay?pa=$artisanUpi&pn=${Uri.encodeComponent(widget.worker.name)}&am=${widget.booking.totalAmount.toStringAsFixed(2)}&cu=INR&tn=WorkGo")}",
+                        width: 140,
+                        height: 140,
+                        errorBuilder: (_, __, ___) => const Text("Artisan Direct UPI QR", style: TextStyle(fontSize: 11)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "₹$totalAmtStr · $artisanUpi",
+                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+
           const SizedBox(height: 14),
+
+          // Primary Action Button: Confirm Payment Received
           ElevatedButton.icon(
-            onPressed: onConfirmCash,
-            icon: const Icon(Icons.payments_rounded, color: Colors.white, size: 18),
+            onPressed: widget.onConfirmPaymentReceived,
+            icon: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
             label: Text(
-              'confirm_cash_received'.tr(),
+              isCashMethod
+                  ? 'confirm_cash_received_btn'.trSafe("Confirm Cash Received (₹{})", [totalAmtStr])
+                  : 'confirm_payment_received_btn'.tr(args: [totalAmtStr]),
               style: WorkGoFonts.display(
                 color: Colors.white,
                 fontSize: 13.5,
                 fontWeight: FontWeight.w800,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF059669),

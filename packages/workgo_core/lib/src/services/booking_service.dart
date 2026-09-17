@@ -580,6 +580,39 @@ class BookingService {
     await _db.collection("bookings").doc(bookingId).update(data);
   }
 
+  /// Customer confirms having transferred payment via direct P2P UPI (PhonePe, GPay, QR).
+  Future<void> acknowledgeCustomerPaid(
+    String bookingId, {
+    String? upiReference,
+    String? upiApp,
+  }) async {
+    final updateData = <String, dynamic>{
+      "customerPaidAck": true,
+      "customerPaidAt": FieldValue.serverTimestamp(),
+      "paymentMethod": upiApp ?? "UPI",
+      if (upiReference != null && upiReference.trim().isNotEmpty)
+        "customerUpiRef": upiReference.trim(),
+      if (upiReference != null && upiReference.trim().isNotEmpty)
+        "paymentReference": upiReference.trim(),
+      "paymentStatus": PaymentStatus.paid.name,
+    };
+    await _db.collection("bookings").doc(bookingId).update(updateData);
+  }
+
+  /// Artisan confirms having received the amount in their direct UPI account, finalizing settlement.
+  Future<void> acknowledgeWorkerReceived(String bookingId) async {
+    final updateData = <String, dynamic>{
+      "workerReceivedAck": true,
+      "workerReceivedAt": FieldValue.serverTimestamp(),
+      "paymentStatus": PaymentStatus.paid.name,
+      "status": BookingStatus.completed.name,
+      "completedAt": FieldValue.serverTimestamp(),
+      "invoiceId": "INV-${DateTime.now().millisecondsSinceEpoch}",
+      "paidAt": FieldValue.serverTimestamp(),
+    };
+    await _db.collection("bookings").doc(bookingId).update(updateData);
+  }
+
   /// Mark booking payment as paid and atomically transition booking to completed.
   Future<void> markPaymentComplete(
     String bookingId, {
@@ -594,12 +627,19 @@ class BookingService {
       "status": BookingStatus.completed.name,
       "completedAt": FieldValue.serverTimestamp(),
       "paymentStatus": PaymentStatus.paid.name,
+      "customerPaidAck": true,
+      "workerReceivedAck": true,
+      "customerPaidAt": FieldValue.serverTimestamp(),
+      "workerReceivedAt": FieldValue.serverTimestamp(),
       "invoiceId": invoiceId ?? "INV-${DateTime.now().millisecondsSinceEpoch}",
       "paidAt": FieldValue.serverTimestamp(),
     };
     if (paymentMethod != null) updateData["paymentMethod"] = paymentMethod;
     if (paymentProvider != null) updateData["paymentProvider"] = paymentProvider;
-    if (paymentReference != null) updateData["paymentReference"] = paymentReference;
+    if (paymentReference != null) {
+      updateData["paymentReference"] = paymentReference;
+      updateData["customerUpiRef"] = paymentReference;
+    }
     if (platformFeeAmount != null) updateData["platformFeeAmount"] = platformFeeAmount;
     if (welfareFundAmount != null) updateData["welfareFundAmount"] = welfareFundAmount;
 

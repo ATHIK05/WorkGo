@@ -2022,11 +2022,40 @@ class _InstantSettlementModal extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      "18:00 IST (Daily)",
+                      "Direct P2P (Instant)",
                       style: GoogleFonts.urbanist(
                         color: const Color(0xFF047857),
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Divider(color: Color(0xFFE5E7EB), height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Settlement UPI",
+                      style: GoogleFonts.urbanist(
+                        color: const Color(0xFF6B7280),
+                        fontSize: 13,
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        worker.hasValidUpi ? worker.upiId! : "Not Configured",
+                        style: GoogleFonts.urbanist(
+                          color: worker.hasValidUpi
+                              ? const Color(0xFF1D4ED8)
+                              : const Color(0xFFDC2626),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -2037,7 +2066,7 @@ class _InstantSettlementModal extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             "instant_payout_notice".trSafe(
-              "Earnings are settled directly to your verified UPI account daily at 18:00.",
+              "Earnings are transferred 100% directly from customer to your UPI account with ZERO platform fees.",
             ),
             style: GoogleFonts.urbanist(
               color: const Color(0xFF6B7280),

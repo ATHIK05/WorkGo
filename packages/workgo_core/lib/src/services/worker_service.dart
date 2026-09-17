@@ -812,4 +812,51 @@ class WorkerService {
       debugPrint("[WorkerService] recordDailyFaceCheckIn error: $e");
     }
   }
+
+  /// Update worker settlement UPI ID in Firestore
+  Future<void> updateWorkerUpi(String workerId, String upiId) async {
+    try {
+      await _db.collection("workers").doc(workerId).set({
+        "upiId": upiId.trim(),
+        "upiUpdatedAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("[WorkerService] updateWorkerUpi error: $e");
+      rethrow;
+    }
+  }
+
+  /// Toggle Cash on Delivery acceptance preference in Firestore
+  Future<void> updateWorkerCashPreference(String workerId, bool acceptsCash) async {
+    try {
+      await _db.collection("workers").doc(workerId).set({
+        "acceptsCash": acceptsCash,
+        "cashPrefUpdatedAt": FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("[WorkerService] updateWorkerCashPreference error: $e");
+      rethrow;
+    }
+  }
+
+  /// Update both UPI ID and Cash on Delivery acceptance in Firestore
+  Future<void> updateWorkerPaymentPreferences({
+    required String workerId,
+    String? upiId,
+    required bool acceptsCash,
+  }) async {
+    try {
+      final updates = <String, dynamic>{
+        "acceptsCash": acceptsCash,
+        "paymentPreferencesUpdatedAt": FieldValue.serverTimestamp(),
+      };
+      if (upiId != null && upiId.trim().isNotEmpty) {
+        updates["upiId"] = upiId.trim();
+      }
+      await _db.collection("workers").doc(workerId).set(updates, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("[WorkerService] updateWorkerPaymentPreferences error: $e");
+      rethrow;
+    }
+  }
 }

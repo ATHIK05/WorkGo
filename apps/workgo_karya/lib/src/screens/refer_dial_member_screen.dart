@@ -21,6 +21,15 @@ import '../karya_theme.dart';
 /// On completion: submits to /api/ivr/voice/peer-kyc/submit → ₹150 credited.
 
 class ReferDialMemberScreen extends StatefulWidget {
+  final Worker mitraWorker;
+  final String dialWorkerId;
+  final String dialWorkerName;
+  final String dialWorkerPhone;
+  final String dialWorkerTrade;
+  final String? dialWorkerLocation;
+  final String? dialWorkerTradeDescription;
+  final String backendBaseUrl;
+
   const ReferDialMemberScreen({
     super.key,
     required this.mitraWorker,
@@ -28,15 +37,10 @@ class ReferDialMemberScreen extends StatefulWidget {
     required this.dialWorkerName,
     required this.dialWorkerPhone,
     required this.dialWorkerTrade,
+    this.dialWorkerLocation,
+    this.dialWorkerTradeDescription,
     required this.backendBaseUrl,
   });
-
-  final Worker mitraWorker;
-  final String dialWorkerId;
-  final String dialWorkerName;
-  final String dialWorkerPhone;
-  final String dialWorkerTrade;
-  final String backendBaseUrl;
 
   @override
   State<ReferDialMemberScreen> createState() => _ReferDialMemberScreenState();
@@ -455,8 +459,15 @@ class _ReferDialMemberScreenState extends State<ReferDialMemberScreen>
                   ),
                 ),
                 Text(
-                  widget.dialWorkerName,
-                  style: TextStyle(color: KX.textSecondary, fontSize: 13),
+                  [
+                    widget.dialWorkerName,
+                    widget.dialWorkerTrade.toUpperCase(),
+                    if (widget.dialWorkerLocation != null && widget.dialWorkerLocation!.isNotEmpty)
+                      widget.dialWorkerLocation!,
+                  ].join(' • '),
+                  style: TextStyle(color: KX.textSecondary, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -674,7 +685,54 @@ class _ReferDialMemberScreenState extends State<ReferDialMemberScreen>
               [widget.dialWorkerName, widget.dialWorkerTrade],
             ),
           ),
-          const SizedBox(height: 8),
+          if (widget.dialWorkerTradeDescription != null &&
+              widget.dialWorkerTradeDescription!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.record_voice_over_rounded,
+                    size: 16,
+                    color: Color(0xFFB45309),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Artisan's Spoken Description:",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '"${widget.dialWorkerTradeDescription}"',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: Color(0xFF78350F),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
           Row(
             children: [
               Container(

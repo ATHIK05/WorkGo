@@ -81,6 +81,122 @@ class PaymentService {
     return Uri.parse("upi://pay?$queryString");
   }
 
+  /// Generates a PhonePe specific deep link URI:
+  /// `phonepe://pay?pa={vpa}&pn={payeeName}&am={amount}&cu=INR&tn={note}`
+  Uri generatePhonePeUri({
+    required String vpa,
+    required String payeeName,
+    required double amount,
+    required String note,
+    String? transactionRef,
+  }) {
+    final cleanVpa = vpa.trim();
+    final cleanAmount = amount.toStringAsFixed(2);
+    final params = <String, String>{
+      "pa": cleanVpa,
+      "pn": payeeName.trim(),
+      "am": cleanAmount,
+      "cu": "INR",
+      "tn": note.trim(),
+    };
+    if (transactionRef != null && transactionRef.isNotEmpty) {
+      params["tr"] = transactionRef.trim();
+    }
+    final queryString = params.entries
+        .map((e) => "${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}")
+        .join("&");
+    return Uri.parse("phonepe://pay?$queryString");
+  }
+
+  /// Generates a Google Pay (GPay / Tez) specific deep link URI:
+  /// `tez://upi/pay?pa={vpa}&pn={payeeName}&am={amount}&cu=INR&tn={note}`
+  Uri generateGPayUri({
+    required String vpa,
+    required String payeeName,
+    required double amount,
+    required String note,
+    String? transactionRef,
+  }) {
+    final cleanVpa = vpa.trim();
+    final cleanAmount = amount.toStringAsFixed(2);
+    final params = <String, String>{
+      "pa": cleanVpa,
+      "pn": payeeName.trim(),
+      "am": cleanAmount,
+      "cu": "INR",
+      "tn": note.trim(),
+    };
+    if (transactionRef != null && transactionRef.isNotEmpty) {
+      params["tr"] = transactionRef.trim();
+    }
+    final queryString = params.entries
+        .map((e) => "${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}")
+        .join("&");
+    return Uri.parse("tez://upi/pay?$queryString");
+  }
+
+  /// Launches PhonePe directly, falling back to standard UPI intent if PhonePe is not installed.
+  Future<bool> launchPhonePe({
+    required String vpa,
+    required String payeeName,
+    required double amount,
+    required String note,
+    String? transactionRef,
+  }) async {
+    final phonePeUri = generatePhonePeUri(
+      vpa: vpa,
+      payeeName: payeeName,
+      amount: amount,
+      note: note,
+      transactionRef: transactionRef,
+    );
+    try {
+      if (await canLaunchUrl(phonePeUri)) {
+        return await launchUrl(phonePeUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+    // Fallback to standard UPI intent
+    final upiUri = generateUpiUri(
+      vpa: vpa,
+      payeeName: payeeName,
+      amount: amount,
+      note: note,
+      transactionRef: transactionRef,
+    );
+    return await launchUpiIntent(upiUri);
+  }
+
+  /// Launches Google Pay (GPay) directly, falling back to standard UPI intent if GPay is not installed.
+  Future<bool> launchGPay({
+    required String vpa,
+    required String payeeName,
+    required double amount,
+    required String note,
+    String? transactionRef,
+  }) async {
+    final gPayUri = generateGPayUri(
+      vpa: vpa,
+      payeeName: payeeName,
+      amount: amount,
+      note: note,
+      transactionRef: transactionRef,
+    );
+    try {
+      if (await canLaunchUrl(gPayUri)) {
+        return await launchUrl(gPayUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+    // Fallback to standard UPI intent
+    final upiUri = generateUpiUri(
+      vpa: vpa,
+      payeeName: payeeName,
+      amount: amount,
+      note: note,
+      transactionRef: transactionRef,
+    );
+    return await launchUpiIntent(upiUri);
+  }
+
   /// Launches the native UPI application chooser (GPay, PhonePe, Paytm, BHIM, Cred)
   /// using external application mode.
   Future<bool> launchUpiIntent(Uri uri) async {
