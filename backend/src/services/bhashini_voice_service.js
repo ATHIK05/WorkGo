@@ -188,32 +188,68 @@ async function textToSpeech(text, language = "hi", gender = "female") {
 }
 
 /**
+ * Resolve a writable sounds directory across different environments (Linux, Render, Windows).
+ */
+function getSoundsDir(customDir) {
+  if (customDir && customDir !== "/var/lib/asterisk/sounds/workgo") {
+    return customDir;
+  }
+  if (process.env.ASTERISK_SOUNDS_DIR) {
+    return process.env.ASTERISK_SOUNDS_DIR;
+  }
+  const fs = require("fs");
+  const path = require("path");
+  const os = require("os");
+  try {
+    if (fs.existsSync("/var/lib/asterisk/sounds")) {
+      const candidate = "/var/lib/asterisk/sounds/workgo";
+      if (!fs.existsSync(candidate)) {
+        fs.mkdirSync(candidate, { recursive: true });
+      }
+      return candidate;
+    }
+  } catch (_) {
+    // EACCES on cloud unprivileged containers -> fallback to safe local dir
+  }
+  const localDir = path.join(process.cwd(), "sounds");
+  try {
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    return localDir;
+  } catch (_) {
+    return os.tmpdir();
+  }
+}
+
+/**
  * Write Bhashini TTS audio to a WAV file on disk for Asterisk Playback().
  * Returns the absolute file path, or null on failure.
  *
  * @param {string} text       - Text to speak
  * @param {string} language   - Language code ('hi', 'mr', 'ta', etc.)
  * @param {string} filename   - Filename without extension (e.g. 'greeting_hi')
- * @param {string} soundsDir  - Asterisk sounds directory (default: /var/lib/asterisk/sounds/workgo)
+ * @param {string} soundsDir  - Asterisk sounds directory (optional)
  * @returns {Promise<string|null>}
  */
 async function writeAudioFile(
   text,
   language = "hi",
   filename = "prompt",
-  soundsDir = "/var/lib/asterisk/sounds/workgo"
+  soundsDir = null
 ) {
   const fs = require("fs");
   const path = require("path");
+  const targetDir = getSoundsDir(soundsDir);
 
   const audioBase64 = await textToSpeech(text, language);
   if (!audioBase64) return null;
 
   try {
-    if (!fs.existsSync(soundsDir)) {
-      fs.mkdirSync(soundsDir, { recursive: true });
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
     }
-    const filePath = path.join(soundsDir, `${filename}.wav`);
+    const filePath = path.join(targetDir, `${filename}.wav`);
     fs.writeFileSync(filePath, Buffer.from(audioBase64, "base64"));
     console.log(`[BhashiniVoice] Audio written: ${filePath}`);
     return filePath;
@@ -230,9 +266,13 @@ async function writeAudioFile(
  * Call once on backend startup (or on demand) to pre-bake all prompts.
  * Safe to call multiple times — only writes files that don't already exist.
  */
-async function prebakeIvrPrompts(soundsDir = "/var/lib/asterisk/sounds/workgo") {
+async function prebakeIvrPrompts(soundsDir = null) {
+  if (process.env.ENABLE_IVR_PREBAKE !== "true") {
+    return; // Skip mass batch TTS generation on server startup to avoid rate limits
+  }
   const fs = require("fs");
   const path = require("path");
+  const targetDir = getSoundsDir(soundsDir);
 
   const prompts = [
     // Onboarding
@@ -261,9 +301,9 @@ async function prebakeIvrPrompts(soundsDir = "/var/lib/asterisk/sounds/workgo") 
 
   let generated = 0;
   for (const p of prompts) {
-    const filePath = path.join(soundsDir, `${p.file}.wav`);
+    const filePath = path.join(targetDir, `${p.file}.wav`);
     if (!fs.existsSync(filePath)) {
-      const result = await writeAudioFile(p.text, p.lang, p.file, soundsDir);
+      const result = await writeAudioFile(p.text, p.lang, p.file, targetDir);
       if (result) generated++;
     }
   }

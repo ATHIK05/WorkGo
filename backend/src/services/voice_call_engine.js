@@ -173,7 +173,7 @@ async function triggerOutboundJobAlertCall({
   language = "hi",
   audioFile,
 }) {
-  const soundsDir = process.env.ASTERISK_SOUNDS_DIR || "/var/lib/asterisk/sounds/workgo";
+  const soundsDir = process.env.ASTERISK_SOUNDS_DIR || null;
 
   // Determine the audio file to play (relative to Asterisk sounds dir)
   const relativeAudioPath = audioFile
@@ -289,7 +289,7 @@ async function triggerOtpFlashCall(workerPhone, otpCode, language = "hi") {
 
   // Write audio file
   const { writeAudioFile } = require("./bhashini_voice_service");
-  const soundsDir = process.env.ASTERISK_SOUNDS_DIR || "/var/lib/asterisk/sounds/workgo";
+  const soundsDir = process.env.ASTERISK_SOUNDS_DIR || null;
   const filename = `otp_${workerPhone.replace(/\D/g, "")}_${otpCode}`;
   await writeAudioFile(text, language, filename, soundsDir);
 
