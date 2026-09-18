@@ -1680,5 +1680,15 @@
   "erode_central_tamil_nadu": "ইৰোড চেণ্ট্ৰেল, তামিলনাডু",
   "erode_central": "ইৰোড চেণ্ট্ৰেল",
   "base_station_unset": "কাৰ্য্য ভিত্তি নিৰ্ধাৰণ কৰা হোৱা নাই",
-  "save_operating_base_btn": "কাৰ্য্য ভিত্তি সংৰক্ষণ কৰক"
+  "save_operating_base_btn": "কাৰ্য্য ভিত্তি সংৰক্ষণ কৰক",
+  "welfare_shield_title": "₹২ লাখ কল্যাণ সুৰক্ষা",
+  "welfare_insurance_title": "कल्याण एवं बीमा",
+  "welfare_insurance_subtitle": "कारीगर सुरक्षा एवं कल्याण कोष",
+  "welfare_file_claim_title": "कल्याण दावा दर्ज करें",
+  "welfare_doctor_cert_mandatory": "डॉक्टर का प्रमाण पत्र अनिवार्य है। आधिकारिक चिकित्सा प्रमाण पत्र के बिना दावा प्रस्तुत नहीं किया जा सकता।",
+  "geo_heatmap_title": "भौगोलिक मांग हीटमैप",
+  "smart_demand_insights_title": "स्मार्ट मांग पूर्वानुमान",
+  "standby_mobilize_btn": "स्टैंडबाय कारीगरों को सक्रिय करें",
+  "welfare_claim_submitted_success": "कल्याण दावा सफलतापूर्वक प्रस्तुत किया गया",
+  "welfare_under_review": "समिति समीक्षाधीन"
 }

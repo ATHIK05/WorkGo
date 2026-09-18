@@ -1466,6 +1466,12 @@ extension SafeTranslationExtension on String {
     });
     return result;
   }
+
+  /// Localizes Indian administrative region (state/district) name if available or formats gracefully.
+  String toLocalizedRegion([String? locale]) {
+    final key = 'region_${toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}';
+    return trSafe(this);
+  }
 }
 
 /// Extension on tool names to provide localized labels for tool checklists

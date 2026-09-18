@@ -324,6 +324,20 @@ class BookingService {
     }
   }
 
+  /// Retrieves recent bookings for a worker (e.g. for welfare claim attachment).
+  Future<List<Booking>> getWorkerRecentBookings(String workerId, {int limit = 15}) async {
+    try {
+      final snap = await _db
+          .collection("bookings")
+          .where("workerId", isEqualTo: workerId)
+          .limit(limit)
+          .get();
+      return snap.docs.map((d) => Booking.fromFirestore(d)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// Worker accepts a booking.
   /// Enforces two critical constraints:
   /// 1. Single Active Service: Artisan cannot accept a new booking if they already have an ongoing job.

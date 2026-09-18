@@ -1680,5 +1680,15 @@
   "erode_central_tamil_nadu": "ઇરોડ સેન્ટ્રલ, તમિલનાડુ",
   "erode_central": "ઇરોડ સેન્ટ્રલ",
   "base_station_unset": "કાર્ય આધાર સેટ કરેલ નથી",
-  "save_operating_base_btn": "કાર્ય આધાર સાચવો"
+  "save_operating_base_btn": "કાર્ય આધાર સાચવો",
+  "welfare_shield_title": "₹2 લાખ કલ્યાણ કવચ",
+  "welfare_insurance_title": "કલ્યાણ અને વીમો",
+  "welfare_insurance_subtitle": "કારીગર સંરક્ષણ અને કલ્યાણ ભંડોળ",
+  "welfare_file_claim_title": "કલ્યાણ દાવો દાખલ કરો",
+  "welfare_doctor_cert_mandatory": "ડોક્ટરનું પ્રમાણપત્ર ફરજિયાત છે. સત્તાવાર તબીબી પ્રમાણપત્ર વિના દાવો સબમિટ કરી શકાતો નથી.",
+  "geo_heatmap_title": "ભૌગોલિક માંગ હીટમેપ",
+  "smart_demand_insights_title": "સ્માર્ટ માંગ આંતરદ્રષ્ટિ",
+  "standby_mobilize_btn": "સ્ટેન્ડબાય કારીગરોને સક્રિય કરો",
+  "welfare_claim_submitted_success": "કલ્યાણ દાવો સફળતાપૂર્વક સબમિટ થયો",
+  "welfare_under_review": "સમિતિ સમીક્ષા હેઠળ"
 }

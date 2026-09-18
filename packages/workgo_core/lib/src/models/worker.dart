@@ -428,6 +428,16 @@ class Worker {
   /// Whether the artisan accepts direct Cash on Delivery (COD) / cash handover
   final bool acceptsCash;
 
+  /// Cooperative fairness & workforce distribution score (0.0 - 1.0).
+  final double fairnessScore;
+  /// Timestamp of the worker's most recent job assignment.
+  final DateTime? lastAssignedAt;
+  /// Timestamp of the worker's most recent demand alert (for 24h rate-limiting).
+  final DateTime? lastDemandAlertAt;
+  /// Registration timestamp. For legacy accounts, approximated via earliest verification timestamp.
+  final DateTime createdAt;
+  DateTime get joinedAt => createdAt;
+
   Worker({
     required this.id,
     required this.userId,
@@ -482,7 +492,12 @@ class Worker {
     this.walletBalance = 0.0,
     this.upiId,
     this.acceptsCash = false,
-  });
+    this.fairnessScore = 1.0,
+    this.lastAssignedAt,
+    this.lastDemandAlertAt,
+    DateTime? createdAt,
+    DateTime? joinedAt,
+  }) : createdAt = createdAt ?? joinedAt ?? DateTime.now();
 
   /// True if the worker has configured a valid UPI ID (containing '@')
   bool get hasValidUpi =>
@@ -604,7 +619,11 @@ class Worker {
   }
 
   factory Worker.fromFirestore(DocumentSnapshot doc) {
-    final d = doc.data() as Map<String, dynamic>;
+    final d = doc.data() as Map<String, dynamic>? ?? {};
+    return Worker.fromMap(d, doc.id);
+  }
+
+  factory Worker.fromMap(Map<String, dynamic> d, [String id = ""]) {
     final totalRatings = (d["totalRatings"] as num?)?.toInt() ?? 0;
     final totalReviews = (d["totalReviews"] as num?)?.toInt() ??
         (totalRatings > 0 ? (totalRatings * 0.8).round() : 0);
@@ -747,7 +766,7 @@ class Worker {
       } else {
         // Deterministic realistic regional coordinates around central hub (Erode: 11.3445, 77.7327)
         // Offset within 0.8 - 2.5 km so unpositioned artisans display realistic distinct local distances
-        final seed = doc.id.hashCode.abs();
+        final seed = (id.isNotEmpty ? id : (d["id"] ?? d["userId"] ?? "worker")).hashCode.abs();
         final offsetLat = (((seed % 31) - 15) * 0.0012); // ~ +/- 1.5 km
         final offsetLng = ((((seed ~/ 31) % 31) - 15) * 0.0012);
         lat = 11.3445 + offsetLat;
@@ -790,8 +809,8 @@ class Worker {
         (d["diagnosticAccuracyScore"] as num?)?.toDouble() ?? 0.92;
 
     return Worker(
-      id: doc.id,
-      userId: d["userId"] ?? doc.id,
+      id: id.isNotEmpty ? id : (d["id"] ?? d["userId"] ?? "worker"),
+      userId: d["userId"] ?? (id.isNotEmpty ? id : "worker"),
       name: (rawName != null && rawName.toString().isNotEmpty)
           ? rawName
           : defaultName,
@@ -853,7 +872,45 @@ class Worker {
       walletBalance: (d["walletBalance"] as num?)?.toDouble() ?? 0.0,
       upiId: d["upiId"] as String?,
       acceptsCash: d["acceptsCash"] ?? false,
+      fairnessScore: (d["fairnessScore"] as num?)?.toDouble() ?? 1.0,
+      lastAssignedAt: (d["lastAssignedAt"] is Timestamp)
+          ? (d["lastAssignedAt"] as Timestamp).toDate()
+          : (d["lastAssignedAt"] is String
+              ? DateTime.tryParse(d["lastAssignedAt"])
+              : null),
+      lastDemandAlertAt: (d["lastDemandAlertAt"] is Timestamp)
+          ? (d["lastDemandAlertAt"] as Timestamp).toDate()
+          : (d["lastDemandAlertAt"] is String
+              ? DateTime.tryParse(d["lastDemandAlertAt"])
+              : null),
+      // Backfill-approximation logic for pre-existing worker records:
+      createdAt: () {
+        DateTime? parseDt(dynamic val) {
+          if (val == null) return null;
+          if (val is Timestamp) return val.toDate();
+          if (val is String) return DateTime.tryParse(val);
+          return null;
+        }
+
+        final explicit = parseDt(d["createdAt"]) ?? parseDt(d["joinedAt"]);
+        if (explicit != null) return explicit;
+
+        final candidates = <DateTime>[
+          if (verDetails?.aadhaarVerifiedAt != null) verDetails!.aadhaarVerifiedAt!,
+          if (verDetails?.eshramVerifiedAt != null) verDetails!.eshramVerifiedAt!,
+          if (verDetails?.livenessPassedAt != null) verDetails!.livenessPassedAt!,
+          if (verDetails?.pccReviewedAt != null) verDetails!.pccReviewedAt!,
+          if (verDetails?.biometricConsentTimestamp != null) verDetails!.biometricConsentTimestamp!,
+          if (parseDt(d["checkedInAt"]) != null) parseDt(d["checkedInAt"])!,
+        ];
+        if (candidates.isNotEmpty) {
+          candidates.sort((a, b) => a.compareTo(b));
+          return candidates.first;
+        }
+        return DateTime.now();
+      }(),
     );
+
   }
 
   Map<String, dynamic> toFirestore() => {
@@ -911,6 +968,15 @@ class Worker {
         "walletBalance": walletBalance,
         "upiId": upiId,
         "acceptsCash": acceptsCash,
+        "fairnessScore": fairnessScore,
+        "lastAssignedAt": lastAssignedAt != null
+            ? Timestamp.fromDate(lastAssignedAt!)
+            : null,
+        "lastDemandAlertAt": lastDemandAlertAt != null
+            ? Timestamp.fromDate(lastDemandAlertAt!)
+            : null,
+        "createdAt": Timestamp.fromDate(createdAt),
+        "joinedAt": Timestamp.fromDate(createdAt),
       };
 
   Worker copyWith({
@@ -966,6 +1032,11 @@ class Worker {
     double? walletBalance,
     String? upiId,
     bool? acceptsCash,
+    double? fairnessScore,
+    DateTime? lastAssignedAt,
+    DateTime? lastDemandAlertAt,
+    DateTime? createdAt,
+    DateTime? joinedAt,
   }) {
     return Worker(
       id: id ?? this.id,
@@ -1022,6 +1093,11 @@ class Worker {
       walletBalance: walletBalance ?? this.walletBalance,
       upiId: upiId ?? this.upiId,
       acceptsCash: acceptsCash ?? this.acceptsCash,
+      fairnessScore: fairnessScore ?? this.fairnessScore,
+      lastAssignedAt: lastAssignedAt ?? this.lastAssignedAt,
+      lastDemandAlertAt: lastDemandAlertAt ?? this.lastDemandAlertAt,
+      createdAt: createdAt ?? joinedAt ?? this.createdAt,
     );
   }
 }
+

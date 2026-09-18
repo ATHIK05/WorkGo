@@ -1682,5 +1682,15 @@
   "erode_central_tamil_nadu": "Erode Central, Tamil Nadu",
   "erode_central": "Erode Central",
   "base_station_unset": "Base Station Unset",
-  "save_operating_base_btn": "Save Operating Base"
+  "save_operating_base_btn": "Save Operating Base",
+  "welfare_shield_title": "₹2 Lakh Welfare Shield",
+  "welfare_insurance_title": "Welfare & Insurance",
+  "welfare_insurance_subtitle": "Artisan Protection & Welfare Pool",
+  "welfare_file_claim_title": "File Welfare Claim",
+  "welfare_doctor_cert_mandatory": "Doctor Certificate is mandatory. A claim cannot be submitted without an official medical certificate.",
+  "geo_heatmap_title": "Geographic Heatmap",
+  "smart_demand_insights_title": "Smart Demand Insights",
+  "standby_mobilize_btn": "Mobilize Standby Pool",
+  "welfare_claim_submitted_success": "Welfare Claim Submitted Successfully",
+  "welfare_under_review": "Under Committee Review"
 }

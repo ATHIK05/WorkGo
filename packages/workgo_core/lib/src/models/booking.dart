@@ -96,6 +96,13 @@ class Booking {
   /// Active payment method/app (e.g. 'UPI', 'PhonePe', 'GPay')
   final String? paymentMethod;
 
+  // Incident & Welfare Claim metadata
+  final bool hasIncidentReported;
+  final String? incidentClaimId;
+  final bool? incidentConfirmedByCustomer;
+  final String? incidentCustomerNotes;
+  final DateTime? incidentConfirmedAt;
+
   Booking({
     this.fareBreakdown,
     required this.id,
@@ -168,6 +175,11 @@ class Booking {
     this.workerReceivedAck = false,
     this.workerReceivedAt,
     this.paymentMethod = 'UPI',
+    this.hasIncidentReported = false,
+    this.incidentClaimId,
+    this.incidentConfirmedByCustomer,
+    this.incidentCustomerNotes,
+    this.incidentConfirmedAt,
   });
 
   /// Real-time geodesic Haversine distance in kilometers from customer pickup location to target coordinates.
@@ -312,6 +324,12 @@ class Booking {
       workerReceivedAck: d["workerReceivedAck"] ?? false,
       workerReceivedAt: (d["workerReceivedAt"] as Timestamp?)?.toDate(),
       paymentMethod: d["paymentMethod"] ?? 'UPI',
+      hasIncidentReported: d["hasIncidentReported"] ?? false,
+      incidentClaimId: d["incidentClaimId"] as String?,
+      incidentConfirmedByCustomer: d["incidentConfirmedByCustomer"] as bool?,
+      incidentCustomerNotes: d["incidentCustomerNotes"] as String?,
+      incidentConfirmedAt: (d["incidentConfirmedAt"] as Timestamp?)?.toDate() ??
+          (d["incidentConfirmedAt"] is String ? DateTime.tryParse(d["incidentConfirmedAt"]) : null),
     );
   }
 
@@ -386,6 +404,11 @@ class Booking {
     "workerReceivedAck": workerReceivedAck,
     "workerReceivedAt": workerReceivedAt != null ? Timestamp.fromDate(workerReceivedAt!) : null,
     "paymentMethod": paymentMethod,
+    "hasIncidentReported": hasIncidentReported,
+    "incidentClaimId": incidentClaimId,
+    "incidentConfirmedByCustomer": incidentConfirmedByCustomer,
+    "incidentCustomerNotes": incidentCustomerNotes,
+    "incidentConfirmedAt": incidentConfirmedAt != null ? Timestamp.fromDate(incidentConfirmedAt!) : null,
   };
 
   Booking copyWith({
@@ -457,6 +480,11 @@ class Booking {
     bool? workerReceivedAck,
     DateTime? workerReceivedAt,
     String? paymentMethod,
+    bool? hasIncidentReported,
+    String? incidentClaimId,
+    bool? incidentConfirmedByCustomer,
+    String? incidentCustomerNotes,
+    DateTime? incidentConfirmedAt,
   }) {
     return Booking(
       id: id ?? this.id,
@@ -527,6 +555,11 @@ class Booking {
       workerReceivedAck: workerReceivedAck ?? this.workerReceivedAck,
       workerReceivedAt: workerReceivedAt ?? this.workerReceivedAt,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      hasIncidentReported: hasIncidentReported ?? this.hasIncidentReported,
+      incidentClaimId: incidentClaimId ?? this.incidentClaimId,
+      incidentConfirmedByCustomer: incidentConfirmedByCustomer ?? this.incidentConfirmedByCustomer,
+      incidentCustomerNotes: incidentCustomerNotes ?? this.incidentCustomerNotes,
+      incidentConfirmedAt: incidentConfirmedAt ?? this.incidentConfirmedAt,
     );
   }
 }

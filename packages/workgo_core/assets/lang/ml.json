@@ -1680,5 +1680,15 @@
   "erode_central_tamil_nadu": "ഈറോഡ് സെൻട്രൽ, തമിഴ്നാട്",
   "erode_central": "ഈറോഡ് സെൻട്രൽ",
   "base_station_unset": "പ്രവർത്തന കേന്ദ്രം നിശ്ചയിച്ചിട്ടില്ല",
-  "save_operating_base_btn": "പ്രവർത്തന ബേസ് സേവ് ചെയ്യുക"
+  "save_operating_base_btn": "പ്രവർത്തന ബേസ് സേവ് ചെയ്യുക",
+  "welfare_shield_title": "₹2 ലക്ഷം ക്ഷേമ സുരക്ഷ",
+  "welfare_insurance_title": "ക്ഷേമവും ഇൻഷുറൻസും",
+  "welfare_insurance_subtitle": "തൊഴിലാളി സംരക്ഷണവും ക്ഷേമ നിധിയും",
+  "welfare_file_claim_title": "ക്ഷേമ ക്ലെയിം സമർപ്പിക്കുക",
+  "welfare_doctor_cert_mandatory": "ഡോക്ടറുടെ സർട്ടിഫിക്കറ്റ് നിർബന്ധമാണ്. ഔദ്യോഗിക മെഡിക്കൽ സർട്ടിഫിക്കറ്റ് ഇല്ലാതെ ക്ലെയിം സമർപ്പിക്കാൻ കഴിയില്ല.",
+  "geo_heatmap_title": "ഭൂമിശാസ്ത്രപരമായ ആവശ്യകത ഹീറ്റ്മാപ്പ്",
+  "smart_demand_insights_title": "സ്മാർട്ട് ഡിമാൻഡ് സ്ഥിതിവിവരക്കണക്കുകൾ",
+  "standby_mobilize_btn": "സ്റ്റാൻഡ്ബൈ തൊഴിലാളികളെ സജ്ജമാക്കുക",
+  "welfare_claim_submitted_success": "ക്ഷേമ ക്ലെയിം വിജയകരമായി സമർപ്പിച്ചു",
+  "welfare_under_review": "കമ്മിറ്റിയുടെ പരിശോധനയിൽ"
 }

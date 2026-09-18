@@ -1660,5 +1660,15 @@
   "erode_central_tamil_nadu": "ஈரோடு சென்ட்ரல், தமிழ்நாடு",
   "erode_central": "ஈரோடு சென்ட்ரல்",
   "base_station_unset": "பணி தளம் அமைக்கப்படவில்லை",
-  "save_operating_base_btn": "பணி தளத்தைச் சேமிக்கவும்"
+  "save_operating_base_btn": "பணி தளத்தைச் சேமிக்கவும்",
+  "welfare_shield_title": "₹2 லட்சம் நலக் கவசம்",
+  "welfare_insurance_title": "நலத்திட்டம் மற்றும் காப்பீடு",
+  "welfare_insurance_subtitle": "பணியாளர் பாதுகாப்பு மற்றும் நல நிதி",
+  "welfare_file_claim_title": "நலக் கோரிக்கையை சமர்ப்பிக்கவும்",
+  "welfare_doctor_cert_mandatory": "மருத்துவர் சான்றிதழ் கட்டாயமாகும். அதிகாரப்பூர்வ மருத்துவ சான்றிதழ் இல்லாமல் கோரிக்கையை சமர்ப்பிக்க முடியாது.",
+  "geo_heatmap_title": "புவியியல் தேவை வெப்ப வரைபடம்",
+  "smart_demand_insights_title": "செயற்கை நுண்ணறிவு தேவை முன்னறிவிப்பு",
+  "standby_mobilize_btn": "காத்திருப்பு பணியாளர்களை திரட்டவும்",
+  "welfare_claim_submitted_success": "நலக் கோரிக்கை வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது",
+  "welfare_under_review": "குழுவின் பரிசீலனையில் உள்ளது"
 }

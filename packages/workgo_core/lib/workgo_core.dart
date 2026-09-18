@@ -24,6 +24,8 @@ export "src/models/rating_org_demand.dart";
 export "src/models/verification_audit_model.dart";
 export "src/models/c2pa_manifest_model.dart";
 export "src/models/symptom_catalog.dart";
+export "src/models/welfare_claim.dart";
+export "src/models/local_event.dart";
 
 // Widgets
 export "src/widgets/safe_text.dart";
@@ -92,6 +94,7 @@ export "src/services/payment_service.dart";
 export "src/services/invoice_service.dart";
 export "src/services/indic_pdf_shaper.dart";
 export "src/services/push_notification_service.dart";
+export "src/services/welfare_service.dart";
 
 // API Client & External Launchers
 export "src/api_client/workgo_api_client.dart";

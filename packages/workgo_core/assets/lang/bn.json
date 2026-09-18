@@ -1680,5 +1680,15 @@
   "erode_central_tamil_nadu": "ইরোড সেন্ট্রাল, তামিলনাড়ু",
   "erode_central": "ইরোড সেন্ট্রাল",
   "base_station_unset": "কার্য ভিত্তি নির্ধারিত হয়নি",
-  "save_operating_base_btn": "কার্য ভিত্তি সংরক্ষণ করুন"
+  "save_operating_base_btn": "কার্য ভিত্তি সংরক্ষণ করুন",
+  "welfare_shield_title": "₹২ লক্ষ কল্যাণ সুরক্ষা",
+  "welfare_insurance_title": "কল্যাণ ও বীমা",
+  "welfare_insurance_subtitle": "কারিগর সুরক্ষা ও কল্যাণ তহবিল",
+  "welfare_file_claim_title": "কল্যাণ দাবি দায়ের করুন",
+  "welfare_doctor_cert_mandatory": "ডাক্তারের শংসাপত্র বাধ্যতামূলক। অফিসিয়াল মেডিকেল সার্টিফিকেট ছাড়া দাবি জমা দেওয়া যাবে না।",
+  "geo_heatmap_title": "ভৌগোলিক চাহিদা হিটম্যাপ",
+  "smart_demand_insights_title": "স্মার্ট চাহিদা পূর্বাভাস",
+  "standby_mobilize_btn": "স্ট্যান্ডবাই কর্মীদের সক্রিয় করুন",
+  "welfare_claim_submitted_success": "কল্যাণ দাবি সফলভাবে জমা দেওয়া হয়েছে",
+  "welfare_under_review": "কমিটির পর্যালোচনার অধীনে"
 }

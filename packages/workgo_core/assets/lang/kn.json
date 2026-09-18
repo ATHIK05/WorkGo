@@ -1680,5 +1680,15 @@
   "erode_central_tamil_nadu": "ಈರೋಡ್ ಸೆಂಟ್ರಲ್, ತಮಿಳುನಾಡು",
   "erode_central": "ಈರೋಡ್ ಸೆಂಟ್ರಲ್",
   "base_station_unset": "ಕಾರ್ಯಾಚರಣೆ ನೆಲೆ ಹೊಂದಿಸಿಲ್ಲ",
-  "save_operating_base_btn": "ಕಾರ್ಯಾಚರಣೆ ನೆಲೆ ಉಳಿಸಿ"
+  "save_operating_base_btn": "ಕಾರ್ಯಾಚರಣೆ ನೆಲೆ ಉಳಿಸಿ",
+  "welfare_shield_title": "₹2 ಲಕ್ಷ ಕಲ್ಯಾಣ ರಕ್ಷಣೆ",
+  "welfare_insurance_title": "ಕಲ್ಯಾಣ ಮತ್ತು ವಿಮೆ",
+  "welfare_insurance_subtitle": "ಕುಶಲಕರ್ಮಿಗಳ ರಕ್ಷಣೆ ಮತ್ತು ಕಲ್ಯಾಣ ನಿಧಿ",
+  "welfare_file_claim_title": "ಕಲ್ಯಾಣ ಹಕ್ಕನ್ನು ಸಲ್ಲಿಸಿ",
+  "welfare_doctor_cert_mandatory": "ವೈದ್ಯರ ಪ್ರಮಾಣಪತ್ರ ಕಡ್ಡಾಯವಾಗಿದೆ. ಅಧಿಕೃತ ವೈದ್ಯಕೀಯ ಪ್ರಮಾಣಪತ್ರವಿಲ್ಲದೆ ಹಕ್ಕನ್ನು ಸಲ್ಲಿಸಲಾಗುವುದಿಲ್ಲ.",
+  "geo_heatmap_title": "ಭೌಗೋಳಿಕ ಬೇಡಿಕೆ ಹೀಟ್‌ಮ್ಯಾಪ್",
+  "smart_demand_insights_title": "ಸ್ಮಾರ್ಟ್ ಬೇಡಿಕೆ ಒಳನೋಟಗಳು",
+  "standby_mobilize_btn": "ಸ್ಟ್ಯಾಂಡ್‌ಬೈ ಕಾರ್ಯಕರ್ತರನ್ನು ಸಜ್ಜುಗೊಳಿಸಿ",
+  "welfare_claim_submitted_success": "ಕಲ್ಯಾಣ ಹಕ್ಕನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಸಲಾಗಿದೆ",
+  "welfare_under_review": "ಸಮಿತಿಯ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ"
 }

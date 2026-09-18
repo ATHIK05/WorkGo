@@ -13,18 +13,35 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
 
+    // DPDP Act 2023 & UIDAI Privacy Guard:
+    // Reject any client write that attempts to persist raw Aadhaar ZIP bytes or plaintext share code.
+    function hasNoExposedAadhaarSecrets() {
+      return !('verificationDetails' in request.resource.data) ||
+        request.resource.data.verificationDetails == null ||
+        (!('aadhaarZipBase64' in request.resource.data.verificationDetails) &&
+         !('aadhaarShareCode' in request.resource.data.verificationDetails));
+    }
+
     // Workers collection:
-    // Clients CANNOT directly write or tamper with verificationStatus or visibilityStatus
+    // Clients CANNOT directly write or tamper with verificationStatus or visibilityStatus.
+    // Explicit protection: reject any write containing aadhaarZipBase64 or aadhaarShareCode (for both users and admins).
     match /workers/{workerId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && hasNoExposedAadhaarSecrets();
       allow update: if isAuthenticated() &&
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus', 'visibilityStatus', 'trustScore', 'verificationDetails.pccReviewedAt']) || isAdmin());
+        hasNoExposedAadhaarSecrets() &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus', 'visibilityStatus', 'trustScore', 'verificationDetails.pccReviewedAt', 'fairnessScore', 'lastAssignedAt', 'lastDemandAlertAt']) || isAdmin());
       allow delete: if isAdmin();
 
       match /documents/{docId} {
-        allow read: if isAuthenticated();
-        allow write: if isAuthenticated();
+        allow read: if isAuthenticated() && (
+          isAdmin() ||
+          workerId == request.auth.uid ||
+          (exists(/databases/$(database)/documents/workers/$(workerId)) &&
+           (get(/databases/$(database)/documents/workers/$(workerId)).data.userId == request.auth.uid ||
+            get(/databases/$(database)/documents/workers/$(workerId)).data.proxyReferrerId == request.auth.uid))
+        );
+        allow write: if isAdmin();
       }
     }
 
@@ -58,9 +75,36 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Local Events (cooperative admin-entered festival and event demand signals)
+    match /local_events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Aggregated Demand Statistics (SIH AI Demand Forecasting telemetry)
+    // Server-side compute only: Written exclusively by the backend nightly cron (Admin SDK bypasses rules).
+    match /demandStats/{statId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Worker Welfare Claims (SIH 26089 Micro-Insurance & Welfare System)
+    // Medical & incident records are sensitive health information.
+    match /welfare_claims/{claimId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.workerId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/workers/$(resource.data.workerId)) &&
+         (get(/databases/$(database)/documents/workers/$(resource.data.workerId)).data.userId == request.auth.uid ||
+          get(/databases/$(database)/documents/workers/$(resource.data.workerId)).data.proxyReferrerId == request.auth.uid))
+      );
+      allow write: if isAdmin();
+    }
+
     // Default authenticated fallback for all other collections (bookings, users, reviews)
     match /{document=**} {
       allow read, write: if isAuthenticated();
     }
   }
 }
+

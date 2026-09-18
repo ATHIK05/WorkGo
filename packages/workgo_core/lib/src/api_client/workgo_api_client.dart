@@ -1,4 +1,4 @@
-﻿import "dart:convert";
+import "dart:convert";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:http/http.dart" as http;
 
@@ -34,6 +34,15 @@ class WorkGoApiClient {
 
   Future<dynamic> post(String path, Map<String, dynamic> body) async {
     final resp = await http.post(
+      Uri.parse("$_baseUrl$path"),
+      headers: await _headers(),
+      body: json.encode(body),
+    );
+    return _parse(resp);
+  }
+
+  Future<dynamic> patch(String path, Map<String, dynamic> body) async {
+    final resp = await http.patch(
       Uri.parse("$_baseUrl$path"),
       headers: await _headers(),
       body: json.encode(body),

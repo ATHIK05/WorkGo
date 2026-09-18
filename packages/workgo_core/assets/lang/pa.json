@@ -1680,5 +1680,15 @@
   "erode_central_tamil_nadu": "ਇਰੋਡ ਸੈਂਟਰਲ, ਤਾਮਿਲਨਾਡੂ",
   "erode_central": "ਇਰੋਡ ਸੈਂਟਰਲ",
   "base_station_unset": "ਕਾਰਜ ਆਧਾਰ ਸੈੱਟ ਨਹੀਂ ਕੀਤਾ ਗਿਆ",
-  "save_operating_base_btn": "ਕਾਰਜ ਆਧਾਰ ਸੰਭਾਲੋ"
+  "save_operating_base_btn": "ਕਾਰਜ ਆਧਾਰ ਸੰਭਾਲੋ",
+  "welfare_shield_title": "₹2 ਲੱਖ ਭਲਾਈ ਢਾਲ",
+  "welfare_insurance_title": "ਭਲਾਈ ਅਤੇ ਬੀਮਾ",
+  "welfare_insurance_subtitle": "ਕਾਰੀਗਰ ਸੁਰੱਖਿਆ ਅਤੇ ਭਲਾਈ ਫੰਡ",
+  "welfare_file_claim_title": "ਭਲਾਈ ਦਾਅਵਾ ਦਾਇਰ ਕਰੋ",
+  "welfare_doctor_cert_mandatory": "ਡਾਕਟਰ ਦਾ ਸਰਟੀਫਿਕੇਟ ਲਾਜ਼ਮੀ ਹੈ। ਅਧਿਕਾਰਤ ਮੈਡੀਕਲ ਸਰਟੀਫਿਕੇਟ ਤੋਂ ਬਿਨਾਂ ਦਾਅਵਾ ਜਮ੍ਹਾਂ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ।",
+  "geo_heatmap_title": "ਭੂਗੋਲਿਕ ਮੰਗ ਹੀਟਮੈਪ",
+  "smart_demand_insights_title": "ਸਮਾਰਟ ਮੰਗ ਅੰਦਾਜ਼ੇ",
+  "standby_mobilize_btn": "ਸਟੈਂਡਬਾਏ ਕਾਰੀਗਰਾਂ ਨੂੰ ਤਿਆਰ ਕਰੋ",
+  "welfare_claim_submitted_success": "ਭਲਾਈ ਦਾਅਵਾ ਸਫਲਤਾਪੂਰਵਕ ਜਮ੍ਹਾਂ ਹੋਇਆ",
+  "welfare_under_review": "ਕਮੇਟੀ ਦੀ ਸਮੀਖਿਆ ਅਧੀਨ"
 }

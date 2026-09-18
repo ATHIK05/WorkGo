@@ -346,14 +346,75 @@ const NOTIFICATION_TEMPLATES = {
       body: "முன்பதிவு #{bookingId} தொடர்பாக புகார் வந்துள்ளது. கூட்டுறவு நிர்வாகியைத் தொடர்பு கொள்ளவும்.",
     },
   },
+
+  // ── Standby Demand Mobilization (SIH AI Forecasting) ──────────────────────
+  HIGH_DEMAND_ALERT: {
+    channelId: "workgo_broadcast_channel",
+    sound: "bonus_ping.mp3",
+    priority: "high",
+    en: {
+      title: "High Demand Expected Today",
+      body: "Elevated customer demand projected for {trade} in {region}. Check in early for priority dispatch!",
+    },
+    hi: {
+      title: "आज उच्च मांग की उम्मीद",
+      body: "आज {region} में {trade} के लिए उच्च मांग की उम्मीद है। प्राथमिकता बुकिंग प्राप्त करने के लिए जल्दी लॉग ऑन करें!",
+    },
+    ta: {
+      title: "இன்று அதிக தேவை எதிர்பார்க்கப்படுகிறது",
+      body: "இன்று {region}-இல் {trade} பணிகளுக்கு அதிக தேவை எதிர்பார்க்கப்படுகிறது. முன்னுரிமை பெற முன்கூட்டியே உள்நுழையவும்!",
+    },
+  },
+
+  // ── Welfare & Insurance Claim Events (SIH 26089) ──────────────────────────
+  WELFARE_CLAIM_APPROVED: {
+    channelId: "workgo_kyc_channel",
+    sound: "success.mp3",
+    priority: "high",
+    en: {
+      title: "Welfare Claim Approved",
+      body: "Your welfare claim #{claimId} has been approved by the cooperative committee.",
+    },
+    hi: {
+      title: "कल्याण दावा स्वीकृत",
+      body: "सहकारी समिति द्वारा आपका कल्याण दावा #{claimId} स्वीकृत कर लिया गया है।",
+    },
+    ta: {
+      title: "நலத்திட்டக் கோரிக்கை அங்கீகரிக்கப்பட்டது",
+      body: "உங்கள் நலத்திட்டக் கோரிக்கை #{claimId} கூட்டுறவுக் குழுவால் அங்கீகரிக்கப்பட்டது.",
+    },
+  },
+
+  WELFARE_CLAIM_REJECTED: {
+    channelId: "workgo_kyc_channel",
+    sound: "default",
+    priority: "high",
+    en: {
+      title: "Welfare Claim Update",
+      body: "Your welfare claim #{claimId} was not approved. Reason: {reason}",
+    },
+    hi: {
+      title: "कल्याण दावा अपडेट",
+      body: "आपका कल्याण दावा #{claimId} स्वीकृत नहीं हुआ। कारण: {reason}",
+    },
+    ta: {
+      title: "நலத்திட்டக் கோரிக்கை புதுப்பிப்பு",
+      body: "உங்கள் நலத்திட்டக் கோரிக்கை #{claimId} நிராகரிக்கப்பட்டது. காரணம்: {reason}",
+    },
+  },
 };
+
+// Aliases for lowercase key support
+NOTIFICATION_TEMPLATES.welfare_claim_approved = NOTIFICATION_TEMPLATES.WELFARE_CLAIM_APPROVED;
+NOTIFICATION_TEMPLATES.welfare_claim_rejected = NOTIFICATION_TEMPLATES.WELFARE_CLAIM_REJECTED;
+NOTIFICATION_TEMPLATES.high_demand_alert = NOTIFICATION_TEMPLATES.HIGH_DEMAND_ALERT;
 
 // ── Notification Engine Implementation ────────────────────────────────────────
 
 class NotificationEngine {
   constructor(db, messaging) {
-    this.db = db || admin.firestore();
-    this.messaging = messaging || admin.messaging();
+    this.db = db || (admin.apps && admin.apps.length ? admin.firestore() : null);
+    this.messaging = messaging || (admin.apps && admin.apps.length ? admin.messaging() : null);
   }
 
   /**

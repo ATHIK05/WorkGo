@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
+import 'welfare_claim_submission_screen.dart';
 
 class WorkerWelfareScreen extends StatelessWidget {
   const WorkerWelfareScreen({
@@ -41,7 +42,7 @@ class WorkerWelfareScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Welfare & Insurance",
+              "welfare_insurance_title".trSafe("Welfare & Insurance"),
               style: WorkGoFonts.heading(
                 color: KX.textPrimary,
                 fontSize: 17,
@@ -49,7 +50,7 @@ class WorkerWelfareScreen extends StatelessWidget {
               ),
             ),
             Text(
-              "Artisan Protection & Welfare Pool",
+              "welfare_insurance_subtitle".trSafe("Artisan Protection & Welfare Pool"),
               style: WorkGoFonts.body(
                 color: KX.textSecondary,
                 fontSize: 11,
@@ -140,8 +141,8 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 1: Accident (PMSBY)
                   _SchemeBenefitCard(
-                    title: 'scheme_pmsby_title'.trSafe('Accidental Disability Cover (PMSBY)'),
-                    subtitle: 'scheme_pmsby_desc'.trSafe('24/7 on-duty emergency protection across all job dispatches'),
+                    title: "Accidental Disability Cover (PMSBY)",
+                    subtitle: "24/7 on-duty emergency protection across all job dispatches",
                     amount: "₹2,00,000",
                     badgeColor: const Color(0xFFD6EBFF),
                     badgeTextColor: const Color(0xFF1E3A8A),
@@ -152,8 +153,8 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 2: Life (PMJJBY)
                   _SchemeBenefitCard(
-                    title: 'scheme_pmjjby_title'.trSafe('Artisan Life Insurance (PMJJBY)'),
-                    subtitle: 'scheme_pmjjby_desc'.trSafe('Zero-fee family security & nominee welfare disbursement'),
+                    title: "Artisan Life Insurance (PMJJBY)",
+                    subtitle: "Zero-fee family security & nominee welfare disbursement",
                     amount: "₹2,00,000",
                     badgeColor: const Color(0xFFD1FAE5),
                     badgeTextColor: const Color(0xFF065F46),
@@ -164,14 +165,21 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── Scheme 3: Medical Relief
                   _SchemeBenefitCard(
-                    title: 'scheme_medical_title'.trSafe('Medical & Emergency Micro-Relief'),
-                    subtitle: 'scheme_medical_desc'.trSafe('Instant 0% interest cooperative emergency advance'),
+                    title: "Medical & Emergency Micro-Relief",
+                    subtitle: "Instant 0% interest cooperative emergency advance",
                     amount: "₹25,000",
                     badgeColor: const Color(0xFFFFE0A3),
                     badgeTextColor: const Color(0xFF92400E),
                     icon: Icons.medical_services_rounded,
                     isEnrolled: isEnrolled,
                   ),
+
+                  // ── File a Welfare Claim Hero Action Card
+                  _FileClaimCard(worker: liveWorker),
+                  const SizedBox(height: 16),
+
+                  // ── Live Claims Tracking Section
+                  _WorkerClaimsTrackingSection(workerId: liveWorker.id),
                   const SizedBox(height: 16),
 
                   // ── 24/7 Helpline & Claim Desk Card
@@ -486,8 +494,6 @@ class _SchemeBenefitCard extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -497,8 +503,6 @@ class _SchemeBenefitCard extends StatelessWidget {
                     fontSize: 11,
                     height: 1.35,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -593,7 +597,7 @@ class _HelplineDeskCard extends StatelessWidget {
               HapticFeedback.selectionClick();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('connecting_claim_desk'.trSafe('Connecting to Cooperative Claim Desk (1800-425-WORKGO)…')),
+                  content: const Text("Connecting to Cooperative Claim Desk (1800-425-WORKGO)…"),
                   backgroundColor: const Color(0xFF10B981),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -601,7 +605,7 @@ class _HelplineDeskCard extends StatelessWidget {
               );
             },
             icon: const Icon(Icons.phone_rounded, size: 14),
-            label: Text('call_desk_btn'.trSafe('Call Desk'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+            label: const Text("Call Desk", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFB800),
               foregroundColor: Colors.black,
@@ -615,4 +619,354 @@ class _HelplineDeskCard extends StatelessWidget {
     );
   }
 }
+
+// ──────────────────────────────────────────────────────────────
+//  FILE A WELFARE CLAIM ACTION CARD
+// ──────────────────────────────────────────────────────────────
+class _FileClaimCard extends StatelessWidget {
+  const _FileClaimCard({required this.worker});
+  final Worker worker;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0x33FFB800),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.shield_outlined, color: Color(0xFFFFB800), size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "File Welfare / Insurance Claim",
+                      style: WorkGoFonts.heading(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      "PMSBY / PMJJBY on-duty accident or medical emergency claims",
+                      style: WorkGoFonts.body(
+                        color: const Color(0xFF94A3B8),
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "Upload doctor certificates, incident photos, and corroborate with past bookings for expedited administrative settlement.",
+            style: WorkGoFonts.body(
+              color: const Color(0xFFCBD5E1),
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => WelfareClaimSubmissionScreen(worker: worker),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+              label: Text(
+                "Submit Micro-Insurance Claim",
+                style: WorkGoFonts.heading(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFB800),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+//  WORKER CLAIMS TRACKING SECTION
+// ──────────────────────────────────────────────────────────────
+class _WorkerClaimsTrackingSection extends StatelessWidget {
+  const _WorkerClaimsTrackingSection({required this.workerId});
+  final String workerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final welfareService = WelfareService();
+
+    return StreamBuilder<List<WelfareClaim>>(
+      stream: welfareService.streamWorkerClaims(workerId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        final claims = snapshot.data ?? [];
+        if (claims.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.receipt_long_rounded, color: Color(0xFF9CA3AF), size: 36),
+                const SizedBox(height: 10),
+                Text(
+                  "No Welfare Claims Submitted",
+                  style: WorkGoFonts.heading(
+                    color: KX.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "When you submit an emergency or disability claim, its review progress will be tracked here in real-time.",
+                  textAlign: TextAlign.center,
+                  style: WorkGoFonts.body(
+                    color: KX.textSecondary,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "My Submitted Claims",
+                  style: WorkGoFonts.display(
+                    color: KX.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    "${claims.length} Filed",
+                    style: const TextStyle(
+                      color: Color(0xFF374151),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: claims.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final claim = claims[index];
+                final statusLower = claim.status.toLowerCase();
+
+                Color badgeBg;
+                Color badgeFg;
+                String statusLabel;
+                IconData statusIcon;
+
+                if (statusLower == "approved") {
+                  badgeBg = const Color(0xFFD1FAE5);
+                  badgeFg = const Color(0xFF065F46);
+                  statusLabel = "Approved";
+                  statusIcon = Icons.check_circle_rounded;
+                } else if (statusLower == "rejected") {
+                  badgeBg = const Color(0xFFFEE2E2);
+                  badgeFg = const Color(0xFF991B1B);
+                  statusLabel = "Rejected";
+                  statusIcon = Icons.cancel_rounded;
+                } else {
+                  badgeBg = const Color(0xFFFEF3C7);
+                  badgeFg = const Color(0xFF92400E);
+                  statusLabel = "Under Review";
+                  statusIcon = Icons.hourglass_top_rounded;
+                }
+
+                final shortId = claim.id.length > 8 ? claim.id.substring(0, 8).toUpperCase() : claim.id.toUpperCase();
+                final submittedStr = "${claim.submittedAt.day.toString().padLeft(2, '0')}/${claim.submittedAt.month.toString().padLeft(2, '0')}/${claim.submittedAt.year}";
+
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFF0EDE6)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: badgeBg,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(statusIcon, color: badgeFg, size: 14),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Claim #$shortId",
+                                style: WorkGoFonts.heading(
+                                  color: KX.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: badgeBg,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                color: badgeFg,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (claim.description.isNotEmpty) ...[
+                        Text(
+                          claim.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: WorkGoFonts.body(
+                            color: const Color(0xFF4B5563),
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Filed on $submittedStr",
+                            style: WorkGoFonts.body(
+                              color: KX.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                          if (claim.bookingId != null && claim.bookingId!.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                "Booking: #${claim.bookingId!.length > 6 ? claim.bookingId!.substring(0, 6).toUpperCase() : claim.bookingId!.toUpperCase()}",
+                                style: WorkGoFonts.numeric(
+                                  color: const Color(0xFF4B5563),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Navigation alias for WorkerWelfareScreen
+typedef WorkerWelfareManagementScreen = WorkerWelfareScreen;
+
 

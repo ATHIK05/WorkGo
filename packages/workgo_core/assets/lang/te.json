@@ -1680,5 +1680,15 @@
   "erode_central_tamil_nadu": "ఈరోడ్ సెంట్రల్, తమిళనాడు",
   "erode_central": "ఈరోడ్ సెంట్రల్",
   "base_station_unset": "ఆపరేటింగ్ బేస్ సెట్ చేయలేదు",
-  "save_operating_base_btn": "ఆపరేటింగ్ బేస్ సేవ్ చేయండి"
+  "save_operating_base_btn": "ఆపరేటింగ్ బేస్ సేవ్ చేయండి",
+  "welfare_shield_title": "₹2 లక్షల సంక్షేమ రక్షణ",
+  "welfare_insurance_title": "సంక్షేమం మరియు బీమా",
+  "welfare_insurance_subtitle": "కార్మికుల రక్షణ మరియు సంక్షేమ నిధి",
+  "welfare_file_claim_title": "సంక్షేమ దావాను నమోదు చేయండి",
+  "welfare_doctor_cert_mandatory": "వైద్యుని ధృవీకరణ పత్రం తప్పనిసరి. అధికారిక వైద్య ధృవీకరణ పత్రం లేకుండా దావాను సమర్పించలేరు.",
+  "geo_heatmap_title": "భౌగోళిక డిమాండ్ హీట్‌మ్యాప్",
+  "smart_demand_insights_title": "స్మార్ట్ డిమాండ్ అంచనాలు",
+  "standby_mobilize_btn": "స్టాండ్‌బై వర్కర్లను మోహరించండి",
+  "welfare_claim_submitted_success": "సంక్షేమ దావా విజయవంతంగా సమర్పించబడింది",
+  "welfare_under_review": "కమిటీ సమీక్షలో ఉంది"
 }

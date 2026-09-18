@@ -18,6 +18,12 @@ admin.initializeApp({
 const db = admin.firestore();
 const messaging = admin.messaging();
 
+// ── ONNX Demand Model Init (Server-side low latency ML inference) ─────────────
+const { loadDemandModel } = require("./services/demand_model");
+loadDemandModel().catch((err) => {
+  console.warn("[index] ONNX Demand Model initialization deferred:", err.message);
+});
+
 // ── Express App ──────────────────────────────────────────────────────────────
 const app = express();
 app.use(helmet());
@@ -75,6 +81,7 @@ app.use("/api/locales", require("./routes/locales"));
 app.use("/api/ai", require("./routes/ai_triage")); // Gemini 1.5 Flash triage proxy + Firestore cache
 app.use("/api/ai", require("./routes/ai_transcribe")); // Cloud-assisted vernacular speech-to-text (Gemini Audio + Bhashini)
 app.use("/api/ivr/voice", require("./routes/ivr_voice")); // Dial Karya IVR (called by Asterisk — no Firebase auth)
+app.use("/api/welfare", verifyToken, require("./routes/welfare")); // SIH 26089 Welfare & Micro-Insurance Claim Engine
 
 // ── Notification Cloud Functions Daemon (for Render background triggers) ────
 const { initFirestoreNotificationListeners } = require("./cloud_functions");
@@ -95,7 +102,7 @@ const cron = require("node-cron");
 const { runDemandAggregation } = require("./services/demand_aggregation");
 cron.schedule("0 2 * * *", async () => {
   console.log("[cron] Running nightly demand aggregation...");
-  await runDemandAggregation(db);
+  await runDemandAggregation(db, messaging);
 });
 
 // Self-ping to prevent Render cold starts (every 10 min)

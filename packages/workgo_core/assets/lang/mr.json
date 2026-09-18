@@ -1680,5 +1680,15 @@
   "erode_central_tamil_nadu": "इरोड सेंट्रल, तामिळनाडू",
   "erode_central": "इरोड सेंट्रल",
   "base_station_unset": "कार्य आधार सेट केलेले नाही",
-  "save_operating_base_btn": "कार्य आधार जतन करा"
+  "save_operating_base_btn": "कार्य आधार जतन करा",
+  "welfare_shield_title": "₹2 लाख कल्याण कवच",
+  "welfare_insurance_title": "कल्याण आणि विमा",
+  "welfare_insurance_subtitle": "कारीगर संरक्षण आणि कल्याण निधी",
+  "welfare_file_claim_title": "कल्याण दावा दाखल करा",
+  "welfare_doctor_cert_mandatory": "डॉक्टरांचे प्रमाणपत्र अनिवार्य आहे. अधिकृत वैद्यकीय प्रमाणपत्राशिवाय दावा दाखल करता येत नाही.",
+  "geo_heatmap_title": "भौगोलिक मागणी हीटमॅप",
+  "smart_demand_insights_title": "स्मार्ट मागणी अंदाज",
+  "standby_mobilize_btn": "स्टँडबाय कारागीर तैनात करा",
+  "welfare_claim_submitted_success": "कल्याण दावा यशस्वीरित्या दाखल केला",
+  "welfare_under_review": "समितीच्या पुनरावलोकनाधीन"
 }

@@ -12,6 +12,7 @@ import 'smart_demand_insights_screen.dart';
 import 'worker_welfare_management_screen.dart';
 import 'payment_gateways_hub_screen.dart';
 import 'admin_dial_karya_screen.dart';
+import 'geographic_insights_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({
@@ -171,6 +172,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       5 => const ProxyVerificationQueueScreen(),
                       6 => const PaymentGatewaysHubScreen(),
                       7 => const AdminDialKaryaScreen(),
+                      8 => const GeographicInsightsScreen(),
                       _ => _buildRealTimeOverviewCockpit(context),
                     },
                   ),
@@ -413,6 +415,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 _buildNavItem(5, Icons.phone_forwarded_rounded, "Proxy Voice Queue", isCompact, badgeColor: AX.violet),
                 _buildNavItem(6, Icons.account_balance_wallet_rounded, "Payments & Gateways", isCompact, badgeColor: const Color(0xFF059669)),
                 _buildNavItem(7, Icons.dialpad_rounded, "Dial Karya Telephony", isCompact, badgeColor: AX.amber),
+                _buildNavItem(8, Icons.map_rounded, "geo_heatmap_title".trSafe("Geographic Heatmap"), isCompact, badgeColor: AX.emeraldDark),
               ],
             ),
           ),
