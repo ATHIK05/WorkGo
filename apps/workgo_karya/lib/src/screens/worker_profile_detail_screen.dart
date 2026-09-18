@@ -902,9 +902,14 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
       builder: (context, snap) {
         final liveUser = snap.data ?? widget.user;
         final avatar = liveUser.avatarBase64;
-        final baseStation = worker.baseAddress?.formattedAddress ??
+        final rawBaseStation = worker.baseAddress?.formattedAddress ??
             worker.baseArea ??
-            (worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : "Base Station Unset");
+            (worker.preferredAreas.isNotEmpty
+                ? worker.preferredAreas.first
+                : 'base_station_unset'.trSafe("Base Station Unset"));
+        final baseStation = rawBaseStation.toLocalizedAddress(
+          context.locale.languageCode,
+        );
 
         return Column(
           children: [
@@ -1443,7 +1448,10 @@ class _WorkerProfileDetailScreenState extends State<WorkerProfileDetailScreen> {
   }
 
   Widget _buildMenuMatrix(Worker worker) {
-    final area = worker.preferredAreas.isNotEmpty ? worker.preferredAreas.first : (worker.baseArea ?? "Erode Central");
+    final rawArea = worker.preferredAreas.isNotEmpty
+        ? worker.preferredAreas.first
+        : (worker.baseArea ?? 'erode_central'.trSafe("Erode Central"));
+    final area = rawArea.toLocalizedAddress(context.locale.languageCode);
     final skillsStr = worker.skills.isNotEmpty
         ? worker.skills.take(2).map((s) => _getLocalizedSkill(s)).join(', ')
         : "General Trades";

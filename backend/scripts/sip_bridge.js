@@ -20,7 +20,7 @@ function getWslGateway() {
     const stdout = execSync('wsl ip route', { encoding: 'utf8' }).trim();
     const match = stdout.match(/default via ([0-9.]+)/);
     if (match) return match[1];
-  } catch (err) {}
+  } catch (err) { }
   return '172.31.160.1';
 }
 
@@ -108,7 +108,7 @@ function ensureRtpProxy(astRtpPort, phoneIp, phoneRtpPort) {
       socket.close();
       rtpProxies.delete(astRtpPort);
       rtpSessions.delete(astRtpPort);
-    } catch (_) {}
+    } catch (_) { }
   }, 300000);
 
   return socket;

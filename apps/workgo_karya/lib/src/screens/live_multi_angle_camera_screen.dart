@@ -20,7 +20,12 @@ enum BiometricAngleStep {
 }
 
 class LiveMultiAngleCameraScreen extends StatefulWidget {
-  const LiveMultiAngleCameraScreen({super.key});
+  final CameraLensDirection initialLensDirection;
+
+  const LiveMultiAngleCameraScreen({
+    super.key,
+    this.initialLensDirection = CameraLensDirection.front,
+  });
 
   @override
   State<LiveMultiAngleCameraScreen> createState() => _LiveMultiAngleCameraScreenState();
@@ -30,6 +35,7 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
     with TickerProviderStateMixin {
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
+  late CameraLensDirection _currentLensDirection;
   FaceDetector? _faceDetector;
   bool _isProcessingFrame = false;
   bool _isCameraInitialized = false;
@@ -61,6 +67,7 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
   @override
   void initState() {
     super.initState();
+    _currentLensDirection = widget.initialLensDirection;
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -105,14 +112,14 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
         return;
       }
 
-      // Pick front camera if available
-      final frontCamera = _cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.front,
+      // Pick camera matching desired lens direction if available
+      final camera = _cameras.firstWhere(
+        (c) => c.lensDirection == _currentLensDirection,
         orElse: () => _cameras.first,
       );
 
       _cameraController = CameraController(
-        frontCamera,
+        camera,
         ResolutionPreset.high,
         enableAudio: false,
         imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
@@ -131,6 +138,34 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
       debugPrint("[LiveCamera] Camera init error: $e");
       if (mounted) setState(() => _hasCameraError = true);
     }
+  }
+
+  Future<void> _switchCamera() async {
+    if (_cameras.length < 2 || _isCapturing) return;
+    HapticFeedback.selectionClick();
+
+    final nextDirection = _currentLensDirection == CameraLensDirection.front
+        ? CameraLensDirection.back
+        : CameraLensDirection.front;
+
+    setState(() {
+      _currentLensDirection = nextDirection;
+      _isCameraInitialized = false;
+      _isFaceAligned = false;
+      _consecutiveAlignedFrames = 0;
+    });
+
+    if (_cameraController != null) {
+      try {
+        if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+          await _cameraController!.stopImageStream();
+        }
+      } catch (_) {}
+      await _cameraController!.dispose();
+      _cameraController = null;
+    }
+
+    await _initCamera();
   }
 
   Future<void> _processCameraFrame(CameraImage image) async {
@@ -497,6 +532,17 @@ class _LiveMultiAngleCameraScreenState extends State<LiveMultiAngleCameraScreen>
                           style: TextStyle(color: KaryaColors.brandYellow, fontSize: 11, fontWeight: FontWeight.w900),
                         ),
                       ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _switchCamera,
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withAlpha(160),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.flip_camera_ios_rounded, color: Colors.white, size: 20),
                     ),
                   ),
                 ],

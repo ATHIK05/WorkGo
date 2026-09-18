@@ -2628,18 +2628,23 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         return PopupMenuItem<String>(
           value: lang.code,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${lang.nativeName} (${lang.englishName})',
-                style: TextStyle(
-                  color: isSelected ? KX.violet : KX.textPrimary,
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              Expanded(
+                child: Text(
+                  '${lang.nativeName} (${lang.englishName})',
+                  style: TextStyle(
+                    color: isSelected ? KX.violet : KX.textPrimary,
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (isSelected)
+              if (isSelected) ...[
+                const SizedBox(width: 8),
                 const Icon(Icons.check_rounded, color: KX.violet, size: 16),
+              ],
             ],
           ),
         );
@@ -3418,9 +3423,15 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
                               // Location
                               Text(
-                                worker.baseAddress?.formattedAddress ??
-                                    worker.baseArea ??
-                                    "Active Radius ~${worker.serviceRadiusKm.toInt()} km",
+                                (worker.baseAddress?.formattedAddress ??
+                                        worker.baseArea ??
+                                        'active_radius_label'.trSafe(
+                                          "Active Radius ~${worker.serviceRadiusKm.toInt()} km",
+                                          ["${worker.serviceRadiusKm.toInt()}"],
+                                        ))
+                                    .toLocalizedAddress(
+                                      context.locale.languageCode,
+                                    ),
                                 style: GoogleFonts.plusJakartaSans(
                                   color: const Color(0xFF78350F),
                                   fontSize: 11,
@@ -3966,7 +3977,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         worker.baseArea ??
         (worker.preferredAreas.isNotEmpty
             ? worker.preferredAreas.first
-            : "Erode Central, Tamil Nadu");
+            : 'erode_central_tamil_nadu'.trSafe("Erode Central, Tamil Nadu"));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4057,7 +4068,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            activeLocation,
+                            activeLocation.toLocalizedAddress(
+                              context.locale.languageCode,
+                            ),
                             style: GoogleFonts.plusJakartaSans(
                               color: KX.textPrimary,
                               fontSize: 13,

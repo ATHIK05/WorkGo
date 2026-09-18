@@ -176,15 +176,21 @@ router.post("/onboarding", async (req, res) => {
     if (pincode) areas.push(pincode);
     if (locationText) areas.push(locationText);
 
+    const existing = doc.data();
+    const isAlreadyApproved =
+      existing?.verificationStatus === "approved" ||
+      existing?.verificationStage === "approved";
+
     await doc.ref.update({
-      name: name || "Dial Artisan",
+      name: name || existing?.name || "Dial Artisan",
       skills: [trade],
-      tradeDescription: tradeDescription || "",
-      locationText: locationText || "",
-      preferredAreas: areas,
+      tradeDescription: tradeDescription || existing?.tradeDescription || "",
+      locationText: locationText || existing?.locationText || "",
+      preferredAreas: areas.length > 0 ? areas : (existing?.preferredAreas || []),
       dialLanguage: language,
-      verificationStage: "pending_peer_kyc",
-      verificationStatus: "pending",
+      verificationStage: isAlreadyApproved ? "approved" : "pending_peer_kyc",
+      verificationStatus: isAlreadyApproved ? "approved" : "pending",
+      visibilityStatus: isAlreadyApproved ? "public" : (existing?.visibilityStatus || "hidden"),
       callIvrStatus: "idle",
       updatedAt: new Date().toISOString(),
     });

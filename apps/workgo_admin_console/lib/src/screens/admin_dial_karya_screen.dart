@@ -715,7 +715,32 @@ class _AdminDialKaryaScreenState extends State<AdminDialKaryaScreen> {
                 ),
                 DataCell(
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (!isVerified)
+                        IconButton(
+                          icon: const Icon(Icons.check_circle_outline_rounded, size: 20, color: Color(0xFF10B981)),
+                          tooltip: "Approve Artisan KYC & Set Online",
+                          onPressed: () async {
+                            await FirebaseFirestore.instance
+                                .collection('workers')
+                                .doc(w['id'])
+                                .update({
+                              'verificationStatus': 'approved',
+                              'verificationStage': 'approved',
+                              'visibilityStatus': 'public',
+                              'availabilityStatus': 'online',
+                            });
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("${w['name']} approved & set online! ✓"),
+                                backgroundColor: const Color(0xFF10B981),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                        ),
                       IconButton(
                         icon: const Icon(Icons.phone_forwarded_rounded, size: 18, color: Color(0xFFD97706)),
                         tooltip: "Trigger Outbound Robocall Test",

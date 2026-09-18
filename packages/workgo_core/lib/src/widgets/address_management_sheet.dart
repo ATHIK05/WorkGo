@@ -95,7 +95,9 @@ class _AddressManagementSheetContent extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "select_address_subtitle".trSafe("Tap to select active location"),
+                      userRole == "worker"
+                          ? "select_operating_base_subtitle".trSafe("Tap to select active dispatch base")
+                          : "select_address_subtitle".trSafe("Tap to select active location"),
                       style: GoogleFonts.plusJakartaSans(
                         color: const Color(0xFF6B6B6B),
                         fontSize: 11.5,
@@ -175,7 +177,9 @@ class _AddressManagementSheetContent extends StatelessWidget {
                         const Icon(Icons.location_off_rounded, color: Color(0xFF9CA3AF), size: 36),
                         const SizedBox(height: 10),
                         Text(
-                          "no_addresses_yet".trSafe("No Saved Addresses Yet"),
+                          userRole == "worker"
+                              ? "no_operating_bases_yet".trSafe("No Operating Bases Set Yet")
+                              : "no_addresses_yet".trSafe("No Saved Addresses Yet"),
                           style: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFF1A1A1A),
                             fontSize: 15,
@@ -184,7 +188,9 @@ class _AddressManagementSheetContent extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "no_addresses_desc".trSafe("Add an address using GPS detection or manual input to easily set dispatch zones."),
+                          userRole == "worker"
+                              ? "no_operating_bases_desc".trSafe("Add an operating base using GPS detection or map to set your artisan dispatch center.")
+                              : "no_addresses_desc".trSafe("Add an address using GPS detection or manual input to easily set dispatch zones."),
                           style: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFF6B6B6B),
                             fontSize: 12,
@@ -639,7 +645,13 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                 children: [
                   Expanded(
                     child: Text(
-                      widget.existingAddress != null ? "edit_address_title".trSafe("Edit Address") : "add_new_address_title".trSafe("Add New Address"),
+                      widget.existingAddress != null
+                          ? (widget.userRole == "worker"
+                              ? "edit_operating_base_title".trSafe("Edit Operating Base")
+                              : "edit_address_title".trSafe("Edit Address"))
+                          : (widget.userRole == "worker"
+                              ? "add_new_operating_base_title".trSafe("Add New Operating Base")
+                              : "add_new_address_title".trSafe("Add New Address")),
                       style: GoogleFonts.plusJakartaSans(color: const Color(0xFF1A1A1A), fontSize: 17, fontWeight: FontWeight.w800),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -815,7 +827,9 @@ class _AddAddressSheetContentState extends State<_AddAddressSheetContent> {
                         children: [
                           Flexible(
                             child: Text(
-                              "save_address_btn".trSafe("Save Address"),
+                              widget.userRole == "worker"
+                                  ? "save_operating_base_btn".trSafe("Save Operating Base")
+                                  : "save_address_btn".trSafe("Save Address"),
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

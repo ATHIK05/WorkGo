@@ -186,10 +186,15 @@ async function triggerOutboundJobAlertCall({
   // Normalize phone: strip leading + for SIP channel
   const dialNumber = workerPhone.replace(/^\+/, "");
 
+  const isInternalSip = dialNumber.startsWith("workgo_") || /^\d{3,4}$/.test(dialNumber);
+  const targetChannel = isInternalSip
+    ? `PJSIP/${dialNumber}`
+    : `PJSIP/${dialNumber}@gateway-phone`;
+
   try {
     const result = await amiClient.sendAction({
       Action: "Originate",
-      Channel: `PJSIP/${dialNumber}@gateway-phone`,
+      Channel: targetChannel,
       Context: "workgo-booking-alert",
       Exten: "s",
       Priority: "1",
@@ -205,7 +210,7 @@ async function triggerOutboundJobAlertCall({
     });
 
     if (result.Response === "Success" || result.Response === "Queued") {
-      const channel = `PJSIP/${dialNumber}@gateway-phone`;
+      const channel = targetChannel;
       activeCallRegistry.set(bookingId, {
         channel,
         workerPhone,
@@ -296,10 +301,15 @@ async function triggerOtpFlashCall(workerPhone, otpCode, language = "hi") {
   const filename = `otp_${workerPhone.replace(/\D/g, "")}_${otpCode}`;
   await writeAudioFile(text, language, filename, soundsDir);
 
+  const isInternalSip = dialNumber.startsWith("workgo_") || /^\d{3,4}$/.test(dialNumber);
+  const targetChannel = isInternalSip
+    ? `PJSIP/${dialNumber}`
+    : `PJSIP/${dialNumber}@gateway-phone`;
+
   try {
     const result = await amiClient.sendAction({
       Action: "Originate",
-      Channel: `PJSIP/${dialNumber}@gateway-phone`,
+      Channel: targetChannel,
       Context: "workgo-otp-flash",
       Exten: "s",
       Priority: "1",
