@@ -108,33 +108,43 @@ router.all("/inbound", async (req, res) => {
     const { doc, isNew } = await getOrCreateDialWorker(db, caller);
     const worker = doc.data();
 
-    if (isNew || worker.verificationStatus === "pending" && worker.verificationStage === "signup") {
+    const isTextFormat = req.query.format === "text" || 
+      req.body?.format === "text" || 
+      (typeof req.body === "string" && req.body.includes("format=text"));
+
+    let respPayload;
+    if (isNew || (worker.verificationStatus === "pending" && worker.verificationStage === "signup")) {
       // New registration call — Asterisk will play welcome + ask name/trade/pincode
       await doc.ref.update({ callIvrStatus: "onboarding" });
-      return res.json({
+      respPayload = {
         action: "onboarding",
         workerId: doc.id,
         language: worker.dialLanguage || "hi",
-      });
-    }
-
-    if (worker.verificationStatus === "pending") {
+      };
+    } else if (worker.verificationStatus === "pending") {
       // Profile exists but still awaiting Peer KYC
-      return res.json({
+      respPayload = {
         action: "pending_kyc",
         workerId: doc.id,
         language: worker.dialLanguage || "hi",
-      });
+      };
+    } else {
+      // Verified worker — show Online/Offline toggle menu
+      respPayload = {
+        action: "toggle_menu",
+        workerId: doc.id,
+        workerName: worker.name || "",
+        currentStatus: worker.availabilityStatus || "offline",
+        language: worker.dialLanguage || "hi",
+      };
     }
 
-    // Verified worker — show Online/Offline toggle menu
-    return res.json({
-      action: "toggle_menu",
-      workerId: doc.id,
-      workerName: worker.name || "",
-      currentStatus: worker.availabilityStatus || "offline",
-      language: worker.dialLanguage || "hi",
-    });
+    if (isTextFormat) {
+      return res.type("text/plain").send(
+        `ACTION=${respPayload.action}|LANG=${respPayload.language}|STATUS=${respPayload.currentStatus || "offline"}|NAME=${respPayload.workerName || ""}`
+      );
+    }
+    return res.json(respPayload);
   } catch (err) {
     console.error("[IVR] /inbound error:", err.message);
     res.status(500).json({ error: err.message });
