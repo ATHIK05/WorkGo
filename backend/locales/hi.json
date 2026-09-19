@@ -1345,5 +1345,13 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक"
+  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "or_continue_with": "या इसके साथ जारी रखें",
+  "error_karya_member_cannot_access_customer": "यह खाता कार्य सदस्य के रूप में पंजीकृत है। कृपया किसी भिन्न खाते का उपयोग करें।",
+  "error_customer_cannot_access_karya": "यह खाता ग्राहक के रूप में पंजीकृत है। कृपया किसी भिन्न खाते का उपयोग करें।",
+  "karya_member_detected_title": "कार्य सदस्य खाता",
+  "karya_member_detected_desc": "यह खाता WorkGo कार्य सदस्य के रूप में पंजीकृत है। ग्राहक के रूप में सेवाएं बुक करने के लिए, कृपया किसी अन्य खाते से साइन इन करें।",
+  "customer_account_detected_title": "ग्राहक खाता",
+  "customer_account_detected_desc": "यह खाता ग्राहक के रूप में पंजीकृत है। कारीगर के रूप में सेवाएं प्रदान करने के लिए, कृपया किसी अन्य खाते से साइन इन करें।",
+  "btn_use_different_account": "भिन्न खाते का उपयोग करें"
 }

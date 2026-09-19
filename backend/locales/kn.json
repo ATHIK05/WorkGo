@@ -1444,5 +1444,13 @@
   "enter_address_street_error": "ದಯವಿಟ್ಟು ವಿಳಾಸ/ರಸ್ತೆ ಪ್ರದೇಶವನ್ನು ನಮೂದಿಸಿ",
   "enter_pincode_error": "ದಯವಿಟ್ಟು 6 ಅಂಕಿಯ ಪಿನ್‌ಕೋಡ್ ನಮೂದಿಸಿ",
   "saving_profile_msg": "ಪ್ರೊಫೈಲ್ ಉಳಿಸಲಾಗುತ್ತಿದೆ...",
-  "failed_save_profile": "ಪ್ರೊಫೈಲ್ ಉಳಿಸಲು ವಿಫಲವಾಗಿದೆ: {}"
+  "failed_save_profile": "ಪ್ರೊಫೈಲ್ ಉಳಿಸಲು ವಿಫಲವಾಗಿದೆ: {}",
+  "or_continue_with": "ಅಥವಾ ಇದರೊಂದಿಗೆ ಮುಂದುವರಿಯಿರಿ",
+  "error_karya_member_cannot_access_customer": "ಈ ಖಾತೆಯು ಕಾರ್ಯ ಸದಸ್ಯರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯನ್ನು ಬಳಸಿ.",
+  "error_customer_cannot_access_karya": "ಈ ಖಾತೆಯು ಗ್ರಾಹಕರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯನ್ನು ಬಳಸಿ.",
+  "karya_member_detected_title": "ಕಾರ್ಯ ಸದಸ್ಯರ ಖಾತೆ",
+  "karya_member_detected_desc": "ಈ ಖಾತೆಯು WorkGo ಕಾರ್ಯ ಸದಸ್ಯರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ಗ್ರಾಹಕರಾಗಿ ಸೇವೆಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲು, ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+  "customer_account_detected_title": "ಗ್ರಾಹಕ ಖಾತೆ",
+  "customer_account_detected_desc": "ಈ ಖಾತೆಯು ಗ್ರಾಹಕರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ಕುಶಲಕರ್ಮಿಯಾಗಿ ಸೇವೆಗಳನ್ನು ನೀಡಲು, ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+  "btn_use_different_account": "ಬೇರೆ ಖಾತೆಯನ್ನು ಬಳಸಿ"
 }

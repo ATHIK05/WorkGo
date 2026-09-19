@@ -476,6 +476,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         customerEmail: _customerEmail,
         customerIssueDetails: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
         fareBreakdown: fare.toMap(),
+        isAssignedToDialWorker: worker?.isDialWorker == true,
       );
 
       if (mounted) {
@@ -1594,10 +1595,40 @@ class _ServiceHeroCard extends StatelessWidget {
           Row(
             children: [
               if (worker != null) ...[
-                WorkGoAvatar(
-                  name: displayName ?? "artisan".trSafe("Artisan"),
-                  avatarBase64: worker!.avatarBase64,
-                  radius: 28,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    WorkGoAvatar(
+                      name: displayName ?? "artisan".trSafe("Artisan"),
+                      avatarBase64: worker!.avatarBase64,
+                      radius: 28,
+                    ),
+                    if (worker!.isDialWorker)
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(3.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD97706),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.8),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x33D97706),
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.phone_in_talk_rounded,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ] else ...[
                 AuroraOrb(
@@ -1797,6 +1828,47 @@ class _ServiceHeroCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (worker!.isDialWorker) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFDE68A), width: 1.1),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFEF3C7),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.phone_in_talk_rounded,
+                        color: Color(0xFFD97706),
+                        size: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "dial_artisan_reassurance".trSafe(
+                          "Dial Karya Artisan: Connects directly via phone call. No smartphone app needed.",
+                        ),
+                        style: const TextStyle(
+                          color: Color(0xFF92400E),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ],
       ),

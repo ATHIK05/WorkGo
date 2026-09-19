@@ -714,11 +714,17 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDialWorker = booking.isAssignedToDialWorker ||
+        (booking.dialWorkerPhone != null && booking.dialWorkerPhone!.isNotEmpty);
     final rawArtisanName = booking.acceptedWorkerName ?? 'verified_pro'.tr();
     final artisanName = MlTranslationService.instance.translateSync(
       rawArtisanName,
       context.locale.languageCode,
     );
+
+    final borderColor = isDialWorker ? const Color(0xFFF59E0B) : CX.emerald;
+    final glowColor = isDialWorker ? const Color(0xFFF59E0B) : CX.emerald;
+    final iconGradient = isDialWorker ? CX.auroraVioletAmber : CX.auroraSuccess;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -726,10 +732,10 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
       decoration: BoxDecoration(
         color: CX.canvasCard,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: CX.emerald, width: 1.8),
+        border: Border.all(color: borderColor, width: 1.8),
         boxShadow: [
           BoxShadow(
-            color: CX.emerald.withValues(alpha: 0.4),
+            color: glowColor.withValues(alpha: 0.4),
             blurRadius: 36,
             spreadRadius: -4,
             offset: const Offset(0, -6),
@@ -744,25 +750,49 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
             height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: CX.auroraSuccess,
+              gradient: iconGradient,
               boxShadow: [
                 BoxShadow(
-                  color: CX.emerald.withValues(alpha: 0.5),
+                  color: glowColor.withValues(alpha: 0.5),
                   blurRadius: 20,
                   spreadRadius: -2,
                 ),
               ],
             ),
-            child: const Center(
-              child: Icon(Icons.check_circle_rounded, color: Colors.white, size: 40),
+            child: Center(
+              child: Icon(
+                isDialWorker ? Icons.phone_in_talk_rounded : Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 38,
+              ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
+          if (isDialWorker) ...[
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              alignment: WrapAlignment.center,
+              children: [
+                AuroraBadge(
+                  label: 'dial_karya_badge'.trSafe('Dial Karya Artisan'),
+                  style: AuroraBadgeStyle.amber,
+                ),
+                AuroraBadge(
+                  label: 'dial_karya_subtitle'.trSafe('Voice IVR • Peer Verified'),
+                  style: AuroraBadgeStyle.violet,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
           Text(
-            'artisan_assigned_title'.tr(),
+            isDialWorker
+                ? 'dial_artisan_assigned_title'.trSafe('Dial Karya Artisan Assigned!')
+                : 'artisan_assigned_title'.tr(),
             style: WorkGoFonts.display(
               color: CX.textPrimary,
-              fontSize: 22,
+              fontSize: 21,
               fontWeight: FontWeight.w900,
             ),
             maxLines: 1,
@@ -770,7 +800,9 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'artisan_accepted_en_route'.tr(args: [artisanName]),
+            isDialWorker
+                ? '$artisanName accepted your booking via Dial Karya Voice Telephony (Feature Phone). Direct call link is ready.'
+                : 'artisan_accepted_en_route'.tr(args: [artisanName]),
             style: WorkGoFonts.body(
               color: CX.textSecondary,
               fontSize: 13,
@@ -785,8 +817,8 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
             label: 'track_artisan_and_otp'.tr(),
             icon: Icons.navigation_rounded,
             onPressed: onContinue,
-            gradient: CX.auroraSuccess,
-            glowColor: CX.emerald,
+            gradient: iconGradient,
+            glowColor: glowColor,
             height: 52,
           ),
         ],

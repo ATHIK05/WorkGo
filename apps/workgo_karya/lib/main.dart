@@ -145,6 +145,20 @@ class _KaryaRootScreenState extends State<KaryaRootScreen> {
                   region: "Tamil Nadu",
                 );
 
+            if (appUser.role == UserRole.customer) {
+              return RoleMismatchScreen(
+                targetRole: UserRole.worker,
+                user: appUser,
+                onSignOut: () async {
+                  karyaNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+                  setState(() {
+                    _cachedUser = null;
+                  });
+                  await _authService.signOut(role: UserRole.worker);
+                },
+              );
+            }
+
             return StreamBuilder<Worker?>(
               stream: _workerService.streamWorker(effectiveUid),
               builder: (context, workerSnapshot) {

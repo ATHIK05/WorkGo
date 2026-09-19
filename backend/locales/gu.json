@@ -1444,5 +1444,13 @@
   "enter_address_street_error": "સરનામું/શેરી દાખલ કરો",
   "enter_pincode_error": "6 અંકનો પિનકોડ દાખલ કરો",
   "saving_profile_msg": "પ્રોફાઇલ સાચવી રહ્યું છે...",
-  "failed_save_profile": "પ્રોફાઇલ સાચવવામાં નિષ્ફળ: {}"
+  "failed_save_profile": "પ્રોફાઇલ સાચવવામાં નિષ્ફળ: {}",
+  "or_continue_with": "અથવા આની સાથે ચાલુ રાખો",
+  "error_karya_member_cannot_access_customer": "આ એકાઉન્ટ કાર્ય સભ્ય તરીકે નોંધાયેલું છે. કૃપા કરીને અલગ એકાઉન્ટનો ઉપયોગ કરો.",
+  "error_customer_cannot_access_karya": "આ એકાઉન્ટ ગ્રાહક તરીકે નોંધાયેલું છે. કૃપા કરીને અલગ એકાઉન્ટનો ઉપયોગ કરો.",
+  "karya_member_detected_title": "કાર્ય સભ્ય એકાઉન્ટ",
+  "karya_member_detected_desc": "આ એકાઉન્ટ WorkGo કાર્ય સભ્ય તરીકે નોંધાયેલું છે. ગ્રાહક તરીકે સેવાઓ બુક કરવા માટે, કૃપા કરીને અલગ એકાઉન્ટથી સાઇન ઇન કરો.",
+  "customer_account_detected_title": "ગ્રાહક એકાઉન્ટ",
+  "customer_account_detected_desc": "આ એકાઉન્ટ ગ્રાહક તરીકે નોંધાયેલું છે. કારીગર તરીકે સેવાઓ આપવા માટે, કૃપા કરીને અલગ એકાઉન્ટથી સાઇન ઇન કરો.",
+  "btn_use_different_account": "અલગ એકાઉન્ટ વાપરો"
 }

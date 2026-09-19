@@ -1668,5 +1668,16 @@
   "smart_demand_insights_title": "स्मार्ट मांग पूर्वानुमान",
   "standby_mobilize_btn": "स्टैंडबाय कारीगरों को सक्रिय करें",
   "welfare_claim_submitted_success": "कल्याण दावा सफलतापूर्वक प्रस्तुत किया गया",
-  "welfare_under_review": "समिति समीक्षाधीन"
+  "welfare_under_review": "समिति समीक्षाधीन",
+  "or_continue_with": "या इसके साथ जारी रखें",
+  "error_karya_member_cannot_access_customer": "यह खाता कार्य सदस्य के रूप में पंजीकृत है। कृपया किसी भिन्न खाते का उपयोग करें।",
+  "error_customer_cannot_access_karya": "यह खाता ग्राहक के रूप में पंजीकृत है। कृपया किसी भिन्न खाते का उपयोग करें।",
+  "karya_member_detected_title": "कार्य सदस्य खाता",
+  "karya_member_detected_desc": "यह खाता WorkGo कार्य सदस्य के रूप में पंजीकृत है। ग्राहक के रूप में सेवाएं बुक करने के लिए, कृपया किसी अन्य खाते से साइन इन करें।",
+  "customer_account_detected_title": "ग्राहक खाता",
+  "customer_account_detected_desc": "यह खाता ग्राहक के रूप में पंजीकृत है। कारीगर के रूप में सेवाएं प्रदान करने के लिए, कृपया किसी अन्य खाते से साइन इन करें।",
+  "btn_use_different_account": "भिन्न खाते का उपयोग करें",
+  "hero_headline_line1": "हम आपको जोड़ते हैं आपके",
+  "hero_headline_dream": "सपनों के",
+  "hero_headline_artisan": "कारीगर से"
 }

@@ -147,17 +147,42 @@ async function handleBookingUpdated(bookingId, beforeData, afterData, db, messag
     const cancelledBy = afterData.cancelledBy || "customer";
     const reason = afterData.cancellationReason || "No reason specified";
 
-    if (cancelledBy === "customer" && afterData.workerId) {
-      // Notify Artisan that customer cancelled
-      await engine.sendToUser(
-        afterData.workerId,
-        "BOOKING_CANCELLED_BY_CUSTOMER",
-        {
-          bookingId,
-          reason,
-        },
-        { bookingId, reason }
-      );
+    if (cancelledBy === "customer") {
+      // Check if assigned to a dial worker
+      let isDial = afterData.isAssignedToDialWorker === true || !!afterData.dialWorkerPhone;
+      if (!isDial && afterData.workerId && db) {
+        try {
+          const wDoc = await db.collection("workers").doc(afterData.workerId).get();
+          if (wDoc.exists && wDoc.data()?.isDialWorker === true) {
+            isDial = true;
+          }
+        } catch (_) {}
+      }
+
+      if (isDial) {
+        // Dial worker: Outbound robocall with Bhashini TTS (trade, location, time logic, reason)
+        await engine.notifyDialWorkerBookingCancelled({
+          id: bookingId,
+          ...afterData,
+        });
+      } else if (afterData.workerId) {
+        // Smartphone worker: FCM Push Notification
+        await engine.sendToUser(
+          afterData.workerId,
+          "BOOKING_CANCELLED_BY_CUSTOMER",
+          {
+            bookingId,
+            reason,
+          },
+          { bookingId, reason }
+        );
+      }
+
+      // Abort any in-progress alert robocalls for this booking
+      try {
+        const { abortCallBookingCancelled } = require("../services/voice_call_engine");
+        await abortCallBookingCancelled(bookingId);
+      } catch (_) {}
     } else if (cancelledBy === "worker" && afterData.customerId) {
       // Notify Customer that artisan cancelled
       await engine.sendToUser(

@@ -281,23 +281,25 @@ class _SignInFormState extends State<SignInForm> {
                 ),
               ),
               const SizedBox(width: 4),
-              GestureDetector(
-                onTap: widget.isLoading ? null : widget.onSwitchToSignUp,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                  child: SafeText(
-                    'sign_up'.tr(),
-                    style: const TextStyle(
-                      color: Color(0xFFD97706),
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      decoration: TextDecoration.underline,
-                      decorationColor: Color(0xFFD97706),
+              Flexible(
+                child: GestureDetector(
+                  onTap: widget.isLoading ? null : widget.onSwitchToSignUp,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                    child: SafeText(
+                      'sign_up'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFFD97706),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Color(0xFFD97706),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      enableAutoShrink: true,
+                      minFontSize: 10.0,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    enableAutoShrink: true,
-                    minFontSize: 10.0,
                   ),
                 ),
               ),
@@ -309,12 +311,16 @@ class _SignInFormState extends State<SignInForm> {
               child: TextButton.icon(
                 onPressed: widget.isLoading ? null : widget.onSwitchToPhone,
                 icon: const Icon(Icons.phone_android_rounded, size: 16, color: Color(0xFF4B5563)),
-                label: Text(
-                  'auth_tab_phone'.tr(),
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    color: Color(0xFF4B5563),
-                    fontWeight: FontWeight.w600,
+                label: Flexible(
+                  child: Text(
+                    'auth_tab_phone'.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: Color(0xFF4B5563),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

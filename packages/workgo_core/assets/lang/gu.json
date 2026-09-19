@@ -1690,5 +1690,16 @@
   "smart_demand_insights_title": "સ્માર્ટ માંગ આંતરદ્રષ્ટિ",
   "standby_mobilize_btn": "સ્ટેન્ડબાય કારીગરોને સક્રિય કરો",
   "welfare_claim_submitted_success": "કલ્યાણ દાવો સફળતાપૂર્વક સબમિટ થયો",
-  "welfare_under_review": "સમિતિ સમીક્ષા હેઠળ"
+  "welfare_under_review": "સમિતિ સમીક્ષા હેઠળ",
+  "or_continue_with": "અથવા આની સાથે ચાલુ રાખો",
+  "error_karya_member_cannot_access_customer": "આ એકાઉન્ટ કાર્ય સભ્ય તરીકે નોંધાયેલું છે. કૃપા કરીને અલગ એકાઉન્ટનો ઉપયોગ કરો.",
+  "error_customer_cannot_access_karya": "આ એકાઉન્ટ ગ્રાહક તરીકે નોંધાયેલું છે. કૃપા કરીને અલગ એકાઉન્ટનો ઉપયોગ કરો.",
+  "karya_member_detected_title": "કાર્ય સભ્ય એકાઉન્ટ",
+  "karya_member_detected_desc": "આ એકાઉન્ટ WorkGo કાર્ય સભ્ય તરીકે નોંધાયેલું છે. ગ્રાહક તરીકે સેવાઓ બુક કરવા માટે, કૃપા કરીને અલગ એકાઉન્ટથી સાઇન ઇન કરો.",
+  "customer_account_detected_title": "ગ્રાહક એકાઉન્ટ",
+  "customer_account_detected_desc": "આ એકાઉન્ટ ગ્રાહક તરીકે નોંધાયેલું છે. કારીગર તરીકે સેવાઓ આપવા માટે, કૃપા કરીને અલગ એકાઉન્ટથી સાઇન ઇન કરો.",
+  "btn_use_different_account": "અલગ એકાઉન્ટ વાપરો",
+  "hero_headline_line1": "અમે તમને જોડીએ છીએ તમારા",
+  "hero_headline_dream": "સ્વપ્ન",
+  "hero_headline_artisan": "કારીગર સાથે"
 }

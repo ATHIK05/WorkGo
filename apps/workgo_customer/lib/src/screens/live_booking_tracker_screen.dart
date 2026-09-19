@@ -1813,7 +1813,7 @@ class _ArtisanCard extends StatelessWidget {
             ? categoryStyle(worker!.skills.first)
             : categoryStyle(booking.serviceType);
 
-        return AuroraCard(
+        final card = AuroraCard(
           glowColor: isDialArtisan ? CX.amber : style.glow,
           borderColor: (isDialArtisan ? CX.amber : style.glow).withValues(alpha: 0.3),
           child: Row(
@@ -1996,6 +1996,43 @@ class _ArtisanCard extends StatelessWidget {
               ),
             ],
           ),
+        );
+
+        if (!isDialArtisan) return card;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            card,
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.phone_in_talk_rounded, color: Color(0xFFD97706), size: 15),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'dial_worker_live_hint'.trSafe(
+                        'Dial Karya Feature Phone Artisan: Accepted via Voice Telephony. Direct telephone line active.',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF92400E),
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );

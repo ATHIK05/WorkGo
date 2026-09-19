@@ -1444,5 +1444,13 @@
   "enter_address_street_error": "براہ کرم پتہ/گلی کا علاقہ درج کریں",
   "enter_pincode_error": "براہ کرم 6 ہندسوں کا پن کوڈ درج کریں",
   "saving_profile_msg": "پروفائل محفوظ ہو رہا ہے...",
-  "failed_save_profile": "پروفائل محفوظ کرنے میں ناکامی: {}"
+  "failed_save_profile": "پروفائل محفوظ کرنے میں ناکامی: {}",
+  "or_continue_with": "یا اس کے ساتھ جاری رکھیں",
+  "error_karya_member_cannot_access_customer": "یہ اکاؤنٹ کاریہ رکن کے طور پر رجسٹرڈ ہے۔ براہ کرم کوئی دوسرا اکاؤنٹ استعمال کریں۔",
+  "error_customer_cannot_access_karya": "یہ اکاؤنٹ گاہک کے طور پر رجسٹرڈ ہے۔ براہ کرم کوئی دوسرا اکاؤنٹ استعمال کریں۔",
+  "karya_member_detected_title": "کاریہ رکن اکاؤنٹ",
+  "karya_member_detected_desc": "یہ اکاؤنٹ WorkGo کاریہ رکن کے طور پر رجسٹرڈ ہے۔ بطور گاہک خدمات بک کرنے کے لیے، براہ کرم کسی دوسرے اکاؤنٹ سے سائن ان کریں۔",
+  "customer_account_detected_title": "گاہک اکاؤنٹ",
+  "customer_account_detected_desc": "یہ اکاؤنٹ گاہک کے طور پر رجسٹرڈ ہے۔ بطور کاریگر خدمات پیش کرنے کے لیے، براہ کرم کسی دوسرے اکاؤنٹ سے سائن ان کریں۔",
+  "btn_use_different_account": "دوسرا اکاؤنٹ استعمال کریں"
 }

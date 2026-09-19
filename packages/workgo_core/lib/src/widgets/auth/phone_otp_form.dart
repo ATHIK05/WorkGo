@@ -1,4 +1,5 @@
 import "dart:async";
+import "package:cloud_firestore/cloud_firestore.dart";
 import "package:easy_localization/easy_localization.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
@@ -144,6 +145,32 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
         : phone;
 
     var user = await _authService.fetchUser(uid);
+
+    if (widget.role == UserRole.customer) {
+      bool isWorker = user?.role == UserRole.worker;
+      if (!isWorker) {
+        try {
+          final workerDoc = await FirebaseFirestore.instance.collection("workers").doc(uid).get();
+          if (workerDoc.exists) isWorker = true;
+        } catch (_) {}
+      }
+      if (isWorker) {
+        await _authService.signOut(role: widget.role);
+        if (mounted) {
+          widget.onError("error_karya_member_cannot_access_customer".tr());
+        }
+        return;
+      }
+    } else if (widget.role == UserRole.worker) {
+      if (user != null && user.role == UserRole.customer) {
+        await _authService.signOut(role: widget.role);
+        if (mounted) {
+          widget.onError("error_customer_cannot_access_karya".tr());
+        }
+        return;
+      }
+    }
+
     user ??= AppUser(
       uid: uid,
       email: "$normalized@phone.workgo.in",
@@ -337,6 +364,8 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
                   )
                 : Text(
                     "send_otp_btn".tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                   ),
           ),
@@ -353,6 +382,7 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
                   child: Text(
                     "${"otp_sent_to".tr()} +91 ${_phoneController.text}",
                     style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -390,6 +420,8 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
                   )
                 : Text(
                     "verify_otp_btn".tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                   ),
           ),
@@ -397,30 +429,40 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextButton(
-                onPressed: isBusy ? null : _handleChangeNumber,
-                child: Text(
-                  "change_number".tr(),
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                ),
-              ),
-              if (_countdown > 0)
-                Text(
-                  "${"resend_in".tr()} ${_countdown}s",
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
-                )
-              else
-                TextButton(
-                  onPressed: isBusy ? null : _handleSendOtp,
+              Flexible(
+                child: TextButton(
+                  onPressed: isBusy ? null : _handleChangeNumber,
                   child: Text(
-                    "resend_otp".tr(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF2563EB),
-                      fontWeight: FontWeight.w600,
-                    ),
+                    "change_number".tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                   ),
                 ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: _countdown > 0
+                    ? Text(
+                        "${"resend_in".tr()} ${_countdown}s",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                      )
+                    : TextButton(
+                        onPressed: isBusy ? null : _handleSendOtp,
+                        child: Text(
+                          "resend_otp".tr(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF2563EB),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+              ),
             ],
           ),
         ],
@@ -430,12 +472,16 @@ class _PhoneOtpFormState extends State<PhoneOtpForm> {
             onPressed: widget.onSwitchToEmail,
             icon: const Icon(Icons.mail_outline_rounded,
                 size: 16, color: Color(0xFF4B5563)),
-            label: Text(
-              "auth_tab_email".tr(),
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF4B5563),
-                  fontWeight: FontWeight.w600),
+            label: Flexible(
+              child: Text(
+                "auth_tab_email".tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF4B5563),
+                    fontWeight: FontWeight.w600),
+              ),
             ),
           ),
         ),

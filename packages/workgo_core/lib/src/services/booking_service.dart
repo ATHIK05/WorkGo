@@ -48,10 +48,18 @@ class BookingService {
         .collection("bookings")
         .where("customerId", isEqualTo: customerId)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => Booking.fromFirestore(d))
-            .where((b) => b.deletedByCustomer != true)
-            .toList());
+        .map((snap) {
+          final list = snap.docs
+              .map((d) => Booking.fromFirestore(d))
+              .where((b) => b.deletedByCustomer != true)
+              .toList();
+          list.sort((a, b) {
+            final aTime = a.scheduledAt ?? a.acceptedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final bTime = b.scheduledAt ?? b.acceptedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return bTime.compareTo(aTime);
+          });
+          return list;
+        });
   }
 
   /// Soft-delete booking from customer view only (record remains permanently intact for admins).
@@ -94,6 +102,7 @@ class BookingService {
     String? customerIssueDetails,
     List<String>? suggestedToolsNeeded,
     Map<String, dynamic>? fareBreakdown,
+    bool isAssignedToDialWorker = false,
   }) async {
     final docRef = _db.collection("bookings").doc();
 
@@ -112,6 +121,7 @@ class BookingService {
       customerId: customerId,
       workerId: workerId,
       acceptedWorkerName: acceptedWorkerName,
+      isAssignedToDialWorker: isAssignedToDialWorker,
       workerLatitude: workerLatitude,
       workerLongitude: workerLongitude,
       organizationId: organizationId,

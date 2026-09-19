@@ -1444,5 +1444,13 @@
   "enter_address_street_error": "कृपया पत्ता/रस्ता टाका",
   "enter_pincode_error": "कृपया 6 अंकी पिनकोड टाका",
   "saving_profile_msg": "प्रोफाइल सेव्ह होत आहे...",
-  "failed_save_profile": "प्रोफाइल सेव्ह अयशस्वी: {}"
+  "failed_save_profile": "प्रोफाइल सेव्ह अयशस्वी: {}",
+  "or_continue_with": "किंवा यासह पुढे जा",
+  "error_karya_member_cannot_access_customer": "हे खाते कार्य सदस्य म्हणून नोंदणीकृत आहे. कृपया वेगळे खाते वापरा.",
+  "error_customer_cannot_access_karya": "हे खाते ग्राहक म्हणून नोंदणीकृत आहे. कृपया वेगळे खाते वापरा.",
+  "karya_member_detected_title": "कार्य सदस्य खाते",
+  "karya_member_detected_desc": "हे खाते WorkGo कार्य सदस्य म्हणून नोंदणीकृत आहे. ग्राहक म्हणून सेवा बुक करण्यासाठी, कृपया वेगळ्या खात्याने साइन इन करा.",
+  "customer_account_detected_title": "ग्राहक खाते",
+  "customer_account_detected_desc": "हे खाते ग्राहक म्हणून नोंदणीकृत आहे. कारागीर म्हणून सेवा देण्यासाठी, कृपया वेगळ्या खात्याने साइन इन करा.",
+  "btn_use_different_account": "वेगळे खाते वापरा"
 }

@@ -206,6 +206,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             _customerLat = sanitized["latitude"];
             _customerLng = sanitized["longitude"];
           });
+          // Auto-heal currentAddress on user root document if missing
+          LocationService()
+              .setDefaultAddress(
+                widget.user.uid,
+                addrSnap.docs.first.id,
+                collection: "users",
+              )
+              .ignore();
           return;
         }
       }
@@ -500,381 +508,545 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       builder: (context, snap) {
         final liveUser = snap.data ?? widget.user;
         final avatar = liveUser.avatarBase64;
-        final activeAddr = liveUser.currentAddress;
-        final areaLabel = activeAddr != null
-            ? "${activeAddr.displayTitle} · ${activeAddr.shortSummary}"
-            : (liveUser.primaryArea ?? 'select_address'.tr());
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFFFDF0), Color(0xFFFEF9C3)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0xFFFDE68A), width: 1.4),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 18,
-                offset: Offset(0, 4),
-              ),
-            ],
+        return StreamBuilder<List<UserAddress>>(
+          stream: LocationService().streamUserAddresses(
+            widget.user.uid,
+            collection: "users",
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Top Header Inside Hero: Avatar + Greeting + Date + Address + SOS ──
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Circular User Avatar (with halo border)
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      _onNavTap(3);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFD97706).withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                        color: Colors.white,
-                      ),
-                      child: WorkGoAvatar(
-                        avatarBase64: avatar,
-                        name: name,
-                        radius: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
+          builder: (context, addrSnap) {
+            final savedAddresses = addrSnap.data ?? [];
+            final defaultSaved = savedAddresses.isNotEmpty
+                ? savedAddresses.firstWhere(
+                    (a) => a.isDefault,
+                    orElse: () => savedAddresses.first,
+                  )
+                : null;
 
-                  // Greeting on top, Date below, and Address strictly below the date
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'greeting_hello'.tr(args: [name]),
-                          style: WorkGoFonts.heading(
-                            color: const Color(0xFF141416),
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.3,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 1),
-                        Text(
-                          dateStr,
-                          style: WorkGoFonts.body(
-                            color: const Color(0xFF6B7280),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 3),
-                        GestureDetector(
-                          onTap: () async {
-                            final selectedAddr =
-                                await showAddressManagementSheet(
-                                  context,
-                                  userId: widget.user.uid,
-                                  userRole: "customer",
-                                  selectedAddress: activeAddr,
-                                );
-                            if (selectedAddr != null && mounted) {
-                              setState(() {
-                                _customerLat = selectedAddr.latitude;
-                                _customerLng = selectedAddr.longitude;
-                              });
-                            }
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.location_on_rounded,
-                                size: 12,
-                                color: Color(0xFFD97706),
-                              ),
-                              const SizedBox(width: 3),
-                              Flexible(
-                                child: TranslatedText(
-                                  areaLabel,
-                                  isAddress: true,
-                                  style: const TextStyle(
-                                    color: Color(0xFFB45309),
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const Icon(
-                                Icons.arrow_drop_down_rounded,
-                                size: 16,
-                                color: Color(0xFFD97706),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            final activeAddr = liveUser.currentAddress ?? defaultSaved;
+            final areaLabel = activeAddr != null
+                ? "${activeAddr.displayTitle} · ${activeAddr.shortSummary}"
+                : (liveUser.primaryArea ?? 'select_address'.tr());
 
-                  const SizedBox(width: 8),
-
-                  // Safety / Emergency SOS Action Pill
-                  InkWell(
-                    onTap: () {
-                      HapticFeedback.heavyImpact();
-                      showCustomerEmergencySheet(
-                        context,
-                        myLat: _customerLat,
-                        myLng: _customerLng,
-                        onRefreshLocation: _loadCustomerLocation,
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFFDC2626),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.shield_rounded,
-                            color: Color(0xFFDC2626),
-                            size: 14,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'sos_action_btn'.tr(),
-                            style: const TextStyle(
-                              color: Color(0xFFDC2626),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFFDF0), Color(0xFFFEF9C3)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: const Color(0xFFFDE68A), width: 1.4),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0A000000),
+                    blurRadius: 18,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 14),
-
-              // ── Editorial Headline with Authentic Hand-Drawn Doodle Loop ──
-              Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      style: WorkGoFonts.heading(
-                        fontSize: 22,
-                        letterSpacing: -0.4,
-                        height: 1.25,
-                      ),
-                      children: const [
-                        TextSpan(
-                          text: "We ",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                        TextSpan(
-                          text: "connect you ",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF141416),
-                          ),
-                        ),
-                        TextSpan(
-                          text: "to your",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
+                  // ── Top Header Inside Hero: Avatar + Greeting + Date + Address + SOS ──
                   Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Transform.rotate(
-                        angle: -0.03,
-                        child: CustomPaint(
-                          foregroundPainter: const _HandDrawnLoopPainter(
-                            color: Color(0xFF141416),
-                            strokeWidth: 2.2,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
+                      // Circular User Avatar (with halo border)
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _onNavTap(3);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(
+                                0xFFD97706,
+                              ).withValues(alpha: 0.3),
+                              width: 1.5,
                             ),
-                            child: Text(
-                              "dream",
+                            color: Colors.white,
+                          ),
+                          child: WorkGoAvatar(
+                            avatarBase64: avatar,
+                            name: name,
+                            radius: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Greeting on top, Date below, and Address strictly below the date
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'greeting_hello'.tr(args: [name]),
                               style: WorkGoFonts.heading(
                                 color: const Color(0xFF141416),
-                                fontSize: 21,
+                                fontSize: 15.5,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: -0.4,
+                                letterSpacing: -0.3,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              dateStr,
+                              style: WorkGoFonts.body(
+                                color: const Color(0xFF6B7280),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 3),
+                            GestureDetector(
+                              onTap: () async {
+                                final selectedAddr =
+                                    await showAddressManagementSheet(
+                                      context,
+                                      userId: widget.user.uid,
+                                      userRole: "customer",
+                                      selectedAddress: activeAddr,
+                                    );
+                                if (selectedAddr != null && mounted) {
+                                  setState(() {
+                                    _customerLat = selectedAddr.latitude;
+                                    _customerLng = selectedAddr.longitude;
+                                  });
+                                  await LocationService().setDefaultAddress(
+                                    widget.user.uid,
+                                    selectedAddr.id,
+                                    collection: "users",
+                                  );
+                                }
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.location_on_rounded,
+                                    size: 12,
+                                    color: Color(0xFFD97706),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Flexible(
+                                    child: TranslatedText(
+                                      areaLabel,
+                                      isAddress: true,
+                                      style: const TextStyle(
+                                        color: Color(0xFFB45309),
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_drop_down_rounded,
+                                    size: 16,
+                                    color: Color(0xFFD97706),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      // Language Switcher Pill (Instant Pan-India Vernacular Switching)
+                      _buildHomeLanguagePicker(context),
+
+                      const SizedBox(width: 6),
+
+                      // Safety / Emergency SOS Action Icon Button (Compact, Zero-Clutter)
+                      Tooltip(
+                        message: 'sos_action_btn'.tr(),
+                        child: InkWell(
+                          onTap: () {
+                            HapticFeedback.heavyImpact();
+                            showCustomerEmergencySheet(
+                              context,
+                              myLat: _customerLat,
+                              myLng: _customerLng,
+                              onRefreshLocation: _loadCustomerLocation,
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFDC2626,
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFFDC2626,
+                                ).withValues(alpha: 0.8),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.shield_rounded,
+                              color: Color(0xFFDC2626),
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // ── Editorial Headline with Authentic Hand-Drawn Doodle Loop ──
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (context.locale.languageCode == 'en')
+                        RichText(
+                          text: TextSpan(
+                            style: WorkGoFonts.heading(
+                              fontSize: 22,
+                              letterSpacing: -0.4,
+                              height: 1.25,
+                            ),
+                            children: const [
+                              TextSpan(
+                                text: "We ",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF4B5563),
+                                ),
+                              ),
+                              TextSpan(
+                                text: "connect you ",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF141416),
+                                ),
+                              ),
+                              TextSpan(
+                                text: "to your",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF4B5563),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Text(
+                          'hero_headline_line1'.tr(),
+                          style: WorkGoFonts.heading(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF141416),
+                            letterSpacing: -0.3,
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      const SizedBox(height: 5),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          Transform.rotate(
+                            angle: -0.03,
+                            child: CustomPaint(
+                              foregroundPainter: const _HandDrawnLoopPainter(
+                                color: Color(0xFF141416),
+                                strokeWidth: 2.2,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 6,
+                                ),
+                                child: Text(
+                                  'hero_headline_dream'.tr(),
+                                  style: WorkGoFonts.heading(
+                                    color: const Color(0xFF141416),
+                                    fontSize: 21,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
+                          Text(
+                            'hero_headline_artisan'.tr(),
+                            style: WorkGoFonts.heading(
+                              color: const Color(0xFF141416),
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Search & Detached Obsidian Black Voice Mic Bar ──
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            VoiceAiTriageScreen.show(
+                              context,
+                              user: widget.user,
+                              customerLat: _customerLat,
+                              customerLng: _customerLng,
+                              customerAddress:
+                                  widget.user.currentAddress?.shortSummary ??
+                                  widget.user.primaryArea,
+                            );
+                          },
+                          child: Container(
+                            height: 50,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(50),
+                              border: Border.all(
+                                color: const Color(0xFFFDE68A),
+                                width: 1.0,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x0A000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.search_rounded,
+                                  color: Color(0xFF141416),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'ai_search_placeholder'.tr(),
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "artisan",
-                        style: WorkGoFonts.heading(
-                          color: const Color(0xFF6B7280),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: -0.4,
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.heavyImpact();
+                          VoiceAiTriageScreen.show(
+                            context,
+                            user: widget.user,
+                            customerLat: _customerLat,
+                            customerLng: _customerLng,
+                            customerAddress:
+                                activeAddr?.shortSummary ??
+                                liveUser.primaryArea,
+                          );
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF141416),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x33000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.mic_rounded,
+                              color: Color(0xFFFBBF24),
+                              size: 22,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
+            );
+          },
+        );
+      },
+    );
+  }
 
-              const SizedBox(height: 16),
+  // ──────────────────────────────────────────
+  //  HOME PAGE LANGUAGE PICKER (All 22 Languages)
+  // ──────────────────────────────────────────
+  Widget _buildHomeLanguagePicker(BuildContext context) {
+    final currentCode = context.locale.languageCode;
+    final currentLang = WorkGoLocale.allLanguages.firstWhere(
+      (l) => l.code == currentCode,
+      orElse: () => WorkGoLocale.allLanguages.first,
+    );
 
-              // ── Search & Detached Obsidian Black Voice Mic Bar ──
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        VoiceAiTriageScreen.show(
-                          context,
-                          user: widget.user,
-                          customerLat: _customerLat,
-                          customerLng: _customerLng,
-                          customerAddress:
-                              widget.user.currentAddress?.shortSummary ??
-                              widget.user.primaryArea,
-                        );
-                      },
-                      child: Container(
-                        height: 50,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(50),
-                          border: Border.all(
-                            color: const Color(0xFFFDE68A),
-                            width: 1.0,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0A000000),
-                              blurRadius: 10,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.search_rounded,
-                              color: Color(0xFF141416),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'ai_search_placeholder'.tr(),
-                                style: const TextStyle(
-                                  color: Color(0xFF64748B),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+    return PopupMenuButton<String>(
+      tooltip: "Select Language",
+      initialValue: currentCode,
+      onSelected: (code) async {
+        WorkGoLocale.setLocaleCode(code);
+        await context.setLocale(Locale(code));
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.user.uid)
+              .update({'preferredLanguage': code});
+        } catch (_) {}
+        if (mounted) setState(() {});
+      },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFFDE68A), width: 1.2),
+      ),
+      color: Colors.white,
+      elevation: 8,
+      constraints: const BoxConstraints(maxHeight: 400, maxWidth: 280),
+      itemBuilder: (ctx) => WorkGoLocale.allLanguages.map((lang) {
+        final isSelected = lang.code == currentCode;
+        return PopupMenuItem<String>(
+          value: lang.code,
+          height: 46,
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      lang.nativeName,
+                      style: TextStyle(
+                        color: isSelected
+                            ? const Color(0xFFD97706)
+                            : const Color(0xFF141416),
+                        fontSize: 13.5,
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.heavyImpact();
-                      VoiceAiTriageScreen.show(
-                        context,
-                        user: widget.user,
-                        customerLat: _customerLat,
-                        customerLng: _customerLng,
-                        customerAddress:
-                            widget.user.currentAddress?.shortSummary ??
-                            widget.user.primaryArea,
-                      );
-                    },
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF141416),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x33000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
+                    Text(
+                      '${lang.englishName} • ${lang.region}',
+                      style: TextStyle(
+                        color: isSelected
+                            ? const Color(0xFFB45309)
+                            : const Color(0xFF9CA3AF),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.mic_rounded,
-                          color: Color(0xFFFBBF24),
-                          size: 22,
-                        ),
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              if (isSelected)
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFFD97706),
+                  size: 18,
+                ),
             ],
           ),
         );
-      },
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFD97706).withValues(alpha: 0.4),
+            width: 1.1,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.translate_rounded,
+              color: Color(0xFFB45309),
+              size: 12.5,
+            ),
+            const SizedBox(width: 4),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 58),
+              child: Text(
+                currentLang.nativeName,
+                style: const TextStyle(
+                  color: Color(0xFF92400E),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 1),
+            const Icon(
+              Icons.arrow_drop_down_rounded,
+              color: Color(0xFFB45309),
+              size: 15,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -970,7 +1142,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF141416) : Colors.white,
+                      color: isSelected
+                          ? const Color(0xFF141416)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(50),
                       border: Border.all(
                         color: isSelected
@@ -1055,8 +1229,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     if (s.contains('appliance') || s.contains('repair')) {
       return "Diagnostic & Hardware Specialist";
     }
-    if (s.contains('ac') || s.contains('cool'))
+    if (s.contains('ac') || s.contains('cool')) {
       return "HVAC & Thermal Specialist";
+    }
     if (s.contains('paint')) return "Surface & Coating Specialist";
     if (s.contains('clean')) return "Hygiene & Detailing Specialist";
     return "Certified Cooperative Specialist";
@@ -1160,6 +1335,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 separatorBuilder: (_, __) => const SizedBox(width: 14),
                 itemBuilder: (context, idx) {
                   final worker = workers[idx];
+                  final isDial = worker.isDialWorker;
                   final skill = worker.skills.isNotEmpty
                       ? worker.skills.first
                       : "Plumbing";
@@ -1180,36 +1356,44 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   return ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: Container(
-                      width: 285,
+                      width: 295,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFFFFFFF), // Pure white on one side
-                            Color(0xFFFFFBEB), // Soft warm cream
-                            Color(
-                              0xFFFDE68A,
-                            ), // Luminous gold yellow over the other side
-                          ],
-                          stops: [0.0, 0.45, 1.0],
+                        gradient: LinearGradient(
+                          colors: isDial
+                              ? const [
+                                  Color(0xFFFFFFFF),
+                                  Color(0xFFFFFDF5),
+                                  Color(0xFFFED7AA),
+                                ]
+                              : const [
+                                  Color(0xFFFFFFFF),
+                                  Color(0xFFFFFBEB),
+                                  Color(0xFFFDE68A),
+                                ],
+                          stops: const [0.0, 0.45, 1.0],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: const Color(0xFFFDE68A),
-                          width: 1.4,
+                          color: isDial
+                              ? const Color(0xFFF59E0B)
+                              : const Color(0xFFFDE68A),
+                          width: isDial ? 1.6 : 1.4,
                         ),
-                        boxShadow: const [
-                          BoxShadow(
+                        boxShadow: [
+                          const BoxShadow(
                             color: Color(0x0A000000),
                             blurRadius: 16,
                             offset: Offset(0, 4),
                           ),
                           BoxShadow(
-                            color: Color(0x14F59E0B),
+                            color: isDial
+                                ? const Color(0x28F59E0B)
+                                : const Color(0x14F59E0B),
                             blurRadius: 18,
-                            offset: Offset(0, 6),
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
@@ -1236,13 +1420,46 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Top Row: Avatar + Pro Status & Rating + Bookmark Button
+                              // Top Row: Avatar (with optional Dial Phone Badge) + Pro Status & Rating + Bookmark Button
                               Row(
                                 children: [
-                                  WorkGoAvatar(
-                                    name: worker.name,
-                                    avatarBase64: worker.avatarBase64,
-                                    radius: 20,
+                                  Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      WorkGoAvatar(
+                                        name: worker.name,
+                                        avatarBase64: worker.avatarBase64,
+                                        radius: 20,
+                                      ),
+                                      if (isDial)
+                                        Positioned(
+                                          right: -2,
+                                          bottom: -2,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2.5),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFD97706),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white,
+                                                width: 1.5,
+                                              ),
+                                              boxShadow: const [
+                                                BoxShadow(
+                                                  color: Color(0x33D97706),
+                                                  blurRadius: 4,
+                                                  offset: Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Icon(
+                                              Icons.phone_in_talk_rounded,
+                                              size: 9,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
@@ -1281,34 +1498,85 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                               ),
                                             ),
                                             const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 5,
-                                                    vertical: 1.5,
+                                            if (isDial)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 5.5,
+                                                      vertical: 1.5,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFFFEF3C7,
                                                   ),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    worker.isOnlineOrCheckedIn
-                                                    ? const Color(0xFFDCFCE7)
-                                                    : const Color(0xFFF1F5F9),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                worker.isOnlineOrCheckedIn
-                                                    ? "checked_in".tr()
-                                                    : "verified_pro".tr(),
-                                                style: TextStyle(
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFFF59E0B,
+                                                    ),
+                                                    width: 0.8,
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: const [
+                                                    Icon(
+                                                      Icons.phone_rounded,
+                                                      size: 9,
+                                                      color: Color(0xFFB45309),
+                                                    ),
+                                                    SizedBox(width: 2.5),
+                                                    Text(
+                                                      "DIAL KARYA",
+                                                      style: TextStyle(
+                                                        color: Color(
+                                                          0xFF92400E,
+                                                        ),
+                                                        fontSize: 8.5,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        letterSpacing: 0.3,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            else
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 5,
+                                                      vertical: 1.5,
+                                                    ),
+                                                decoration: BoxDecoration(
                                                   color:
                                                       worker.isOnlineOrCheckedIn
-                                                      ? const Color(0xFF15803D)
-                                                      : const Color(0xFF475569),
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.w800,
+                                                      ? const Color(0xFFDCFCE7)
+                                                      : const Color(0xFFF1F5F9),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  worker.isOnlineOrCheckedIn
+                                                      ? "checked_in".tr()
+                                                      : "verified_pro".tr(),
+                                                  style: TextStyle(
+                                                    color:
+                                                        worker
+                                                            .isOnlineOrCheckedIn
+                                                        ? const Color(
+                                                            0xFF15803D,
+                                                          )
+                                                        : const Color(
+                                                            0xFF475569,
+                                                          ),
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
                                           ],
                                         ),
                                       ],
@@ -1323,7 +1591,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                         alpha: 0.8,
                                       ),
                                       border: Border.all(
-                                        color: const Color(0xFFFDE68A),
+                                        color: isDial
+                                            ? const Color(0xFFF59E0B)
+                                            : const Color(0xFFFDE68A),
                                       ),
                                     ),
                                     child: const Center(
@@ -1405,13 +1675,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 ],
                               ),
 
-                              // Micro-Pills Badges Row
+                              // Micro-Pills Badges Row: Base Fare + Transit Distance + Communication Channel
                               Row(
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
+                                      horizontal: 7,
+                                      vertical: 3.5,
                                     ),
                                     decoration: BoxDecoration(
                                       color: Colors.white.withValues(
@@ -1427,26 +1697,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                       children: [
                                         const Icon(
                                           Icons.payments_outlined,
-                                          size: 13,
+                                          size: 12,
                                           color: Color(0xFFB45309),
                                         ),
-                                        const SizedBox(width: 4),
+                                        const SizedBox(width: 3.5),
                                         Text(
                                           "₹$fare Base",
                                           style: const TextStyle(
                                             color: Color(0xFF92400E),
-                                            fontSize: 11,
+                                            fontSize: 10.5,
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: 5),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
+                                      horizontal: 7,
+                                      vertical: 3.5,
                                     ),
                                     decoration: BoxDecoration(
                                       color: Colors.white.withValues(
@@ -1462,17 +1732,61 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                       children: [
                                         const Icon(
                                           Icons.schedule_rounded,
-                                          size: 13,
+                                          size: 12,
                                           color: Color(0xFFB45309),
                                         ),
-                                        const SizedBox(width: 4),
+                                        const SizedBox(width: 3.5),
                                         Text(
                                           worker.distanceKm < 2.0
                                               ? "≤15 Min"
                                               : "${worker.distanceKm.toStringAsFixed(1)} km",
                                           style: const TextStyle(
                                             color: Color(0xFF92400E),
-                                            fontSize: 11,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 3.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDial
+                                          ? const Color(0xFFFFFBEB)
+                                          : Colors.white.withValues(alpha: 0.9),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: isDial
+                                            ? const Color(0xFFF59E0B)
+                                            : const Color(0xFFFDE68A),
+                                        width: isDial ? 1.1 : 1.0,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isDial
+                                              ? Icons.phone_in_talk_rounded
+                                              : Icons.smartphone_rounded,
+                                          size: 11.5,
+                                          color: isDial
+                                              ? const Color(0xFFD97706)
+                                              : const Color(0xFF059669),
+                                        ),
+                                        const SizedBox(width: 3.5),
+                                        Text(
+                                          isDial ? "Direct Call" : "App & GPS",
+                                          style: TextStyle(
+                                            color: isDial
+                                                ? const Color(0xFF92400E)
+                                                : const Color(0xFF065F46),
+                                            fontSize: 10.5,
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
@@ -1584,7 +1898,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                     ],
                                   ),
 
-                                  // Quick Launch Arrow Button
+                                  // Quick Launch Action Button: Phone Dispatch for Dial, Arrow for App
                                   GestureDetector(
                                     onTap: () {
                                       HapticFeedback.mediumImpact();
@@ -1604,21 +1918,33 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                     child: Container(
                                       width: 42,
                                       height: 42,
-                                      decoration: const BoxDecoration(
+                                      decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: Color(0xFF141416),
+                                        color: const Color(0xFF141416),
+                                        border: isDial
+                                            ? Border.all(
+                                                color: const Color(0xFFF59E0B),
+                                                width: 1.5,
+                                              )
+                                            : null,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Color(0x33000000),
+                                            color: isDial
+                                                ? const Color(0x33F59E0B)
+                                                : const Color(0x33000000),
                                             blurRadius: 8,
-                                            offset: Offset(0, 3),
+                                            offset: const Offset(0, 3),
                                           ),
                                         ],
                                       ),
-                                      child: const Center(
+                                      child: Center(
                                         child: Icon(
-                                          Icons.north_east_rounded,
-                                          color: Colors.white,
+                                          isDial
+                                              ? Icons.phone_forwarded_rounded
+                                              : Icons.north_east_rounded,
+                                          color: isDial
+                                              ? const Color(0xFFFFDE59)
+                                              : Colors.white,
                                           size: 18,
                                         ),
                                       ),
@@ -4294,6 +4620,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                     ),
                   ),
                 )
+              else if (snapshot.hasError)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                    child: Center(
+                      child: Text(
+                        "Error loading bookings: ${snapshot.error}",
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                )
               else if (filteredBookings.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -4342,8 +4685,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                         final id = valueKey.value.startsWith('tile_')
                             ? valueKey.value.substring(5)
                             : valueKey.value;
-                        final index =
-                            filteredBookings.indexWhere((b) => b.id == id);
+                        final index = filteredBookings.indexWhere(
+                          (b) => b.id == id,
+                        );
                         return index == -1 ? null : index;
                       },
                     ),
@@ -4361,215 +4705,214 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         .where((b) => b.status == BookingStatus.completed)
         .toList();
     final totalSpent = allBookings
-        .where((b) =>
-            b.status == BookingStatus.completed ||
-            b.paymentStatus == PaymentStatus.paid)
+        .where(
+          (b) =>
+              b.status == BookingStatus.completed ||
+              b.paymentStatus == PaymentStatus.paid,
+        )
         .fold<double>(0.0, (acc, b) => acc + b.totalAmount);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withValues(alpha: 0.92),
-                const Color(0xFFFFFDF5).withValues(alpha: 0.88),
-                const Color(0xFFFFFBEB).withValues(alpha: 0.78),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.92),
+            const Color(0xFFFFFDF5).withValues(alpha: 0.88),
+            const Color(0xFFFFFBEB).withValues(alpha: 0.78),
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFFDE68A).withValues(alpha: 0.85),
+          width: 1.4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.95),
+            blurRadius: 8,
+            offset: const Offset(-2, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Total Spent Metric
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFDE59),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.payments_rounded,
+                      size: 18,
+                      color: Color(0xFF141416),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '₹${totalSpent.toStringAsFixed(0)}',
+                        style: WorkGoFonts.numeric(
+                          color: const Color(0xFF141416),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.4,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      const Text(
+                        'Total Spent',
+                        style: TextStyle(
+                          color: Color(0xFF78350F),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
               ],
-              stops: const [0.0, 0.45, 1.0],
             ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFFFDE68A).withValues(alpha: 0.85),
-              width: 1.4,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                blurRadius: 20,
-                offset: const Offset(0, 6),
-              ),
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.95),
-                blurRadius: 8,
-                offset: const Offset(-2, -2),
-              ),
-            ],
           ),
-          child: Row(
+
+          // Hairline Glass Divider
+          Container(
+            width: 1,
+            height: 28,
+            color: const Color(0xFFFDE68A).withValues(alpha: 0.8),
+          ),
+          const SizedBox(width: 10),
+
+          // Completed Missions Metric
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFA7F3D0),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.task_alt_rounded,
+                      size: 18,
+                      color: Color(0xFF059669),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${completedList.length}',
+                        style: WorkGoFonts.numeric(
+                          color: const Color(0xFF141416),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        'status_completed'.tr(),
+                        style: const TextStyle(
+                          color: Color(0xFF065F46),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Hairline Glass Divider
+          Container(
+            width: 1,
+            height: 28,
+            color: const Color(0xFFFDE68A).withValues(alpha: 0.8),
+          ),
+          const SizedBox(width: 10),
+
+          // Co-op Direct Assurance (0% Cut)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Total Spent Metric
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFDE59),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.payments_rounded,
-                          size: 18,
-                          color: Color(0xFF141416),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '₹${totalSpent.toStringAsFixed(0)}',
-                            style: WorkGoFonts.numeric(
-                              color: const Color(0xFF141416),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.4,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 1),
-                          const Text(
-                            'Total Spent',
-                            style: TextStyle(
-                              color: Color(0xFF78350F),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFDE59),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  '0% CUT',
+                  style: TextStyle(
+                    color: Color(0xFF141416),
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-
-              // Hairline Glass Divider
-              Container(
-                width: 1,
-                height: 28,
-                color: const Color(0xFFFDE68A).withValues(alpha: 0.8),
-              ),
-              const SizedBox(width: 10),
-
-              // Completed Missions Metric
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFA7F3D0),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.task_alt_rounded,
-                          size: 18,
-                          color: Color(0xFF059669),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${completedList.length}',
-                            style: WorkGoFonts.numeric(
-                              color: const Color(0xFF141416),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            'status_completed'.tr(),
-                            style: const TextStyle(
-                              color: Color(0xFF065F46),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 2),
+              const Text(
+                'Co-op Direct',
+                style: TextStyle(
+                  color: Color(0xFF92400E),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
                 ),
-              ),
-
-              // Hairline Glass Divider
-              Container(
-                width: 1,
-                height: 28,
-                color: const Color(0xFFFDE68A).withValues(alpha: 0.8),
-              ),
-              const SizedBox(width: 10),
-
-              // Co-op Direct Assurance (0% Cut)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFDE59),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      '0% CUT',
-                      style: TextStyle(
-                        color: Color(0xFF141416),
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Co-op Direct',
-                    style: TextStyle(
-                      color: Color(0xFF92400E),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
-        );
+        ],
+      ),
+    );
   }
 
   Widget _buildActiveBookingPipelineHUD(Booking booking) {
@@ -4847,15 +5190,57 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              TranslatedText(
-                                proName,
-                                style: const TextStyle(
-                                  color: Color(0xFF141416),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: TranslatedText(
+                                      proName,
+                                      style: const TextStyle(
+                                        color: Color(0xFF141416),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (booking.isAssignedToDialWorker ||
+                                      (worker?.isDialWorker == true)) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                        vertical: 1.5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFFBEB),
+                                        borderRadius: BorderRadius.circular(5),
+                                        border: Border.all(
+                                          color: const Color(0xFFFDE68A),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.phone_in_talk_rounded,
+                                            size: 9.5,
+                                            color: Color(0xFFD97706),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            'dial_badge'.trSafe('DIAL'),
+                                            style: const TextStyle(
+                                              fontSize: 8.5,
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFFD97706),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ],
                           ),
@@ -6406,8 +6791,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             ? const Color(0xFF2563EB)
                             : const Color(0xFF141416),
                         fontSize: 13.5,
-                        fontWeight:
-                            isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -6741,7 +7127,6 @@ class _CraftServiceItem {
     required this.meshColor2,
   });
 }
-
 
 // ──────────────────────────────────────────────────────
 //  TASKELLO-STYLE ASYMMETRICAL FOLDER TAB CLIPPER & PAINTER
@@ -7130,8 +7515,9 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
                                     const SizedBox(width: 8),
                                     // Button capped so it never bleeds on long RTL translations
                                     ConstrainedBox(
-                                      constraints:
-                                          const BoxConstraints(maxWidth: 120),
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 120,
+                                      ),
                                       child: _buildLaunchButton(),
                                     ),
                                   ],
@@ -7486,7 +7872,6 @@ class _AlternatingCraftRowCardState extends State<_AlternatingCraftRowCard>
     );
   }
 }
-
 
 // ──────────────────────────────────────────────────────
 //  QUICK SOLUTION CHIP (1-Tap Horizontal Rail)
@@ -7928,18 +8313,22 @@ class _BookingListTileState extends State<_BookingListTile> {
   void _fetchWorkerIfNeeded() {
     final wId = widget.booking.workerId;
     if (wId != null && wId.isNotEmpty) {
-      if (!_workerCache.containsKey(wId) && !_pendingWorkerFetches.contains(wId)) {
+      if (!_workerCache.containsKey(wId) &&
+          !_pendingWorkerFetches.contains(wId)) {
         _pendingWorkerFetches.add(wId);
-        WorkerService().getWorker(wId).then((worker) {
-          _pendingWorkerFetches.remove(wId);
-          if (worker != null && mounted) {
-            setState(() {
-              _workerCache[wId] = worker;
+        WorkerService()
+            .getWorker(wId)
+            .then((worker) {
+              _pendingWorkerFetches.remove(wId);
+              if (worker != null && mounted) {
+                setState(() {
+                  _workerCache[wId] = worker;
+                });
+              }
+            })
+            .catchError((_) {
+              _pendingWorkerFetches.remove(wId);
             });
-          }
-        }).catchError((_) {
-          _pendingWorkerFetches.remove(wId);
-        });
       }
     }
   }
@@ -8074,12 +8463,10 @@ class _BookingListTileState extends State<_BookingListTile> {
 
     final String cleanName =
         (booking.acceptedWorkerName != null &&
-                booking.acceptedWorkerName!.trim().isNotEmpty &&
-                !Booking.isGenericArtisanName(
-                  booking.acceptedWorkerName,
-                ))
-            ? booking.acceptedWorkerName!.trim()
-            : (worker?.name.isNotEmpty == true ? worker!.name : '');
+            booking.acceptedWorkerName!.trim().isNotEmpty &&
+            !Booking.isGenericArtisanName(booking.acceptedWorkerName))
+        ? booking.acceptedWorkerName!.trim()
+        : (worker?.name.isNotEmpty == true ? worker!.name : '');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
@@ -8143,16 +8530,11 @@ class _BookingListTileState extends State<_BookingListTile> {
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 3.5,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
             decoration: BoxDecoration(
               color: const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: const Color(0xFFA7F3D0),
-              ),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -8251,18 +8633,11 @@ class _BookingListTileState extends State<_BookingListTile> {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFF59E0B),
-            width: 1.4,
-          ),
+          border: Border.all(color: const Color(0xFFF59E0B), width: 1.4),
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.key_rounded,
-              size: 20,
-              color: Color(0xFFD97706),
-            ),
+            const Icon(Icons.key_rounded, size: 20, color: Color(0xFFD97706)),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -8300,11 +8675,7 @@ class _BookingListTileState extends State<_BookingListTile> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
-                  Icon(
-                    Icons.copy_rounded,
-                    size: 11,
-                    color: Color(0xFFFFDE59),
-                  ),
+                  Icon(Icons.copy_rounded, size: 11, color: Color(0xFFFFDE59)),
                   SizedBox(width: 4),
                   Text(
                     'COPY',
@@ -8340,7 +8711,8 @@ class _BookingListTileState extends State<_BookingListTile> {
       return GestureDetector(
         onTap: () {
           HapticFeedback.mediumImpact();
-          final receiptWorker = booking.genuineArtisanName ??
+          final receiptWorker =
+              booking.genuineArtisanName ??
               (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
                   ? booking.acceptedWorkerName!
                   : '');
@@ -8455,9 +8827,9 @@ class _BookingListTileState extends State<_BookingListTile> {
               child: GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  final receiptWorker = booking.genuineArtisanName ??
-                      (!Booking.isGenericArtisanName(
-                              booking.acceptedWorkerName)
+                  final receiptWorker =
+                      booking.genuineArtisanName ??
+                      (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
                           ? booking.acceptedWorkerName!
                           : '');
                   Navigator.of(context).push(
@@ -8476,7 +8848,10 @@ class _BookingListTileState extends State<_BookingListTile> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFDE59),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.2),
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B),
+                      width: 1.2,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
@@ -8514,9 +8889,9 @@ class _BookingListTileState extends State<_BookingListTile> {
               child: GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  final receiptWorker = booking.genuineArtisanName ??
-                      (!Booking.isGenericArtisanName(
-                              booking.acceptedWorkerName)
+                  final receiptWorker =
+                      booking.genuineArtisanName ??
+                      (!Booking.isGenericArtisanName(booking.acceptedWorkerName)
                           ? booking.acceptedWorkerName!
                           : '');
                   Navigator.of(context).push(
@@ -8536,9 +8911,7 @@ class _BookingListTileState extends State<_BookingListTile> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: const Color(0xFFBFDBFE),
-                    ),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -8643,7 +9016,8 @@ class _BookingListTileState extends State<_BookingListTile> {
     final theme = _getCockpitTheme();
     final style = categoryStyle(booking.serviceType);
     final isPaymentPending = booking.status == BookingStatus.paymentPending;
-    final isLive = booking.status == BookingStatus.inProgress ||
+    final isLive =
+        booking.status == BookingStatus.inProgress ||
         booking.status == BookingStatus.accepted;
     final isPending = booking.status == BookingStatus.pending;
     final isCompleted = booking.status == BookingStatus.completed;
@@ -8659,7 +9033,9 @@ class _BookingListTileState extends State<_BookingListTile> {
       final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
       final m = dt.minute.toString().padLeft(2, '0');
       final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-      dateStr = isToday ? 'Today, $h:$m $ampm' : '${dt.day}/${dt.month} · $h:$m $ampm';
+      dateStr = isToday
+          ? 'Today, $h:$m $ampm'
+          : '${dt.day}/${dt.month} · $h:$m $ampm';
     }
 
     final shortId = booking.id.isNotEmpty
@@ -8668,549 +9044,553 @@ class _BookingListTileState extends State<_BookingListTile> {
 
     return Container(
       width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withValues(alpha: 0.92),
-                const Color(0xFFFFFDF5).withValues(alpha: 0.88),
-                const Color(0xFFFFFBEB).withValues(alpha: 0.74),
-              ],
-              stops: const [0.0, 0.45, 1.0],
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: theme.cardBorder.withValues(alpha: 0.85),
-              width: 1.6,
-            ),
-            boxShadow: [
-              // Ambient golden glass glow
-              BoxShadow(
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
-                blurRadius: 24,
-                spreadRadius: 1,
-                offset: const Offset(0, 8),
-              ),
-              // Specular glass highlight on top-left rim
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.95),
-                blurRadius: 10,
-                offset: const Offset(-2, -2),
-              ),
-              // Soft surface depth shadow
-              BoxShadow(
-                color: const Color(0xFF141416).withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.92),
+            const Color(0xFFFFFDF5).withValues(alpha: 0.88),
+            const Color(0xFFFFFBEB).withValues(alpha: 0.74),
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.cardBorder.withValues(alpha: 0.85),
+          width: 1.6,
+        ),
+        boxShadow: [
+          // Ambient golden glass glow
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
+            blurRadius: 24,
+            spreadRadius: 1,
+            offset: const Offset(0, 8),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Specular glass highlight on top-left rim
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.95),
+            blurRadius: 10,
+            offset: const Offset(-2, -2),
+          ),
+          // Soft surface depth shadow
+          BoxShadow(
+            color: const Color(0xFF141416).withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Top Row: Status Capsule + Stopwatch / Fare Tag / Delete ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // ── Top Row: Status Capsule + Stopwatch / Fare Tag / Delete ──
+                _buildStatusPill(theme),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildStatusPill(theme),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (booking.status == BookingStatus.inProgress)
-                          _CustomerStopwatchBadge(
-                            startedAt: booking.startedAt ??
-                                booking.scheduledAt ??
-                                DateTime.now(),
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFFBEB),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color(0xFFFDE68A),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              '₹${booking.totalAmount.toStringAsFixed(0)}',
-                              style: WorkGoFonts.numeric(
-                                color: const Color(0xFF141416),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
+                    if (booking.status == BookingStatus.inProgress)
+                      _CustomerStopwatchBadge(
+                        startedAt:
+                            booking.startedAt ??
+                            booking.scheduledAt ??
+                            DateTime.now(),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: const Color(0xFFFDE68A),
+                            width: 1,
                           ),
-                        if (onDelete != null &&
-                            (isCompleted || isCancelled)) ...[
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () {
-                              HapticFeedback.mediumImpact();
-                              onDelete!();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF1F2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: const Color(0xFFFECDD3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.delete_outline_rounded,
-                                size: 15,
-                                color: Color(0xFFE11D48),
-                              ),
-                            ),
+                        ),
+                        child: Text(
+                          '₹${booking.totalAmount.toStringAsFixed(0)}',
+                          style: WorkGoFonts.numeric(
+                            color: const Color(0xFF141416),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
                           ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // ── Second Row: Craft Jewel + Mission Title & Ref ──
-                Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFDE59),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                        border: Border.all(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
-                          width: 1.4,
                         ),
                       ),
-                      child: Center(
-                        child: Icon(
-                          style.icon,
-                          size: 24,
-                          color: const Color(0xFF141416),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${booking.serviceType.toLocalizedTrade()} Mission',
-                            style: WorkGoFonts.heading(
-                              color: const Color(0xFF141416),
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.3,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Text(
-                                '#$shortId',
-                                style: const TextStyle(
-                                  color: Color(0xFF92400E),
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              if (booking.isEmergency) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 2.5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEF4444),
-                                    borderRadius: BorderRadius.circular(6),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFEF4444).withValues(alpha: 0.3),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: const [
-                                      Icon(
-                                        Icons.shield_rounded,
-                                        size: 10,
-                                        color: Colors.white,
-                                      ),
-                                      SizedBox(width: 3.5),
-                                      Text(
-                                        'SOS EMERGENCY',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.4,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // ── Third Row: Artisan / Radar Deck ──
-                _buildArtisanOrBroadcastDeck(
-                  context,
-                  booking,
-                  theme: theme,
-                  isLive: isLive,
-                  isPending: isPending,
-                ),
-
-                // ── Fourth Row: Start OTP Security Box (If Accepted) ──
-                if (booking.status == BookingStatus.accepted &&
-                    booking.startOtp != null &&
-                    booking.startOtp!.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _buildStartOtpPrompt(context, booking.startOtp!),
-                ],
-
-                const SizedBox(height: 12),
-
-                // ── Fifth Row: Schedule & Location Strip ──
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 4.5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFFBEB),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFFFDE68A),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.schedule_rounded,
-                            size: 12.5,
-                            color: Color(0xFFD97706),
-                          ),
-                          const SizedBox(width: 4.5),
-                          Text(
-                            dateStr,
-                            style: const TextStyle(
-                              color: Color(0xFF78350F),
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (booking.customerAddressText != null &&
-                        booking.customerAddressText!.isNotEmpty) ...[
+                    if (onDelete != null && (isCompleted || isCancelled)) ...[
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.location_on_rounded,
-                              size: 13,
-                              color: Color(0xFFD97706),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          onDelete!();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF1F2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFFFECDD3),
+                              width: 1,
                             ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: TranslatedText(
-                                booking.customerAddressText!,
-                                isAddress: true,
-                                style: const TextStyle(
-                                  color: Color(0xFF4B5563),
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 15,
+                            color: Color(0xFFE11D48),
+                          ),
                         ),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 14),
+              ],
+            ),
+            const SizedBox(height: 14),
 
-                // ── Sixth Row: Fare & Payment Status Bar with Spent Intelligence ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+            // ── Second Row: Craft Jewel + Mission Title & Ref ──
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFDE59),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
+                      width: 1.4,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      style.icon,
+                      size: 24,
+                      color: const Color(0xFF141416),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${booking.serviceType.toLocalizedTrade()} Mission',
+                        style: WorkGoFonts.heading(
+                          color: const Color(0xFF141416),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '₹${booking.totalAmount.toStringAsFixed(0)}',
-                                style: WorkGoFonts.numeric(
-                                  color: const Color(0xFF141416),
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              Text(
-                                isPaid ? 'Total Settled' : 'Estimated Total',
-                                style: const TextStyle(
-                                  color: Color(0xFF78350F),
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isPaid
-                                  ? const Color(0xFFECFDF5)
-                                  : const Color(0xFFFFFBEB),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: isPaid
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFFF59E0B),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isPaid
-                                      ? Icons.check_circle_rounded
-                                      : Icons.radio_button_unchecked_rounded,
-                                  size: 10,
-                                  color: isPaid
-                                      ? const Color(0xFF059669)
-                                      : const Color(0xFFD97706),
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  isPaid ? 'PAID' : 'UNPAID',
-                                  style: TextStyle(
-                                    color: isPaid
-                                        ? const Color(0xFF059669)
-                                        : const Color(0xFF92400E),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            '#$shortId',
+                            style: const TextStyle(
+                              color: Color(0xFF92400E),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          if (booking.urgencyBonus > 0) ...[
-                            const SizedBox(width: 4),
+                          if (booking.isEmergency) ...[
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 2,
+                                horizontal: 7,
+                                vertical: 2.5,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
+                                color: const Color(0xFFEF4444),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: const Color(0xFFF59E0B),
-                                  width: 0.8,
-                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFFEF4444,
+                                    ).withValues(alpha: 0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              child: Text(
-                                '+₹${booking.urgencyBonus.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  color: Color(0xFF92400E),
-                                  fontSize: 8.5,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(
+                                    Icons.shield_rounded,
+                                    size: 10,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 3.5),
+                                  Text(
+                                    'SOS EMERGENCY',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ],
                       ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ── Third Row: Artisan / Radar Deck ──
+            _buildArtisanOrBroadcastDeck(
+              context,
+              booking,
+              theme: theme,
+              isLive: isLive,
+              isPending: isPending,
+            ),
+
+            // ── Fourth Row: Start OTP Security Box (If Accepted) ──
+            if (booking.status == BookingStatus.accepted &&
+                booking.startOtp != null &&
+                booking.startOtp!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _buildStartOtpPrompt(context, booking.startOtp!),
+            ],
+
+            const SizedBox(height: 12),
+
+            // ── Fifth Row: Schedule & Location Strip ──
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFFFDE68A),
+                      width: 1,
                     ),
-                    const SizedBox(width: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.schedule_rounded,
+                        size: 12.5,
+                        color: Color(0xFFD97706),
+                      ),
+                      const SizedBox(width: 4.5),
+                      Text(
+                        dateStr,
+                        style: const TextStyle(
+                          color: Color(0xFF78350F),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (booking.customerAddressText != null &&
+                    booking.customerAddressText!.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Row(
                       children: [
-                        if (isCompleted &&
-                            (booking.isRated || booking.rating != null)) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 13,
+                          color: Color(0xFFD97706),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: TranslatedText(
+                            booking.customerAddressText!,
+                            isAddress: true,
+                            style: const TextStyle(
+                              color: Color(0xFF4B5563),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
                             ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFFBEB),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: const Color(0xFFF59E0B),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.star_rounded,
-                                  size: 11,
-                                  color: Color(0xFFF59E0B),
-                                ),
-                                const SizedBox(width: 2.5),
-                                Text(
-                                  booking.rating != null
-                                      ? booking.rating!.toStringAsFixed(1)
-                                      : 'RATED',
-                                  style: const TextStyle(
-                                    color: Color(0xFF92400E),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                        ],
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() {
-                              _showFareDetails = !_showFareDetails;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _showFareDetails
-                                  ? const Color(0xFFFFDE59)
-                                  : Colors.white.withValues(alpha: 0.88),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _showFareDetails
-                                    ? const Color(0xFFF59E0B)
-                                    : const Color(0xFFFDE68A),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.10),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.receipt_long_rounded,
-                                  size: 12,
-                                  color: Color(0xFF141416),
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  _showFareDetails ? 'Hide' : 'Details',
-                                  style: const TextStyle(
-                                    color: Color(0xFF141416),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                const SizedBox(width: 1.5),
-                                Icon(
-                                  _showFareDetails
-                                      ? Icons.keyboard_arrow_up_rounded
-                                      : Icons.keyboard_arrow_down_rounded,
-                                  size: 13,
-                                  color: const Color(0xFF141416),
-                                ),
-                              ],
-                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-
-                // ── Expandable Spent & Service Breakdown Drawer ──
-                if (_showFareDetails) ...[
-                  const SizedBox(height: 12),
-                  _buildSpentBreakdownDrawer(booking),
+                  ),
                 ],
+              ],
+            ),
+            const SizedBox(height: 14),
 
-                const SizedBox(height: 16),
-
-                // ── Seventh Row: Action Rail ──
-                _buildActionRail(
-                  context,
-                  booking,
-                  theme: theme,
-                  isPaymentPending: isPaymentPending,
-                  isLive: isLive,
-                  isPending: isPending,
-                  isCompleted: isCompleted,
-                  isCancelled: isCancelled,
-                  isPaid: isPaid,
+            // ── Sixth Row: Fare & Payment Status Bar with Spent Intelligence ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '₹${booking.totalAmount.toStringAsFixed(0)}',
+                            style: WorkGoFonts.numeric(
+                              color: const Color(0xFF141416),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          Text(
+                            isPaid ? 'Total Settled' : 'Estimated Total',
+                            style: const TextStyle(
+                              color: Color(0xFF78350F),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isPaid
+                              ? const Color(0xFFECFDF5)
+                              : const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isPaid
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFF59E0B),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isPaid
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              size: 10,
+                              color: isPaid
+                                  ? const Color(0xFF059669)
+                                  : const Color(0xFFD97706),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              isPaid ? 'PAID' : 'UNPAID',
+                              style: TextStyle(
+                                color: isPaid
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFF92400E),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (booking.urgencyBonus > 0) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFFF59E0B),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            '+₹${booking.urgencyBonus.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Color(0xFF92400E),
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isCompleted &&
+                        (booking.isRated || booking.rating != null)) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFFF59E0B),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 11,
+                              color: Color(0xFFF59E0B),
+                            ),
+                            const SizedBox(width: 2.5),
+                            Text(
+                              booking.rating != null
+                                  ? booking.rating!.toStringAsFixed(1)
+                                  : 'RATED',
+                              style: const TextStyle(
+                                color: Color(0xFF92400E),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                    ],
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          _showFareDetails = !_showFareDetails;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _showFareDetails
+                              ? const Color(0xFFFFDE59)
+                              : Colors.white.withValues(alpha: 0.88),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _showFareDetails
+                                ? const Color(0xFFF59E0B)
+                                : const Color(0xFFFDE68A),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFFF59E0B,
+                              ).withValues(alpha: 0.10),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.receipt_long_rounded,
+                              size: 12,
+                              color: Color(0xFF141416),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              _showFareDetails ? 'Hide' : 'Details',
+                              style: const TextStyle(
+                                color: Color(0xFF141416),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(width: 1.5),
+                            Icon(
+                              _showFareDetails
+                                  ? Icons.keyboard_arrow_up_rounded
+                                  : Icons.keyboard_arrow_down_rounded,
+                              size: 13,
+                              color: const Color(0xFF141416),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-        );
+
+            // ── Expandable Spent & Service Breakdown Drawer ──
+            if (_showFareDetails) ...[
+              const SizedBox(height: 12),
+              _buildSpentBreakdownDrawer(booking),
+            ],
+
+            const SizedBox(height: 16),
+
+            // ── Seventh Row: Action Rail ──
+            _buildActionRail(
+              context,
+              booking,
+              theme: theme,
+              isPaymentPending: isPaymentPending,
+              isLive: isLive,
+              isPending: isPending,
+              isCompleted: isCompleted,
+              isCancelled: isCancelled,
+              isPaid: isPaid,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSpentBreakdownDrawer(Booking booking) {
@@ -9221,8 +9601,9 @@ class _BookingListTileState extends State<_BookingListTile> {
 
     int? durationMins;
     if (booking.completedAt != null && booking.startedAt != null) {
-      durationMins =
-          booking.completedAt!.difference(booking.startedAt!).inMinutes;
+      durationMins = booking.completedAt!
+          .difference(booking.startedAt!)
+          .inMinutes;
       if (durationMins <= 0 && breakdown?.actualDurationMinutes != null) {
         durationMins = breakdown!.actualDurationMinutes;
       }
@@ -9376,8 +9757,10 @@ class _BookingListTileState extends State<_BookingListTile> {
             children: [
               if (durationMins != null && durationMins > 0)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFFBEB),
                     borderRadius: BorderRadius.circular(6),
@@ -9410,8 +9793,10 @@ class _BookingListTileState extends State<_BookingListTile> {
                 ),
               if (breakdown?.distanceKm != null)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFFBEB),
                     borderRadius: BorderRadius.circular(6),
@@ -9442,8 +9827,10 @@ class _BookingListTileState extends State<_BookingListTile> {
                 ),
               if (booking.hasProofPhoto)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFECFDF5),
                     borderRadius: BorderRadius.circular(6),

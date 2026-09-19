@@ -1690,5 +1690,16 @@
   "smart_demand_insights_title": "ಸ್ಮಾರ್ಟ್ ಬೇಡಿಕೆ ಒಳನೋಟಗಳು",
   "standby_mobilize_btn": "ಸ್ಟ್ಯಾಂಡ್‌ಬೈ ಕಾರ್ಯಕರ್ತರನ್ನು ಸಜ್ಜುಗೊಳಿಸಿ",
   "welfare_claim_submitted_success": "ಕಲ್ಯಾಣ ಹಕ್ಕನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಸಲಾಗಿದೆ",
-  "welfare_under_review": "ಸಮಿತಿಯ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ"
+  "welfare_under_review": "ಸಮಿತಿಯ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ",
+  "or_continue_with": "ಅಥವಾ ಇದರೊಂದಿಗೆ ಮುಂದುವರಿಯಿರಿ",
+  "error_karya_member_cannot_access_customer": "ಈ ಖಾತೆಯು ಕಾರ್ಯ ಸದಸ್ಯರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯನ್ನು ಬಳಸಿ.",
+  "error_customer_cannot_access_karya": "ಈ ಖಾತೆಯು ಗ್ರಾಹಕರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯನ್ನು ಬಳಸಿ.",
+  "karya_member_detected_title": "ಕಾರ್ಯ ಸದಸ್ಯರ ಖಾತೆ",
+  "karya_member_detected_desc": "ಈ ಖಾತೆಯು WorkGo ಕಾರ್ಯ ಸದಸ್ಯರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ಗ್ರಾಹಕರಾಗಿ ಸೇವೆಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲು, ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+  "customer_account_detected_title": "ಗ್ರಾಹಕ ಖಾತೆ",
+  "customer_account_detected_desc": "ಈ ಖಾತೆಯು ಗ್ರಾಹಕರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ಕುಶಲಕರ್ಮಿಯಾಗಿ ಸೇವೆಗಳನ್ನು ನೀಡಲು, ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
+  "btn_use_different_account": "ಬೇರೆ ಖಾತೆಯನ್ನು ಬಳಸಿ",
+  "hero_headline_line1": "ನಾವು ನಿಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸುತ್ತೇವೆ ನಿಮ್ಮ",
+  "hero_headline_dream": "ಕನಸಿನ",
+  "hero_headline_artisan": "ಕುಶಲಕರ್ಮಿಯೊಂದಿಗೆ"
 }

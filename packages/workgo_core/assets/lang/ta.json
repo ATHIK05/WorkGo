@@ -1670,5 +1670,16 @@
   "smart_demand_insights_title": "செயற்கை நுண்ணறிவு தேவை முன்னறிவிப்பு",
   "standby_mobilize_btn": "காத்திருப்பு பணியாளர்களை திரட்டவும்",
   "welfare_claim_submitted_success": "நலக் கோரிக்கை வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது",
-  "welfare_under_review": "குழுவின் பரிசீலனையில் உள்ளது"
+  "welfare_under_review": "குழுவின் பரிசீலனையில் உள்ளது",
+  "or_continue_with": "அல்லது இதன் மூலம் தொடரவும்",
+  "error_karya_member_cannot_access_customer": "இந்த கணக்கு கார்யா உறுப்பினராக பதிவு செய்யப்பட்டுள்ளது. வேறு கணக்கைப் பயன்படுத்தவும்.",
+  "error_customer_cannot_access_karya": "இந்த கணக்கு வாடிக்கையாளராக பதிவு செய்யப்பட்டுள்ளது. வேறு கணக்கைப் பயன்படுத்தவும்.",
+  "karya_member_detected_title": "கார்யா உறுப்பினர் கணக்கு",
+  "karya_member_detected_desc": "இந்த கணக்கு WorkGo கார்யா உறுப்பினராக பதிவு செய்யப்பட்டுள்ளது. வாடிக்கையாளராக சேவைகளை முன்பதிவு செய்ய, வேறு கணக்கில் உள்நுழையவும்.",
+  "customer_account_detected_title": "வாடிக்கையாளர் கணக்கு",
+  "customer_account_detected_desc": "இந்த கணக்கு வாடிக்கையாளராக பதிவு செய்யப்பட்டுள்ளது. கைவினைஞராக சேவைகளை வழங்க, வேறு கணக்கில் உள்நுழையவும்.",
+  "btn_use_different_account": "வேறு கணக்கைப் பயன்படுத்தவும்",
+  "hero_headline_line1": "நாங்கள் உங்களை இணைக்கிறோம் உங்கள்",
+  "hero_headline_dream": "கனவு",
+  "hero_headline_artisan": "கைவினைஞருடன்"
 }

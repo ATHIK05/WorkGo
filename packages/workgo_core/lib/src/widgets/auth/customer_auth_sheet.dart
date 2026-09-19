@@ -84,6 +84,30 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
     });
   }
 
+  Future<bool> _isRoleConflicting(String uid, AppUser? user) async {
+    if (widget.role == UserRole.customer) {
+      if (user != null && user.role == UserRole.worker) return true;
+      try {
+        final workerDoc = await FirebaseFirestore.instance.collection("workers").doc(uid).get();
+        if (workerDoc.exists) return true;
+      } catch (_) {}
+    } else if (widget.role == UserRole.worker) {
+      if (user != null && user.role == UserRole.customer) return true;
+    }
+    return false;
+  }
+
+  Future<void> _handleRoleConflict() async {
+    await _authService.signOut(role: widget.role);
+    if (mounted) {
+      setState(() {
+        _errorMessage = widget.role == UserRole.customer
+            ? "error_karya_member_cannot_access_customer".tr()
+            : "error_customer_cannot_access_karya".tr();
+      });
+    }
+  }
+
   Future<void> _handleGoogleSignIn() async {
     setState(() {
       _isLoading = true;
@@ -94,6 +118,12 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
       final cred = await _authService.signInWithGoogle(role: widget.role);
       final uid = cred.user!.uid;
       var appUser = await _authService.fetchUser(uid);
+
+      if (await _isRoleConflicting(uid, appUser)) {
+        await _handleRoleConflict();
+        return;
+      }
+
       appUser ??= AppUser(
         uid: uid,
         email: cred.user?.email ?? "",
@@ -188,6 +218,12 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
 
       final uid = cred.user!.uid;
       var user = await _authService.fetchUser(uid);
+
+      if (await _isRoleConflicting(uid, user)) {
+        await _handleRoleConflict();
+        return;
+      }
+
       user ??= AppUser(
         uid: uid,
         email: "$clean@phone.workgo.in",
@@ -245,6 +281,12 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
 
       final uid = cred.user!.uid;
       var user = await _authService.fetchUser(uid);
+
+      if (await _isRoleConflicting(uid, user)) {
+        await _handleRoleConflict();
+        return;
+      }
+
       user ??= AppUser(
         uid: uid,
         email: email,
@@ -313,6 +355,8 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
               widget.role == UserRole.worker
                   ? "welcome_worker_title".tr()
                   : "welcome_consumer_title".tr(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: WorkGoFonts.heading(
                 color: const Color(0xFF141416),
                 fontSize: 22,
@@ -326,6 +370,8 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
               widget.role == UserRole.worker
                   ? "welcome_worker_sub".tr()
                   : "welcome_consumer_sub".tr(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF6B7280),
                 fontSize: 13,
@@ -351,6 +397,8 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
                     Expanded(
                       child: Text(
                         _errorMessage!,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Color(0xFFBE123C), fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -399,12 +447,16 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Text(
-                            "continue_with_google".tr(),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.2,
+                          Flexible(
+                            child: Text(
+                              "continue_with_google".tr(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
+                              ),
                             ),
                           ),
                         ],
@@ -414,17 +466,19 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
             const SizedBox(height: 18),
 
             // Divider
-            const Row(
+            Row(
               children: [
-                Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
+                const Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Text(
-                    "or continue with",
-                    style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12, fontWeight: FontWeight.w600),
+                    "or_continue_with".tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
-                Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
+                const Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
               ],
             ),
             const SizedBox(height: 16),
@@ -464,14 +518,18 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
                                   : const Color(0xFF6B7280),
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              "auth_tab_phone".tr(),
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: _currentTab == CustomerAuthTab.phone ? FontWeight.w800 : FontWeight.w600,
-                                color: _currentTab == CustomerAuthTab.phone
-                                    ? const Color(0xFF141416)
-                                    : const Color(0xFF6B7280),
+                            Flexible(
+                              child: Text(
+                                "auth_tab_phone".tr(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: _currentTab == CustomerAuthTab.phone ? FontWeight.w800 : FontWeight.w600,
+                                  color: _currentTab == CustomerAuthTab.phone
+                                      ? const Color(0xFF141416)
+                                      : const Color(0xFF6B7280),
+                                ),
                               ),
                             ),
                           ],
@@ -505,14 +563,18 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
                                   : const Color(0xFF6B7280),
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              "auth_tab_email".tr(),
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: _currentTab == CustomerAuthTab.email ? FontWeight.w800 : FontWeight.w600,
-                                color: _currentTab == CustomerAuthTab.email
-                                    ? const Color(0xFF141416)
-                                    : const Color(0xFF6B7280),
+                            Flexible(
+                              child: Text(
+                                "auth_tab_email".tr(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: _currentTab == CustomerAuthTab.email ? FontWeight.w800 : FontWeight.w600,
+                                  color: _currentTab == CustomerAuthTab.email
+                                      ? const Color(0xFF141416)
+                                      : const Color(0xFF6B7280),
+                                ),
                               ),
                             ),
                           ],
@@ -558,7 +620,7 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
                             height: 18,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                           )
-                        : Text("send_otp_btn".tr(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                        : Text("send_otp_btn".tr(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                   ),
                 ),
               ] else ...[
@@ -591,29 +653,48 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
                             height: 18,
                             child: CircularProgressIndicator(color: Color(0xFF141416), strokeWidth: 2),
                           )
-                        : Text("verify_otp_btn".tr(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                        : Text("verify_otp_btn".tr(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => setState(() {
-                                _otpSent = false;
-                                _otpController.clear();
-                              }),
-                      child: const Text("Change Number", style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-                    ),
-                    if (_countdown > 0)
-                      Text("Resend in ${_countdown}s", style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)))
-                    else
-                      TextButton(
-                        onPressed: _isLoading ? null : _handleSendPhoneOtp,
-                        child: const Text("Resend Code", style: TextStyle(fontSize: 12, color: Color(0xFF2563EB), fontWeight: FontWeight.w600)),
+                    Flexible(
+                      child: TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () => setState(() {
+                                  _otpSent = false;
+                                  _otpController.clear();
+                                }),
+                        child: Text(
+                          "change_number".tr(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: _countdown > 0
+                          ? Text(
+                              "${'resend_in'.tr()} ${_countdown}s",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                            )
+                          : TextButton(
+                              onPressed: _isLoading ? null : _handleSendPhoneOtp,
+                              child: Text(
+                                "resend_otp".tr(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF2563EB), fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                    ),
                   ],
                 ),
               ],
@@ -659,6 +740,8 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
                                   ? "btn_get_started_artisan".tr()
                                   : "btn_get_started".tr())
                               : "sign_in".tr(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                         ),
                 ),
@@ -674,6 +757,8 @@ class _CustomerAuthSheetState extends State<CustomerAuthSheet> {
                     _isSignUp
                         ? "btn_already_have_account".tr()
                         : "new_user_create_account".tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12.5,
                       color: Color(0xFF4B5563),

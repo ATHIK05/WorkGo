@@ -78,6 +78,31 @@ class _AuthShellState extends State<AuthShell>
     _shakeController.forward(from: 0.0);
   }
 
+  Future<bool> _isRoleConflicting(String uid, AppUser? user) async {
+    if (widget.role == UserRole.customer) {
+      if (user != null && user.role == UserRole.worker) return true;
+      try {
+        final workerDoc = await FirebaseFirestore.instance.collection("workers").doc(uid).get();
+        if (workerDoc.exists) return true;
+      } catch (_) {}
+    } else if (widget.role == UserRole.worker) {
+      if (user != null && user.role == UserRole.customer) return true;
+    }
+    return false;
+  }
+
+  Future<void> _handleRoleConflict() async {
+    await _authService.signOut(role: widget.role);
+    if (mounted) {
+      setState(() {
+        _errorMessage = widget.role == UserRole.customer
+            ? "error_karya_member_cannot_access_customer".tr()
+            : "error_customer_cannot_access_karya".tr();
+      });
+      _triggerShake();
+    }
+  }
+
   Future<void> _handleSignIn(String email, String password) async {
     final currentLang = context.locale.languageCode;
     setState(() {
@@ -90,6 +115,11 @@ class _AuthShellState extends State<AuthShell>
       final uid = cred.user!.uid;
 
       var appUser = await _authService.fetchUser(uid);
+      if (await _isRoleConflicting(uid, appUser)) {
+        await _handleRoleConflict();
+        return;
+      }
+
       if (appUser == null) {
         // First time or role document setup
         appUser = AppUser(
@@ -272,6 +302,12 @@ class _AuthShellState extends State<AuthShell>
       final cred = await _authService.signInWithGoogle(role: widget.role);
       final uid = cred.user!.uid;
       var appUser = await _authService.fetchUser(uid);
+
+      if (await _isRoleConflicting(uid, appUser)) {
+        await _handleRoleConflict();
+        return;
+      }
+
       if (appUser == null) {
         appUser = AppUser(
           uid: uid,
@@ -549,6 +585,10 @@ class _AuthShellState extends State<AuthShell>
                     ),
                     SafeText(
                       'app_name'.tr(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      enableAutoShrink: true,
+                      minFontSize: 9,
                       style: const TextStyle(
                         color: Color(0xFF8C7A6B),
                         fontSize: 11,
@@ -681,8 +721,12 @@ class _AuthShellState extends State<AuthShell>
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: SafeText(
               _errorMessage!,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              enableAutoShrink: true,
+              minFontSize: 11,
               style: const TextStyle(
                 color: Color(0xFFBE123C),
                 fontSize: 13,
@@ -831,13 +875,19 @@ class _AuthShellState extends State<AuthShell>
           children: [
             _buildGoogleBrandIcon(),
             const SizedBox(width: 12),
-            Text(
-              'continue_with_google'.tr(),
-              style: const TextStyle(
-                color: Color(0xFF1F2937),
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
+            Flexible(
+              child: SafeText(
+                'continue_with_google'.tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                enableAutoShrink: true,
+                minFontSize: 11,
+                style: const TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
               ),
             ),
           ],
@@ -868,21 +918,23 @@ class _AuthShellState extends State<AuthShell>
   }
 
   Widget _buildAuthDivider() {
-    return const Row(
+    return Row(
       children: [
-        Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
+        const Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            "or",
-            style: TextStyle(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: SafeText(
+            "or_continue_with".tr(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
               color: Color(0xFF9CA3AF),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
+        const Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
       ],
     );
   }

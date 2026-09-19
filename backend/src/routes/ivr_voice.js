@@ -41,17 +41,44 @@ function validateAsteriskSecret(req, res) {
   return true;
 }
 
+function extractParams(req) {
+  let body = req.body || {};
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body);
+    } catch (_) {
+      try {
+        body = require("querystring").parse(body);
+      } catch (__) {
+        body = {};
+      }
+    }
+  }
+  return { ...req.query, ...body };
+}
+
+function getPhoneCandidates(p) {
+  if (!p) return [];
+  const clean = String(p).trim();
+  const raw = clean.replace(/^\+/, "");
+  return Array.from(new Set([clean, raw, "+" + raw]));
+}
+
 // ── Helper: Get or create a pending dial worker doc ───────────────────────────
 async function getOrCreateDialWorker(db, callerPhone) {
-  const normalized = callerPhone.startsWith("+") ? callerPhone : `+${callerPhone}`;
+  const candidates = getPhoneCandidates(callerPhone);
   const snap = await db
     .collection("workers")
-    .where("phoneForCalling", "==", normalized)
+    .where("phoneForCalling", "in", candidates)
     .limit(1)
     .get();
   if (!snap.empty) {
     return { doc: snap.docs[0], isNew: false };
   }
+  const isSipUsername = /^workgo_\d+$/.test(callerPhone) || /^[a-z][a-z0-9_]{2,}$/.test(callerPhone);
+  const normalized = isSipUsername
+    ? callerPhone
+    : (callerPhone.startsWith("+") ? callerPhone : `+${callerPhone}`);
   // Create a new stub profile — will be enriched during onboarding Q&A
   const ref = db.collection("workers").doc();
   await ref.set({
@@ -247,7 +274,9 @@ router.post("/onboarding", async (req, res) => {
 router.post("/toggle-status", async (req, res) => {
   if (!validateAsteriskSecret(req, res)) return;
 
-  const { caller, status } = req.body;
+  const params = extractParams(req);
+  const caller = params.caller;
+  const status = params.status;
   if (!caller || !status) {
     return res.status(400).json({ error: "caller and status required" });
   }
@@ -257,9 +286,10 @@ router.post("/toggle-status", async (req, res) => {
 
   try {
     const db = req.db;
+    const candidates = getPhoneCandidates(caller);
     const snap = await db
       .collection("workers")
-      .where("phoneForCalling", "==", caller.startsWith("+") ? caller : `+${caller}`)
+      .where("phoneForCalling", "in", candidates)
       .limit(1)
       .get();
 
@@ -308,7 +338,9 @@ router.post("/toggle-status", async (req, res) => {
 router.post("/claim-booking", async (req, res) => {
   if (!validateAsteriskSecret(req, res)) return;
 
-  const { caller, bookingId } = req.body;
+  const params = extractParams(req);
+  const caller = params.caller;
+  const bookingId = params.bookingId;
   if (!caller || !bookingId) {
     return res.status(400).json({ error: "caller and bookingId required" });
   }
@@ -317,9 +349,10 @@ router.post("/claim-booking", async (req, res) => {
 
   try {
     // Find worker by phone
+    const candidates = getPhoneCandidates(caller);
     const workerSnap = await db
       .collection("workers")
-      .where("phoneForCalling", "==", caller.startsWith("+") ? caller : `+${caller}`)
+      .where("phoneForCalling", "in", candidates)
       .limit(1)
       .get();
 

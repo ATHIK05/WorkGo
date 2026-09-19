@@ -26,19 +26,24 @@ function getWslGateway() {
 
 function getLanIp() {
   const ifaces = os.networkInterfaces();
+  const candidates = [];
   for (const name of Object.keys(ifaces)) {
     for (const iface of ifaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal && !iface.address.startsWith('172.31.') && !iface.address.startsWith('169.254.')) {
-        return iface.address;
+      if (iface.family === 'IPv4' && !iface.internal) {
+        if (!iface.address.startsWith('172.31.') && !iface.address.startsWith('169.254.')) {
+          return iface.address;
+        }
+        candidates.push(`${name}: ${iface.address}`);
       }
     }
   }
-  return '192.168.1.7';
+  return null;
 }
 
 const WSL_IP = getWslIp();
 const GATEWAY_IP = getWslGateway();
-const LAN_IP = getLanIp();
+const DETECTED_LAN_IP = getLanIp();
+const LAN_IP = DETECTED_LAN_IP || '192.168.1.7';
 const SIP_PORT = 5060;
 
 console.log('====================================================');
@@ -46,7 +51,20 @@ console.log('  WorkGo Advanced SIP & RTP Bridge (Production Ready)');
 console.log('====================================================');
 console.log(`  WSL Asterisk IP          : ${WSL_IP}`);
 console.log(`  WSL Gateway (Windows)    : ${GATEWAY_IP}`);
-console.log(`  Windows LAN / Wi-Fi IP   : ${LAN_IP}`);
+if (DETECTED_LAN_IP) {
+  console.log(`  Windows LAN / Wi-Fi IP   : ${LAN_IP}`);
+} else {
+  console.log(`  Windows LAN / Wi-Fi IP   : NOT DETECTED (fallback: ${LAN_IP})`);
+  console.log('  [!] WARNING: Your PC Wi-Fi does not have a real local IPv4 yet!');
+  console.log('      (It has 169.254.x.x APIPA). Please connect PC & Phone to the');
+  console.log('      same Wi-Fi or Mobile Hotspot to get a working 192.168.x.x IP.');
+}
+console.log('====================================================');
+console.log('  MizuDroid App Settings:');
+console.log(`    Server / Domain        : ${LAN_IP}:5060`);
+console.log('    Usernames              : workgo_1, workgo_2, workgo_3, workgo_4');
+console.log('    Password               : workgoSecretPassword123');
+console.log('    Dial Extension         : 1000');
 console.log('====================================================');
 
 // ── 1. Dynamic Multi-Session RTP Audio Proxy ──────────────────────────────────

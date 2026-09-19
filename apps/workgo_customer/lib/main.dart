@@ -188,6 +188,22 @@ class _CustomerRootScreenState extends State<CustomerRootScreen> {
                   region: "Tamil Nadu",
                 );
 
+            if (appUser.role == UserRole.worker) {
+              return RoleMismatchScreen(
+                targetRole: UserRole.customer,
+                user: appUser,
+                onSignOut: () async {
+                  customerNavigatorKey.currentState?.popUntil(
+                    (route) => route.isFirst,
+                  );
+                  setState(() {
+                    _cachedUser = null;
+                  });
+                  await _authService.signOut(role: UserRole.customer);
+                },
+              );
+            }
+
             // Sync device token to Firestore for customer push notifications (idempotent, outside build)
             if (_lastSyncedTokenUid != appUser.uid) {
               _lastSyncedTokenUid = appUser.uid;

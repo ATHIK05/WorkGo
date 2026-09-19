@@ -171,9 +171,48 @@ router.post("/verify-otp-login", async (req, res) => {
   }
 
   const formattedPhone = `+91${cleanPhone}`;
-  const collectionName = role === "worker" ? "workers" : "users";
+  const targetRole = role === "worker" ? "worker" : "customer";
+  const collectionName = targetRole === "worker" ? "workers" : "users";
 
   try {
+    // 2. Check for role conflict
+    if (targetRole === "customer") {
+      const workerSnap = await req.db
+        .collection("workers")
+        .where("phoneNumber", "==", formattedPhone)
+        .limit(1)
+        .get();
+      if (!workerSnap.empty) {
+        return res.status(403).json({
+          success: false,
+          error: "This account is registered as a Karya Member. Please use a different account.",
+        });
+      }
+      const userSnap = await req.db
+        .collection("users")
+        .where("phoneNumber", "==", formattedPhone)
+        .limit(1)
+        .get();
+      if (!userSnap.empty && userSnap.docs[0].data().role === "worker") {
+        return res.status(403).json({
+          success: false,
+          error: "This account is registered as a Karya Member. Please use a different account.",
+        });
+      }
+    } else if (targetRole === "worker") {
+      const userSnap = await req.db
+        .collection("users")
+        .where("phoneNumber", "==", formattedPhone)
+        .limit(1)
+        .get();
+      if (!userSnap.empty && userSnap.docs[0].data().role === "customer") {
+        return res.status(403).json({
+          success: false,
+          error: "This account is registered as a Customer. Please use a different account.",
+        });
+      }
+    }
+
     let targetUid;
     let isNewUser = false;
 

@@ -1,3 +1,14 @@
+jest.mock("../src/services/bhashini_voice_service", () => ({
+  generateBookingCancelledAudio: jest.fn().mockResolvedValue("/sounds/booking_cancel_test.wav"),
+  generateBookingAlertAudio: jest.fn().mockResolvedValue("/sounds/booking_alert_test.wav"),
+}));
+
+jest.mock("../src/services/voice_call_engine", () => ({
+  triggerOutboundBookingCancelledCall: jest.fn().mockResolvedValue({ success: true, channel: "PJSIP/workgo_1" }),
+  triggerOutboundJobAlertCall: jest.fn().mockResolvedValue({ success: true, channel: "PJSIP/workgo_1" }),
+  abortCallBookingCancelled: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 const { NotificationEngine, NOTIFICATION_TEMPLATES } = require("../src/services/notification_engine");
 
 describe("NotificationEngine & Cloud Functions Test Suite", () => {
@@ -121,4 +132,70 @@ describe("NotificationEngine & Cloud Functions Test Suite", () => {
     expect(res.totalRecipients).toBe(1);
     expect(mockMessaging.sendEachForMulticast).toHaveBeenCalled();
   });
+
+  test("notifyDialWorkerBookingCancelled restores worker status to online and initiates voice call with elapsed time and location", async () => {
+    const mockWorkerUpdate = jest.fn().mockResolvedValue();
+    const mockBookingUpdate = jest.fn().mockResolvedValue();
+
+    const workerDoc = {
+      exists: true,
+      data: () => ({
+        name: "Ramesh K.",
+        phoneForCalling: "+919080262334",
+        dialLanguage: "ta",
+        isDialWorker: true,
+        availabilityStatus: "busy",
+      }),
+      ref: { update: mockWorkerUpdate },
+    };
+
+    const bookingDocRef = { update: mockBookingUpdate };
+
+    const customDb = {
+      collection: (col) => {
+        if (col === "workers") {
+          return {
+            doc: () => ({ get: jest.fn().mockResolvedValue(workerDoc) }),
+            where: () => ({ limit: () => ({ get: jest.fn().mockResolvedValue({ empty: false, docs: [workerDoc] }) }) }),
+          };
+        }
+        if (col === "bookings") {
+          return {
+            doc: () => bookingDocRef,
+          };
+        }
+        return { doc: () => ({ get: jest.fn() }) };
+      },
+    };
+
+    const engineWithCustomDb = new NotificationEngine(customDb, mockMessaging);
+
+    const booking = {
+      id: "b_dial_cancel_01",
+      serviceType: "Electrical",
+      customerAddressText: "No 45, Gandhi Road, Chennai",
+      cancellationReason: "Incorrect service address",
+      acceptedAt: new Date(Date.now() - 7 * 60000).toISOString(), // 7 minutes ago (exceeds 5-minute transit threshold)
+      cancelledAt: new Date().toISOString(),
+      workerId: "w_dial_101",
+      isAssignedToDialWorker: true,
+      dialWorkerPhone: "+919080262334",
+    };
+
+    await engineWithCustomDb.notifyDialWorkerBookingCancelled(booking);
+
+    expect(mockWorkerUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        availabilityStatus: "online",
+        isCheckedIn: true,
+        callIvrStatus: "idle",
+      })
+    );
+    expect(mockBookingUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dialCallStatus: "cancelled_notified",
+      })
+    );
+  });
 });
+

@@ -206,6 +206,118 @@ extension AvailabilityStatusLocalization on AvailabilityStatus {
 /// In-memory dictionary for high-frequency dynamic screens ensuring zero warning logs
 /// even before a full Hot Restart reloads JSON asset files.
 const Map<String, Map<String, String>> _embeddedTranslations = {
+  // ── Common UI & Filter Action Tokens ──
+  "all": {
+    "en": "All",
+    "hi": "सभी",
+    "ta": "அனைத்தும்",
+    "te": "అన్నీ",
+    "kn": "ಎಲ್ಲಾ",
+    "ml": "എല്ലാം",
+    "mr": "सर्व",
+    "bn": "সব",
+    "gu": "બધા",
+    "ur": "سب",
+  },
+  "clear_all": {
+    "en": "Clear All",
+    "hi": "सभी हटाएं",
+    "ta": "அனைத்தும் நீக்கு",
+    "te": "అన్నీ క్లియర్ చేయి",
+    "kn": "ಎಲ್ಲವನ್ನು ಅಳಿಸು",
+    "ml": "എല്ലാം മായ്‌ക്കുക",
+    "mr": "सर्व साफ करा",
+    "bn": "সব সাফ করুন",
+    "gu": "બધું સાફ કરો",
+    "ur": "سب صاف کریں",
+  },
+  "direct_phone_call": {
+    "en": "Direct Call",
+    "hi": "सीधा कॉल",
+    "ta": "நேரடி அழைப்பு",
+    "te": "డైరెక్ట్ కాల్",
+    "kn": "ನೇರ ಕರೆ",
+    "ml": "നേരിട്ടുള്ള കോൾ",
+    "mr": "थेट कॉल",
+    "bn": "সরাসরি কল",
+    "gu": "સીધો કૉલ",
+    "ur": "براہ راست کال",
+  },
+  "call_book_artisan": {
+    "en": "Call & Book",
+    "hi": "कॉल और बुक करें",
+    "ta": "அழைத்து பதிவு செய்க",
+    "te": "కాల్ చేసి బుక్ చేయండి",
+    "kn": "ಕರೆ ಮಾಡಿ ಬುಕ್ ಮಾಡಿ",
+    "ml": "വിളിച്ച് ബുക്ക് ചെയ്യുക",
+    "mr": "कॉल आणि बुक करा",
+    "bn": "কল ও বুক করুন",
+    "gu": "કૉલ અને બુક કરો",
+    "ur": "کال اور بک کریں",
+  },
+  "connectivity_mode": {
+    "en": "Artisan Connectivity & Dispatch",
+    "hi": "कारीगर कनेक्टिविटी और प्रेषण",
+    "ta": "கைவினைஞர் இணைப்பு முறை",
+    "te": "కళాకారుల కనెక్టివిటీ",
+    "kn": "ಕುಶಲಕರ್ಮಿ ಸಂಪರ್ಕ",
+    "ml": "തൊഴിലാളി കണക്റ്റിവിറ്റി",
+    "mr": "कारागीर कनेक्टिव्हिटी",
+    "bn": "কারিগর সংযোগ",
+    "gu": "કારીગર કનેક્ટિવિટી",
+    "ur": "کاریگر رابطہ",
+  },
+  "connectivity_mode_sub": {
+    "en": "Filter between smartphone app artisans and voice-call Dial Karya artisans",
+    "hi": "स्मार्टफोन ऐप कारीगरों और डायल कार्य कारीगरों के बीच फ़िल्टर करें",
+    "ta": "ஸ்மார்ட்போன் செயலி மற்றும் டயல் காரிய கைவினைஞர்களை வடிகட்டவும்",
+    "te": "యాప్ మరియు డయల్ కార్య కళాకారుల మధ్య ఫిల్టర్ చేయండి",
+    "kn": "ಸ್ಮಾರ್ಟ್‌ಫೋನ್ ಆ್ಯಪ್ ಮತ್ತು ಡಯಲ್ ಕಾರ್ಯ ಕುಶಲಕರ್ಮಿಗಳ ನಡುವೆ ಫಿಲ್ಟರ್ ಮಾಡಿ",
+    "ml": "സ്മാർട്ട്ഫോൺ ആപ്പ് തൊഴിലാളികളെയും ഡയൽ കാര്യ തൊഴിലാളികളെയും ഫിൽട്ടർ ചെയ്യുക",
+  },
+  "all_modes": {
+    "en": "All Artisans",
+    "hi": "सभी कारीगर",
+    "ta": "அனைத்து கைவினைஞர்கள்",
+    "te": "అందరు కళాకారులు",
+    "kn": "ಎಲ್ಲಾ ಕುಶಲಕರ್ಮಿಗಳು",
+    "ml": "എല്ലാ തൊഴിലാളികളും",
+    "mr": "सर्व कारागीर",
+    "bn": "সকল কারিগর",
+    "gu": "બધા કારીગરો",
+    "ur": "تمام کاریگر",
+  },
+  "filter_app_gps": {
+    "en": "App & Live GPS",
+    "hi": "ऐप और लाइव जीपीएस",
+    "ta": "செயலி & நேரடி ஜிபிஎஸ்",
+    "te": "యాప్ & లైవ్ GPS",
+    "kn": "ಆ್ಯಪ್ ಮತ್ತು ಲೈವ್ ಜಿಪಿಎಸ್",
+    "ml": "ആപ്പ് & ലൈവ് ജിപിഎസ്",
+    "mr": "अ‍ॅप आणि लाइव्ह जीपीएस",
+    "bn": "অ্যাপ ও লাইভ জিপিএস",
+    "gu": "એપ અને લાઇવ જીપીએસ",
+    "ur": "ایپ اور لائیو جی پی ایس",
+  },
+  "filter_dial_karya": {
+    "en": "Dial Karya (Direct Call)",
+    "hi": "डायल कार्य (सीधा कॉल)",
+    "ta": "டயல் காரியா (நேரடி அழைப்பு)",
+    "te": "డయల్ కార్య (డైరెక్ట్ కాల్)",
+    "kn": "ಡಯಲ್ ಕಾರ್ಯ (ನೇರ ಕರೆ)",
+    "ml": "ഡയൽ കാര്യ (നേരിട്ടുള്ള കോൾ)",
+    "mr": "डायल कार्य (थेट कॉल)",
+    "bn": "ডায়াল কার্য (সরাসরি কল)",
+    "gu": "ડાયલ કાર્ય (સીધો કૉલ)",
+    "ur": "ڈائل کاریہ (براہ راست کال)",
+  },
+  "app_gps_badge": {
+    "en": "App & GPS",
+    "hi": "ऐप और जीपीएस",
+    "ta": "செயலி & ஜிபிஎஸ்",
+    "te": "యాప్ & GPS",
+  },
+
   // ── Core Service Categories ──
   "cat_plumbing": {
     "en": "Plumbing",
@@ -845,6 +957,22 @@ const Map<String, Map<String, String>> _embeddedTranslations = {
     "kn": "ಡಯಲ್",
     "ml": "ഡയൽ",
   },
+  "dial_worker_live_hint": {
+    "en": "Dial Karya Feature Phone Artisan: Accepted via Voice Telephony. Direct telephone line active.",
+    "hi": "डायल कार्य फीचर फोन कारीगर: वॉइस टेलीफोनी द्वारा स्वीकृत। सीधा फोन संपर्क सक्रिय है।",
+    "ta": "டயல் கார்யா சாதாரண போன் பணியாளர்: குரல் அழைப்பு மூலம் ஏற்கப்பட்டது. நேரடி தொலைபேசி இணைப்பு தயார்.",
+    "te": "డయల్ కార్య ఫీచర్ ఫోన్ కళాకారుడు: వాయిస్ కాల్ ద్వారా అంగీకరించబడింది. ప్రత్యక్ష ఫోన్ కాల్ అందుబాటులో ఉంది.",
+    "kn": "ಡಯಲ್ ಕಾರ್ಯ ಫೀಚರ್ ಫೋನ್ ಕುಶಲಕರ್ಮಿ: ಧ್ವನಿ ಕರೆ ಮೂಲಕ ಸ್ವೀಕರಿಸಲಾಗಿದೆ. ನೇರ ಫೋನ್ ಸಂಪರ್ಕ ಲಭ್ಯವಿದೆ.",
+    "ml": "ഡയൽ കാര്യ ഫീച്ചർ ഫോൺ തൊഴിലാളി: വോയ്‌സ് കോൾ വഴി സ്വീകരിച്ചു. നേരിട്ടുള്ള ഫോൺ കോൾ ലഭ്യമാണ്.",
+  },
+  "dial_artisan_assigned_title": {
+    "en": "Dial Karya Artisan Assigned!",
+    "hi": "डायल कार्य कारीगर नियुक्त!",
+    "ta": "டயல் கார்யா பணியாளர் நியமிக்கப்பட்டார்!",
+    "te": "డయల్ కార్య కళాకారుడు కేటాయించబడ్డాడు!",
+    "kn": "ಡಯಲ್ ಕಾರ್ಯ ಕುಶಲಕರ್ಮಿ ನಿಯೋಜಿಸಲಾಗಿದೆ!",
+    "ml": "ഡയൽ കാര്യ തൊഴിലാളിയെ ചുമതലപ്പെടുത്തി!",
+  },
   "peer_kyc_complete_title": {
     "en": "Peer KYC Complete! 🎉",
     "hi": "साथी KYC पूर्ण! 🎉",
@@ -1418,13 +1546,7 @@ extension SafeTranslationExtension on String {
   /// Translates key or returns fallback if key is missing or unresolved.
   String trSafe([String? fallback, List<String>? args]) {
     try {
-      // 1. Primary lookup via EasyLocalization asset files
-      final res = args != null && args.isNotEmpty ? this.tr(args: args) : this.tr();
-      if (res != this && res.isNotEmpty) {
-        return res;
-      }
-
-      // 2. In-memory fallback resolver
+      // 1. In-memory dictionary fast lookup (prevents EasyLocalization missing-key warning logs)
       if (_embeddedTranslations.containsKey(this)) {
         final entry = _embeddedTranslations[this]!;
         String locale = WorkGoLocale.currentCode;
@@ -1443,6 +1565,12 @@ extension SafeTranslationExtension on String {
           }
         }
         return val;
+      }
+
+      // 2. Primary lookup via EasyLocalization asset files
+      final res = args != null && args.isNotEmpty ? this.tr(args: args) : this.tr();
+      if (res != this && res.isNotEmpty) {
+        return res;
       }
 
       if (fallback != null && fallback.isNotEmpty) {
@@ -1470,7 +1598,7 @@ extension SafeTranslationExtension on String {
   /// Localizes Indian administrative region (state/district) name if available or formats gracefully.
   String toLocalizedRegion([String? locale]) {
     final key = 'region_${toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}';
-    return trSafe(this);
+    return key.trSafe(this);
   }
 }
 

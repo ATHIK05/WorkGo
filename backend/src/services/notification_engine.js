@@ -113,6 +113,34 @@ const NOTIFICATION_TEMPLATES = {
       title: "வாடிக்கையாளரால் முன்பதிவு ரத்து செய்யப்பட்டது",
       body: "வாடிக்கையாளர் முன்பதிவு #{bookingId}-ஐ ரத்து செய்தார். காரணம்: {reason}",
     },
+    te: {
+      title: "కస్టమర్ ద్వారా బుకింగ్ రద్దు చేయబడింది",
+      body: "కస్టమర్ బుకింగ్ #{bookingId} రద్దు చేశారు. కారణం: {reason}",
+    },
+    mr: {
+      title: "ग्राहकाद्वारे बुकिंग रद्द",
+      body: "ग्राहकाने बुकिंग #{bookingId} रद्द केले. कारण: {reason}",
+    },
+    kn: {
+      title: "ಗ್ರಾಹಕರಿಂದ ಬುಕಿಂಗ್ ರದ್ದಾಗಿದೆ",
+      body: "ಗ್ರಾಹಕರು ಬುಕಿಂಗ್ #{bookingId} ರದ್ದುಗೊಳಿಸಿದ್ದಾರೆ. ಕಾರಣ: {reason}",
+    },
+    ml: {
+      title: "ഉപഭോക്താവ് ബുക്കിംഗ് റദ്ദാക്കി",
+      body: "ഉപഭോക്താവ് ബുക്കിംഗ് #{bookingId} റദ്ദാക്കി. കാരണം: {reason}",
+    },
+    bn: {
+      title: "গ্রাহক দ্বারা বুকিং বাতিল",
+      body: "গ্রাহক বুকিং #{bookingId} বাতিল করেছেন। কারণ: {reason}",
+    },
+    gu: {
+      title: "ગ્રાહક દ્વારા બુકિંગ રદ",
+      body: "ગ્રાહકે બુકિંગ #{bookingId} રદ કર્યું છે. કારણ: {reason}",
+    },
+    pa: {
+      title: "ਗਾਹਕ ਵੱਲੋਂ ਬੁਕਿੰਗ ਰੱਦ",
+      body: "ਗਾਹਕ ਨੇ ਬੁਕਿੰਗ #{bookingId} ਰੱਦ ਕਰ ਦਿੱਤੀ। ਕਾਰਨ: {reason}",
+    },
   },
 
   // ── Dial Karya: Peer KYC Bounty Templates ───────────────────────────────────
@@ -168,6 +196,34 @@ const NOTIFICATION_TEMPLATES = {
     ta: {
       title: "பணியாளரால் முன்பதிவு ரத்து செய்யப்பட்டது",
       body: "பணியாளர் முன்பதிவு #{bookingId}-ஐ ரத்து செய்தார். மாற்று பணியாளர் தேடப்படுகிறது...",
+    },
+    te: {
+      title: "కళాకారుడు ద్వారా బుకింగ్ రద్దు చేయబడింది",
+      body: "కళాకారుడు బుకింగ్ #{bookingId} రద్దు చేశారు. ప్రత్యామ్నాయ కళాకారుల కోసం వెతుకుతోంది...",
+    },
+    mr: {
+      title: "कारागिराद्वारे बुकिंग रद्द",
+      body: "कारागिराने बुकिंग #{bookingId} रद्द केले. पर्यायी कारागिरांचा शोध घेतला जात आहे...",
+    },
+    kn: {
+      title: "ಕುಶಲಕರ್ಮಿಯಿಂದ ಬುಕಿಂಗ್ ರದ್ದಾಗಿದೆ",
+      body: "ಕುಶಲಕರ್ಮಿ ಬುಕಿಂಗ್ #{bookingId} ರದ್ದುಗೊಳಿಸಿದ್ದಾರೆ. ಪರ್ಯಾಯ ಕುಶಲಕರ್ಮಿಗಳ ಹುಡುಕಾಟ...",
+    },
+    ml: {
+      title: "തൊഴിലാളി ബുക്കിംഗ് റദ്ദാക്കി",
+      body: "തൊഴിലാളി ബുക്കിംഗ് #{bookingId} റദ്ദാക്കി. പകരം തൊഴിലാളിയെ തിരയുന്നു...",
+    },
+    bn: {
+      title: "কারিগর দ্বারা বুকিং বাতিল",
+      body: "কারিগর বুকিং #{bookingId} বাতিল করেছেন। বিকল্প কারিগর খোঁজা হচ্ছে...",
+    },
+    gu: {
+      title: "કારીગર દ્વારા બુકિંગ રદ",
+      body: "કારીગરે બુકિંગ #{bookingId} રદ કર્યું છે. વૈકલ્પિક કારીગરોની શોધ ચાલુ છે...",
+    },
+    pa: {
+      title: "ਕਾਰੀਗਰ ਵੱਲੋਂ ਬੁਕਿੰਗ ਰੱਦ",
+      body: "ਕਾਰੀਗਰ ਨੇ ਬੁਕਿੰਗ #{bookingId} ਰੱਦ ਕਰ ਦਿੱਤੀ। ਬਦਲਵੇਂ ਕਾਰੀਗਰਾਂ ਦੀ ਖੋਜ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ...",
     },
   },
 
@@ -441,10 +497,22 @@ class NotificationEngine {
         return { success: false, reason: "No FCM tokens registered for user" };
       }
 
-      const lang = userData.preferredLanguage || "en";
+      let lang = userData.preferredLanguage || "en";
       const template = NOTIFICATION_TEMPLATES[eventKey];
       if (!template) {
         throw new Error(`Notification template for key '${eventKey}' not found.`);
+      }
+
+      // If exact language is not present in template, map sister languages cleanly
+      if (!template[lang]) {
+        const LANG_MAP = {
+          ur: "hi", sd: "hi", mai: "hi", doi: "hi", bho: "hi", ks: "hi", sa: "hi", sat: "hi",
+          as: "bn", or: "bn", brx: "bn", mni: "bn",
+          kok: "mr",
+        };
+        if (LANG_MAP[lang] && template[LANG_MAP[lang]]) {
+          lang = LANG_MAP[lang];
+        }
       }
 
       const localized = template[lang] || template.en;
@@ -636,9 +704,130 @@ class NotificationEngine {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * Notify a dial worker when a booking is cancelled by the customer.
+   * Plays voice cancellation audio incorporating:
+   *  - Service type / trade
+   *  - Customer address
+   *  - 5-minute transit window logic (grace vs late en route cancellation)
+   *  - Reason for cancellation
+   *  - Restores worker status in Firestore to Online
+   *
+   * @param {object} booking - Booking data from Firestore
+   */
+  async notifyDialWorkerBookingCancelled(booking) {
+    try {
+      const {
+        id,
+        serviceType,
+        customerAddressText,
+        cancellationReason,
+        acceptedAt,
+        cancelledAt,
+        workerId,
+        dialWorkerPhone,
+        workerPhone,
+      } = booking;
+
+      // 1. Resolve dial worker details
+      let workerData = null;
+      let targetPhone = dialWorkerPhone || workerPhone;
+      let workerDocRef = null;
+
+      if (workerId && this.db) {
+        const doc = await this.db.collection("workers").doc(workerId).get();
+        if (doc.exists) {
+          workerData = doc.data();
+          workerDocRef = doc.ref;
+          targetPhone = targetPhone || workerData.phoneForCalling;
+        }
+      }
+
+      if (!workerData && targetPhone && this.db) {
+        const snap = await this.db
+          .collection("workers")
+          .where("phoneForCalling", "==", targetPhone.startsWith("+") ? targetPhone : `+${targetPhone}`)
+          .limit(1)
+          .get();
+        if (!snap.empty) {
+          workerData = snap.docs[0].data();
+          workerDocRef = snap.docs[0].ref;
+        }
+      }
+
+      const lang = workerData?.dialLanguage || "hi";
+      const phone = targetPhone || workerData?.phoneForCalling;
+
+      // 2. Cancellation time calculation: elapsed minutes between acceptedAt and cancelledAt
+      let elapsedMinutes = null;
+      if (acceptedAt) {
+        const start = new Date(acceptedAt);
+        const end = cancelledAt ? new Date(cancelledAt) : new Date();
+        elapsedMinutes = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
+      }
+
+      console.log(
+        `[NotificationEngine] Notifying dial worker (${phone || "unknown"}, lang=${lang}) of cancellation on booking #${id}. Elapsed minutes: ${elapsedMinutes}`
+      );
+
+      // 3. Atomically restore worker status to Online so they can receive new jobs
+      if (workerDocRef) {
+        await workerDocRef.update({
+          availabilityStatus: "online",
+          isCheckedIn: true,
+          callIvrStatus: "idle",
+          updatedAt: new Date().toISOString(),
+        }).catch((e) => console.warn(`[NotificationEngine] Failed to restore worker status:`, e.message));
+      }
+
+      // 4. If no phone available, we've at least restored their status
+      if (!phone) {
+        console.warn(`[NotificationEngine] No phone number found for dial worker on booking #${id}`);
+        return { success: false, reason: "No phone number for dial worker" };
+      }
+
+      // 5. Generate Bhashini voice audio and trigger outbound cancellation call
+      const { generateBookingCancelledAudio } = require("./bhashini_voice_service");
+      const { triggerOutboundBookingCancelledCall } = require("./voice_call_engine");
+
+      const audioFile = await generateBookingCancelledAudio({
+        bookingId: id,
+        trade: serviceType || "काम",
+        address: customerAddressText || "",
+        reason: cancellationReason || "ग्राहक ने बुकिंग रद्द की",
+        elapsedMinutes,
+        language: lang,
+      });
+
+      const callResult = await triggerOutboundBookingCancelledCall({
+        workerPhone: phone,
+        bookingId: id,
+        trade: serviceType || "Service",
+        address: customerAddressText || "",
+        reason: cancellationReason || "No reason specified",
+        elapsedMinutes,
+        language: lang,
+        audioFile,
+      });
+
+      if (this.db) {
+        await this.db.collection("bookings").doc(id).update({
+          dialCallStatus: "cancelled_notified",
+          dialCancelledAt: new Date().toISOString(),
+        }).catch(() => {});
+      }
+
+      return callResult;
+    } catch (err) {
+      console.error("[NotificationEngine] notifyDialWorkerBookingCancelled error:", err);
+      return { success: false, error: err.message };
+    }
+  }
 }
 
 module.exports = {
   NotificationEngine,
   NOTIFICATION_TEMPLATES,
 };
+

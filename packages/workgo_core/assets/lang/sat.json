@@ -1690,5 +1690,16 @@
   "smart_demand_insights_title": "स्मार्ट मांग पूर्वानुमान",
   "standby_mobilize_btn": "स्टैंडबाय कारीगरों को सक्रिय करें",
   "welfare_claim_submitted_success": "कल्याण दावा सफलतापूर्वक प्रस्तुत किया गया",
-  "welfare_under_review": "समिति समीक्षाधीन"
+  "welfare_under_review": "समिति समीक्षाधीन",
+  "or_continue_with": "or continue with",
+  "error_karya_member_cannot_access_customer": "This account is registered as a Karya Member. Please use a different account.",
+  "error_customer_cannot_access_karya": "This account is registered as a Customer. Please use a different account.",
+  "karya_member_detected_title": "Karya Member Account",
+  "karya_member_detected_desc": "This account is registered as a WorkGo Karya Member. To book services as a customer, please sign in with a different account.",
+  "customer_account_detected_title": "Customer Account",
+  "customer_account_detected_desc": "This account is registered as a Customer. To offer services as an artisan, please sign in with a different account.",
+  "btn_use_different_account": "Use Different Account",
+  "hero_headline_line1": "ᱟᱞᱮ ᱟᱢ ᱞᱮ ᱡᱚᱲᱟᱣᱮᱫ ᱢᱮᱭᱟ ᱟᱢᱟᱜ",
+  "hero_headline_dream": "ᱠᱩᱠᱢᱩ",
+  "hero_headline_artisan": "ᱠᱟᱹᱨᱤᱜᱚᱞ ᱥᱟᱶ"
 }

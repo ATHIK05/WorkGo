@@ -241,6 +241,15 @@ class Booking {
     return isGenericArtisanName(name) ? null : name;
   }
 
+  static DateTime? _parseDateTime(dynamic val) {
+    if (val == null) return null;
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is String) return DateTime.tryParse(val);
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    return null;
+  }
+
   factory Booking.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     return Booking(
@@ -250,7 +259,7 @@ class Booking {
       organizationId: d["organizationId"] ?? "",
       serviceType: d["serviceType"] ?? "",
       isEmergency: d["isEmergency"] ?? false,
-      scheduledAt: (d["scheduledAt"] as Timestamp?)?.toDate(),
+      scheduledAt: _parseDateTime(d["scheduledAt"]),
       status: BookingStatus.values.firstWhere(
         (s) => s.name == (d["status"] ?? "pending"),
         orElse: () => BookingStatus.pending,
@@ -263,10 +272,10 @@ class Booking {
       amount: (d["amount"] ?? 0.0).toDouble(),
       urgencyBonus: (d["urgencyBonus"] ?? 0.0).toDouble(),
       broadcastRadiusKm: (d["broadcastRadiusKm"] ?? 5.0).toDouble(),
-      broadcastExpiresAt: (d["broadcastExpiresAt"] as Timestamp?)?.toDate(),
-      acceptedAt: (d["acceptedAt"] as Timestamp?)?.toDate(),
+      broadcastExpiresAt: _parseDateTime(d["broadcastExpiresAt"]),
+      acceptedAt: _parseDateTime(d["acceptedAt"]),
       cancellationReason: d["cancellationReason"],
-      cancelledAt: (d["cancelledAt"] as Timestamp?)?.toDate(),
+      cancelledAt: _parseDateTime(d["cancelledAt"]),
       cancelledBy: d["cancelledBy"],
       referredByWorkerId: d["referredByWorkerId"],
       acceptedWorkerName: d["acceptedWorkerName"],
@@ -275,7 +284,7 @@ class Booking {
       workerLatitude: (d["workerLatitude"] as num?)?.toDouble(),
       workerLongitude: (d["workerLongitude"] as num?)?.toDouble(),
       workerHeading: (d["workerHeading"] as num?)?.toDouble(),
-      workerLocationUpdatedAt: (d["workerLocationUpdatedAt"] as Timestamp?)?.toDate(),
+      workerLocationUpdatedAt: _parseDateTime(d["workerLocationUpdatedAt"]),
       customerAddressText: d["customerAddressText"],
       customerLatitude: (d["customerLatitude"] as num?)?.toDouble(),
       customerLongitude: (d["customerLongitude"] as num?)?.toDouble(),
@@ -284,9 +293,9 @@ class Booking {
       customerEmail: d["customerEmail"] ?? d["userEmail"] ?? d["email"],
       workerPhone: d["workerPhone"] ?? d["artisanPhone"] ?? d["phoneForCalling"],
       deletedByCustomer: d["deletedByCustomer"] ?? d["hiddenForCustomer"] ?? false,
-      startedAt: (d["startedAt"] as Timestamp?)?.toDate(),
-      completedAt: (d["completedAt"] as Timestamp?)?.toDate(),
-      proofSubmittedAt: (d["proofSubmittedAt"] as Timestamp?)?.toDate(),
+      startedAt: _parseDateTime(d["startedAt"]),
+      completedAt: _parseDateTime(d["completedAt"]),
+      proofSubmittedAt: _parseDateTime(d["proofSubmittedAt"]),
       proofPhotoBase64: d["proofPhotoBase64"] ?? d["completionPhotoBase64"] ?? d["photoBase64"],
       c2paManifest: d["c2paManifest"] != null ? Map<String, dynamic>.from(d["c2paManifest"] as Map) : null,
       bookingType: d["bookingType"] ?? 'direct',
@@ -303,8 +312,8 @@ class Booking {
       handoffToWorkerId: d["handoffToWorkerId"],
       handoffToWorkerName: d["handoffToWorkerName"],
       handoffReferralDividend: (d["handoffReferralDividend"] as num?)?.toDouble() ?? 0.0,
-      handoffRequestedAt: (d["handoffRequestedAt"] as Timestamp?)?.toDate(),
-      handoffAcceptedAt: (d["handoffAcceptedAt"] as Timestamp?)?.toDate(),
+      handoffRequestedAt: _parseDateTime(d["handoffRequestedAt"]),
+      handoffAcceptedAt: _parseDateTime(d["handoffAcceptedAt"]),
       handoffLogs: (d["handoffLogs"] as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
@@ -313,23 +322,22 @@ class Booking {
       rating: (d["rating"] as num?)?.toDouble(),
       reviewComment: d["reviewComment"] ?? d["comment"],
       reviewTags: List<String>.from(d["reviewTags"] ?? d["tags"] ?? []),
-      ratedAt: (d["ratedAt"] as Timestamp?)?.toDate() ?? (d["reviewedAt"] as Timestamp?)?.toDate(),
+      ratedAt: _parseDateTime(d["ratedAt"]) ?? _parseDateTime(d["reviewedAt"]),
       fareBreakdown: d["fareBreakdown"] != null ? Map<String, dynamic>.from(d["fareBreakdown"] as Map) : null,
       isAssignedToDialWorker: d["isAssignedToDialWorker"] ?? false,
       dialCallStatus: d["dialCallStatus"] ?? 'none',
       dialWorkerPhone: d["dialWorkerPhone"],
       customerPaidAck: d["customerPaidAck"] ?? false,
-      customerPaidAt: (d["customerPaidAt"] as Timestamp?)?.toDate(),
+      customerPaidAt: _parseDateTime(d["customerPaidAt"]),
       customerUpiRef: d["customerUpiRef"] ?? d["paymentReference"],
       workerReceivedAck: d["workerReceivedAck"] ?? false,
-      workerReceivedAt: (d["workerReceivedAt"] as Timestamp?)?.toDate(),
+      workerReceivedAt: _parseDateTime(d["workerReceivedAt"]),
       paymentMethod: d["paymentMethod"] ?? 'UPI',
       hasIncidentReported: d["hasIncidentReported"] ?? false,
       incidentClaimId: d["incidentClaimId"] as String?,
       incidentConfirmedByCustomer: d["incidentConfirmedByCustomer"] as bool?,
       incidentCustomerNotes: d["incidentCustomerNotes"] as String?,
-      incidentConfirmedAt: (d["incidentConfirmedAt"] as Timestamp?)?.toDate() ??
-          (d["incidentConfirmedAt"] is String ? DateTime.tryParse(d["incidentConfirmedAt"]) : null),
+      incidentConfirmedAt: _parseDateTime(d["incidentConfirmedAt"]),
     );
   }
 

@@ -42,6 +42,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
 
   String _sortBy = "nearest"; // "nearest", "rating", "fare_asc", "fare_desc"
   String _statusFilter = "all"; // "all", "checked_in", "checked_out"
+  String _connectivityFilter = "all"; // "all", "dial", "digital"
   bool _dismissedFloatingBanner = false;
   double? _customerLat;
   double? _customerLng;
@@ -52,6 +53,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
       _sortBy != "nearest" ||
       _radiusKm > 0 ||
       _statusFilter != "all" ||
+      _connectivityFilter != "all" ||
       _minPrice > 99.0 ||
       _maxPrice < 2000.0;
 
@@ -442,6 +444,18 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
           ),
           const SizedBox(width: 6),
 
+          // Connectivity Filter Chip
+          if (_connectivityFilter != "all") ...[
+            _buildActiveFilterChip(
+              icon: _connectivityFilter == "dial" ? Icons.phone_in_talk_rounded : Icons.smartphone_rounded,
+              label: _connectivityFilter == "dial"
+                  ? 'dial_karya_badge'.trSafe("Dial Karya")
+                  : 'app_gps_badge'.trSafe("App & GPS"),
+              onRemove: () => setState(() => _connectivityFilter = "all"),
+            ),
+            const SizedBox(width: 6),
+          ],
+
           // Status Filter Chip
           if (_statusFilter != "all") ...[
             _buildActiveFilterChip(
@@ -529,6 +543,101 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             child: const Icon(Icons.close_rounded, size: 13, color: Color(0xFF3B82F6)),
           ),
         ],
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────
+  //  CONNECTIVITY FILTER CARD (USED IN FILTER BOTTOM SHEET)
+  // ──────────────────────────────────────────
+  Widget _buildConnectivityFilterCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required Color activeColor,
+    required Color activeBgColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBgColor : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? activeColor : const Color(0xFFE2E8F0),
+            width: isSelected ? 1.6 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.14),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: isSelected ? activeColor : const Color(0xFFE2E8F0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 13,
+                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 14,
+                    color: activeColor,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? activeColor : const Color(0xFF1E293B),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: isSelected ? activeColor.withValues(alpha: 0.8) : const Color(0xFF94A3B8),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -858,6 +967,13 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
           workers = workers.where((w) => !w.isOnlineOrCheckedIn).toList();
         }
 
+        // 3b. Connectivity Channel Filtering (All, Dial Karya, Digital App)
+        if (_connectivityFilter == "dial") {
+          workers = workers.where((w) => w.isDialWorker).toList();
+        } else if (_connectivityFilter == "digital") {
+          workers = workers.where((w) => !w.isDialWorker).toList();
+        }
+
         // 4. Radius filtering with real geodesic distance
         if (_radiusKm > 0) {
           workers = workers.where((w) => w.distanceKm <= _radiusKm).toList();
@@ -1107,6 +1223,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
     double tempMax = _maxPrice;
     String tempSort = _sortBy;
     String tempStatus = _statusFilter;
+    String tempConnectivity = _connectivityFilter;
     double tempRadius = _radiusKm;
 
     showModalBottomSheet(
@@ -1119,6 +1236,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
             final activeFiltersCount = (tempSort != "nearest" ? 1 : 0) +
                 (tempRadius > 0 ? 1 : 0) +
                 (tempStatus != "all" ? 1 : 0) +
+                (tempConnectivity != "all" ? 1 : 0) +
                 ((tempMin > 99.0 || tempMax < 2000.0) ? 1 : 0);
 
             return Container(
@@ -1239,6 +1357,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                                 tempMax = 2000.0;
                                 tempSort = "nearest";
                                 tempStatus = "all";
+                                tempConnectivity = "all";
                                 tempRadius = -1.0;
                               });
                             },
@@ -1510,6 +1629,80 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
 
                             const SizedBox(height: 18),
 
+                            // ── 3b. CONNECTIVITY & DISPATCH MODE ──
+                            Row(
+                              children: [
+                                const Icon(Icons.hub_outlined, size: 15, color: Color(0xFF2563EB)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'connectivity_mode'.trSafe('Artisan Connectivity & Dispatch'),
+                                    style: const TextStyle(
+                                      color: Color(0xFF1E293B),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'connectivity_mode_sub'.trSafe(
+                                'Filter between smartphone app artisans and voice-call Dial Karya artisans',
+                              ),
+                              style: const TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildConnectivityFilterCard(
+                                    icon: Icons.all_inclusive_rounded,
+                                    title: 'all_modes'.trSafe('All Artisans'),
+                                    subtitle: 'all'.trSafe('Everyone'),
+                                    isSelected: tempConnectivity == "all",
+                                    activeColor: const Color(0xFF1E293B),
+                                    activeBgColor: const Color(0xFFF1F5F9),
+                                    onTap: () => setModalState(() => tempConnectivity = "all"),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildConnectivityFilterCard(
+                                    icon: Icons.smartphone_rounded,
+                                    title: 'filter_app_gps'.trSafe('App & GPS'),
+                                    subtitle: 'Live GPS',
+                                    isSelected: tempConnectivity == "digital",
+                                    activeColor: const Color(0xFF059669),
+                                    activeBgColor: const Color(0xFFECFDF5),
+                                    onTap: () => setModalState(() => tempConnectivity = "digital"),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildConnectivityFilterCard(
+                                    icon: Icons.phone_in_talk_rounded,
+                                    title: 'dial_karya_badge'.trSafe('Dial Karya'),
+                                    subtitle: 'direct_phone_call'.trSafe('Direct Call'),
+                                    isSelected: tempConnectivity == "dial",
+                                    activeColor: const Color(0xFFD97706),
+                                    activeBgColor: const Color(0xFFFFFBEB),
+                                    onTap: () => setModalState(() => tempConnectivity = "dial"),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 18),
+
                             // ── 4. MAXIMUM DISTANCE ──
                             Text(
                               'search_radius'.tr(),
@@ -1575,6 +1768,7 @@ class _WorkerSearchScreenState extends State<WorkerSearchScreen>
                               _maxPrice = tempMax;
                               _sortBy = tempSort;
                               _statusFilter = tempStatus;
+                              _connectivityFilter = tempConnectivity;
                               _radiusKm = tempRadius;
                               _dismissedFloatingBanner = false;
                             });
@@ -2981,6 +3175,35 @@ class _WorkerCardState extends State<_WorkerCard> {
                   ],
                 ),
               ),
+              if (widget.worker.isDialWorker) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFDE68A), width: 1.1),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.phone_in_talk_rounded, color: Color(0xFFD97706), size: 15),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "dial_artisan_reassurance".trSafe(
+                            "Dial Karya Artisan: Connects directly via phone call. No smartphone app needed.",
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFF92400E),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               GestureDetector(
                 onTap: () {
@@ -3003,6 +3226,9 @@ class _WorkerCardState extends State<_WorkerCard> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF141416),
                     borderRadius: BorderRadius.circular(26),
+                    border: widget.worker.isDialWorker
+                        ? Border.all(color: const Color(0xFFF59E0B), width: 1.3)
+                        : null,
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x1F000000),
@@ -3014,11 +3240,19 @@ class _WorkerCardState extends State<_WorkerCard> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      Icon(
+                        widget.worker.isDialWorker ? Icons.phone_forwarded_rounded : Icons.arrow_forward_rounded,
+                        color: widget.worker.isDialWorker ? const Color(0xFFFFDE59) : Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          'book_this_artisan'.tr(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          widget.worker.isDialWorker
+                              ? 'dial_call_book'.trSafe('Call & Book This Artisan')
+                              : 'book_this_artisan'.tr(),
+                          style: TextStyle(
+                            color: widget.worker.isDialWorker ? const Color(0xFFFFDE59) : Colors.white,
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.2,
@@ -3027,8 +3261,6 @@ class _WorkerCardState extends State<_WorkerCard> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
                     ],
                   ),
                 ),
@@ -3101,6 +3333,7 @@ class _WorkerCardState extends State<_WorkerCard> {
         : (selectedCategory != "All" ? selectedCategory : "Plumbing");
 
     final isCheckedIn = worker.isOnlineOrCheckedIn;
+    final isDial = worker.isDialWorker;
 
     // Calculate Dynamic Fare using Cooperative Pricing Engine with REAL-TIME distance
     final realDist = worker.calculateDistanceKm(customerLat, customerLng);
@@ -3132,14 +3365,19 @@ class _WorkerCardState extends State<_WorkerCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
-        boxShadow: const [
+        border: Border.all(
+          color: isDial
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.6)
+              : const Color(0xFFF0EDE6),
+          width: isDial ? 1.5 : 1.2,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
+            color: isDial ? const Color(0x18F59E0B) : const Color(0x0A000000),
             blurRadius: 18,
-            offset: Offset(0, 5),
+            offset: const Offset(0, 5),
           ),
-          BoxShadow(
+          const BoxShadow(
             color: Color(0x05000000),
             blurRadius: 6,
             offset: Offset(0, 2),
@@ -3214,6 +3452,52 @@ class _WorkerCardState extends State<_WorkerCard> {
                       ),
                     ),
 
+                    // Top Left Floating Channel Badge (Distinguishes Dial vs Digital Worker)
+                    Positioned(
+                      top: 10,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDial
+                              ? const Color(0xFFFEF3C7).withValues(alpha: 0.95)
+                              : Colors.white.withValues(alpha: 0.94),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isDial ? const Color(0xFFF59E0B) : const Color(0xFFCBD5E1),
+                            width: isDial ? 1.1 : 0.9,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x18000000),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isDial ? Icons.phone_in_talk_rounded : Icons.smartphone_rounded,
+                              size: 11,
+                              color: isDial ? const Color(0xFFB45309) : const Color(0xFF059669),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isDial ? "DIAL KARYA • DIRECT CALL" : "APP & LIVE GPS",
+                              style: TextStyle(
+                                color: isDial ? const Color(0xFF92400E) : const Color(0xFF065F46),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
                     // Floating Bookmark Button (Top Right)
                     Positioned(
                       top: 10,
@@ -3247,7 +3531,7 @@ class _WorkerCardState extends State<_WorkerCard> {
                       ),
                     ),
 
-                    // Overlapping Avatar with White Halo & Live Status Dot
+                    // Overlapping Avatar with White Halo & Live Status Dot / Dial Phone Badge
                     Positioned(
                       bottom: 0,
                       left: 16,
@@ -3272,34 +3556,63 @@ class _WorkerCardState extends State<_WorkerCard> {
                               avatarBase64: worker.avatarBase64,
                               radius: 26,
                             ),
-                            // Real-time live status indicator dot
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                ),
+                            if (isDial)
+                              Positioned(
+                                bottom: -2,
+                                right: -2,
                                 child: Container(
-                                  width: 9,
-                                  height: 9,
+                                  padding: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
+                                    color: const Color(0xFFD97706),
                                     shape: BoxShape.circle,
-                                    color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
-                                    boxShadow: isCheckedIn
-                                        ? [
-                                            BoxShadow(
-                                              color: const Color(0xFF10B981).withValues(alpha: 0.6),
-                                              blurRadius: 4,
-                                            ),
-                                          ]
-                                        : null,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.8,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x33D97706),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.phone_in_talk_rounded,
+                                    size: 9.5,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            else
+                              // Real-time live status indicator dot
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                  child: Container(
+                                    width: 9,
+                                    height: 9,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isCheckedIn ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                      boxShadow: isCheckedIn
+                                          ? [
+                                              BoxShadow(
+                                                color: const Color(0xFF10B981).withValues(alpha: 0.6),
+                                                blurRadius: 4,
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -3330,6 +3643,33 @@ class _WorkerCardState extends State<_WorkerCard> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (isDial) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFFDE68A), width: 0.8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.phone_in_talk_rounded, size: 9.5, color: Color(0xFF92400E)),
+                                SizedBox(width: 2.5),
+                                Text(
+                                  'DIAL',
+                                  style: TextStyle(
+                                    color: Color(0xFF92400E),
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         if (worker.isApproved || worker.trustSignalCount >= 3) ...[
                           const SizedBox(width: 5),
                           const Icon(
@@ -3418,27 +3758,46 @@ class _WorkerCardState extends State<_WorkerCard> {
                         ),
                         const SizedBox(width: 6),
 
-                        // Checked-in / Checked-out Status Pill
+                        // Status / Dispatch Pill
                         Flexible(
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: isCheckedIn ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                              color: isDial
+                                  ? const Color(0xFFFFFBEB)
+                                  : (isCheckedIn ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9)),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: isCheckedIn ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1),
+                                color: isDial
+                                    ? const Color(0xFFFCD34D)
+                                    : (isCheckedIn ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1)),
                                 width: 0.8,
                               ),
                             ),
-                            child: Text(
-                              isCheckedIn ? 'filter_checked_in'.tr() : 'filter_checked_out'.tr(),
-                              style: TextStyle(
-                                color: isCheckedIn ? const Color(0xFF065F46) : const Color(0xFF475569),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isDial) ...[
+                                  const Icon(Icons.phone_forwarded_rounded, size: 9.5, color: Color(0xFFB45309)),
+                                  const SizedBox(width: 3),
+                                ],
+                                Flexible(
+                                  child: Text(
+                                    isDial
+                                        ? 'direct_phone_call'.trSafe('Direct Call')
+                                        : (isCheckedIn ? 'filter_checked_in'.tr() : 'filter_checked_out'.tr()),
+                                    style: TextStyle(
+                                      color: isDial
+                                          ? const Color(0xFFB45309)
+                                          : (isCheckedIn ? const Color(0xFF065F46) : const Color(0xFF475569)),
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -3626,11 +3985,14 @@ class _WorkerCardState extends State<_WorkerCard> {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isCheckedIn ? const Color(0xFF141416) : const Color(0xFF27272A),
+                            backgroundColor: isDial
+                                ? const Color(0xFF1E293B)
+                                : (isCheckedIn ? const Color(0xFF141416) : const Color(0xFF27272A)),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                             minimumSize: const Size(0, 38),
                             elevation: 0,
+                            side: isDial ? const BorderSide(color: Color(0xFFF59E0B), width: 1.2) : null,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -3638,11 +4000,17 @@ class _WorkerCardState extends State<_WorkerCard> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              if (isDial) ...[
+                                const Icon(Icons.phone_in_talk_rounded, color: Color(0xFFFDE68A), size: 13),
+                                const SizedBox(width: 4),
+                              ],
                               Flexible(
                                 child: Text(
-                                  isCheckedIn ? 'book_live'.tr() : 'book_artisan'.tr(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  isDial
+                                      ? 'call_book_artisan'.trSafe('Call & Book')
+                                      : (isCheckedIn ? 'book_live'.tr() : 'book_artisan'.tr()),
+                                  style: TextStyle(
+                                    color: isDial ? const Color(0xFFFDE68A) : Colors.white,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -3651,7 +4019,11 @@ class _WorkerCardState extends State<_WorkerCard> {
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 13),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: isDial ? const Color(0xFFFDE68A) : Colors.white,
+                                size: 13,
+                              ),
                             ],
                           ),
                         ),

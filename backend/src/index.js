@@ -113,7 +113,11 @@ if (process.env.SELF_PING_URL) {
       const https = require("https");
       const url = new URL(process.env.SELF_PING_URL);
       const client = url.protocol === "https:" ? https : http;
-      client.get(process.env.SELF_PING_URL, () => {});
+      const req = client.get(process.env.SELF_PING_URL, () => {});
+      req.on("error", (err) => {
+        // Suppress unhandled DNS / offline errors on local environments
+        console.warn(`[Self-Ping] Ping failed (harmless in local dev): ${err.message}`);
+      });
     } catch (_) {}
   });
 }

@@ -292,6 +292,8 @@ class _CustomerEditorialWelcomeScreenState
                           ),
                           child: Text(
                             "btn_get_started".tr(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: _buttonTextStyle(context),
                           ),
                         ),
@@ -310,6 +312,8 @@ class _CustomerEditorialWelcomeScreenState
                                 vertical: 4, horizontal: 12),
                             child: Text(
                               "btn_already_have_account".tr(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: _secondaryButtonTextStyle(context),
                             ),
                           ),
