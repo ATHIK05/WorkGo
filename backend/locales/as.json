@@ -1367,7 +1367,7 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "equipment_triage_manager": "সঁজুলি আৰু ট্ৰায়াজ মেনেজাৰ",
   "recently": "শেহতীয়াকৈ",
   "map_layers_title": "মানচিত্ৰ দৃশ্য আৰু স্তৰ",
   "layer_radar_dark": "ৰাডাৰ / ডাৰ্ক",
@@ -1452,5 +1452,13 @@
   "karya_member_detected_desc": "This account is registered as a WorkGo Karya Member. To book services as a customer, please sign in with a different account.",
   "customer_account_detected_title": "Customer Account",
   "customer_account_detected_desc": "This account is registered as a Customer. To offer services as an artisan, please sign in with a different account.",
-  "btn_use_different_account": "Use Different Account"
+  "btn_use_different_account": "Use Different Account",
+  "counts": "গণনা",
+  "active_equipment_title": "সক্ৰিয় সঁজুলি",
+  "match_score": "মিল",
+  "offcanvas_equipment_subtitle": "সঁজুলি আৰু ট্ৰায়াজ মেনেজাৰ",
+  "add_tag_hint": "টেগ যোগ কৰক (যেনে ব'ৰৱেল)",
+  "got_it": "বুজি পালোঁ",
+  "symptom_triage_dispatch_title": "লক্ষণ-ভিত্তিক ট্ৰায়াজ",
+  "symptom_triage_dispatch_desc": "গ্ৰাহকসকলে প্ৰকৃত মেৰামতিৰ সমস্যাৰ বিষয়ে জনায়।\n\nযেতিয়া আপোনাৰ সঁজুলিসমূহ মিল খায়, তেতিয়া কামবোৰ পোনপটীয়াকৈ আপোনাৰ ওচৰলৈকে আহে!"
 }

@@ -1367,7 +1367,7 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "equipment_triage_manager": "उपकरणे आणि ट्रायज व्यवस्थापक",
   "recently": "अलीकडे",
   "map_layers_title": "नकाशा दृश्य आणि स्तर",
   "layer_radar_dark": "रडार / गडद",
@@ -1452,5 +1452,13 @@
   "karya_member_detected_desc": "हे खाते WorkGo कार्य सदस्य म्हणून नोंदणीकृत आहे. ग्राहक म्हणून सेवा बुक करण्यासाठी, कृपया वेगळ्या खात्याने साइन इन करा.",
   "customer_account_detected_title": "ग्राहक खाते",
   "customer_account_detected_desc": "हे खाते ग्राहक म्हणून नोंदणीकृत आहे. कारागीर म्हणून सेवा देण्यासाठी, कृपया वेगळ्या खात्याने साइन इन करा.",
-  "btn_use_different_account": "वेगळे खाते वापरा"
+  "btn_use_different_account": "वेगळे खाते वापरा",
+  "counts": "संख्या",
+  "active_equipment_title": "सक्रिय उपकरणे",
+  "match_score": "मॅच",
+  "offcanvas_equipment_subtitle": "उपकरणे आणि ट्रायज व्यवस्थापक",
+  "add_tag_hint": "टॅग जोडा (उदा. बोअरवेल)",
+  "got_it": "समजले",
+  "symptom_triage_dispatch_title": "लक्षण-आधारित ट्रायज",
+  "symptom_triage_dispatch_desc": "ग्राहक प्रत्यक्ष दुरुस्तीच्या समस्या नोंदवतात.\n\nजेव्हा तुमची उपकरणे ग्राहकांच्या समस्येशी जुळतात, तेव्हा कामे थेट तुमच्याकडे पाठवली जातात!"
 }

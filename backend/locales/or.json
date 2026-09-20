@@ -1367,7 +1367,7 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "equipment_triage_manager": "ଉପକରଣ ଏବଂ ଟ୍ରାଇଜ୍ ମ୍ୟାନେଜର",
   "recently": "ନିକଟରେ",
   "map_layers_title": "ମାନଚିତ୍ର ଦୃଶ୍ୟ ଏବଂ ସ୍ତର",
   "layer_radar_dark": "ରାଡାର / ଡାର୍କ",
@@ -1452,5 +1452,13 @@
   "karya_member_detected_desc": "This account is registered as a WorkGo Karya Member. To book services as a customer, please sign in with a different account.",
   "customer_account_detected_title": "Customer Account",
   "customer_account_detected_desc": "This account is registered as a Customer. To offer services as an artisan, please sign in with a different account.",
-  "btn_use_different_account": "Use Different Account"
+  "btn_use_different_account": "Use Different Account",
+  "counts": "ଗଣନା",
+  "active_equipment_title": "ସକ୍ରିୟ ଉପକରଣ",
+  "match_score": "ମେଳ",
+  "offcanvas_equipment_subtitle": "ଉପକରଣ ଏବଂ ଟ୍ରାଇଜ୍ ମ୍ୟାନେଜର",
+  "add_tag_hint": "ଟ୍ୟାଗ୍ ଯୋଡନ୍ତୁ (ଯଥା ବୋରୱେଲ)",
+  "got_it": "ବୁଝିଗଲି",
+  "symptom_triage_dispatch_title": "ଲକ୍ଷଣ-ଆଧାରିତ ଟ୍ରାଇଜ୍",
+  "symptom_triage_dispatch_desc": "ଗ୍ରାହକମାନେ ପ୍ରକୃତ ମରାମତି ସମସ୍ୟା ରିପୋର୍ଟ କରନ୍ତି।\n\nଯେତେବେଳେ ଆପଣଙ୍କର ଉପକରଣ ମେଳ ଖାଏ, ସେତେବେଳେ କାର୍ଯ୍ୟ ସିଧାସଳଖ ଆପଣଙ୍କ ନିକଟକୁ ଆସେ!"
 }

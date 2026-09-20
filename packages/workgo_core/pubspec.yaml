@@ -63,6 +63,7 @@ flutter:
     - assets/lang/ta.json
     - assets/images/crafts/
     - assets/images/workgo_logo.png
+    - assets/images/dial_karya_voice_avatar.png
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoSansDevanagari-Regular.ttf
     - assets/fonts/NotoSansTamil-Regular.ttf

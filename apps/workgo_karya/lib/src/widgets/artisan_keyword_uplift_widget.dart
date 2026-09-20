@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -51,10 +52,12 @@ class ArtisanKeywordUpliftWidget extends StatefulWidget {
   }
 
   @override
-  State<ArtisanKeywordUpliftWidget> createState() => _ArtisanKeywordUpliftWidgetState();
+  State<ArtisanKeywordUpliftWidget> createState() =>
+      _ArtisanKeywordUpliftWidgetState();
 }
 
-class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget> {
+class _ArtisanKeywordUpliftWidgetState
+    extends State<ArtisanKeywordUpliftWidget> {
   final BookingService _bookingService = BookingService();
   final TextEditingController _customKeywordCtrl = TextEditingController();
 
@@ -174,7 +177,9 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
     }
     // Exclude already added tags
     return suggestions
-        .where((s) => !_equipmentTags.contains(s) && !_serviceKeywords.contains(s))
+        .where(
+          (s) => !_equipmentTags.contains(s) && !_serviceKeywords.contains(s),
+        )
         .toList();
   }
 
@@ -247,7 +252,9 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
         widget.onKeywordsUpdated?.call();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Profile keywords updated! AI dispatch match strength increased.'),
+            content: Text(
+              'Profile keywords updated! AI dispatch match strength increased.',
+            ),
             backgroundColor: KX.emerald,
           ),
         );
@@ -265,14 +272,353 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final strength = _profileStrengthScore;
-    final percent = (strength * 100).round();
-    final suggestions = _availableSuggestions;
+  void _showTriageInfo(BuildContext context) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F4F1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.psychology_rounded,
+                    color: Color(0xFF2A9D8F),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    'symptom_triage_dispatch_title'.trSafe(
+                      'Symptom-First Triage',
+                    ),
+                    style: WorkGoFonts.heading(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: KX.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'symptom_triage_dispatch_desc'.trSafe(
+                'When customers report specific emergencies (such as Borewell pump failure, MCB tripping, or AC gas leak), our AI matches them with artisans carrying verified equipment.\n\nEquipping your verified tools increases your priority dispatch score so you receive top-tier job callouts.',
+              ),
+              style: WorkGoFonts.body(
+                fontSize: 13,
+                height: 1.5,
+                color: KX.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF141416),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'got_it'.trSafe('Got it'),
+                  style: WorkGoFonts.heading(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOffcanvasHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left: Title and Subtitle exactly matching mockup
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'specializations_and_tools'.trSafe(
+                      'Specializations\n& Tools',
+                    ),
+                    style: WorkGoFonts.heading(
+                      color: const Color(0xFF1E293B),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'equipment_triage_manager'.trSafe(
+                      'Offcanvas Equipment &\nTriage Manager',
+                    ),
+                    style: WorkGoFonts.body(
+                      color: const Color(0xFF64748B),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Right: Space reserved for the 3D overhanging avatar
+          const SizedBox(width: 140, height: 110),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolboxBentoCard(BuildContext context) {
+    final totalCount = _equipmentTags.length + _serviceKeywords.length;
+    final progress = (totalCount / 20.0).clamp(0.05, 1.0);
 
     return Container(
-      padding: widget.isOffcanvasMode ? EdgeInsets.zero : const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: const Color(0xFFFDE68A).withValues(alpha: 0.7),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 20,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Top right Info button with circle border
+          Positioned(
+            top: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: () => _showTriageInfo(context),
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFFDE68A),
+                    width: 1.2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.info_outline_rounded,
+                  size: 15,
+                  color: Color(0xFFD97706),
+                ),
+              ),
+            ),
+          ),
+          // Content Row: Left Open Toolbox Artwork, Right Horseshoe Arc Counter
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Left: Open Isometric Toolbox Artwork
+              Expanded(
+                flex: 12,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Image.asset(
+                    'assets/images/toolbox_open_isometric.png',
+                    height: 118,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.home_repair_service_rounded,
+                      size: 80,
+                      color: Color(0xFFF59E0B),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Right: Horseshoe Radial Gauge with warm amber/gold and cream track
+              Expanded(
+                flex: 9,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: 88,
+                      height: 88,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Horseshoe Arc Gauge Custom Painted in Warm Amber/Gold
+                          CustomPaint(
+                            size: const Size(88, 88),
+                            painter: _HorseshoeGaugePainter(
+                              progress: progress,
+                              trackColor: const Color(0xFFFEF3C7),
+                              progressColor: const Color(0xFFF59E0B),
+                              strokeWidth: 9.0,
+                            ),
+                          ),
+                          // Inner Number & counts label
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$totalCount',
+                                style: WorkGoFonts.heading(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF1E293B),
+                                  height: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'counts'.trSafe('counts'),
+                                style: WorkGoFonts.body(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF92400E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'active_equipment_title'.trSafe('Active equipment'),
+                      style: WorkGoFonts.heading(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1E293B),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchInputPill() {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFDF5),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _customKeywordCtrl,
+              style: WorkGoFonts.body(color: KX.textPrimary, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'add_custom_tag_hint_short'.trSafe(
+                  'Add tag (e.g. Borewell)',
+                ),
+                hintStyle: WorkGoFonts.body(
+                  color: const Color(0xFF94A3B8),
+                  fontSize: 13,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+              onSubmitted: (_) => _addCustomKeyword(),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: _addCustomKeyword,
+            child: const Icon(
+              Icons.search_rounded,
+              color: Color(0xFFD97706),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: _addCustomKeyword,
+            child: Image.asset(
+              'assets/images/toolbox_mini_closed.png',
+              height: 32,
+              width: 38,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.work_rounded,
+                size: 22,
+                color: Color(0xFFF59E0B),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suggestions = _availableSuggestions;
+    final totalCount = _equipmentTags.length + _serviceKeywords.length;
+
+    return Container(
+      padding: widget.isOffcanvasMode
+          ? EdgeInsets.zero
+          : const EdgeInsets.all(18),
       decoration: widget.isOffcanvasMode
           ? null
           : BoxDecoration(
@@ -290,118 +636,60 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!widget.isOffcanvasMode) ...[
-            // Header with AI icon
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: KX.violet.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.psychology_rounded,
-                    color: KX.amber,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ai_match_strength_title'.tr(),
-                        style: WorkGoFonts.heading(
-                          color: KX.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'ai_match_strength_subtitle'.tr(),
-                        style: WorkGoFonts.body(
-                          color: KX.textSecondary,
-                          fontSize: 11.5,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
+          // 1. Offcanvas Header with Mascot & Typography (Mockup exact)
+          if (widget.isOffcanvasMode) ...[
+            _buildOffcanvasHeader(context),
+            const SizedBox(height: 6),
           ],
 
-          // Strength Bar & Percentage
+          // 2. Bento Card with Open Toolbox & Horseshoe Radial Gauge
+          _buildToolboxBentoCard(context),
+          const SizedBox(height: 14),
+
+          // 3. Tactile Search / Add Input Pill with Mini Toolbox
+          _buildSearchInputPill(),
+          const SizedBox(height: 18),
+
+          // 4. Active Equipment Section
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  'ai_triage_match_score'.tr(),
-                  style: WorkGoFonts.body(
-                    color: KX.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
               Text(
-                'percent_strength'.tr(args: ['$percent']),
+                'active_equipment_count'.trSafe(
+                  'Active Equipment & Specializations ($totalCount)',
+                  ['$totalCount'],
+                ),
                 style: WorkGoFonts.heading(
-                  color: percent >= 80 ? KX.emerald : KX.amber,
-                  fontSize: 13,
+                  color: const Color(0xFF1E293B),
+                  fontSize: 13.5,
                   fontWeight: FontWeight.w800,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              if (totalCount > 0)
+                Text(
+                  '${(_profileStrengthScore * 100).round()}% ${'match_score'.trSafe('Match')}',
+                  style: WorkGoFonts.body(
+                    color: const Color(0xFFD97706),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: strength,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                percent >= 80 ? KX.emerald : KX.amber,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Active Tags & Keywords
-          Text(
-            'active_equipment_count'.tr(args: ['${_equipmentTags.length + _serviceKeywords.length}']),
-            style: WorkGoFonts.heading(
-              color: KX.textPrimary,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
           if (_equipmentTags.isEmpty && _serviceKeywords.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                'no_equipment_tags_hint'.tr(),
+                'no_equipment_tags_hint'.trSafe(
+                  'No equipment tags added yet. Select recommended tools below or add your custom kit.',
+                ),
                 style: WorkGoFonts.body(
                   color: KX.textSecondary,
-                  fontSize: 11.5,
+                  fontSize: 12,
                 ).copyWith(fontStyle: FontStyle.italic),
               ),
             )
@@ -411,141 +699,178 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
               runSpacing: 8,
               children: [
                 ..._equipmentTags.map(
-                  (tag) => Chip(
-                    backgroundColor: KX.violet.withValues(alpha: 0.12),
-                    side: BorderSide(color: KX.violet.withValues(alpha: 0.3)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    label: Text(
-                      _getLocalizedTag(tag),
-                      style: WorkGoFonts.body(
-                        color: KX.textPrimary,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
+                  (tag) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: const Color(0xFFFDE68A),
+                        width: 1.2,
                       ),
                     ),
-                    deleteIcon: const Icon(Icons.close_rounded, size: 14, color: KX.textSecondary),
-                    onDeleted: () => _removeTag(tag),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _getLocalizedTag(tag),
+                          style: WorkGoFonts.body(
+                            color: const Color(0xFF141416),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _removeTag(tag),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 14,
+                            color: Color(0xFF78350F),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 ..._serviceKeywords.map(
-                  (kw) => Chip(
-                    backgroundColor: const Color(0xFFEFF6FF),
-                    side: const BorderSide(color: Color(0xFFBFDBFE)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    label: Text(
-                      _getLocalizedTag(kw),
-                      style: WorkGoFonts.body(
-                        color: const Color(0xFF1E40AF),
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
+                  (kw) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEFCE8),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: const Color(0xFFFEF08A),
+                        width: 1.2,
                       ),
                     ),
-                    deleteIcon: const Icon(Icons.close_rounded, size: 14, color: Color(0xFF1E40AF)),
-                    onDeleted: () => _removeTag(kw),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _getLocalizedTag(kw),
+                          style: WorkGoFonts.body(
+                            color: const Color(0xFF141416),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _removeTag(kw),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 14,
+                            color: Color(0xFF854D0E),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
 
-          // Quick Suggested Tags
+          // 5. Quick Suggested Tags by Craft
           if (suggestions.isNotEmpty) ...[
             Text(
-              'recommended_for_craft'.tr(),
+              'recommended_for_craft'.trSafe('Recommended for your Craft'),
               style: WorkGoFonts.body(
-                color: KX.textSecondary,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
+                color: const Color(0xFF64748B),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: suggestions.take(6).map((s) {
-                return ActionChip(
-                  backgroundColor: const Color(0xFFF8FAFC),
-                  side: const BorderSide(color: KX.dividerLight),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  avatar: const Icon(Icons.add_rounded, size: 14, color: KX.amber),
-                  label: Text(
-                    _getLocalizedTag(s),
-                    style: WorkGoFonts.body(
-                      color: KX.textPrimary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+              children: suggestions.take(8).map((s) {
+                return GestureDetector(
+                  onTap: () => _addSuggestion(s),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFDE68A),
+                        width: 1.1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.add_rounded,
+                          size: 14,
+                          color: Color(0xFFD97706),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getLocalizedTag(s),
+                          style: WorkGoFonts.body(
+                            color: const Color(0xFF1E293B),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  onPressed: () => _addSuggestion(s),
                 );
               }).toList(),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 20),
           ],
 
-          // Custom Keyword Input Row
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: KX.dividerLight),
-                  ),
-                  child: TextField(
-                    controller: _customKeywordCtrl,
-                    style: WorkGoFonts.body(color: KX.textPrimary, fontSize: 12),
-                    decoration: InputDecoration(
-                      hintText: 'add_custom_tag_hint_short'.tr(),
-                      hintStyle: WorkGoFonts.body(color: const Color(0xFF94A3B8), fontSize: 11.5),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    onSubmitted: (_) => _addCustomKeyword(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton.filled(
-                onPressed: _addCustomKeyword,
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF141416),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Save Button
+          // 6. Save Button (Sync to Firestore)
           SizedBox(
             width: double.infinity,
+            height: 50,
             child: ElevatedButton.icon(
               onPressed: _isSaving ? null : _saveKeywords,
               style: ElevatedButton.styleFrom(
-                backgroundColor: KX.violet,
-                foregroundColor: const Color(0xFF141416),
+                backgroundColor: const Color(0xFF141416),
+                foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               icon: _isSaving
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF141416)),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
-                  : const Icon(Icons.check_circle_outline_rounded, size: 18),
+                  : const Icon(
+                      Icons.check_circle_outline_rounded,
+                      size: 18,
+                      color: Color(0xFFF59E0B),
+                    ),
               label: Text(
-                _isSaving ? 'saving_btn'.tr() : 'save_specializations_btn'.tr(),
+                _isSaving
+                    ? 'saving_btn'.trSafe('Saving...')
+                    : 'Save Profile Specializations',
                 style: WorkGoFonts.body(
-                  color: const Color(0xFF141416),
-                  fontSize: 13,
+                  color: Colors.white,
+                  fontSize: 13.5,
                   fontWeight: FontWeight.w800,
                 ),
                 maxLines: 1,
@@ -557,6 +882,68 @@ class _ArtisanKeywordUpliftWidgetState extends State<ArtisanKeywordUpliftWidget>
       ),
     );
   }
+}
+
+/// Custom Horseshoe Radial Gauge Painter matching the target mockup
+class _HorseshoeGaugePainter extends CustomPainter {
+  final double progress; // 0.0 to 1.0
+  final Color trackColor;
+  final Color progressColor;
+  final double strokeWidth;
+
+  _HorseshoeGaugePainter({
+    required this.progress,
+    required this.trackColor,
+    required this.progressColor,
+    this.strokeWidth = 9.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+
+    const startAngle = 0.75 * math.pi; // 135 degrees (bottom-left)
+    const sweepTotal = 1.5 * math.pi; // 270 degrees sweep clockwise
+
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // Background track arc
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepTotal,
+      false,
+      trackPaint,
+    );
+
+    // Active progress arc
+    if (progress > 0) {
+      final progressPaint = Paint()
+        ..color = progressColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepTotal * progress.clamp(0.01, 1.0),
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HorseshoeGaugePainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.progressColor != progressColor ||
+      oldDelegate.trackColor != trackColor;
 }
 
 /// Offcanvas Bottom Sheet for managing Artisan Equipment Tags & Service Keywords
@@ -572,114 +959,112 @@ class _ArtisanKeywordOffcanvasSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.85,
+      initialChildSize: 0.88,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (ctx, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFFFAF9F6),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x33000000),
-                blurRadius: 24,
-                offset: Offset(0, -6),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Subtle Drag Handle
-              const SizedBox(height: 12),
-              Container(
-                width: 44,
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Offcanvas Top Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF141416),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.psychology_rounded,
-                        color: KX.gold,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "specializations_and_tools".tr(),
-                            style: WorkGoFonts.heading(
-                              color: KX.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            "equipment_triage_manager".tr(),
-                            style: WorkGoFonts.body(
-                              color: KX.textSecondary,
-                              fontSize: 11.5,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: KX.textSecondary, size: 20),
-                      onPressed: () => Navigator.of(ctx).pop(),
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 1. The Bottom Sheet Canvas (padded from top by 50dp so avatar's head overhangs)
+            Padding(
+              padding: const EdgeInsets.only(top: 50),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAF9F6),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 24,
+                      offset: Offset(0, -6),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 10),
-              const Divider(height: 1, color: Color(0xFFE2E8F0)),
-
-              // Scrollable Uplift Widget with keyboard safe padding
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: EdgeInsets.fromLTRB(
-                    18,
-                    16,
-                    18,
-                    MediaQuery.of(ctx).viewInsets.bottom + 28,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(32),
                   ),
-                  child: ArtisanKeywordUpliftWidget(
-                    worker: worker,
-                    isOffcanvasMode: true,
-                    onKeywordsUpdated: () {
-                      onKeywordsUpdated?.call();
-                    },
+                  child: Stack(
+                    children: [
+                      // Top warm sunlight / cream gradient wash
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 200,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0xFFFEF3C7), Color(0xFFFAF9F6)],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Main Content Column
+                      Column(
+                        children: [
+                          // Pinned subtle Drag Handle
+                          const SizedBox(height: 12),
+                          Center(
+                            child: Container(
+                              width: 44,
+                              height: 4.5,
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF94A3B8,
+                                ).withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+
+                          // Scrollable Uplift Widget with keyboard safe padding
+                          Expanded(
+                            child: SingleChildScrollView(
+                              controller: scrollController,
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                2,
+                                16,
+                                MediaQuery.of(ctx).viewInsets.bottom + 32,
+                              ),
+                              child: ArtisanKeywordUpliftWidget(
+                                worker: worker,
+                                isOffcanvasMode: true,
+                                onKeywordsUpdated: () {
+                                  onKeywordsUpdated?.call();
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // 2. The 3D Pop-Out Hero Avatar Overhanging the Sheet Top
+            Positioned(
+              top: 0,
+              right: 6,
+              child: IgnorePointer(
+                child: Image.asset(
+                  'assets/images/specialization_worker_header.png',
+                  height: 175,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 }
-

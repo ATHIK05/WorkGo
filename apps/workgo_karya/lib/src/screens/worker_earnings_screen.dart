@@ -139,6 +139,9 @@ class SculptedCard extends StatelessWidget {
     super.key,
     required this.backgroundColor,
     required this.child,
+    this.backgroundImage,
+    this.overlayGradient,
+    this.overlayColor,
     this.dip = 13.0,
     this.radius = 34.0,
     this.padding = const EdgeInsets.fromLTRB(24, 26, 24, 22),
@@ -148,6 +151,9 @@ class SculptedCard extends StatelessWidget {
 
   final Color backgroundColor;
   final Widget child;
+  final String? backgroundImage;
+  final Gradient? overlayGradient;
+  final Color? overlayColor;
   final double dip;
   final double radius;
   final EdgeInsetsGeometry padding;
@@ -166,7 +172,30 @@ class SculptedCard extends StatelessWidget {
       ),
       child: ClipPath(
         clipper: SculptedCardClipper(dip: dip, radius: radius),
-        child: Padding(padding: padding, child: child),
+        child: Stack(
+          children: [
+            if (backgroundImage != null)
+              Positioned.fill(
+                child: Image.asset(
+                  backgroundImage!,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            if (overlayColor != null)
+              Positioned.fill(
+                child: ColoredBox(color: overlayColor!),
+              ),
+            if (overlayGradient != null)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(gradient: overlayGradient!),
+                ),
+              ),
+            Padding(padding: padding, child: child),
+          ],
+        ),
       ),
     );
   }
@@ -292,7 +321,7 @@ class _WorkerEarningsScreenState extends State<WorkerEarningsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "earnings_title".trSafe("Earnings"),
+              "earnings_screen_title".trSafe("Earnings"),
               style: GoogleFonts.urbanist(
                 color: KX.textPrimary,
                 fontSize: 20,
@@ -1070,9 +1099,22 @@ class _WhiteNetPayoutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Pure White card on warm canvas with subtle warm border & soft ambient shadow
+    // Pure White card with Hero Artisan illustration, dimmed white overlay for crisp text visibility & warm borders
     return SculptedCard(
       backgroundColor: Colors.white,
+      backgroundImage: 'assets/images/earnings_net_payout_card.jpg',
+      overlayGradient: const LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        stops: [0.0, 0.44, 0.70, 0.90, 1.0],
+        colors: [
+          Color(0xF9FFFFFF), // 98% dimmed pure white behind typography
+          Color(0xEEFFFFFF), // 93% dimmed white over numbers & labels
+          Color(0x99FFFFFF), // 60% smooth transition scrim
+          Color(0x22FFFFFF), // 13% soft falloff
+          Color(0x00FFFFFF), // 0% completely clear over the artisan character
+        ],
+      ),
       borderColor: const Color(0xFFEDE8DE),
       shadowColor: const Color(0x12000000),
       child: Column(
@@ -1083,18 +1125,21 @@ class _WhiteNetPayoutCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  "personal_net_payout".trSafe("Personal Net Payout"),
-                  style: GoogleFonts.urbanist(
-                    color: const Color(0xFF141416),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    height: 1.15,
-                    letterSpacing: -0.3,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Text(
+                    "personal_net_payout".trSafe("Personal Net Payout"),
+                    style: GoogleFonts.urbanist(
+                      color: const Color(0xFF141416),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      height: 1.15,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               // Circular Accent Button in Theme Yellow
               GestureDetector(
                 onTap: () {
@@ -1128,7 +1173,7 @@ class _WhiteNetPayoutCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Label: "Settlement Target" (Uppercase subtle muted text)
+          // Label: "Settlement Target"
           Text(
             "settlement_target_label".trSafe("Settlement Target"),
             style: GoogleFonts.urbanist(
@@ -1140,7 +1185,7 @@ class _WhiteNetPayoutCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
 
-          // Massive Currency Counter: ₹1,450 /net
+          // Currency Counter & Gross Badge on Left
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -1150,7 +1195,7 @@ class _WhiteNetPayoutCard extends StatelessWidget {
                 style: GoogleFonts.urbanist(
                   color: const Color(0xFF141416),
                   fontSize: 34,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.8,
                 ),
               ),
@@ -1163,13 +1208,20 @@ class _WhiteNetPayoutCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const Spacer(),
-              Text(
-                "Gross: ₹${gross.toStringAsFixed(0)}",
-                style: GoogleFonts.urbanist(
-                  color: const Color(0xFF9CA3AF),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141416).withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  "Gross: ₹${gross.toStringAsFixed(0)}",
+                  style: GoogleFonts.urbanist(
+                    color: const Color(0xFF6B7280),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -1179,7 +1231,7 @@ class _WhiteNetPayoutCard extends StatelessWidget {
           // Bottom Interactive Row: Pill Slider Button + Circular Action Button
           Row(
             children: [
-              Expanded(
+              Flexible(
                 child: GestureDetector(
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -1187,18 +1239,27 @@ class _WhiteNetPayoutCard extends StatelessWidget {
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
+                      horizontal: 8,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
+                      color: Colors.white.withValues(alpha: 0.95),
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x0C000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 34,
-                          height: 34,
+                          width: 32,
+                          height: 32,
                           decoration: const BoxDecoration(
                             color: Color(0xFF141416),
                             shape: BoxShape.circle,
@@ -1207,18 +1268,18 @@ class _WhiteNetPayoutCard extends StatelessWidget {
                             child: Icon(
                               Icons.check_rounded,
                               color: Colors.white,
-                              size: 18,
+                              size: 17,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
+                        const SizedBox(width: 8),
+                        Flexible(
                           child: Text(
                             "${'instant_upi_settlement_pill'.trSafe('Instant UPI 18:00 Settlement')} >>>",
                             style: GoogleFonts.urbanist(
                               color: const Color(0xFF1F2937),
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1229,7 +1290,7 @@ class _WhiteNetPayoutCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               // Circular Receipt / Detail Action Button
               GestureDetector(
                 onTap: () {
@@ -1237,22 +1298,31 @@ class _WhiteNetPayoutCard extends StatelessWidget {
                   onTapReceipt();
                 },
                 child: Container(
-                  width: 46,
-                  height: 46,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
+                    color: Colors.white.withValues(alpha: 0.95),
                     shape: BoxShape.circle,
                     border: Border.all(color: const Color(0xFFE5E7EB)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0C000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: const Center(
                     child: Icon(
                       Icons.receipt_long_rounded,
                       color: Color(0xFF141416),
-                      size: 21,
+                      size: 20,
                     ),
                   ),
                 ),
               ),
+              // Reserved clearance on the right
+              const SizedBox(width: 24),
             ],
           ),
         ],
@@ -1282,9 +1352,22 @@ class _YellowWelfareReserveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Vibrant Theme Yellow background with crisp pure white circular accent
+    // Vibrant Theme Yellow background with Hero Artisan illustration, goldish overlay for text visibility & crisp pure white circular accent
     return SculptedCard(
       backgroundColor: const Color(0xFFFFDE59), // Theme Vibrant Yellow
+      backgroundImage: 'assets/images/earnings_welfare_reserve_card.png',
+      overlayGradient: const LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        stops: [0.0, 0.44, 0.70, 0.90, 1.0],
+        colors: [
+          Color(0xF9FFDE59), // 98% rich gold behind typography
+          Color(0xEEFFDE59), // 93% gold over numbers & labels
+          Color(0x99FFDE59), // 60% smooth transition scrim
+          Color(0x22FFDE59), // 13% soft falloff
+          Color(0x00FFDE59), // 0% completely clear over the artisan & toolbox
+        ],
+      ),
       borderColor: const Color(0xFFE5C84C),
       shadowColor: const Color(0x18B45309),
       child: Column(
@@ -1295,18 +1378,21 @@ class _YellowWelfareReserveCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  "coop_welfare_reserve".trSafe("Co-op Welfare Reserve"),
-                  style: GoogleFonts.urbanist(
-                    color: const Color(0xFF141416),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    height: 1.15,
-                    letterSpacing: -0.3,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Text(
+                    "coop_welfare_reserve".trSafe("Co-op Welfare Reserve"),
+                    style: GoogleFonts.urbanist(
+                      color: const Color(0xFF141416),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      height: 1.15,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               // Circular Accent Button in Pure White
               GestureDetector(
                 onTap: () {
@@ -1340,7 +1426,7 @@ class _YellowWelfareReserveCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Label: "Cooperative Safety Net (2%)"
+          // Label: "Cooperative Safety Net"
           Text(
             "coop_safety_net_label".trSafe("Cooperative Safety Net"),
             style: GoogleFonts.urbanist(
@@ -1352,7 +1438,7 @@ class _YellowWelfareReserveCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
 
-          // Massive Currency Counter: ₹290 /reserve
+          // Currency Counter & 2% Pool Badge on Left
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -1362,7 +1448,7 @@ class _YellowWelfareReserveCard extends StatelessWidget {
                 style: GoogleFonts.urbanist(
                   color: const Color(0xFF141416),
                   fontSize: 34,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -0.8,
                 ),
               ),
@@ -1375,23 +1461,30 @@ class _YellowWelfareReserveCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const Spacer(),
-              Text(
-                "2% Co-op Pool",
-                style: GoogleFonts.urbanist(
-                  color: const Color(0xFF475569),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  "2% Co-op Pool",
+                  style: GoogleFonts.urbanist(
+                    color: const Color(0xFF1E293B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 18),
 
-          // Bottom Interactive Row: Pure White Pill Button + Circular Action Button
+          // Bottom Interactive Row: Pure White Pill Button + Circular Shield Action Button
           Row(
             children: [
-              Expanded(
+              Flexible(
                 child: GestureDetector(
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -1399,7 +1492,7 @@ class _YellowWelfareReserveCard extends StatelessWidget {
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
+                      horizontal: 8,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
@@ -1407,17 +1500,18 @@ class _YellowWelfareReserveCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0x0C000000),
-                          blurRadius: 6,
+                          color: Color(0x10000000),
+                          blurRadius: 8,
                           offset: Offset(0, 2),
                         ),
                       ],
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 34,
-                          height: 34,
+                          width: 32,
+                          height: 32,
                           decoration: const BoxDecoration(
                             color: Color(0xFF141416),
                             shape: BoxShape.circle,
@@ -1426,18 +1520,18 @@ class _YellowWelfareReserveCard extends StatelessWidget {
                             child: Icon(
                               Icons.health_and_safety_rounded,
                               color: Colors.white,
-                              size: 18,
+                              size: 17,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
+                        const SizedBox(width: 8),
+                        Flexible(
                           child: Text(
                             "${'view_medical_cover_pill'.trSafe('View Medical & Tool Cover')} >>>",
                             style: GoogleFonts.urbanist(
-                              color: const Color(0xFF141416),
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1F2937),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1448,23 +1542,23 @@ class _YellowWelfareReserveCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              // Circular Info / Shield Button
+              const SizedBox(width: 8),
+              // Circular Shield Info Action Button
               GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
                   onTapInfo();
                 },
                 child: Container(
-                  width: 46,
-                  height: 46,
+                  width: 44,
+                  height: 44,
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0x0C000000),
-                        blurRadius: 6,
+                        color: Color(0x10000000),
+                        blurRadius: 8,
                         offset: Offset(0, 2),
                       ),
                     ],
@@ -1473,11 +1567,13 @@ class _YellowWelfareReserveCard extends StatelessWidget {
                     child: Icon(
                       Icons.shield_outlined,
                       color: Color(0xFF141416),
-                      size: 21,
+                      size: 20,
                     ),
                   ),
                 ),
               ),
+              // Reserved clearance on the right
+              const SizedBox(width: 24),
             ],
           ),
         ],

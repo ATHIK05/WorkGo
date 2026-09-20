@@ -1367,7 +1367,7 @@
   "saving_btn": "ಉಳಿಸಲಾಗುತ್ತಿದೆ...",
   "save_specializations_btn": "ಪ್ರೊಫೈಲ್ ಪರಿಣತಿಗಳನ್ನು ಉಳಿಸಿ",
   "specializations_and_tools": "ಪರಿಣತಿಗಳು ಮತ್ತು ಪರಿಕರಗಳು",
-  "equipment_triage_manager": "ಉಪಕರಣಗಳು ಮತ್ತು ಟ್ರಯಾಜ್ ಮ್ಯಾನೇಜರ್",
+  "equipment_triage_manager": "ಉಪಕರಣಗಳು & ಟ್ರಯಾಜ್ ಮ್ಯಾನೇಜರ್",
   "recently": "ಇತ್ತೀಚೆಗೆ",
   "map_layers_title": "ನಕ್ಷೆ ನೋಟ ಮತ್ತು ಲೇಯರ್‌ಗಳು",
   "layer_radar_dark": "ರಾಡಾರ್ / ಡಾರ್ಕ್",
@@ -1452,5 +1452,13 @@
   "karya_member_detected_desc": "ಈ ಖಾತೆಯು WorkGo ಕಾರ್ಯ ಸದಸ್ಯರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ಗ್ರಾಹಕರಾಗಿ ಸೇವೆಗಳನ್ನು ಕಾಯ್ದಿರಿಸಲು, ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
   "customer_account_detected_title": "ಗ್ರಾಹಕ ಖಾತೆ",
   "customer_account_detected_desc": "ಈ ಖಾತೆಯು ಗ್ರಾಹಕರಾಗಿ ನೋಂದಾಯಿಸಲ್ಪಟ್ಟಿದೆ. ಕುಶಲಕರ್ಮಿಯಾಗಿ ಸೇವೆಗಳನ್ನು ನೀಡಲು, ದಯವಿಟ್ಟು ಬೇರೆ ಖಾತೆಯೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.",
-  "btn_use_different_account": "ಬೇರೆ ಖಾತೆಯನ್ನು ಬಳಸಿ"
+  "btn_use_different_account": "ಬೇರೆ ಖಾತೆಯನ್ನು ಬಳಸಿ",
+  "counts": "ಎಣಿಕೆ",
+  "active_equipment_title": "ಸಕ್ರಿಯ ಉಪಕರಣಗಳು",
+  "match_score": "ಹೊಂದಾಣಿಕೆ",
+  "offcanvas_equipment_subtitle": "ಉಪಕರಣಗಳು & ಟ್ರಯಾಜ್ ಮ್ಯಾನೇಜರ್",
+  "add_tag_hint": "ಟ್ಯಾಗ್ ಸೇರಿಸಿ (ಉದಾ. ಬೋರ್‌ವೆಲ್)",
+  "got_it": "ಅರ್ಥವಾಯಿತು",
+  "symptom_triage_dispatch_title": "ರೋಗಲಕ್ಷಣ-ಆಧಾರಿತ ಟ್ರಯಾಜ್",
+  "symptom_triage_dispatch_desc": "ಗ್ರಾಹಕರು ನೈಜ ದುರಸ್ತಿ ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡುತ್ತಾರೆ.\n\nನಿಮ್ಮ ಸಲಕರಣೆಗಳು ಗ್ರಾಹಕರ ಅಗತ್ಯಗಳಿಗೆ ಹೊಂದಿಕೆಯಾದಾಗ, ಹೆಚ್ಚಿನ ಮೌಲ್ಯದ ಕೆಲಸಗಳು ನೇರವಾಗಿ ನಿಮಗೆ ಬರುತ್ತವೆ!"
 }

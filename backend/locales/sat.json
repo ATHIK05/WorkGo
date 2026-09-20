@@ -1367,7 +1367,7 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "equipment_triage_manager": "Offcanvas Equipment & Triage Manager",
   "recently": "अलीकडे",
   "map_layers_title": "नकाशा दृश्य आणि स्तर",
   "layer_radar_dark": "रडार / गडद",
@@ -1404,7 +1404,7 @@
   "titan_dispatch_active_title": "लाइव्ह डिस्पॅच सक्रिय",
   "titan_dispatch_active_desc": "लाइव्ह कॉल्स येत आहेत",
   "enter_start_otp_btn": "OTP ᱛᱮ ᱯᱩᱥᱴᱟᱹᱣ ᱢᱮ",
-  "add_custom_tag_hint_short": "टॅग जोडा (उदा. बोअरवेल)",
+  "add_custom_tag_hint_short": "Add tag (e.g. Borewell)",
   "tag_inverter_split_ac": "इन्व्हर्टर स्प्लिट एसी",
   "tag_ac_gas_leak": "एसी गॅस गळती / फ्लेअर नट",
   "tag_outdoor_compressor": "आउटडोअर कॉम्प्रेसर",
@@ -1452,5 +1452,13 @@
   "karya_member_detected_desc": "This account is registered as a WorkGo Karya Member. To book services as a customer, please sign in with a different account.",
   "customer_account_detected_title": "Customer Account",
   "customer_account_detected_desc": "This account is registered as a Customer. To offer services as an artisan, please sign in with a different account.",
-  "btn_use_different_account": "Use Different Account"
+  "btn_use_different_account": "Use Different Account",
+  "counts": "counts",
+  "active_equipment_title": "Active equipment",
+  "match_score": "Match",
+  "offcanvas_equipment_subtitle": "Offcanvas Equipment & Triage Manager",
+  "add_tag_hint": "Add tag (e.g. Borewell)",
+  "got_it": "Got it",
+  "symptom_triage_dispatch_title": "Symptom-First Triage",
+  "symptom_triage_dispatch_desc": "Customers report real repair symptoms (e.g., 'ac gas leak', 'submersible pump trip').\n\nWhen your equipment tags and specialized tools match customer issues, our smart dispatch routes high-ticket jobs directly to your workbench first!"
 }

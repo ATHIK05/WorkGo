@@ -1367,7 +1367,7 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "equipment_triage_manager": "ਉਪਕਰਨ ਅਤੇ ਟ੍ਰਾਈਏਜ ਮੈਨੇਜਰ",
   "recently": "ਹਾਲ ਹੀ ਵਿੱਚ",
   "map_layers_title": "ਨਕਸ਼ਾ ਦ੍ਰਿਸ਼ ਅਤੇ ਪਰਤਾਂ",
   "layer_radar_dark": "ਰਾਡਾਰ / ਡਾਰਕ",
@@ -1404,7 +1404,7 @@
   "titan_dispatch_active_title": "ਲਾਈਵ ਡਿਸਪੈਚ ਸਰਗਰਮ",
   "titan_dispatch_active_desc": "ਲਾਈਵ ਕਾਲਾਂ ਆ ਰਹੀਆਂ ਹਨ",
   "enter_start_otp_btn": "OTP ਰਾਹੀਂ ਤਸਦੀਕ ਕਰੋ",
-  "add_custom_tag_hint_short": "ਟੈਗ ਸ਼ਾਮਲ ਕਰੋ (ਜਿਵੇਂ ਬੋਰਵੈੱਲ)",
+  "add_custom_tag_hint_short": "ਟੈਗ ਸ਼ਾਮਲ ਕਰੋ (ਜਿਵੇਂ ਕਿ ਬੋਰਵੈੱਲ)",
   "tag_inverter_split_ac": "ਇਨਵਰਟਰ ਸਪਲਿਟ ਏਸੀ",
   "tag_ac_gas_leak": "ਏਸੀ ਗੈਸ ਲੀਕ / ਫਲੇਅਰ ਨੱਟ",
   "tag_outdoor_compressor": "ਆਊਟਡੋਰ ਕੰਪ੍ਰੈਸਰ",
@@ -1452,5 +1452,13 @@
   "karya_member_detected_desc": "ਇਹ ਖਾਤਾ WorkGo ਕਾਰਜ ਮੈਂਬਰ ਵਜੋਂ ਰਜਿਸਟਰਡ ਹੈ। ਇੱਕ ਗਾਹਕ ਵਜੋਂ ਸੇਵਾਵਾਂ ਬੁੱਕ ਕਰਨ ਲਈ, ਕਿਰਪਾ ਕਰਕੇ ਕਿਸੇ ਵੱਖਰੇ ਖਾਤੇ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ।",
   "customer_account_detected_title": "ਗਾਹਕ ਖਾਤਾ",
   "customer_account_detected_desc": "ਇਹ ਖਾਤਾ ਗਾਹਕ ਵਜੋਂ ਰਜਿਸਟਰਡ ਹੈ। ਇੱਕ ਕਾਰੀਗਰ ਵਜੋਂ ਸੇਵਾਵਾਂ ਦੀ ਪੇਸ਼ਕਸ਼ ਕਰਨ ਲਈ, ਕਿਰਪਾ ਕਰਕੇ ਕਿਸੇ ਵੱਖਰੇ ਖਾਤੇ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ।",
-  "btn_use_different_account": "ਵੱਖਰਾ ਖਾਤਾ ਵਰਤੋ"
+  "btn_use_different_account": "ਵੱਖਰਾ ਖਾਤਾ ਵਰਤੋ",
+  "counts": "ਗਿਣਤੀ",
+  "active_equipment_title": "ਕਿਰਿਆਸ਼ੀਲ ਉਪਕਰਨ",
+  "match_score": "ਮੇਲ",
+  "offcanvas_equipment_subtitle": "ਉਪਕਰਨ ਅਤੇ ਟ੍ਰਾਈਏਜ ਮੈਨੇਜਰ",
+  "add_tag_hint": "ਟੈਗ ਸ਼ਾਮਲ ਕਰੋ (ਜਿਵੇਂ ਕਿ ਬੋਰਵੈੱਲ)",
+  "got_it": "ਸਮਝ ਗਿਆ",
+  "symptom_triage_dispatch_title": "ਲੱਛਣ-ਅਧਾਰਿਤ ਟ੍ਰਾਈਏਜ",
+  "symptom_triage_dispatch_desc": "ਗਾਹਕ ਅਸਲ ਮੁਰੰਮਤ ਸੰਬੰਧੀ ਸਮੱਸਿਆਵਾਂ ਦੀ ਰਿਪੋਰਟ ਕਰਦੇ ਹਨ।\n\nਜਦੋਂ ਤੁਹਾਡੇ ਉਪਕਰਨ ਗਾਹਕ ਦੀਆਂ ਸਮੱਸਿਆਵਾਂ ਨਾਲ ਮੇਲ ਖਾਂਦੇ ਹਨ, ਤਾਂ ਕੰਮ ਸਿੱਧੇ ਤੁਹਾਡੇ ਕੋਲ ਆਉਂਦੇ ਹਨ!"
 }

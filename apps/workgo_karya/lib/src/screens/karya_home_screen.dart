@@ -20,6 +20,7 @@ import '../widgets/handoff_acknowledgment_dialog.dart';
 import '../widgets/karya_start_otp_sheet.dart';
 import '../widgets/sos_beacon_bottom_sheet.dart';
 import '../widgets/job_preparation_tools_sheet.dart';
+import '../widgets/karya_speedometer_gauge.dart';
 import 'refer_dial_member_screen.dart';
 
 class KaryaHomeScreen extends StatefulWidget {
@@ -86,6 +87,311 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   Stream<Booking?>? _cachedActiveJobStream;
   Stream<List<Booking>>? _cachedHandoffStream;
   String? _cachedActiveJobWorkerId;
+
+  // Real-time customizable Daily Payout Goal (Persisted in SharedPreferences)
+  double _dailyTarget = 2000.0;
+  String? _loadedTargetWorkerId;
+
+  Future<void> _loadDailyTarget(String workerId) async {
+    if (_loadedTargetWorkerId == workerId) return;
+    _loadedTargetWorkerId = workerId;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getDouble('karya_daily_target_$workerId');
+      if (saved != null && saved > 0 && mounted) {
+        setState(() {
+          _dailyTarget = saved;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _updateDailyTarget(String workerId, double newTarget) async {
+    setState(() {
+      _dailyTarget = newTarget;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('karya_daily_target_$workerId', newTarget);
+    } catch (_) {}
+  }
+
+  void _showSetDailyTargetDialog(BuildContext context, Worker worker) {
+    final quickOptions = [1000.0, 1500.0, 2000.0, 2500.0, 3000.0, 5000.0];
+    final customCtrl = TextEditingController(
+      text: _dailyTarget.toInt().toString(),
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 28,
+              ),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFAF8F5),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4CEBA),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1035),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.speed_rounded,
+                          color: Color(0xFF34D399),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'set_daily_goal_title'.trSafe(
+                                'Set Daily Payout Goal',
+                              ),
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFF1E1035),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'set_daily_goal_sub'.trSafe(
+                                'Speedometer & target recalibrate in real time',
+                              ),
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFF706757),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'quick_select_target'.trSafe('Quick Target Goals (₹)'),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: const Color(0xFF1E1035),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: quickOptions.map((opt) {
+                      final isSelected = (_dailyTarget - opt).abs() < 1.0;
+                      return InkWell(
+                        onTap: () {
+                          setSheetState(() {
+                            customCtrl.text = opt.toInt().toString();
+                          });
+                          _updateDailyTarget(worker.id, opt);
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: const Color(0xFF1E1035),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              content: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Color(0xFF34D399),
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "Daily target set to ₹${opt.toInt()}!",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF1E1035)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF1E1035)
+                                  : const Color(0xFFE5DECE),
+                              width: 1.5,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF1E1035,
+                                      ).withValues(alpha: 0.2),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Text(
+                            "₹${opt.toInt()}",
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF1E1035),
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'or_custom_amount'.trSafe('Or Custom Goal (₹)'),
+                    style: GoogleFonts.plusJakartaSans(
+                      color: const Color(0xFF1E1035),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFD4CEBA)),
+                          ),
+                          child: TextField(
+                            controller: customCtrl,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E1035),
+                            ),
+                            decoration: const InputDecoration(
+                              prefixText: '₹ ',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          final val = double.tryParse(customCtrl.text.trim());
+                          if (val != null && val >= 100) {
+                            _updateDailyTarget(worker.id, val);
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: const Color(0xFF1E1035),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                content: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Color(0xFF34D399),
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "Daily target set to ₹${val.toInt()}!",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E1035),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'save_btn'.trSafe('Save'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -707,7 +1013,8 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               dialWorkerTrade: dialWorker['trade'] ?? 'General',
               dialWorkerLocation: [
                 dialWorker['locationText'] ?? '',
-                if ((dialWorker['pincode'] ?? '').toString().isNotEmpty) dialWorker['pincode'],
+                if ((dialWorker['pincode'] ?? '').toString().isNotEmpty)
+                  dialWorker['pincode'],
               ].where((s) => s.toString().isNotEmpty).join(' • '),
               dialWorkerTradeDescription: dialWorker['tradeDescription'],
               backendBaseUrl: 'https://workgo-api.onrender.com',
@@ -718,7 +1025,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     );
   }
 
-  Future<bool?> _showUpiRequiredModal(BuildContext context, Worker worker) async {
+  Future<bool?> _showUpiRequiredModal(
+    BuildContext context,
+    Worker worker,
+  ) async {
     final upiCtrl = TextEditingController(text: worker.upiId ?? "");
     String? errorText;
     bool isSaving = false;
@@ -758,7 +1068,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                          color: const Color(
+                            0xFFD97706,
+                          ).withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -773,7 +1085,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'payment_setup_title'.trSafe("Choose How You Get Paid"),
+                              'payment_setup_title'.trSafe(
+                                "Choose How You Get Paid",
+                              ),
                               style: GoogleFonts.plusJakartaSans(
                                 color: KX.textPrimary,
                                 fontSize: 16.5,
@@ -784,7 +1098,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'payment_setup_sub'.trSafe("100% Direct P2P Earnings · Zero Commission"),
+                              'payment_setup_sub'.trSafe(
+                                "100% Direct P2P Earnings · Zero Commission",
+                              ),
                               style: GoogleFonts.plusJakartaSans(
                                 color: KX.textSecondary,
                                 fontSize: 11.5,
@@ -809,7 +1125,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.info_outline_rounded, color: Color(0xFFB45309), size: 18),
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          color: Color(0xFFB45309),
+                          size: 18,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -838,19 +1158,27 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       fontWeight: FontWeight.w700,
                     ),
                     decoration: InputDecoration(
-                      labelText: 'enter_upi_id_label'.trSafe("UPI ID (Google Pay, PhonePe, Paytm)"),
+                      labelText: 'enter_upi_id_label'.trSafe(
+                        "UPI ID (Google Pay, PhonePe, Paytm)",
+                      ),
                       hintText: "e.g. yourname@okhdfcbank or 9876543210@ybl",
                       errorText: errorText,
                       filled: true,
                       fillColor: Colors.white,
-                      prefixIcon: const Icon(Icons.alternate_email_rounded, color: KX.gold),
+                      prefixIcon: const Icon(
+                        Icons.alternate_email_rounded,
+                        color: KX.gold,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: const BorderSide(color: KX.borderMuted),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: KX.gold, width: 1.6),
+                        borderSide: const BorderSide(
+                          color: KX.gold,
+                          width: 1.6,
+                        ),
                       ),
                     ),
                   ),
@@ -858,37 +1186,49 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children: ["@okaxis", "@okhdfcbank", "@ybl", "@paytm", "@upi"].map((handle) {
-                      return InkWell(
-                        onTap: () {
-                          final current = upiCtrl.text.split('@').first;
-                          if (current.isNotEmpty) {
-                            upiCtrl.text = "$current$handle";
-                          } else {
-                            upiCtrl.text = handle;
-                          }
-                          upiCtrl.selection = TextSelection.fromPosition(
-                            TextPosition(offset: upiCtrl.text.length),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: Text(
-                            handle,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFF475569),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
+                    children:
+                        [
+                          "@okaxis",
+                          "@okhdfcbank",
+                          "@ybl",
+                          "@paytm",
+                          "@upi",
+                        ].map((handle) {
+                          return InkWell(
+                            onTap: () {
+                              final current = upiCtrl.text.split('@').first;
+                              if (current.isNotEmpty) {
+                                upiCtrl.text = "$current$handle";
+                              } else {
+                                upiCtrl.text = handle;
+                              }
+                              upiCtrl.selection = TextSelection.fromPosition(
+                                TextPosition(offset: upiCtrl.text.length),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Text(
+                                handle,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: const Color(0xFF475569),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                          );
+                        }).toList(),
                   ),
                   const SizedBox(height: 14),
 
@@ -914,12 +1254,19 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
 
                   // ── Cash on Delivery Option Toggle ─────────────────────
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
-                      color: acceptsCash ? const Color(0xFFECFDF5) : Colors.white,
+                      color: acceptsCash
+                          ? const Color(0xFFECFDF5)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: acceptsCash ? const Color(0xFF10B981) : KX.borderMuted,
+                        color: acceptsCash
+                            ? const Color(0xFF10B981)
+                            : KX.borderMuted,
                         width: acceptsCash ? 1.6 : 1,
                       ),
                     ),
@@ -929,13 +1276,17 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: acceptsCash
-                                ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                ? const Color(
+                                    0xFF10B981,
+                                  ).withValues(alpha: 0.15)
                                 : Colors.grey.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.payments_rounded,
-                            color: acceptsCash ? const Color(0xFF059669) : Colors.grey,
+                            color: acceptsCash
+                                ? const Color(0xFF059669)
+                                : Colors.grey,
                             size: 20,
                           ),
                         ),
@@ -945,7 +1296,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'accept_cod_title'.trSafe("Accept Cash on Delivery"),
+                                'accept_cod_title'.trSafe(
+                                  "Accept Cash on Delivery",
+                                ),
                                 style: GoogleFonts.plusJakartaSans(
                                   color: KX.textPrimary,
                                   fontSize: 13,
@@ -956,7 +1309,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'accept_cod_sub'.trSafe("Customers can hand over physical cash directly upon completion"),
+                                'accept_cod_sub'.trSafe(
+                                  "Customers can hand over physical cash directly upon completion",
+                                ),
                                 style: GoogleFonts.plusJakartaSans(
                                   color: KX.textSecondary,
                                   fontSize: 11,
@@ -989,7 +1344,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           onPressed: () => Navigator.of(sheetContext).pop(null),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                             side: const BorderSide(color: Color(0xFFD1D5DB)),
                           ),
                           child: Text(
@@ -1010,20 +1367,27 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                               ? null
                               : () async {
                                   final text = upiCtrl.text.trim();
-                                  final hasUpi = text.contains('@') && text.length >= 5;
+                                  final hasUpi =
+                                      text.contains('@') && text.length >= 5;
                                   if (!hasUpi && !acceptsCash) {
                                     setModalState(() {
-                                      errorText = 'select_payment_mode_error'.trSafe('Please enter a valid UPI ID or enable Cash on Delivery');
+                                      errorText = 'select_payment_mode_error'
+                                          .trSafe(
+                                            'Please enter a valid UPI ID or enable Cash on Delivery',
+                                          );
                                     });
                                     return;
                                   }
                                   setModalState(() => isSaving = true);
                                   try {
-                                    await _workerService.updateWorkerPaymentPreferences(
-                                      workerId: worker.id,
-                                      upiId: hasUpi ? text : (worker.upiId ?? ""),
-                                      acceptsCash: acceptsCash,
-                                    );
+                                    await _workerService
+                                        .updateWorkerPaymentPreferences(
+                                          workerId: worker.id,
+                                          upiId: hasUpi
+                                              ? text
+                                              : (worker.upiId ?? ""),
+                                          acceptsCash: acceptsCash,
+                                        );
                                     if (sheetContext.mounted) {
                                       Navigator.of(sheetContext).pop(true);
                                     }
@@ -1038,17 +1402,24 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                             elevation: 0,
                           ),
                           child: isSaving
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
                                 )
                               : Text(
-                                  'save_payment_pref_btn'.trSafe("Save & Go Live"),
+                                  'save_payment_pref_btn'.trSafe(
+                                    "Save & Go Live",
+                                  ),
                                   style: GoogleFonts.plusJakartaSans(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
@@ -1304,17 +1675,24 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           .limit(3)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        final dialWorkerDocs = snapshot.data!.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final isVerified =
+              data['verificationStatus'] == 'approved' ||
+              data['verificationStage'] == 'approved';
+          return !isVerified;
+        }).toList();
+
+        if (dialWorkerDocs.isEmpty) {
           return const SizedBox.shrink();
         }
-
-        final dialWorkerDocs = snapshot.data!.docs;
 
         return Column(
           children: dialWorkerDocs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             final name = data['name'] as String? ?? 'Dial Worker';
-            final trade = (data['skills'] as List?)?.firstOrNull?.toString() ?? 'General';
+            final trade =
+                (data['skills'] as List?)?.firstOrNull?.toString() ?? 'General';
             final phone = data['phoneForCalling'] as String? ?? '';
             final areas = (data['preferredAreas'] as List?)?.join(', ') ?? '';
 
@@ -1328,10 +1706,12 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       dialWorkerName: name,
                       dialWorkerPhone: phone,
                       dialWorkerTrade: trade,
-                      dialWorkerLocation: (data['locationText'] as String?)?.isNotEmpty == true
+                      dialWorkerLocation:
+                          (data['locationText'] as String?)?.isNotEmpty == true
                           ? (data['locationText'] as String)
                           : areas,
-                      dialWorkerTradeDescription: data['tradeDescription'] as String?,
+                      dialWorkerTradeDescription:
+                          data['tradeDescription'] as String?,
                       backendBaseUrl: const String.fromEnvironment(
                         'BACKEND_BASE_URL',
                         defaultValue: 'https://workgo-api.onrender.com',
@@ -1353,7 +1733,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: KX.brandAmber.withValues(alpha: 0.45), width: 1.5),
+                  border: Border.all(
+                    color: KX.brandAmber.withValues(alpha: 0.45),
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: KX.brandAmber.withValues(alpha: 0.15),
@@ -1376,7 +1759,11 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.person_add_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1387,7 +1774,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                             children: [
                               Expanded(
                                 child: Text(
-                                  'peer_kyc_alert_title'.trSafe('⚡ Earn ₹150 — Verify $name', [name]),
+                                  'peer_kyc_alert_title'.trSafe(
+                                    '⚡ Earn ₹150 — Verify $name',
+                                    [name],
+                                  ),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 14,
@@ -1412,7 +1802,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         gradient: KX.luminaVioletGold,
                         borderRadius: BorderRadius.circular(20),
@@ -1440,7 +1833,6 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   //  PEER ARTISAN SOS DISTRESS ALERT CARD RECEIVER
   // ──────────────────────────────────────────────────────────────
   Widget _buildPeerSosBeaconAlerts(BuildContext context, Worker worker) {
-
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('emergency_beacons')
@@ -2220,7 +2612,6 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               const SizedBox(height: 14),
             ],
 
-
             // ── 2.5 Live Active Mission Card (If artisan has an accepted or in-progress booking)
             () {
               if (_cachedActiveJobStream == null ||
@@ -2461,9 +2852,12 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
     bool isOnline,
     BuildContext context,
   ) {
-    final now = DateTime.now();
-    final dateStr =
-        "${'today_label'.trSafe('Today')}, ${DateFormat('d MMM', context.locale.languageCode).format(now)}";
+    final activeLocation =
+        worker.baseAddress?.formattedAddress ??
+        worker.baseArea ??
+        (worker.preferredAreas.isNotEmpty
+            ? worker.preferredAreas.first
+            : 'erode_central_tamil_nadu'.trSafe("Erode Central, Tamil Nadu"));
 
     return Row(
       children: [
@@ -2505,7 +2899,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
         ),
         const SizedBox(width: 8),
 
-        // Greeting & Subtitle
+        // Greeting & Operating Base Address (Tappable - replaces Today date)
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2523,15 +2917,46 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 1),
-              Text(
-                dateStr,
-                style: GoogleFonts.plusJakartaSans(
-                  color: KX.textSecondary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  showAddressManagementSheet(
+                    context,
+                    userId: widget.user.uid,
+                    userRole: "worker",
+                  );
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.location_on_rounded,
+                      size: 13,
+                      color: KX.gold,
+                    ),
+                    const SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        activeLocation.toLocalizedAddress(
+                          context.locale.languageCode,
+                        ),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: KX.textSecondary,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(
+                      Icons.arrow_drop_down_rounded,
+                      size: 16,
+                      color: KX.textSecondary,
+                    ),
+                  ],
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -2548,7 +2973,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             onTap: () => _toggleAvailability(worker),
             child: AnimatedContainer(
               duration: KAnim.fast,
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 9,
+                vertical: 6,
+              ),
               decoration: BoxDecoration(
                 color: isOnline ? KX.dockBlack : Colors.white,
                 borderRadius: BorderRadius.circular(999),
@@ -2691,6 +3119,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   //  HERO CARD: DAILY CHALLENGE & EARNINGS (Inspired by Reference)
   // ──────────────────────────────────────────────────────────────
   Widget _buildHeroDailyChallenge(Worker worker) {
+    if (_loadedTargetWorkerId != worker.id) {
+      _loadDailyTarget(worker.id);
+    }
+
     return StreamBuilder<List<Booking>>(
       stream: _bookingService.streamWorkerActiveJobs(worker.id),
       builder: (context, snapshot) {
@@ -2730,7 +3162,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
           (total, b) => total + (b.totalAmount * 0.98),
         );
 
-        const dailyGoal = 2000.0;
+        final dailyGoal = _dailyTarget;
         final goalProgress = (selectedDayEarnings / dailyGoal).clamp(0.0, 1.0);
 
         final cardTitle = isToday
@@ -2746,7 +3178,7 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                   context.locale.languageCode,
                 ).format(_selectedDate),
               ])
-            : 'earnings_title'.trSafe("Earnings · {}", [
+            : 'earnings_date_title'.trSafe("Earnings · {}", [
                 DateFormat(
                   'EEE, d MMM',
                   context.locale.languageCode,
@@ -2754,14 +3186,19 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
               ]);
 
         final cardSubtitle = isToday
-            ? 'payout_target_today'.trSafe("Payout target: ₹2,000 today")
+            ? 'payout_target_today'.trSafe("Payout target: ₹{} today", [
+                dailyGoal.toInt().toString(),
+              ])
             : isFuture
-            ? 'target_planned_shift'.trSafe("Target: ₹2,000 · Planned shift")
-            : 'target_shift_log'.trSafe("Target: ₹2,000 · Shift log");
+            ? 'target_planned_shift'.trSafe("Target: ₹{} · Planned shift", [
+                dailyGoal.toInt().toString(),
+              ])
+            : 'target_shift_log'.trSafe("Target: ₹{} · Shift log", [
+                dailyGoal.toInt().toString(),
+              ]);
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFFEDE8FF), Color(0xFFDFD4FF)],
@@ -2771,171 +3208,266 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             borderRadius: BorderRadius.circular(28),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x127C3AED),
+                color: Color(0x147C3AED),
                 blurRadius: 20,
                 offset: Offset(0, 6),
               ),
             ],
           ),
-          child: Row(
-            children: [
-              // Left Content Column
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final cardWidth = constraints.maxWidth;
+                final isCompact = cardWidth < 370;
+                final gaugeWidth = isCompact ? 76.0 : 88.0;
+                final gaugeHeight = isCompact ? 50.0 : 58.0;
+                final workerHeight = isCompact ? 136.0 : 158.0;
+                final workerRight = isCompact ? -10.0 : -6.0;
+                final gaugeRight = isCompact ? 116.0 : 136.0;
+
+                return Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Text(
-                      cardTitle,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: const Color(0xFF1E1035),
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      cardSubtitle,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: const Color(0xFF5B4D7A),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        Text(
-                          "₹${selectedDayEarnings.toInt()}",
-                          style: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFF1E1035),
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1.0,
+                    // 1. Ambient Background Pastel Shapes
+                    Positioned(
+                      bottom: -22,
+                      left: -22,
+                      child: Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              const Color(0xFFC4B5FD).withValues(alpha: 0.55),
+                              const Color(0xFFC4B5FD).withValues(alpha: 0.0),
+                            ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 4,
+                      left: 42,
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              const Color(0xFF6EE7B7).withValues(alpha: 0.35),
+                              const Color(0xFF6EE7B7).withValues(alpha: 0.0),
+                            ],
                           ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E1035),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            "${(goalProgress * 100).toInt()}% ${isFuture ? 'goal_target_label'.trSafe('Target') : 'goal_done_label'.trSafe('Done')}",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
+                        ),
+                      ),
+                    ),
+
+                    // 2. Top-Center Emerald Accent Dot
+                    Positioned(
+                      top: 24,
+                      left: cardWidth * 0.52,
+                      child: Container(
+                        width: 17,
+                        height: 17,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+
+                    // 3. Top-Right Mint Sparkle Star (✦)
+                    const Positioned(
+                      top: 20,
+                      right: 28,
+                      child: Icon(
+                        Icons.auto_awesome,
+                        color: Color(0xFF34D399),
+                        size: 26,
+                      ),
+                    ),
+
+                    // 4. Dynamic Action Speed Streaks behind gauge
+                    Positioned(
+                      right: gaugeRight + 2,
+                      bottom: 52,
+                      child: const KaryaSpeedLines(
+                        width: 40,
+                        height: 32,
+                        color: Color(0x351E1035),
+                      ),
+                    ),
+
+                    // 5. Speedometer Gauge (Real-Time Animated Needle)
+                    Positioned(
+                      right: gaugeRight,
+                      bottom: 16,
+                      child: KaryaSpeedometerGauge(
+                        progress: goalProgress,
+                        width: gaugeWidth,
+                        height: gaugeHeight,
+                        minLabel: '0',
+                      ),
+                    ),
+
+                    // 6. Worker Mascot Illustration
+                    Positioned(
+                      right: workerRight,
+                      bottom: 0,
+                      child: Image.asset(
+                        'assets/images/karya_daily_worker.png',
+                        height: workerHeight,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (ctx, _, __) => const SizedBox.shrink(),
+                      ),
+                    ),
+
+                    // 7. Left Content Column (Title, Target Subtitle, Live Earnings & %)
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        20,
+                        gaugeRight + (gaugeWidth * 0.42),
+                        20,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            cardTitle,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: const Color(0xFF1E1035),
+                              fontSize: isCompact ? 19 : 22,
                               fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        if (isToday && selectedDayEarnings > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF10B981,
-                              ).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: const Color(0xFF10B981),
-                                width: 1,
+                          const SizedBox(height: 3),
+                          InkWell(
+                            onTap: isToday
+                                ? () =>
+                                      _showSetDailyTargetDialog(context, worker)
+                                : null,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      cardSubtitle,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: const Color(0xFF5B4D7A),
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (isToday) ...[
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.edit_rounded,
+                                      size: 12,
+                                      color: Color(0xFF5B4D7A),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.bolt_rounded,
-                                  size: 12,
-                                  color: Color(0xFF047857),
+                          ),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              Text(
+                                "₹${selectedDayEarnings.toInt()}",
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: const Color(0xFF1E1035),
+                                  fontSize: isCompact ? 24 : 28,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -1.0,
                                 ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  "₹${(selectedDayEarnings / (DateTime.now().hour - 8).clamp(1, 10)).round()}/hr ${'earnings_velocity_label'.trSafe('pace')}",
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E1035),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  "${(goalProgress * 100).toInt()}% ${isFuture ? 'goal_target_label'.trSafe('Target') : 'goal_done_label'.trSafe('Target')}",
                                   style: const TextStyle(
-                                    color: Color(0xFF047857),
-                                    fontSize: 10,
+                                    color: Colors.white,
+                                    fontSize: 10.5,
                                     fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.2,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // Right 3D Geometric Visual Composition
-              SizedBox(
-                width: 90,
-                height: 90,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 74,
-                      height: 74,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFFB800), Color(0xFFFF9500)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(
-                              0xFFFFB800,
-                            ).withValues(alpha: 0.4),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
+                              ),
+                              if (isToday && selectedDayEarnings > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF10B981,
+                                    ).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: const Color(0xFF10B981),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.bolt_rounded,
+                                        size: 12,
+                                        color: Color(0xFF047857),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        "₹${(selectedDayEarnings / (DateTime.now().hour - 8).clamp(1, 10)).round()}/hr ${'earnings_velocity_label'.trSafe('pace')}",
+                                        style: const TextStyle(
+                                          color: Color(0xFF047857),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF3B2D60), Color(0xFF1E1438)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.speed_rounded,
-                          color: Color(0xFFFFD666),
-                          size: 26,
-                        ),
-                      ),
-                    ),
                   ],
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
         );
       },
@@ -3223,7 +3755,88 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   }
 
   // ──────────────────────────────────────────────────────────────
-  //  "YOUR PLAN" BENTO GRID SECTION (Dynamic Selected Date)
+  //  TRADE CHIP BUILDER (Vibrant, tailored color micro-pills)
+  // ──────────────────────────────────────────────────────────────
+  Widget _buildTradeChip(String skill) {
+    final lower = skill.toLowerCase();
+    IconData icon = Icons.handyman_rounded;
+    Color bg = const Color(0xFFF3EEDD);
+    Color textCol = const Color(0xFF78350F);
+    Color borderCol = const Color(0xFFE5DECE);
+
+    if (lower.contains('plumb') || lower.contains('tap') || lower.contains('pipe')) {
+      icon = Icons.plumbing_rounded;
+      bg = const Color(0xFFEFF6FF);
+      textCol = const Color(0xFF1D4ED8);
+      borderCol = const Color(0xFFBFDBFE);
+    } else if (lower.contains('electr') || lower.contains('wire') || lower.contains('power')) {
+      icon = Icons.electric_bolt_rounded;
+      bg = const Color(0xFFFEF3C7);
+      textCol = const Color(0xFFB45309);
+      borderCol = const Color(0xFFFDE68A);
+    } else if (lower.contains('carpent') || lower.contains('wood') || lower.contains('furniture')) {
+      icon = Icons.carpenter_rounded;
+      bg = const Color(0xFFFFF7ED);
+      textCol = const Color(0xFFC2410C);
+      borderCol = const Color(0xFFFFEDD5);
+    } else if (lower.contains('paint')) {
+      icon = Icons.format_paint_rounded;
+      bg = const Color(0xFFFDF2F8);
+      textCol = const Color(0xFFBE185D);
+      borderCol = const Color(0xFFFBCFE8);
+    } else if (lower.contains('appliance') ||
+        lower.contains('ac') ||
+        lower.contains('repair') ||
+        lower.contains('cool') ||
+        lower.contains('refriger')) {
+      icon = Icons.home_repair_service_rounded;
+      bg = const Color(0xFFECFDF5);
+      textCol = const Color(0xFF047857);
+      borderCol = const Color(0xFFA7F3D0);
+    } else if (lower.contains('clean')) {
+      icon = Icons.cleaning_services_rounded;
+      bg = const Color(0xFFF0FDFA);
+      textCol = const Color(0xFF0F766E);
+      borderCol = const Color(0xFF99F6E4);
+    } else if (lower.contains('mason') || lower.contains('tile') || lower.contains('civil')) {
+      icon = Icons.foundation_rounded;
+      bg = const Color(0xFFF8FAFC);
+      textCol = const Color(0xFF475569);
+      borderCol = const Color(0xFFE2E8F0);
+    } else if (lower.contains('garden')) {
+      icon = Icons.yard_rounded;
+      bg = const Color(0xFFF0FDF4);
+      textCol = const Color(0xFF15803D);
+      borderCol = const Color(0xFFBBF7D0);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderCol, width: 1.1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12.5, color: textCol),
+          const SizedBox(width: 4.5),
+          Text(
+            skill.toLocalizedTrade(),
+            style: GoogleFonts.plusJakartaSans(
+              color: textCol,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  "YOUR PLAN" UNIFIED HERO COCKPIT (Dynamic Selected Date)
   // ──────────────────────────────────────────────────────────────
   Widget _buildYourPlanSection(BuildContext context, Worker worker) {
     return StreamBuilder<List<Booking>>(
@@ -3279,37 +3892,65 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                 context.locale.languageCode,
               ).format(_selectedDate);
 
-        final planTag = isToday
-            ? (hasRequest
-                  ? 'priority_label'.trSafe("Priority")
-                  : 'standby_label'.trSafe("Standby"))
-            : isFuture
-            ? 'scheduled_label'.trSafe("Scheduled")
-            : 'shift_log_label'.trSafe("Shift Log");
+        final hasMultiSkills = worker.skills.length > 1;
+        final skillCount = worker.skills.length;
+
+        final planTag = hasRequest
+            ? 'priority_label'.trSafe("Priority")
+            : (hasMultiSkills
+                  ? "$skillCount TRADES READY"
+                  : (isToday
+                        ? 'standby_label'.trSafe("Standby")
+                        : (isFuture
+                              ? 'scheduled_label'.trSafe("Scheduled")
+                              : 'shift_log_label'.trSafe("Shift Log"))));
 
         final planTitle = isToday
             ? (hasRequest
                   ? topReq!.serviceType.toLocalizedTrade()
+                  : (hasMultiSkills
+                        ? 'multi_trade_artisan_shift'.trSafe(
+                            "Multi-Trade Shift",
+                          )
+                        : (worker.skills.isNotEmpty
+                              ? "${worker.skills.first.toLocalizedTrade()} ${'shift_label'.trSafe('Shift')}"
+                              : 'artisan_standby_label'.trSafe(
+                                  "Artisan Standby",
+                                ))))
+            : isFuture
+            ? (hasMultiSkills
+                  ? 'planned_multi_shift'.trSafe("Planned Multi-Trade Shift")
                   : (worker.skills.isNotEmpty
                         ? "${worker.skills.first.toLocalizedTrade()} ${'shift_label'.trSafe('Shift')}"
-                        : 'artisan_standby_label'.trSafe("Artisan Standby")))
-            : isFuture
-            ? (worker.skills.isNotEmpty
-                  ? "${worker.skills.first.toLocalizedTrade()} ${'shift_label'.trSafe('Shift')}"
-                  : 'planned_standby_label'.trSafe("Planned Standby"))
-            : (worker.skills.isNotEmpty
-                  ? "${worker.skills.first.toLocalizedTrade()} ${'completed_label'.trSafe('Completed')}"
-                  : 'shift_logged_label'.trSafe("Shift Logged"));
+                        : 'planned_standby_label'.trSafe("Planned Standby")))
+            : (hasMultiSkills
+                  ? 'multi_trade_completed'.trSafe("Multi-Trade Shift Completed")
+                  : (worker.skills.isNotEmpty
+                        ? "${worker.skills.first.toLocalizedTrade()} ${'completed_label'.trSafe('Completed')}"
+                        : 'shift_logged_label'.trSafe("Shift Logged")));
+
+        final planSubtitle = hasRequest
+            ? 'incoming_request_sub'.trSafe("Doorstep dispatch required")
+            : (hasMultiSkills
+                  ? "$skillCount specializations active for direct booking"
+                  : 'ready_for_dispatch'.trSafe(
+                      "Ready for doorstep customer bookings",
+                    ));
+
+        final isOnline = worker.availabilityStatus == AvailabilityStatus.online;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Section Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
-                    'your_plan_header'.trSafe("Your plan · {}", [planDateLabel]),
+                    'your_plan_header'.trSafe("Your plan · {}", [
+                      planDateLabel,
+                    ]),
                     style: GoogleFonts.plusJakartaSans(
                       color: KX.textPrimary,
                       fontSize: 20,
@@ -3343,259 +3984,257 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
             ),
             const SizedBox(height: 12),
 
-            // Bento Row (Left tall sunny card + Right split cards)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── LEFT TALL CARD: Next Job / Standby (Sunny Amber)
-                  Expanded(
-                    flex: 11,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: KX.pastelAmber, // #FFDE9C
-                        borderRadius: BorderRadius.circular(26),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0C000000),
-                            blurRadius: 14,
-                            offset: Offset(0, 4),
+            // ── UNIFIED HERO COCKPIT CARD (Rich White & Yellowish Overlay + Mascot + Multi-Trade Active) ──
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFFFFFFF),
+                    Color(0xFFFFFDF8),
+                    Color(0xFFFEF9EB),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: [0.0, 0.5, 1.0],
+                ),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: hasRequest
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFFF3E7C4),
+                  width: hasRequest ? 2.0 : 1.4,
+                ),
+                boxShadow: [
+                  if (hasRequest)
+                    BoxShadow(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.22),
+                      blurRadius: 22,
+                      offset: const Offset(0, 6),
+                    )
+                  else ...[
+                    const BoxShadow(
+                      color: Color(0x1DF59E0B),
+                      blurRadius: 24,
+                      offset: Offset(0, 8),
+                      spreadRadius: -2,
+                    ),
+                    const BoxShadow(
+                      color: Color(0x08000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Upper Hero Stage: Left details + Right Artisan Mascot + Rich Overlay
+                    Stack(
+                      children: [
+                        // Ambient radial golden halo behind artisan mascot
+                        Positioned(
+                          right: -15,
+                          top: -15,
+                          child: Container(
+                            width: 190,
+                            height: 190,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  hasRequest
+                                      ? const Color(0x28EF4444)
+                                      : const Color(0x38FFDE59),
+                                  const Color(0x18FFF3B0),
+                                  Colors.transparent,
+                                ],
+                                stops: const [0.0, 0.55, 1.0],
+                              ),
+                            ),
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Pill Tag
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  planTag,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: const Color(0xFF92400E),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                        ),
+
+                        // Artisan Mascot Illustration (From user attachment)
+                        Positioned(
+                          right: 4,
+                          top: 6,
+                          bottom: 0,
+                          child: Image.asset(
+                            'assets/images/karya_plan_artisan_transparent.png',
+                            height: 168,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                            errorBuilder: (ctx, _, __) =>
+                                const SizedBox.shrink(),
+                          ),
+                        ),
+
+                        // Rich White and Yellowish Specular Overlay (Enhances contrast & luxury feel)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  stops: const [0.0, 0.42, 0.72, 1.0],
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0.94),
+                                    const Color(0xFFFFFDF8).withValues(alpha: 0.75),
+                                    const Color(0xFFFEF3C7).withValues(alpha: 0.22),
+                                    const Color(0xFFFFDE59).withValues(alpha: 0.12),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 14),
+                            ),
+                          ),
+                        ),
 
-                              // Title
+                        // Left Content Column (Protected from mascot overlap)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 125, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top Tag & Radar mini indicator
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: hasRequest
+                                          ? const Color(0xFFFEE2E2)
+                                          : (isOnline
+                                                ? const Color(0xFFDCFCE7)
+                                                : const Color(0xFFF3EEDD)),
+                                      borderRadius: BorderRadius.circular(99),
+                                      border: Border.all(
+                                        color: hasRequest
+                                            ? const Color(0xFFFECACA)
+                                            : (isOnline
+                                                  ? const Color(0xFFBBF7D0)
+                                                  : const Color(0xFFE5DECE)),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: hasRequest
+                                                ? const Color(0xFFDC2626)
+                                                : (isOnline
+                                                      ? const Color(0xFF16A34A)
+                                                      : const Color(0xFF854D0E)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4.5),
+                                        Text(
+                                          planTag,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            color: hasRequest
+                                                ? const Color(0xFFDC2626)
+                                                : (isOnline
+                                                      ? const Color(0xFF15803D)
+                                                      : const Color(0xFF854D0E)),
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  // Rotating mini radar icon
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      setState(() => _currentNavIndex = 1);
+                                    },
+                                    child: RotationTransition(
+                                      turns: _radarCtrl,
+                                      child: Icon(
+                                        Icons.radar_rounded,
+                                        color: hasRequest
+                                            ? const Color(0xFFEF4444)
+                                            : (isOnline
+                                                  ? const Color(0xFF059669)
+                                                  : const Color(0xFF9CA3AF)),
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+
+                              // Main Title
                               Text(
                                 planTitle,
                                 style: GoogleFonts.plusJakartaSans(
                                   color: const Color(0xFF1E1035),
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.2,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.15,
+                                  letterSpacing: -0.4,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 3),
 
-                              // Date & Time
+                              // Subtitle
                               Text(
-                                "${DateFormat('EEE, d MMM').format(_selectedDate)} · ${worker.workingHoursStart.to12HourTime()} - ${worker.workingHoursEnd.to12HourTime()}",
+                                planSubtitle,
                                 style: GoogleFonts.plusJakartaSans(
-                                  color: const Color(0xFF78350F),
-                                  fontSize: 11.5,
+                                  color: const Color(0xFF78716C),
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                 ),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 8),
 
-                              // Location
-                              Text(
-                                (worker.baseAddress?.formattedAddress ??
-                                        worker.baseArea ??
-                                        'active_radius_label'.trSafe(
-                                          "Active Radius ~${worker.serviceRadiusKm.toInt()} km",
-                                          ["${worker.serviceRadiusKm.toInt()}"],
-                                        ))
-                                    .toLocalizedAddress(
-                                      context.locale.languageCode,
-                                    ),
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: const Color(0xFF78350F),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Customer / Action Footer
-                          if (hasRequest)
-                            GestureDetector(
-                              onTap: () async {
-                                try {
-                                  await _bookingService.acceptBooking(
-                                    topReq!.id,
-                                    worker.id,
-                                    workerName: worker.name,
-                                    workerPhone: worker.phoneForCalling,
-                                  );
-                                  if (context.mounted) {
-                                    await JobPreparationToolsSheet.show(
-                                      context,
-                                      booking: topReq,
-                                      worker: worker,
-                                    );
-                                    if (context.mounted &&
-                                        ModalRoute.of(context)?.isCurrent ==
-                                            true) {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (ctx) => ActiveJobScreen(
-                                            booking: topReq,
-                                            worker: worker,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                } on WorkerHasActiveJobException catch (e) {
-                                  HapticFeedback.heavyImpact();
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        backgroundColor: const Color(
-                                          0xFF141416,
-                                        ),
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                        ),
-                                        content: Text(
-                                          e.message,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        action: SnackBarAction(
-                                          label: 'go_to_job'.trSafe(
-                                            'Go to Job',
-                                          ),
-                                          textColor: const Color(0xFFFFDE59),
-                                          onPressed: () async {
-                                            final ongoing =
-                                                await _bookingService
-                                                    .getWorkerActiveJob(
-                                                      worker.id,
-                                                    );
-                                            if (ongoing != null &&
-                                                context.mounted) {
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (ctx) =>
-                                                      ActiveJobScreen(
-                                                        booking: ongoing,
-                                                        worker: worker,
-                                                      ),
-                                                ),
-                                              );
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } on BookingAlreadyAcceptedException catch (e) {
-                                  HapticFeedback.heavyImpact();
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        backgroundColor: const Color(
-                                          0xFF141416,
-                                        ),
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                        ),
-                                        content: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.flash_off_rounded,
-                                              color: Color(0xFFFFDE59),
-                                              size: 20,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                e.message,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          "${'error_prefix'.trSafe('Error')}: $e",
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              child: Container(
+                              // Shift Schedule Timing Capsule (Warm Amber/Gold Accent)
+                              Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 8,
+                                  horizontal: 8,
+                                  vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: KX.dockBlack,
-                                  borderRadius: BorderRadius.circular(16),
+                                  color: const Color(0xFFFFFBEB),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: const Color(0xFFFDE68A),
+                                  ),
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(
-                                      Icons.flash_on_rounded,
-                                      color: KX.gold,
-                                      size: 14,
+                                      Icons.schedule_rounded,
+                                      size: 12,
+                                      color: Color(0xFFB45309),
                                     ),
                                     const SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
-                                        'accept_job_btn'.trSafe("Accept Job"),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.w800,
+                                        "${DateFormat('EEE, d MMM').format(_selectedDate)} · ${worker.workingHoursStart.to12HourTime()} - ${worker.workingHoursEnd.to12HourTime()}",
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: const Color(0xFF292524),
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -3604,276 +4243,365 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                   ],
                                 ),
                               ),
-                            )
-                          else
-                            Row(
-                              children: [
-                                Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xFF1E1035),
-                                  ),
-                                  child: const Icon(
-                                    Icons.handyman_rounded,
-                                    color: KX.gold,
-                                    size: 14,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'workgo_coop_label'.trSafe(
-                                          "WorkGo Co-op",
-                                        ),
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: const Color(0xFF1E1035),
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        'ready_for_jobs_label'.trSafe(
-                                          "Ready for jobs",
-                                        ),
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: const Color(0xFF78350F),
-                                          fontSize: 9.5,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // ── RIGHT COLUMN: Stacked Cards
-                  Expanded(
-                    flex: 10,
-                    child: Column(
-                      children: [
-                        // Right Top: Radar / Dispatch Card (Reactive & Animated)
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              setState(() => _currentNavIndex = 1);
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: hasRequest
-                                    ? const Color(0xFFEFF6FF)
-                                    : KX.pastelSky,
-                                borderRadius: BorderRadius.circular(24),
-                                border: hasRequest
-                                    ? Border.all(
-                                        color: const Color(0xFF3B82F6),
-                                        width: 1.5,
-                                      )
-                                    : null,
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x0A000000),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: hasRequest
-                                              ? const Color(0xFFEF4444)
-                                              : Colors.white.withValues(
-                                                  alpha: 0.8,
-                                                ),
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          hasRequest
-                                              ? "${requests.length} LIVE"
-                                              : 'radar_label'.trSafe("Radar"),
-                                          style: GoogleFonts.plusJakartaSans(
-                                            color: hasRequest
-                                                ? Colors.white
-                                                : const Color(0xFF1D4ED8),
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      RotationTransition(
-                                        turns: _radarCtrl,
-                                        child: Icon(
-                                          Icons.radar_rounded,
-                                          color: hasRequest
-                                              ? const Color(0xFFEF4444)
-                                              : const Color(0xFF1D4ED8),
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    hasRequest
-                                        ? topReq!.serviceType.toLocalizedTrade()
-                                        : 'live_radar'.trSafe('Live Radar'),
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: const Color(0xFF1E3A8A),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    hasRequest
-                                        ? "₹${topReq!.amount.toStringAsFixed(0)} • ${(topReq.customerAddressText?.isNotEmpty == true ? topReq.customerAddressText!.toLocalizedAddress(context.locale.languageCode) : 'nearby_label'.trSafe('Nearby'))}"
-                                        : (worker.availabilityStatus ==
-                                                  AvailabilityStatus.online
-                                              ? "${worker.serviceRadiusKm.toInt()} km ${'coverage_abbr'.trSafe('coverage')}\n${'listening_radar'.trSafe('Listening...')}"
-                                              : "${'radar_standby'.trSafe('Radar Standby')}\n${'tap_to_go_live'.trSafe('Tap to go live')}"),
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: hasRequest
-                                          ? const Color(0xFF1D4ED8)
-                                          : const Color(0xFF3B82F6),
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.25,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        // Right Bottom: Quick Actions Row (Soft Pink with SOS Beacon)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: KX.pastelPink,
-                            borderRadius: BorderRadius.circular(22),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x0A000000),
-                                blurRadius: 10,
-                                offset: Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _quickActionIconCircle(
-                                icon: Icons.account_balance_wallet_rounded,
-                                color: const Color(0xFF9D174D),
-                                onTap: () =>
-                                    setState(() => _currentNavIndex = 2),
-                              ),
-                              _quickActionIconCircle(
-                                icon: Icons.sos_rounded,
-                                color: const Color(0xFFDC2626),
-                                onTap: () =>
-                                    _showSosBeaconSheet(context, worker),
-                              ),
-                              _quickActionIconCircle(
-                                icon: Icons.settings_phone_rounded,
-                                color: const Color(0xFFB45309),
-                                tooltip: 'dial_karya_btn'.trSafe('Dial Karya'),
-                                onTap: () => _openDialKaryaHub(
-                                  context,
-                                  worker,
-                                ),
-                              ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+
+                    // ── Active Specializations Rail (All Selected Services!) ──
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFFFFDF9),
+                              Color(0xFFFEF9EE),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFF3E8CE),
+                            width: 1.1,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0DF59E0B),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.stars_rounded,
+                                  size: 13,
+                                  color: Color(0xFFD97706),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  'ACTIVE SPECIALIZATIONS (${worker.skills.length})',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: const Color(0xFF78716C),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 1.5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: Text(
+                                    isOnline ? "ALL LIVE" : "READY",
+                                    style: const TextStyle(
+                                      color: Color(0xFF15803D),
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (worker.skills.isNotEmpty)
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: worker.skills
+                                    .map((s) => _buildTradeChip(s))
+                                    .toList(),
+                              )
+                            else
+                              _buildTradeChip('General Service'),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Callout: If hasRequest, show Accept Job Action Bar
+                    if (hasRequest)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: GestureDetector(
+                          onTap: () async {
+                            try {
+                              await _bookingService.acceptBooking(
+                                topReq!.id,
+                                worker.id,
+                                workerName: worker.name,
+                                workerPhone: worker.phoneForCalling,
+                              );
+                              if (context.mounted) {
+                                await JobPreparationToolsSheet.show(
+                                  context,
+                                  booking: topReq,
+                                  worker: worker,
+                                );
+                                if (context.mounted &&
+                                    ModalRoute.of(context)?.isCurrent == true) {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (ctx) => ActiveJobScreen(
+                                        booking: topReq,
+                                        worker: worker,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            } on WorkerHasActiveJobException catch (e) {
+                              HapticFeedback.heavyImpact();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: const Color(0xFF141416),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    content: Text(
+                                      e.message,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    action: SnackBarAction(
+                                      label: 'go_to_job'.trSafe('Go to Job'),
+                                      textColor: const Color(0xFFFFDE59),
+                                      onPressed: () async {
+                                        final ongoing = await _bookingService
+                                            .getWorkerActiveJob(worker.id);
+                                        if (ongoing != null && context.mounted) {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (ctx) => ActiveJobScreen(
+                                                booking: ongoing,
+                                                worker: worker,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }
+                            } on BookingAlreadyAcceptedException catch (e) {
+                              HapticFeedback.heavyImpact();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: const Color(0xFF141416),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    content: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.flash_off_rounded,
+                                          color: Color(0xFFFFDE59),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            e.message,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "${'error_prefix'.trSafe('Error')}: $e",
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF141416),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.flash_on_rounded,
+                                      color: KX.gold,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "₹${topReq!.amount.toStringAsFixed(0)} • ${topReq.serviceType.toLocalizedTrade()}",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: KX.gold,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    'accept_job_btn'.trSafe("Accept Job"),
+                                    style: const TextStyle(
+                                      color: Color(0xFF141416),
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // Integrated Action Footer: WorkGo Co-op Status + SOS Emergency Button
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                      child: Row(
+                        children: [
+                          // Left: WorkGo Co-op ready status pill
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFDF9),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFF3E7C4),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isOnline
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF9CA3AF),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      'workgo_coop_label'.trSafe("WorkGo Co-op"),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: const Color(0xFF1E1035),
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+
+                          // SOS Emergency Beacon Button
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.heavyImpact();
+                              _showSosBeaconSheet(context, worker);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEE2E2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFFCA5A5),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.sos_rounded,
+                                    color: Color(0xFFDC2626),
+                                    size: 15,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  const Text(
+                                    "SOS",
+                                    style: TextStyle(
+                                      color: Color(0xFFDC2626),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         );
       },
     );
-  }
-
-  Widget _quickActionIconCircle({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    String? tooltip,
-  }) {
-    final circle = GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x0F000000),
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(icon, color: color, size: 16),
-      ),
-    );
-
-    if (tooltip != null && tooltip.isNotEmpty) {
-      return Tooltip(message: tooltip, child: circle);
-    }
-    return circle;
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -3972,186 +4700,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
   //  TACTICAL ACTION MATRIX (Operating Base Station + Referral Banner)
   // ──────────────────────────────────────────────────────────────
   Widget _buildTacticalActionGrid(BuildContext context, Worker worker) {
-    final activeLocation =
-        worker.baseAddress?.formattedAddress ??
-        worker.baseArea ??
-        (worker.preferredAreas.isNotEmpty
-            ? worker.preferredAreas.first
-            : 'erode_central_tamil_nadu'.trSafe("Erode Central, Tamil Nadu"));
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Operating Base Card
-        GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            showAddressManagementSheet(
-              context,
-              userId: widget.user.uid,
-              userRole: "worker",
-            );
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFF0EDE6), width: 1.2),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x06000000),
-                  blurRadius: 12,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3D6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.location_on_rounded,
-                        color: KX.gold,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'operating_base_header'.trSafe(
-                                  "OPERATING BASE",
-                                ),
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: const Color(0xFFB45309),
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFD1FAE5),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'km_range_label'.trSafe(
-                                    "${worker.serviceRadiusKm.toInt()} km Range",
-                                    ["${worker.serviceRadiusKm.toInt()}"],
-                                  ),
-                                  style: const TextStyle(
-                                    color: Color(0xFF065F46),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            activeLocation.toLocalizedAddress(
-                              context.locale.languageCode,
-                            ),
-                            style: GoogleFonts.plusJakartaSans(
-                              color: KX.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Skills Rail Chips
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    ...worker.skills
-                        .take(3)
-                        .map(
-                          (s) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF9F6EE),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: const Color(0xFFF0EDE6),
-                              ),
-                            ),
-                            child: Text(
-                              s,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: KX.textSecondary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: KX.dockBlack,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.edit_location_alt_rounded,
-                            color: Colors.white,
-                            size: 11,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'btn_change'.trSafe("Change"),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
         // ── Dial Karya Telephony Gateway & Peer KYC Station Card
         GestureDetector(
           onTap: () {
@@ -4184,7 +4735,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEF3C7),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                    ),
                   ),
                   child: const Icon(
                     Icons.settings_phone_rounded,
@@ -4201,7 +4754,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                         children: [
                           Expanded(
                             child: Text(
-                              'dial_karya_gateway_title'.trSafe("Dial Karya Voice Gateway"),
+                              'dial_karya_gateway_title'.trSafe(
+                                "Dial Karya Voice Gateway",
+                              ),
                               style: GoogleFonts.plusJakartaSans(
                                 color: const Color(0xFF141416),
                                 fontSize: 13.5,
@@ -4212,7 +4767,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFDCFCE7),
                               borderRadius: BorderRadius.circular(8),
@@ -4245,7 +4803,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'dial_karya_gateway_sub'.trSafe("Telephony Gateway & Peer KYC Station"),
+                        'dial_karya_gateway_sub'.trSafe(
+                          "Telephony Gateway & Peer KYC Station",
+                        ),
                         style: GoogleFonts.plusJakartaSans(
                           color: const Color(0xFF78350F),
                           fontSize: 11,
@@ -4545,7 +5105,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFBBF24),
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -4561,7 +5124,9 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              'enter_start_otp_btn'.trSafe("OTP மூலம் சரிபார்க்கவும்"),
+                              'enter_start_otp_btn'.trSafe(
+                                "OTP மூலம் சரிபார்க்கவும்",
+                              ),
                               style: const TextStyle(
                                 color: Color(0xFF0F172A),
                                 fontSize: 13,
@@ -4583,8 +5148,10 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (ctx) =>
-                                ActiveJobScreen(booking: booking, worker: worker),
+                            builder: (ctx) => ActiveJobScreen(
+                              booking: booking,
+                              worker: worker,
+                            ),
                           ),
                         );
                       },

@@ -1378,5 +1378,14 @@
   "karya_member_detected_desc": "This account is registered as a WorkGo Karya Member. To book services as a customer, please sign in with a different account.",
   "customer_account_detected_title": "Customer Account",
   "customer_account_detected_desc": "This account is registered as a Customer. To offer services as an artisan, please sign in with a different account.",
-  "btn_use_different_account": "Use Different Account"
+  "btn_use_different_account": "Use Different Account",
+  "counts": "counts",
+  "active_equipment_title": "Active equipment",
+  "match_score": "Match",
+  "offcanvas_equipment_subtitle": "Offcanvas Equipment & Triage Manager",
+  "add_custom_tag_hint_short": "Add tag (e.g. Borewell)",
+  "add_tag_hint": "Add tag (e.g. Borewell)",
+  "got_it": "Got it",
+  "symptom_triage_dispatch_title": "Symptom-First Triage",
+  "symptom_triage_dispatch_desc": "Customers report real repair symptoms (e.g., 'ac gas leak', 'submersible pump trip').\n\nWhen your equipment tags and specialized tools match customer issues, our smart dispatch routes high-ticket jobs directly to your workbench first!"
 }

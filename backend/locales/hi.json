@@ -1345,7 +1345,7 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "equipment_triage_manager": "उपकरण एवं ट्रायज प्रबंधक",
   "or_continue_with": "या इसके साथ जारी रखें",
   "error_karya_member_cannot_access_customer": "यह खाता कार्य सदस्य के रूप में पंजीकृत है। कृपया किसी भिन्न खाते का उपयोग करें।",
   "error_customer_cannot_access_karya": "यह खाता ग्राहक के रूप में पंजीकृत है। कृपया किसी भिन्न खाते का उपयोग करें।",
@@ -1353,5 +1353,14 @@
   "karya_member_detected_desc": "यह खाता WorkGo कार्य सदस्य के रूप में पंजीकृत है। ग्राहक के रूप में सेवाएं बुक करने के लिए, कृपया किसी अन्य खाते से साइन इन करें।",
   "customer_account_detected_title": "ग्राहक खाता",
   "customer_account_detected_desc": "यह खाता ग्राहक के रूप में पंजीकृत है। कारीगर के रूप में सेवाएं प्रदान करने के लिए, कृपया किसी अन्य खाते से साइन इन करें।",
-  "btn_use_different_account": "भिन्न खाते का उपयोग करें"
+  "btn_use_different_account": "भिन्न खाते का उपयोग करें",
+  "counts": "संख्या",
+  "active_equipment_title": "सक्रिय उपकरण",
+  "match_score": "मैच",
+  "offcanvas_equipment_subtitle": "उपकरण एवं ट्रायज प्रबंधक",
+  "add_custom_tag_hint_short": "टैग जोड़ें (जैसे बोरवेल)",
+  "add_tag_hint": "टैग जोड़ें (जैसे बोरवेल)",
+  "got_it": "समझ गया",
+  "symptom_triage_dispatch_title": "लक्षण-आधारित ट्रायज",
+  "symptom_triage_dispatch_desc": "ग्राहक वास्तविक मरम्मत समस्याओं की रिपोर्ट करते हैं (जैसे 'एसी गैस रिसाव', 'सबमर्सिबल पंप ट्रिप')।\n\nजब आपके उपकरण टैग ग्राहकों की समस्याओं से मेल खाते हैं, तो हमारा स्मार्ट प्रेषण उच्च मूल्य वाले कार्यों को सीधे आपके पास भेजता है!"
 }

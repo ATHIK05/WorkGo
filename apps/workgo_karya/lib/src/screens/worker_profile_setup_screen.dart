@@ -497,13 +497,13 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
         ),
         const SizedBox(height: 14),
 
-        // 2-Column Grid with Visual Image Assets (Full uncropped artwork)
+        // 2-Column Grid with Seamless Visual Image Assets & Bento Aesthetics
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 0.70,
+            childAspectRatio: 0.74,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
@@ -545,13 +545,13 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                   }
                 });
               },
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFFFFBEB) : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  color: isSelected ? const Color(0xFFFFFDF5) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
                         ? const Color(0xFFD97706)
@@ -561,33 +561,56 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                   boxShadow: [
                     BoxShadow(
                       color: isSelected
-                          ? const Color(0x18D97706)
-                          : const Color(0x08000000),
-                      blurRadius: isSelected ? 12 : 6,
-                      offset: const Offset(0, 3),
+                          ? const Color(0x20D97706)
+                          : const Color(0x0A000000),
+                      blurRadius: isSelected ? 14 : 8,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Top: Recognizable Full Trade Artwork (Uncropped & fully visible)
+                    // Top: Recognizable Trade Artwork (Seamlessly blended on pure canvas)
                     Expanded(
-                      flex: 7,
+                      flex: 64,
                       child: Container(
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFFFEF3C7).withValues(alpha: 0.45)
-                              : const Color(0xFFF8FAFC),
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(14),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(18),
                           ),
                         ),
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(18),
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // Subtle ambient background warmth for selected trade
+                              if (isSelected)
+                                Positioned(
+                                  top: 12,
+                                  left: 12,
+                                  right: 12,
+                                  bottom: 12,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: RadialGradient(
+                                        colors: [
+                                          const Color(0xFFFEF3C7).withValues(alpha: 0.65),
+                                          const Color(0xFFFEF3C7).withValues(alpha: 0.0),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // Full Illustration with seamless edge-to-edge canvas fit
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
                                 child: Image.asset(
                                   meta.imagePath,
                                   fit: BoxFit.contain,
@@ -595,95 +618,150 @@ class _WorkerProfileSetupScreenState extends State<WorkerProfileSetupScreen> {
                                   filterQuality: FilterQuality.high,
                                 ),
                               ),
-                            ),
 
-                          // Top-Right Checkmark Pill / Indicator
-                          Positioned(
-                            top: 6,
-                            right: 6,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isSelected ? 6 : 5,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFFD97706)
-                                    : Colors.white.withValues(alpha: 0.85),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x1F000000),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: isSelected
-                                  ? Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.check_rounded,
-                                          color: Colors.white,
-                                          size: 13,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          'btn_accepted'.trSafe("Accepted ✓"),
-                                          style: GoogleFonts.plusJakartaSans(
-                                            color: Colors.white,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                              // Bottom subtle gradient fade into card body
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                height: 26,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.white.withValues(alpha: 0.0),
+                                        isSelected
+                                            ? const Color(0xFFFFFDF5)
+                                            : Colors.white,
                                       ],
-                                    )
-                                  : const Icon(
-                                      Icons.add_rounded,
-                                      color: Color(0xFF64748B),
-                                      size: 14,
                                     ),
-                            ),
+                                  ),
+                                ),
+                              ),
+
+                              // Top-Right Floating Status Chip
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: isSelected
+                                      ? const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        )
+                                      : const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFFD97706)
+                                        : Colors.white.withValues(alpha: 0.92),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: isSelected
+                                        ? null
+                                        : Border.all(
+                                            color: const Color(0xFFCBD5E1),
+                                            width: 1.4,
+                                          ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: isSelected
+                                            ? const Color(0x33D97706)
+                                            : const Color(0x14000000),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: isSelected
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.check_rounded,
+                                              color: Colors.white,
+                                              size: 13,
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              'btn_accepted'.trSafe("Accepted"),
+                                              style: GoogleFonts.plusJakartaSans(
+                                                color: Colors.white,
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                              maxLines: 1,
+                                            ),
+                                          ],
+                                        )
+                                      : const Icon(
+                                          Icons.add_rounded,
+                                          color: Color(0xFF64748B),
+                                          size: 15,
+                                        ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Bottom: Localized Title & Plain-Language Subtitle
-                  Expanded(
-                      flex: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                    // Bottom: Localized Trade Title & Category Badge
+                    Expanded(
+                      flex: 36,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              meta.titleKey.trSafe(meta.fallbackTitle),
-                              style: GoogleFonts.plusJakartaSans(
-                                color: isSelected
-                                    ? const Color(0xFF78350F)
-                                    : const Color(0xFF0F172A),
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(3.5),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFFFEF3C7)
+                                        : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    meta.icon,
+                                    size: 12,
+                                    color: isSelected
+                                        ? const Color(0xFFD97706)
+                                        : const Color(0xFF64748B),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    meta.titleKey.trSafe(meta.fallbackTitle),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: isSelected
+                                          ? const Color(0xFF78350F)
+                                          : const Color(0xFF0F172A),
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 3),
                             Text(
                               meta.shortDescKey.trSafe(meta.fallbackShortDesc),
                               style: GoogleFonts.plusJakartaSans(
                                 color: isSelected
-                                    ? const Color(0xFFB45309)
+                                    ? const Color(0xFF92400E)
                                     : const Color(0xFF64748B),
                                 fontSize: 10.5,
-                                height: 1.2,
+                                height: 1.25,
+                                fontWeight: FontWeight.w500,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,

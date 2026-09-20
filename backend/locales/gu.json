@@ -1367,7 +1367,7 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "equipment_triage_manager": "સાધનો અને ટ્રાયજ મેનેજર",
   "recently": "તાજેતરમાં",
   "map_layers_title": "નકશો દૃશ્ય અને સ્તરો",
   "layer_radar_dark": "રડાર / ડાર્ક",
@@ -1404,7 +1404,7 @@
   "titan_dispatch_active_title": "લાઇવ ડિસ્પેચ સક્રિય",
   "titan_dispatch_active_desc": "લાઇવ બ્રોડકાસ્ટ મળી રહ્યાં છે",
   "enter_start_otp_btn": "OTP દ્વારા ચકાસો",
-  "add_custom_tag_hint_short": "ટૅગ ઉમેરો (દા.ત. બોરવેલ)",
+  "add_custom_tag_hint_short": "ટેગ ઉમેરો (દા.ત. બોરવેલ)",
   "tag_inverter_split_ac": "ઇન્વર્ટર સ્પ્લિટ એસી",
   "tag_ac_gas_leak": "એસી ગેસ લીક / ફ્લેર નટ",
   "tag_outdoor_compressor": "આઉટડોર કોમ્પ્રેસર",
@@ -1452,5 +1452,13 @@
   "karya_member_detected_desc": "આ એકાઉન્ટ WorkGo કાર્ય સભ્ય તરીકે નોંધાયેલું છે. ગ્રાહક તરીકે સેવાઓ બુક કરવા માટે, કૃપા કરીને અલગ એકાઉન્ટથી સાઇન ઇન કરો.",
   "customer_account_detected_title": "ગ્રાહક એકાઉન્ટ",
   "customer_account_detected_desc": "આ એકાઉન્ટ ગ્રાહક તરીકે નોંધાયેલું છે. કારીગર તરીકે સેવાઓ આપવા માટે, કૃપા કરીને અલગ એકાઉન્ટથી સાઇન ઇન કરો.",
-  "btn_use_different_account": "અલગ એકાઉન્ટ વાપરો"
+  "btn_use_different_account": "અલગ એકાઉન્ટ વાપરો",
+  "counts": "ગણતરી",
+  "active_equipment_title": "સક્રિય સાધનો",
+  "match_score": "મેચ",
+  "offcanvas_equipment_subtitle": "સાધનો અને ટ્રાયજ મેનેજર",
+  "add_tag_hint": "ટેગ ઉમેરો (દા.ત. બોરવેલ)",
+  "got_it": "સમજાયું",
+  "symptom_triage_dispatch_title": "લક્ષણ-આધારિત ટ્રાયજ",
+  "symptom_triage_dispatch_desc": "ગ્રાહકો વાસ્તવિક સમારકામની સમસ્યાઓ જણાવે છે.\n\nજ્યારે તમારા સાધનો ગ્રાહકની સમસ્યાઓ સાથે મેળ ખાય છે, ત્યારે કામો સીધા તમને મળે છે!"
 }

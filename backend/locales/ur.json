@@ -1367,7 +1367,7 @@
   "saving_btn": "सहेज रहे हैं...",
   "save_specializations_btn": "प्रोफ़ाइल विशेषज्ञताएं सहेजें",
   "specializations_and_tools": "विशेषज्ञताएं और औजार",
-  "equipment_triage_manager": "ऑफकैनवस उपकरण और ट्राइएज प्रबंधक",
+  "equipment_triage_manager": "سامان اور ٹریج مینیجر",
   "recently": "حالیہ",
   "map_layers_title": "نقشہ کا منظر اور تہیں",
   "layer_radar_dark": "راڈار / ڈارک",
@@ -1404,7 +1404,7 @@
   "titan_dispatch_active_title": "لائیو ڈسپیچ فعال",
   "titan_dispatch_active_desc": "لائیو پیغامات موصول ہو رہے ہیں",
   "enter_start_otp_btn": "OTP کے ذریعے تصدیق کریں",
-  "add_custom_tag_hint_short": "ٹیگ شامل کریں (مثلاً بورویل)",
+  "add_custom_tag_hint_short": "ٹیگ شامل کریں (مثلاً بوریل)",
   "tag_inverter_split_ac": "انورٹر اسپلٹ اے سی",
   "tag_ac_gas_leak": "اے سی گیس لیکیج / فلیئر نٹ",
   "tag_outdoor_compressor": "آؤٹ ڈور کمپریسر",
@@ -1452,5 +1452,13 @@
   "karya_member_detected_desc": "یہ اکاؤنٹ WorkGo کاریہ رکن کے طور پر رجسٹرڈ ہے۔ بطور گاہک خدمات بک کرنے کے لیے، براہ کرم کسی دوسرے اکاؤنٹ سے سائن ان کریں۔",
   "customer_account_detected_title": "گاہک اکاؤنٹ",
   "customer_account_detected_desc": "یہ اکاؤنٹ گاہک کے طور پر رجسٹرڈ ہے۔ بطور کاریگر خدمات پیش کرنے کے لیے، براہ کرم کسی دوسرے اکاؤنٹ سے سائن ان کریں۔",
-  "btn_use_different_account": "دوسرا اکاؤنٹ استعمال کریں"
+  "btn_use_different_account": "دوسرا اکاؤنٹ استعمال کریں",
+  "counts": "تعداد",
+  "active_equipment_title": "فعال سامان",
+  "match_score": "میچ",
+  "offcanvas_equipment_subtitle": "سامان اور ٹریج مینیجر",
+  "add_tag_hint": "ٹیگ شامل کریں (مثلاً بوریل)",
+  "got_it": "سمجھ گیا",
+  "symptom_triage_dispatch_title": "علامات پر مبنی ٹریج",
+  "symptom_triage_dispatch_desc": "صارفین مرمت کے حقیقی مسائل کی اطلاع دیتے ہیں۔\n\nجب آپ کے آلات گاہک کے مسائل سے مماثل ہوں گے، تو کام براہ راست آپ کو بھیجے جائیں گے!"
 }
