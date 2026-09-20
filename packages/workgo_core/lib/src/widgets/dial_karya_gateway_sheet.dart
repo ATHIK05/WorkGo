@@ -39,9 +39,6 @@ class DialKaryaGatewaySheet extends StatefulWidget {
 
 class _DialKaryaGatewaySheetState extends State<DialKaryaGatewaySheet>
     with SingleTickerProviderStateMixin {
-  static const String gatewayExtension = "1000";
-  static const String gatewayHotline = "+91 90802 62334";
-
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
 
@@ -74,33 +71,6 @@ class _DialKaryaGatewaySheetState extends State<DialKaryaGatewaySheet>
         await launchUrl(uri);
       }
     } catch (_) {}
-  }
-
-  void _copyToClipboard(String text, String label) {
-    HapticFeedback.selectionClick();
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
-            const SizedBox(width: 8),
-            Text(
-              "$label copied to clipboard",
-              style: GoogleFonts.plusJakartaSans(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 12.5,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: const Color(0xFF1E1035),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   IconData _getTradeIcon(String trade) {
@@ -233,11 +203,7 @@ class _DialKaryaGatewaySheetState extends State<DialKaryaGatewaySheet>
               ),
               const SizedBox(height: 18),
 
-              // ── 1. Voice Gateway Telephony Hub Card (Obsidian Glass) ──
-              _buildGatewayTelephonyCard(),
-              const SizedBox(height: 14),
-
-              // ── 2. Peer KYC Bounty Highlight Banner ──
+              // ── 1. Peer KYC Bounty Highlight Banner ──
               _buildBountyHighlightBanner(),
               const SizedBox(height: 20),
 
@@ -288,194 +254,6 @@ class _DialKaryaGatewaySheetState extends State<DialKaryaGatewaySheet>
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // ── Gateway Telephony Bento Card (Obsidian Glass) ──
-  Widget _buildGatewayTelephonyCard() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF181528), Color(0xFF0F0E17)],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35), width: 1.2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x28000000),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Live Gateway Status Bar with Breathing Radar Glow
-          Row(
-            children: [
-              AnimatedBuilder(
-                animation: _pulseAnimation,
-                builder: (context, child) {
-                  return Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF10B981).withValues(
-                            alpha: 0.3 + 0.5 * _pulseAnimation.value,
-                          ),
-                          blurRadius: 8 + 4 * _pulseAnimation.value,
-                          spreadRadius: 1 + 2 * _pulseAnimation.value,
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'gateway_status_live'.trSafe('WSL2 ASTERISK SIP GATEWAY • ACTIVE'),
-                  style: GoogleFonts.plusJakartaSans(
-                    color: const Color(0xFF34D399),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.6,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _copyToClipboard(gatewayExtension, "Extension"),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.6)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "EXT $gatewayExtension",
-                        style: GoogleFonts.plusJakartaSans(
-                          color: const Color(0xFFFBBF24),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.copy_rounded, color: Color(0xFFFBBF24), size: 11),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Description
-          Text(
-            'dial_karya_gateway_desc'.trSafe(
-              'Connect non-smartphone feature phones to Extension 1000 or MizuDroid. Spoken Bhashini AI voice dispatches customer bookings automatically in 22 languages.',
-            ),
-            style: GoogleFonts.plusJakartaSans(
-              color: const Color(0xFFE4E4E7),
-              fontSize: 12,
-              height: 1.45,
-              fontWeight: FontWeight.w400,
-            ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 16),
-
-          // Interactive Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x35D97706),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton.icon(
-                    onPressed: () => _makePhoneCall(gatewayExtension),
-                    icon: const Icon(Icons.dialpad_rounded, size: 16, color: Colors.white),
-                    label: Text(
-                      'dial_ext_btn'.trSafe('Dial Ext 1000'),
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-                  ),
-                  child: OutlinedButton.icon(
-                    onPressed: () => _makePhoneCall(gatewayHotline),
-                    onLongPress: () => _copyToClipboard(gatewayHotline, "Hotline number"),
-                    icon: const Icon(Icons.call_rounded, size: 16, color: Colors.white),
-                    label: Text(
-                      'call_hotline_btn'.trSafe('Call Hotline'),
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide.none,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -991,7 +769,7 @@ class _DialKaryaGatewaySheetState extends State<DialKaryaGatewaySheet>
           const SizedBox(height: 6),
           Text(
             'dial_worker_instruction'.trSafe(
-              'When a feature-phone worker dials Extension 1000 to register, they will appear here automatically for in-person KYC verification.',
+              'When a feature-phone artisan registers via the Dial Karya voice line, they will appear here automatically for peer KYC verification.',
             ),
             style: GoogleFonts.plusJakartaSans(
               color: const Color(0xFF71717A),
@@ -1001,25 +779,6 @@ class _DialKaryaGatewaySheetState extends State<DialKaryaGatewaySheet>
             textAlign: TextAlign.center,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 18),
-          OutlinedButton.icon(
-            onPressed: () => _makePhoneCall(gatewayExtension),
-            icon: const Icon(Icons.phone_forwarded_rounded, size: 15, color: Color(0xFFB45309)),
-            label: Text(
-              "Test Call Ext $gatewayExtension",
-              style: GoogleFonts.plusJakartaSans(
-                color: const Color(0xFFB45309),
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFFFDE68A), width: 1.2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              backgroundColor: const Color(0xFFFFFBEB),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
           ),
         ],
       ),

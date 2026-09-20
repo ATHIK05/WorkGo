@@ -4230,11 +4230,12 @@ class _KaryaHomeScreenState extends State<KaryaHomeScreen>
                                 ),
                                 const SizedBox(width: 4),
                                 const Text(
-                                  "EXT 1000",
+                                  "ACTIVE",
                                   style: TextStyle(
                                     color: Color(0xFF15803D),
                                     fontSize: 9,
                                     fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.4,
                                   ),
                                 ),
                               ],

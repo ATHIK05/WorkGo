@@ -44,6 +44,10 @@ class AuthService {
   /// Sign in with Google Account (1-tap native login)
   Future<UserCredential> signInWithGoogle({UserRole role = UserRole.customer}) async {
     final GoogleSignIn googleSignIn = GoogleSignIn();
+    try {
+      // Sign out of GoogleSignIn client first to ensure the account picker dropdown is always displayed
+      await googleSignIn.signOut();
+    } catch (_) {}
     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
       throw FirebaseAuthException(
@@ -87,6 +91,9 @@ class AuthService {
       );
     }
     final GoogleSignIn googleSignIn = GoogleSignIn();
+    try {
+      await googleSignIn.signOut();
+    } catch (_) {}
     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
       throw FirebaseAuthException(
@@ -350,6 +357,10 @@ class AuthService {
     } else {
       await _sessionManager.clearAllSessions();
     }
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
+    } catch (_) {}
     await _auth.signOut();
   }
 
@@ -363,6 +374,10 @@ class AuthService {
     } else {
       await _sessionManager.clearAllSessions();
     }
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
+    } catch (_) {}
 
     // 1. Delete worker documents subcollection and worker profile
     try {
