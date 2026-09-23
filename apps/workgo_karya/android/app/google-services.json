@@ -1,0 +1,134 @@
+{
+  "project_info": {
+    "project_number": "793078865015",
+    "project_id": "workgo-sih2026",
+    "storage_bucket": "workgo-sih2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793078865015:android:a0ddecb74efe0dbaf0fa72",
+        "android_client_info": {
+          "package_name": "com.workgo.workgo_admin_console"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "793078865015-bu1fu2951vi4gr3uon3gb4k48741ag0r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHs5v4PNWRIDf6T6FcbXucoydpno6uWQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "793078865015-bu1fu2951vi4gr3uon3gb4k48741ag0r.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "793078865015-cqpom8jf59cbs1imhluv8iag7vvgtcaa.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.workgo.workgoKarya"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793078865015:android:76ce87a9d688e350f0fa72",
+        "android_client_info": {
+          "package_name": "com.workgo.workgo_customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "793078865015-f1v8hmhpmp823bb3g9fo8ltvrlta85da.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.workgo.workgo_customer",
+            "certificate_hash": "c0f3cb53b0387a16b3b14d9f270a16af94869821"
+          }
+        },
+        {
+          "client_id": "793078865015-bu1fu2951vi4gr3uon3gb4k48741ag0r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHs5v4PNWRIDf6T6FcbXucoydpno6uWQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "793078865015-bu1fu2951vi4gr3uon3gb4k48741ag0r.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "793078865015-cqpom8jf59cbs1imhluv8iag7vvgtcaa.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.workgo.workgoKarya"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793078865015:android:c357b4bc50e7590af0fa72",
+        "android_client_info": {
+          "package_name": "com.workgo.workgo_karya"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "793078865015-j7tpnd34lru7bs83292mb1vvflg7to5p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.workgo.workgo_karya",
+            "certificate_hash": "c0f3cb53b0387a16b3b14d9f270a16af94869821"
+          }
+        },
+        {
+          "client_id": "793078865015-bu1fu2951vi4gr3uon3gb4k48741ag0r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHs5v4PNWRIDf6T6FcbXucoydpno6uWQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "793078865015-bu1fu2951vi4gr3uon3gb4k48741ag0r.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "793078865015-cqpom8jf59cbs1imhluv8iag7vvgtcaa.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.workgo.workgoKarya"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../customer_theme.dart';
 import '../services/voice_recognition_service.dart';
@@ -417,6 +418,12 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                   _buildSearchInput(),
                   const SizedBox(height: 14),
 
+                  // Tier 0 Hazard Alert Banner (Physical Safety Warning)
+                  if (_diagnosis?.hazardFlag != null) ...[
+                    _buildHazardBanner(_diagnosis!.hazardFlag!),
+                    const SizedBox(height: 14),
+                  ],
+
                   // Quick symptom chips when empty or analyzing
                   if (_diagnosis == null && !_isAnalyzing) ...[
                     Text(
@@ -570,8 +577,12 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                           ElevatedButton.icon(
                             onPressed: _isDispatching ? null : () => _bookDiagnosticVisit(),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: CX.violet,
-                              foregroundColor: const Color(0xFF141416),
+                              backgroundColor: (_diagnosis?.hasHazard ?? false)
+                                  ? const Color(0xFFD32F2F)
+                                  : CX.violet,
+                              foregroundColor: (_diagnosis?.hasHazard ?? false)
+                                  ? Colors.white
+                                  : const Color(0xFF141416),
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -582,21 +593,34 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                               ),
                             ),
                             icon: _isDispatching
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Color(0xFF141416),
+                                      color: (_diagnosis?.hasHazard ?? false)
+                                          ? Colors.white
+                                          : const Color(0xFF141416),
                                     ),
                                   )
-                                : const Icon(Icons.flash_on_rounded, size: 18),
+                                : Icon(
+                                    (_diagnosis?.hasHazard ?? false)
+                                        ? Icons.emergency_rounded
+                                        : Icons.flash_on_rounded,
+                                    size: 18,
+                                  ),
                             label: Text(
-                              _isDispatching ? 'dispatching_ellipsis'.tr() : 'book_diagnostic'.tr(),
+                              _isDispatching
+                                  ? 'dispatching_ellipsis'.tr()
+                                  : ((_diagnosis?.hasHazard ?? false)
+                                      ? 'Emergency Priority Dispatch'
+                                      : 'book_diagnostic'.tr()),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: WorkGoFonts.body(
-                                color: const Color(0xFF141416),
+                                color: (_diagnosis?.hasHazard ?? false)
+                                    ? Colors.white
+                                    : const Color(0xFF141416),
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13.5,
                               ),
@@ -606,6 +630,125 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                       ),
                     ),
                   ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHazardBanner(HazardFlag hazard) {
+    Color bg;
+    Color border;
+    Color iconColor;
+    IconData iconData;
+    String headerText;
+
+    switch (hazard.type) {
+      case HazardType.gasLeak:
+        bg = const Color(0xFFFFF0F0);
+        border = const Color(0xFFFF4D4D);
+        iconColor = const Color(0xFFD32F2F);
+        iconData = Icons.warning_amber_rounded;
+        headerText = 'EMERGENCY: GAS LEAK HAZARD DETECTED';
+        break;
+      case HazardType.fireSpark:
+        bg = const Color(0xFFFFF4E5);
+        border = const Color(0xFFFF9800);
+        iconColor = const Color(0xFFE65100);
+        iconData = Icons.local_fire_department_rounded;
+        headerText = 'EMERGENCY: FIRE / SPARK HAZARD DETECTED';
+        break;
+      case HazardType.electricalShock:
+        bg = const Color(0xFFFFF3E0);
+        border = const Color(0xFFFFB74D);
+        iconColor = const Color(0xFFF57C00);
+        iconData = Icons.flash_on_rounded;
+        headerText = 'SAFETY WARNING: ELECTRICAL SHOCK RISK';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: border.withValues(alpha: 0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(iconData, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  headerText,
+                  style: WorkGoFonts.heading(
+                    color: iconColor,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hazard.safetyInstruction,
+            style: WorkGoFonts.body(
+              color: const Color(0xFF141416),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Direct Emergency Utility Helpline Quick Action
+          InkWell(
+            onTap: () async {
+              final uri = Uri(scheme: 'tel', path: hazard.helplineNumber);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: iconColor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.phone_in_talk_rounded, color: iconColor, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Call ${hazard.helplineLabel}',
+                    style: WorkGoFonts.body(
+                      color: iconColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1126,6 +1269,72 @@ class _SymptomTriageSheetState extends State<SymptomTriageSheet> {
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
+                ),
+              ),
+              // Triage Provenance Tier Badge (Telemetry & Origin)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                decoration: BoxDecoration(
+                  color: diag.hasHazard
+                      ? const Color(0xFFFFECEB)
+                      : (diag.triageTier == TriageTier.tier2Semantic
+                          ? const Color(0xFFF3E8FF)
+                          : (diag.triageTier == TriageTier.tier1Catalog
+                              ? const Color(0xFFECFDF5)
+                              : const Color(0xFFF3F4F6))),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: diag.hasHazard
+                        ? const Color(0xFFFF4D4D).withValues(alpha: 0.35)
+                        : (diag.triageTier == TriageTier.tier2Semantic
+                            ? const Color(0xFFA855F7).withValues(alpha: 0.35)
+                            : (diag.triageTier == TriageTier.tier1Catalog
+                                ? const Color(0xFF10B981).withValues(alpha: 0.35)
+                                : const Color(0xFFD1D5DB))),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      diag.hasHazard
+                          ? Icons.warning_amber_rounded
+                          : (diag.triageTier == TriageTier.tier2Semantic
+                              ? Icons.psychology_rounded
+                              : (diag.triageTier == TriageTier.tier1Catalog
+                                  ? Icons.bolt_rounded
+                                  : Icons.cloud_done_rounded)),
+                      size: 12,
+                      color: diag.hasHazard
+                          ? const Color(0xFFD32F2F)
+                          : (diag.triageTier == TriageTier.tier2Semantic
+                              ? const Color(0xFF7E22CE)
+                              : (diag.triageTier == TriageTier.tier1Catalog
+                                  ? const Color(0xFF047857)
+                                  : const Color(0xFF4B5563))),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      diag.hasHazard
+                          ? 'Safety Override'
+                          : (diag.triageTier == TriageTier.tier2Semantic
+                              ? 'On-Device Indic AI'
+                              : (diag.triageTier == TriageTier.tier1Catalog
+                                  ? 'Instant Match'
+                                  : 'Cloud AI')),
+                      style: WorkGoFonts.body(
+                        color: diag.hasHazard
+                            ? const Color(0xFFD32F2F)
+                            : (diag.triageTier == TriageTier.tier2Semantic
+                                ? const Color(0xFF7E22CE)
+                                : (diag.triageTier == TriageTier.tier1Catalog
+                                    ? const Color(0xFF047857)
+                                    : const Color(0xFF4B5563))),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

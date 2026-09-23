@@ -1,0 +1,1150 @@
+[
+  {
+    "id": "water_motor_failure",
+    "trade": "Electrician",
+    "secondaryTrade": "Plumber",
+    "equipmentTag": "Submersible Pump",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 149.0,
+    "likelyCauses": [
+      "Capacitor failure or burnt start winding (Electrical)",
+      "Foot valve leakage or suction line air lock (Plumbing)",
+      "Worn impeller or jammed rotor shaft bearing (Mechanical)"
+    ],
+    "suggestedToolsNeeded": ["Digital Clamp Meter", "Capacitor Tester", "Pipe Wrench 14-inch", "Insulation Tape"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "What exact sound or behavior does the motor show when switched on?",
+        "options": [
+          { "label": "Loud humming or buzzing sound but no water", "probableCategory": "Electrician", "likelyCause": "Start capacitor blown or jammed impeller" },
+          { "label": "Motor runs smoothly but no water reaches overhead tank", "probableCategory": "Plumber", "likelyCause": "Suction line air lock or dry borewell" },
+          { "label": "Trips MCB / fuse immediately upon switching on", "probableCategory": "Electrician", "likelyCause": "Dead short circuit in submersible motor coil" }
+        ]
+      }
+    ],
+    "keywords": [
+      "water motor", "submersible pump", "borewell pump", "motor humming", "tank not filling",
+      "samarsibal", "samar", "sub mersible", "motor la sound", "thani varala", "motor aawaz",
+      "paani nahi aa raha", "boring", "pamp", "motar", "మోటర్", "నీళ్ళు", "மோட்டார்", "தண்ணீர்",
+      "मोटर", "पानी", "পাম্প", "জল", "पाणी येत नाही", "પાણીનો પંપ", "ನೀರು ಬರ್ತಿಲ್ಲ"
+    ]
+  },
+  {
+    "id": "inverter_backup_failure",
+    "trade": "Electrician",
+    "secondaryTrade": "Appliance Repair",
+    "equipmentTag": "Inverter & Battery",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 149.0,
+    "likelyCauses": [
+      "Low distilled water level or sulfated battery lead plates",
+      "Inverter charging circuit / MOSFET bridge fault",
+      "House overload or neutral earthing loop fault"
+    ],
+    "suggestedToolsNeeded": ["Hydrometer Battery Tester", "Multimeter", "Battery Terminal Spanner", "Petroleum Jelly"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "What indicator lights or sounds is the inverter unit giving?",
+        "options": [
+          { "label": "Beeping continuously with red overload or low battery light", "probableCategory": "Electrician", "likelyCause": "Battery charging cut-off or dead cell" },
+          { "label": "No lights at all during power cut, dead unit", "probableCategory": "Electrician", "likelyCause": "Blown glass fuse or faulty bypass switch" }
+        ]
+      }
+    ],
+    "keywords": [
+      "inverter", "battery", "backup", "power cut", "beeping alarm", "ups", "battery dead",
+      "inverter beep", "battery charge nahi", "current cut", "current pona backup illa",
+      "acid water", "इन्वर्टर", "बैटरी", "इनவெர்ட்டர்", "பேட்டரி", "ఇన్వర్టర్", "ബാറ്ററി"
+    ]
+  },
+  {
+    "id": "mcb_tripping_spark",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Switchboard & Distribution Board",
+    "hazardLevel": "CRITICAL",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Dead short circuit or loose neutral terminal in distribution board",
+      "Heavy appliance circuit overload or dampness in conduit pipe",
+      "Faulty bimetal contact breaker mechanism in MCB"
+    ],
+    "suggestedToolsNeeded": ["Insulated Electrician Screwdriver Set (1000V)", "Multimeter", "Neon Phase Tester", "Wire Stripper"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the breaker trip immediately or after running heavy appliances?",
+        "options": [
+          { "label": "Trips instantaneously the second I turn it on with a spark", "probableCategory": "Electrician", "likelyCause": "Direct phase-to-neutral dead short circuit" },
+          { "label": "Trips after 5-10 minutes of running AC or geyser", "probableCategory": "Electrician", "likelyCause": "Circuit overload or undersized MCB rating" }
+        ]
+      }
+    ],
+    "keywords": [
+      "mcb", "circuit breaker", "tripping", "sparking", "burning smell", "short circuit",
+      "distribution board", "db box", "main switch", "fuse", "wire burn", "spark",
+      "suich", "swich", "bijli", "circuit", "वायरिंग", "शॉर्ट सर्किट", "ஸ்பார்க்", "ட்ரிப்"
+    ]
+  },
+  {
+    "id": "switchboard_socket_burnt",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Switchboard & Sockets",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "High contact resistance causing switch terminal melt",
+      "Loose wire screw in modular socket",
+      "Heavy load connected to standard 6A socket instead of 16A"
+    ],
+    "suggestedToolsNeeded": ["Modular Switch Puller", "Neon Phase Tester", "Wire Stripper", "Screw Driver"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is there visible blackening or burning smell from the board?",
+        "options": [
+          { "label": "Yes, black soot or burnt plastic smell", "probableCategory": "Electrician", "likelyCause": "Burnt switch terminal requiring modular plate replacement" },
+          { "label": "No, switch just feels loose or doesn't turn on device", "probableCategory": "Electrician", "likelyCause": "Internal copper rocker spring disconnected" }
+        ]
+      }
+    ],
+    "keywords": [
+      "switchboard", "socket", "switch", "plug", "loose connection", "socket burnt",
+      "swich bord", "suich", "bijli board", "plug point", "modular switch", "board spark",
+      "சுவிட்ச் போர்டு", "சாக்கெட்", "స్విచ్ బోర్డ్", "सॉकेट", "स्विच बोर्ड"
+    ]
+  },
+  {
+    "id": "ceiling_fan_slow",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Ceiling Fan",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Run capacitor (2.25uF / 2.5uF) capacitance degraded",
+      "Stator motor bearings seized or dry without grease",
+      "Electronic speed regulator triac punctured"
+    ],
+    "suggestedToolsNeeded": ["Capacitor 2.5uF", "Bearing Puller", "Grease", "Digital Multimeter", "Step Ladder"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the fan spin freely if you push it with your hand while off?",
+        "options": [
+          { "label": "Yes, spins freely by hand but runs very slow under power", "probableCategory": "Electrician", "likelyCause": "Weak run capacitor or regulator fault" },
+          { "label": "No, stiff to rotate and makes screeching noise", "probableCategory": "Electrician", "likelyCause": "Seized ball bearings requiring lubrication or replacement" }
+        ]
+      }
+    ],
+    "keywords": [
+      "ceiling fan", "fan slow", "fan speed", "capacitor", "pankha", "pankhe", "fan slow speed",
+      "fan humming", "fan suthala", "regulator", "kaathadi", "சீலிங் ஃபேன்", "पंखा धीमा",
+      "ఫ్యాన్ స్లో", "ফ্যান আস্তে", "ಪಂಖಾ", "വീശറി"
+    ]
+  },
+  {
+    "id": "ceiling_fan_wobble_noise",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Ceiling Fan",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Downrod shackle bolt loose or split pin missing",
+      "Fan blades bent out of balance or unequal blade pitch",
+      "Ceiling hook anchor vibration"
+    ],
+    "suggestedToolsNeeded": ["Blade Balancing Kit", "Spanner Set", "Heavy Downrod Clamp"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the fan shaking visibly on the rod?",
+        "options": [
+          { "label": "Yes, violent wobbling and swinging", "probableCategory": "Electrician", "likelyCause": "Blade weight imbalance or loose shackle pin" },
+          { "label": "No, just a loud grinding or humming noise", "probableCategory": "Electrician", "likelyCause": "Ball bearing ball cage shattered" }
+        ]
+      }
+    ],
+    "keywords": [
+      "fan wobble", "fan shaking", "fan sound", "grinding noise", "downrod loose",
+      "pankha hil raha", "fan vibration", "blade balance", "पंखा हिलना", "விசிறி சத்தம்"
+    ]
+  },
+  {
+    "id": "bldc_fan_remote_pcb",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "BLDC Fan",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Internal BLDC inverter drive PCB microcontroller failure",
+      "Remote control IR/RF transmitter or pairing lost",
+      "Input surge voltage blowing MOV protection component"
+    ],
+    "suggestedToolsNeeded": ["Multimeter", "Universal BLDC Remote", "Soldering Iron Kit"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the fan beep or show LED light when turned on from wall switch?",
+        "options": [
+          { "label": "No beep and no light, completely unresponsive", "probableCategory": "Electrician", "likelyCause": "Internal BLDC PCB fuse or SMPS failure" },
+          { "label": "LED blinks but fan motor does not spin", "probableCategory": "Electrician", "likelyCause": "Motor stator winding or hall sensor fault" }
+        ]
+      }
+    ],
+    "keywords": [
+      "bldc fan", "atomberg", "havells bldc", "remote fan", "fan remote not working",
+      "bldc pcb", "bldc motor", "smart fan", "inverter fan"
+    ]
+  },
+  {
+    "id": "house_wiring_short_circuit",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Concealed House Wiring",
+    "hazardLevel": "CRITICAL",
+    "diagnosticFee": 149.0,
+    "likelyCauses": [
+      "Rats chewing PVC insulation in ceiling or conduit pipe",
+      "Overheated wire insulation melted causing phase-neutral flashover",
+      "Moisture penetration in wall conduit from plumbing seepage"
+    ],
+    "suggestedToolsNeeded": ["Megger Insulation Tester", "Fish Tape Wire Puller", "FR PVC Wire Rolls 1.5/2.5 sq mm"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Where is the burning smell or smoke originating from?",
+        "options": [
+          { "label": "Inside the wall or false ceiling", "probableCategory": "Electrician", "likelyCause": "Concealed conduit short circuit requiring wire pull" },
+          { "label": "From one specific light or switch point", "probableCategory": "Electrician", "likelyCause": "Localized point burnout" }
+        ]
+      }
+    ],
+    "keywords": [
+      "short circuit", "burning smell", "smoke from wall", "house wiring", "wire burnt",
+      "conduit pipe", "rat chewed wire", "bijli short", "deewar se dhuan", "వైరింగ్ షార్ట్",
+      "तार जलने की गंध", "ஒயர் புகை", "ಶಾರ್ಟ್ ಸರ್ಕ್ಯೂಟ್"
+    ]
+  },
+  {
+    "id": "earth_leakage_shock",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Earthing & Safety",
+    "hazardLevel": "CRITICAL",
+    "diagnosticFee": 149.0,
+    "likelyCauses": [
+      "Dry earthing pit or disconnected copper earthing electrode",
+      "Neutral-to-earth voltage leakage above safety limit (5V)",
+      "Heating element in geyser or washing machine cracked leaking current into water"
+    ],
+    "suggestedToolsNeeded": ["Earth Resistance Tester", "Digital Multimeter", "Salt & Charcoal Earth Compound"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Where do you experience the electric sensation or shock?",
+        "options": [
+          { "label": "Touching metallic tap water or during shower", "probableCategory": "Electrician", "likelyCause": "Geyser element rupture or earthing pit discontinuity" },
+          { "label": "Touching metallic body of refrigerator or washing machine", "probableCategory": "Electrician", "likelyCause": "Missing appliance body earthing" }
+        ]
+      }
+    ],
+    "keywords": [
+      "electric shock", "current lag raha", "shock in water", "tap shock", "earthing",
+      "earth leakage", "geyser shock", "fridge shock", "shock adikkudhu", "current adikkudhu",
+      "arthin", "करंट लग रहा है", "ఎలక్ట్రిక్ షాక్", "மின்சார அதிர்ச்சி", "ಶಾಕ್"
+    ]
+  },
+  {
+    "id": "three_phase_phase_drop",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Three Phase Supply",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "One phase dropped from electricity utility pole or meter",
+      "Phase changeover switch rotary contacts burnt",
+      "Single-phasing causing 3-phase submersible pump or motor to overheat"
+    ],
+    "suggestedToolsNeeded": ["Phase Rotation Indicator", "Multimeter (415V range)", "Changeover Switch 32A/63A"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Are some rooms or high-power appliances working while others are dead?",
+        "options": [
+          { "label": "Yes, half the house has power but heavy loads don't work", "probableCategory": "Electrician", "likelyCause": "Single phase drop from main feeder or meter fuse blown" },
+          { "label": "Lights are glowing very dim or voltage is fluctuating wildly", "probableCategory": "Electrician", "likelyCause": "Loose main neutral connection" }
+        ]
+      }
+    ],
+    "keywords": [
+      "phase drop", "3 phase", "three phase", "single phasing", "changeover switch",
+      "half house power", "phase out", "high voltage", "low voltage", "feeder fuse"
+    ]
+  },
+  {
+    "id": "decorative_light_chandelier",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Lighting & Fixtures",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Heavy chandelier ceiling anchor hook required",
+      "LED COB spot light driver failed in false ceiling",
+      "Profile light LED strip silicon channel adhesive detachment"
+    ],
+    "suggestedToolsNeeded": ["Hammer Drill Machine", "Anchor Fasteners 10mm", "LED Driver 12V/24V", "Step Ladder"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "What type of light fixture requires installation or repair?",
+        "options": [
+          { "label": "Heavy glass or crystal chandelier hanging", "probableCategory": "Electrician", "likelyCause": "Ceiling anchor fastener installation" },
+          { "label": "False ceiling COB spot light or magnetic track light", "probableCategory": "Electrician", "likelyCause": "Driver replacement or magnetic track connection" }
+        ]
+      }
+    ],
+    "keywords": [
+      "chandelier", "pendant light", "cob light", "profile light", "false ceiling light",
+      "hanging light", "decorative light", "jhumar", "ঝাড়বাতি", "झूमर", "விளக்கு"
+    ]
+  },
+  {
+    "id": "doorbell_video_phone",
+    "trade": "Electrician",
+    "secondaryTrade": null,
+    "equipmentTag": "Doorbell & Intercom",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Solenoid bell coil burnt or ding-dong plunger stuck",
+      "Video door phone SMPS power supply failed",
+      "Push button contacts oxidised or outdoor cable cut"
+    ],
+    "suggestedToolsNeeded": ["Multimeter", "Low Voltage Cable Tester", "Soldering Tool"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is it a standard ding-dong bell or a video door camera unit?",
+        "options": [
+          { "label": "Standard wired bell chime not ringing", "probableCategory": "Electrician", "likelyCause": "Outdoor switch contact failure or burnt chime coil" },
+          { "label": "Video door phone screen black or camera offline", "probableCategory": "Electrician", "likelyCause": "12V DC power adapter or outdoor camera cable cut" }
+        ]
+      }
+    ],
+    "keywords": [
+      "doorbell", "calling bell", "video door phone", "vdp", "bell not ringing",
+      "door bell kharab", "bell sound nahi", "intercom", "calling bell repair"
+    ]
+  },
+  {
+    "id": "pipe_leakage_dampness",
+    "trade": "Plumber",
+    "secondaryTrade": "Electrician",
+    "equipmentTag": "Concealed Plumbing",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 149.0,
+    "likelyCauses": [
+      "Concealed CPVC/UPVC pipe elbow hairline crack under tile",
+      "Threaded brass elbow nipple joint Teflon tape failure",
+      "Drain pipe expansion joint slip inside duct or wall"
+    ],
+    "suggestedToolsNeeded": ["Pipe Pressure Test Pump", "Moisture Detector", "Wall Chisel & Hammer", "CPVC Solvent Cement"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the wall dampness increase when water motor or bathroom is used?",
+        "options": [
+          { "label": "Constant dampness and water meter spins even when taps shut", "probableCategory": "Plumber", "likelyCause": "Pressurized fresh water supply pipe crack" },
+          { "label": "Dampness increases only after taking a bath or flushing", "probableCategory": "Plumber", "likelyCause": "Waste water drainage pipe or floor trap seepage" }
+        ]
+      }
+    ],
+    "keywords": [
+      "pipe leak", "water leak", "wall dampness", "seepage", "ceiling wet patch",
+      "concealed pipe", "water meter spinning", "deewar me seelan", "chhat se paani",
+      "thanni leak", "seelan", "nami", "ലീക്ക്", "ಕರೆಂಟ್ ಶಾರ್ಟ್", "నీటి లీకేజీ", "சிமெண்ட் கசிவு"
+    ]
+  },
+  {
+    "id": "overhead_tank_overflow",
+    "trade": "Plumber",
+    "secondaryTrade": null,
+    "equipmentTag": "Water Tank",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Brass float ball valve mechanical lever arm snapped or washer eroded",
+      "Electronic automatic water level controller sensor wire rusted",
+      "Air lock in overflow pipe line"
+    ],
+    "suggestedToolsNeeded": ["Heavy Duty Float Valve 1-inch", "Teflon Tape Roll", "Pipe Wrench 12-inch"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the tank overflowing continuously from the top lid?",
+        "options": [
+          { "label": "Yes, water spills over roof every time pump is switched on", "probableCategory": "Plumber", "likelyCause": "Damaged float valve ball or arm" },
+          { "label": "Auto-cut controller fails to switch off the motor", "probableCategory": "Electrician", "likelyCause": "Water level controller float magnetic switch sensor failure" }
+        ]
+      }
+    ],
+    "keywords": [
+      "tank overflow", "water tank full", "tanki overflow", "ball valve", "float valve",
+      "sintex tank", "roof overflow", "chhat pe paani", "டேங்க் ஓவர்ஃபுளோ", "ట్యాంక్ ఓవర్ ఫ్లో"
+    ]
+  },
+  {
+    "id": "bathroom_drain_blockage",
+    "trade": "Plumber",
+    "secondaryTrade": null,
+    "equipmentTag": "Drainage & Sewerage",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Hair, soap scum, and bathroom lint accumulation in P-trap",
+      "Hard water calcium salt deposits choking gully trap outlet",
+      "Construction debris or grout cement flushed into drain"
+    ],
+    "suggestedToolsNeeded": ["Drain Cleaning Steel Snake (5m)", "Hand Pressure Plunger", "Caustic Drain Cleaner Gel"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is water overflowing into the bathroom floor when using shower or sink?",
+        "options": [
+          { "label": "Yes, water stands for hours and drains extremely slowly", "probableCategory": "Plumber", "likelyCause": "P-trap choke requiring manual snake clearing" },
+          { "label": "Foul sewer gas smell is bubbling up from the drain grating", "probableCategory": "Plumber", "likelyCause": "Dry water seal or siphonage in anti-syphon trap" }
+        ]
+      }
+    ],
+    "keywords": [
+      "drain blocked", "bathroom choke", "water stagnation", "clogged drain", "drainage jam",
+      "floor trap", "gully trap", "paani jama", "adaipu", "drain block", "drainage jam",
+      "ड्रेन जाम", "नाला बंद", "அடைப்பு", "డ్రైనేజ్ జామ్", "തടസ്സം"
+    ]
+  },
+  {
+    "id": "kitchen_sink_choke",
+    "trade": "Plumber",
+    "secondaryTrade": null,
+    "equipmentTag": "Kitchen Sink",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Cooking oil, grease, and food grain solid waste coagulation in flexible waste pipe",
+      "Bottle trap baffle choked with tea leaves and rice",
+      "Main kitchen drain line gradient pitch reversed"
+    ],
+    "suggestedToolsNeeded": ["Plumbing Sink Plunger", "Waste Coupling Wrench", "Heavy Flexible Waste Pipe 1.25-inch"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the blockage localized to the sink or the lower floor drain pipe?",
+        "options": [
+          { "label": "Right under the sink inside the plastic pipe", "probableCategory": "Plumber", "likelyCause": "Choked bottle trap or accordion pipe" },
+          { "label": "Water backs up from the floor drain underneath kitchen slab", "probableCategory": "Plumber", "likelyCause": "Main horizontal grease line blockage" }
+        ]
+      }
+    ],
+    "keywords": [
+      "sink choke", "kitchen sink", "sink block", "sink drainage", "food waste choke",
+      "sink paani nahi ja raha", "sink jam", "kitchen drain", "வாஷ் பேசின் அடைப்பு",
+      "सिंक जाम", "సింక్ బ్లాక్"
+    ]
+  },
+  {
+    "id": "toilet_commode_blockage",
+    "trade": "Plumber",
+    "secondaryTrade": null,
+    "equipmentTag": "Toilet Commode",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Sanitary napkins, wipes, or plastic toilet cleaner caps stuck in S-trap",
+      "Low water flush volume failing to clear siphonic jet",
+      "Main soil stack vent pipe choked causing backpressure"
+    ],
+    "suggestedToolsNeeded": ["Toilet Auger Steel Snake", "Heavy Toilet Plunger", "Safety Rubber Gloves"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "What happens when you flush the commode?",
+        "options": [
+          { "label": "Water rises to the brim and threatens to spill over", "probableCategory": "Plumber", "likelyCause": "Solid obstruction in ceramic S-trap requiring auger" },
+          { "label": "Water swirls weakly and toilet paper stays floating", "probableCategory": "Plumber", "likelyCause": "Low flush siphon volume or rim jet scaling" }
+        ]
+      }
+    ],
+    "keywords": [
+      "toilet block", "commode choke", "toilet jam", "latrine block", "toilet flush not working",
+      "commode paani nahi ja raha", "pot choke", "toilet sewage", "டாய்லெட் அடைப்பு",
+      "टॉयलेट जाम", "ల్యాట్రిన్ బ్లాక్"
+    ]
+  },
+  {
+    "id": "flush_tank_cistern_leak",
+    "trade": "Plumber",
+    "secondaryTrade": null,
+    "equipmentTag": "Flush Tank",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Syphon flapper rubber washer deformed by hard water",
+      "Ball cock inlet valve float stuck allowing water into overflow pipe",
+      "Dual flush push button plastic lever rod snapped"
+    ],
+    "suggestedToolsNeeded": ["Universal Cistern Syphon Kit", "Inlet Valve Assembly", "Teflon Tape"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Where is the water leaking from?",
+        "options": [
+          { "label": "Water continuously trickles down inside the commode bowl", "probableCategory": "Plumber", "likelyCause": "Worn syphon washer or flush valve seal" },
+          { "label": "Water drips onto the floor from underneath the flush tank", "probableCategory": "Plumber", "likelyCause": "Cracked inlet connector nut or bottom tank gasket" }
+        ]
+      }
+    ],
+    "keywords": [
+      "flush tank", "cistern leak", "toilet flush continuous", "flush button", "flush water leak",
+      "flush tanki", "commode paani leak", "फ्लश टैंक", "சிஸ்டர்ன் லீக்", "ఫ్లష్ ట్యాంక్"
+    ]
+  },
+  {
+    "id": "dripping_tap_faucet",
+    "trade": "Plumber",
+    "secondaryTrade": null,
+    "equipmentTag": "Taps & Faucets",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Quarter-turn ceramic disc cartridge cracked or chipped",
+      "Rubber O-ring washer eroded by hard water chlorine",
+      "Aerator mesh choked with pipe rust sand particles"
+    ],
+    "suggestedToolsNeeded": ["Ceramic Spindle Cartridges (Half/Quarter inch)", "Adjustable Spanner", "Hex Allen Key Set"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the tap drip even when turned off tightly?",
+        "options": [
+          { "label": "Yes, continuous drip-drip from the nozzle", "probableCategory": "Plumber", "likelyCause": "Internal ceramic cartridge replacement required" },
+          { "label": "Water leaks from around the handle or tap base on the basin", "probableCategory": "Plumber", "likelyCause": "Spindle gland packing washer failure" }
+        ]
+      }
+    ],
+    "keywords": [
+      "tap leak", "dripping tap", "faucet leak", "nal se paani tapak raha", "tap dripping",
+      "basin tap", "spindle", "quarter turn", "nal kharab", "नल से पानी", "குழாய் கசிவு",
+      "నల్లా లీకేజీ", "ಕೊಳಾಯಿ ಸೋರಿಕೆ"
+    ]
+  },
+  {
+    "id": "wall_mixer_diverter_leak",
+    "trade": "Plumber",
+    "secondaryTrade": null,
+    "equipmentTag": "Shower Mixer & Diverter",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Concealed diverter brass piston cartridge seal sheared",
+      "Wall mixer hot/cold ceramic valve eroded",
+      "Bend pipe L-joint washer damaged"
+    ],
+    "suggestedToolsNeeded": ["Concealed Diverter Cartridge Puller", "Multi-size Spanner Set", "Teflon Tape"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "What happens when you switch from bucket spout to overhead shower?",
+        "options": [
+          { "label": "Water flows from both spout and shower simultaneously", "probableCategory": "Plumber", "likelyCause": "Diverter piston cartridge internal seal blown" },
+          { "label": "Diverter knob is jammed and refuses to pull or rotate", "probableCategory": "Plumber", "likelyCause": "Severe hard-water calcium lime buildup in brass chamber" }
+        ]
+      }
+    ],
+    "keywords": [
+      "wall mixer", "diverter", "shower diverter", "shower leak", "hot cold mixer",
+      "diverter jam", "shower paani leak", "डाइवर्टर", "வால் மிக்சர்"
+    ]
+  },
+  {
+    "id": "health_faucet_jet_spray",
+    "trade": "Plumber",
+    "secondaryTrade": null,
+    "equipmentTag": "Health Faucet & Jet",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "EPDM inner braided rubber hose burst under line pressure",
+      "Spring loaded trigger valve washer worn or jammed",
+      "Angle cock wall connection thread seal leaking"
+    ],
+    "suggestedToolsNeeded": ["SS 304 Flexible Hose 1m", "Health Faucet Spray Gun", "Angle Cock Spanner"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Where is the leak located on the jet spray?",
+        "options": [
+          { "label": "Leaking through the metallic coil hose pipe", "probableCategory": "Plumber", "likelyCause": "Inner rubber core burst, requires replacement hose" },
+          { "label": "Water continuously spraying from the nozzle without pressing trigger", "probableCategory": "Plumber", "likelyCause": "Gun trigger spring or plunger seal stuck open" }
+        ]
+      }
+    ],
+    "keywords": [
+      "health faucet", "jet spray", "commode spray", "toilet pipe burst", "spray gun leak",
+      "jet spray leak", "toilet gun", "हेल्थ नल", "ஜெட் ஸ்ப்ரே"
+    ]
+  },
+  {
+    "id": "ac_cooling_failure",
+    "trade": "Appliance Repair",
+    "secondaryTrade": null,
+    "equipmentTag": "Air Conditioner",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Refrigerant gas micro-leak (R32 / R410A) in copper condenser coil",
+      "Compressor dual run capacitor (45uF / 50uF) dead or open circuit",
+      "Severe dirt clogging on indoor cooling evaporator coil"
+    ],
+    "suggestedToolsNeeded": ["Refrigerant Gauge Manifold", "Gas Leak Sniffer Detector", "Digital Clamp Multimeter", "Capacitor 50uF"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the outdoor unit compressor and fan running when AC is turned on?",
+        "options": [
+          { "label": "Outdoor unit runs but room air is room temperature or warm", "probableCategory": "Appliance Repair", "likelyCause": "Refrigerant gas leak or frozen evaporator coil" },
+          { "label": "Indoor fan runs but outdoor unit never kicks in", "probableCategory": "Appliance Repair", "likelyCause": "Compressor run capacitor or communication PCB fault" }
+        ]
+      }
+    ],
+    "keywords": [
+      "ac not cooling", "air conditioner", "ac thanda nahi", "ac warm air", "gas leak",
+      "ac compressor", "ac cooling illa", "cooling problem", "split ac", "window ac",
+      "ac gas", "ஏசி கூலிங் இல்ல", "ఏసీ చల్లగా లేదు", "एसी ठंडा नहीं", "এসি ঠান্ডা নেই"
+    ]
+  },
+  {
+    "id": "ac_water_leakage_indoor",
+    "trade": "Appliance Repair",
+    "secondaryTrade": null,
+    "equipmentTag": "Air Conditioner",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Indoor unit drain pan cracked or clogged with algae slime",
+      "Condensate drain pipe pinched or back-pitch causing overflow",
+      "Evaporator coil freezing into ice block due to low gas and melting suddenly"
+    ],
+    "suggestedToolsNeeded": ["Drain Jet Pump Kit", "Flexible Condensate Pipe 16mm", "Spirit Level Tool"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Where is the water dripping from the indoor AC unit?",
+        "options": [
+          { "label": "Water trickles down the wall directly from under the indoor unit", "probableCategory": "Appliance Repair", "likelyCause": "Choked condensate drain tray or pipe" },
+          { "label": "Ice forms on the cooling fins and spits water droplets from blower", "probableCategory": "Appliance Repair", "likelyCause": "Refrigerant low causing coil freezing" }
+        ]
+      }
+    ],
+    "keywords": [
+      "ac water leak", "ac water dripping", "ac se paani tapak raha", "water from indoor unit",
+      "ac drain choke", "ac thanni leak", "एसी से पानी", "ஏசி தண்ணீர் கசிவு", "ఏసీ నీటి లీక్"
+    ]
+  },
+  {
+    "id": "geyser_heating_issue",
+    "trade": "Appliance Repair",
+    "secondaryTrade": "Electrician",
+    "equipmentTag": "Water Heater / Geyser",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 149.0,
+    "likelyCauses": [
+      "Copper/Incoloy heating element burnt or mineral scale calcification",
+      "Manual reset thermal cutout sensor tripped due to overheating",
+      "Capillary thermostat calibration lost"
+    ],
+    "suggestedToolsNeeded": ["Geyser Element 2kW / 3kW", "Thermostat Assembly", "Flange Box Spanner", "Multimeter"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Do the power and heating indicator lights illuminate on the geyser?",
+        "options": [
+          { "label": "Lights are ON but water remains completely cold", "probableCategory": "Appliance Repair", "likelyCause": "Burnt heating element" },
+          { "label": "Zero lights illuminate even though wall power switch is ON", "probableCategory": "Electrician", "likelyCause": "Safety thermal cutout tripped or plug top fuse burnt" }
+        ]
+      }
+    ],
+    "keywords": [
+      "geyser", "water heater", "geyser not heating", "hot water not coming", "geyser garam nahi",
+      "gyser", "giser", "geaser", "gizer", "water heater kharab", "element burnt",
+      "thermostat trip", "geyser shock", "गीजर", "வாட்டர் ஹீட்டர்", "గీజర్", "ഗീസർ", "ಗೀಜರ್"
+    ]
+  },
+  {
+    "id": "refrigerator_cooling_issue",
+    "trade": "Appliance Repair",
+    "secondaryTrade": null,
+    "equipmentTag": "Refrigerator / Fridge",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Defrost bimetal thermostat or defrost heater element failure choking air vents with ice",
+      "Refrigerant gas micro-leak in internal suction line",
+      "Compressor relay / PTC start thermistor open-circuit"
+    ],
+    "suggestedToolsNeeded": ["Digital Clamp Meter", "PTC Relay & Overload Protector", "Defrost Sensor", "Manifold Gauge"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the freezer cold while the lower fridge compartment is warm?",
+        "options": [
+          { "label": "Freezer makes ice, but lower section food spoils", "probableCategory": "Appliance Repair", "likelyCause": "Defrost timer or fan motor air circulation failure" },
+          { "label": "Both freezer and fridge compartments are room temperature", "probableCategory": "Appliance Repair", "likelyCause": "Compressor failing to start or total gas leak" }
+        ]
+      }
+    ],
+    "keywords": [
+      "fridge", "refrigerator", "fridge not cooling", "freezer not freezing", "food spoiling",
+      "friz", "frij", "phrij", "frezer", "fridge thanda nahi", "compressor sound",
+      "ice buildup", "फ्रिज", "பிரிட்ஜ்", "ఫ్రిడ్జ్", "ಫ್ರಿಡ್ಜ್", "ഫ്രിഡ്ജ്"
+    ]
+  },
+  {
+    "id": "washing_machine_drum_spin_fault",
+    "trade": "Appliance Repair",
+    "secondaryTrade": null,
+    "equipmentTag": "Washing Machine",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Motor drive belt loose or snapped",
+      "Door lid safety switch or interlock lock sensor failed",
+      "Drum suspension spring or damper shock absorber broken causing imbalance trip"
+    ],
+    "suggestedToolsNeeded": ["Drive Belt (V-belt / Poly-V)", "Door Interlock Switch", "Universal Wrench Set"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the machine wash clothes but stop during the final spin dry cycle?",
+        "options": [
+          { "label": "Yes, water drains out but drum refuses to spin at high speed", "probableCategory": "Appliance Repair", "likelyCause": "Lid lock safety sensor or motor start capacitor failure" },
+          { "label": "Drum does not turn at all even during gentle wash", "probableCategory": "Appliance Repair", "likelyCause": "Broken motor drive belt or motor carbon brushes worn" }
+        ]
+      }
+    ],
+    "keywords": [
+      "washing machine", "drum not spinning", "clothes not drying", "spin error", "washer not working",
+      "washing machine drum", "spin nahi ho raha", "kapde sukhe nahi", "drum stuck",
+      "வாஷிங் மெஷின்", "వాషింగ్ మెషిన్", "वॉशिंग मशीन", "വാഷിംഗ് മെഷീൻ"
+    ]
+  },
+  {
+    "id": "washing_machine_drain_error",
+    "trade": "Appliance Repair",
+    "secondaryTrade": null,
+    "equipmentTag": "Washing Machine",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Drain pump filter coin trap choked with coins, hair pins, or lint",
+      "Drain pump impeller shaft seized or motor coil open",
+      "Corrugated drain hose crushed or clogged"
+    ],
+    "suggestedToolsNeeded": ["Drain Pump Assembly 30W", "Pliers", "Multimeter"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the washing machine display an error code like OE, E2, or 5E?",
+        "options": [
+          { "label": "Yes, error code shown and water remains stagnant in drum", "probableCategory": "Appliance Repair", "likelyCause": "Blocked drain pump filter or jammed impeller" },
+          { "label": "Pump hums loudly but cannot pump water out", "probableCategory": "Appliance Repair", "likelyCause": "Coin or hairpin jammed in pump propeller" }
+        ]
+      }
+    ],
+    "keywords": [
+      "washing machine drain", "water not draining", "oe error", "e2 error", "drain filter",
+      "washing machine paani nahi nikal raha", "water stuck in drum", "ड्रैन एरर"
+    ]
+  },
+  {
+    "id": "ro_purifier_issue",
+    "trade": "Appliance Repair",
+    "secondaryTrade": null,
+    "equipmentTag": "RO Water Purifier",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "RO reverse osmosis membrane pores clogged with high TDS scale",
+      "Pre-sediment and carbon filter candles choked with silt",
+      "Booster pump head diaphragm pressure dropped below 60 PSI"
+    ],
+    "suggestedToolsNeeded": ["Digital TDS Meter", "RO Filter Spanner", "RO Membrane 75/80 GPD", "Sediment & Carbon Cartridges"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is clean drinking water flowing into the tank or is waste water running continuously?",
+        "options": [
+          { "label": "No clean water, only continuous waste water drainage", "probableCategory": "Appliance Repair", "likelyCause": "Choked RO membrane or auto-flush valve failure" },
+          { "label": "Water has bad chemical or salty taste", "probableCategory": "Appliance Repair", "likelyCause": "Membrane TDS rejection breakdown" },
+          { "label": "Purifier beeping with UV / filter replacement alarm", "probableCategory": "Appliance Repair", "likelyCause": "Scheduled filter replacement or UV lamp choke" }
+        ]
+      }
+    ],
+    "keywords": [
+      "ro purifier", "water purifier", "ro not working", "ro filter", "kent ro", "aquaguard",
+      "waste water continuous", "water taste bad", "ro alarm", "ro beeping", "clean water not coming",
+      "आरओ", "வாட்டர் பியூரிஃபையர்", "ఆర్వో ఫిల్టర్", "വാട്ടർ പ്യൂരിഫയർ"
+    ]
+  },
+  {
+    "id": "microwave_oven_issue",
+    "trade": "Appliance Repair",
+    "secondaryTrade": null,
+    "equipmentTag": "Microwave Oven",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "High voltage magnetron tube vacuum loss or emission dead",
+      "High voltage diode or capacitor (0.9uF 2100V) shorted",
+      "Mica waveguide cover plate burnt causing electric arc flashover"
+    ],
+    "suggestedToolsNeeded": ["High Voltage Discharge Tool", "Microwave Magnetron", "Mica Sheet", "High Voltage Diode"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the microwave turn on and count down, but food stays completely cold?",
+        "options": [
+          { "label": "Yes, runs normally but zero heat produced", "probableCategory": "Appliance Repair", "likelyCause": "Magnetron or high voltage diode failure" },
+          { "label": "Bright sparks and crackling noise inside the cavity", "probableCategory": "Appliance Repair", "likelyCause": "Burnt mica wave-guide cover sheet" }
+        ]
+      }
+    ],
+    "keywords": [
+      "microwave", "microwave oven", "food not heating", "microwave sparks", "oven not working",
+      "microwave garam nahi", "magnetron", "oven spark", "மைக்ரோவேவ்", "ओवन", "మైక్రోవేవ్"
+    ]
+  },
+  {
+    "id": "gas_stove_leak_smell",
+    "trade": "Appliance Repair",
+    "secondaryTrade": null,
+    "equipmentTag": "Gas Stove & Hob",
+    "hazardLevel": "CRITICAL",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "LPG rubber suraksha hose pipe cracked or degraded",
+      "Gas stove brass valve spindle leak",
+      "Cylinder regulator O-ring washer torn"
+    ],
+    "suggestedToolsNeeded": ["LPG Leak Detection Solution", "Suraksha Braided Hose 1.5m", "Brass Valve Grinding Paste"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Do you smell LPG cooking gas in the kitchen right now?",
+        "options": [
+          { "label": "Yes, strong gas smell near cylinder or stove", "probableCategory": "Appliance Repair", "likelyCause": "EMERGENCY: Shut cylinder regulator immediately, do not turn on any electrical switches, open all windows" },
+          { "label": "No smell, but burner flame is low and yellow", "probableCategory": "Appliance Repair", "likelyCause": "Clogged burner nozzle orifice" }
+        ]
+      }
+    ],
+    "keywords": [
+      "gas leak", "gas smell", "lpg smell", "cylinder leak", "gas stove leak", "gas pipe leak",
+      "gas ki badbu", "cylinder se smell", "ரெகுலேட்டர் லீக்", "గ్యాస్ లీక్", "गैस रिसाव"
+    ]
+  },
+  {
+    "id": "door_lock_jammed_key_broken",
+    "trade": "Carpenter",
+    "secondaryTrade": "Locksmith",
+    "equipmentTag": "Doors & Locks",
+    "hazardLevel": "MODERATE",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Brass key sheared off flush inside lock cylinder barrel",
+      "Mortise lock internal deadbolt lever spring broken",
+      "Door frame settlement putting immense shear pressure on latch bolt"
+    ],
+    "suggestedToolsNeeded": ["Broken Key Extractor Tool Kit", "Mortise Lock Cylinder 70mm", "Cordless Drill", "Lubricant Spray (WD-40)"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the key broken inside the keyhole or is the latch jammed in the door frame?",
+        "options": [
+          { "label": "Key snapped and half piece is stuck inside the keyhole", "probableCategory": "Carpenter", "likelyCause": "Broken key extraction or cylinder replacement" },
+          { "label": "Handle turns freely but latch will not retract to open door", "probableCategory": "Carpenter", "likelyCause": "Internal follower square spindle broken" }
+        ]
+      }
+    ],
+    "keywords": [
+      "door lock", "key broken", "lock jammed", "godrej lock", "latch stuck", "handle broken",
+      "darwaza band", "taala kharab", "chabi toot gayi", "pootu", "saavi", "locksmith",
+      "lock repair", "lock stuck", "ताला खराब", "चाबी टूट गई", "பூட்டு ரிப்பேர்", "లాక్ రిపేర్"
+    ]
+  },
+  {
+    "id": "door_sagging_floor_scratch",
+    "trade": "Carpenter",
+    "secondaryTrade": null,
+    "equipmentTag": "Wooden Doors",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Heavy wooden door hinge screws stripped out of teak/plywood frame",
+      "Monsoon humidity causing wooden door bottom rail swelling",
+      "Building floor tile settling causing rubbing"
+    ],
+    "suggestedToolsNeeded": ["Wood Hand Plane / Electric Planer", "Long Wooden Plugs & Hinge Screws 2-inch", "Chisel 1-inch"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Does the bottom of the door scrape on the floor tiles when opening?",
+        "options": [
+          { "label": "Yes, door scrapes hard and requires lifting to close", "probableCategory": "Carpenter", "likelyCause": "Bottom shaving and top hinge reinforcement required" },
+          { "label": "Door binds against the side vertical door jamb frame", "probableCategory": "Carpenter", "likelyCause": "Door edge planing required" }
+        ]
+      }
+    ],
+    "keywords": [
+      "door sagging", "door scratching floor", "door scraping", "door hard to close",
+      "hinge loose", "darwaza fas raha", "darwaza ghis raha", "door plane", "carpenter",
+      "दरवाजा फंस रहा है", "கதவு தேயுது", "తలుపు కింద రాపిడి"
+    ]
+  },
+  {
+    "id": "sliding_wardrobe_channel_jump",
+    "trade": "Carpenter",
+    "secondaryTrade": null,
+    "equipmentTag": "Cupboards & Wardrobes",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Bottom nylon bearing roller cracked or derailed from aluminum track",
+      "Dust and thread hair wrapped around roller axle",
+      "Top guide wheel spring clip broken"
+    ],
+    "suggestedToolsNeeded": ["Sliding Wardrobe Heavy Roller Assembly", "Track Screwdriver", "Teflon Dry Lubricant"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the sliding door completely stuck or came off its track?",
+        "options": [
+          { "label": "Door has jumped off track and tilted dangerously", "probableCategory": "Carpenter", "likelyCause": "Roller wheel snapped or track bent" },
+          { "label": "Door moves with extreme friction and loud scraping sound", "probableCategory": "Carpenter", "likelyCause": "Roller bearing seized with dirt" }
+        ]
+      }
+    ],
+    "keywords": [
+      "sliding wardrobe", "wardrobe door", "sliding channel", "wardrobe wheel", "sliding track",
+      "almirah door", "wardrobe roller", "sliding door stuck", "अलमारी का दरवाजा",
+      "வார்ட்ரோப் ஸ்லைடிங்", "వార్డ్ రోబ్ స్లైడింగ్"
+    ]
+  },
+  {
+    "id": "balcony_pigeon_bird_netting",
+    "trade": "Carpenter",
+    "secondaryTrade": null,
+    "equipmentTag": "Balcony Safety & Nets",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Balcony open to pigeon nesting, droppings, and disease risk",
+      "Existing bird net nylon cords torn or corner anchor hooks rusted",
+      "Safety netting required to prevent pet or child accidents"
+    ],
+    "suggestedToolsNeeded": ["Hammer Drill Machine", "Stainless Steel Anchor Hooks", "UV Resistant Garware Monofilament Net (1mm)"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is this a new installation or repair of existing torn net?",
+        "options": [
+          { "label": "New pigeon netting installation across balcony", "probableCategory": "Carpenter", "likelyCause": "Full perimeter hook anchoring and net stretching" },
+          { "label": "Repair or re-tightening of loose/cut netting", "probableCategory": "Carpenter", "likelyCause": "Cable wire tensioning and patch netting" }
+        ]
+      }
+    ],
+    "keywords": [
+      "pigeon net", "bird net", "balcony net", "kabutar net", "pigeon mesh", "balcony mesh",
+      "bird spikes", "pigeon droppings", "कबूतर की जाली", "புறா வலை", "పావురాల నెట్"
+    ]
+  },
+  {
+    "id": "wall_dampness_painting",
+    "trade": "Painter",
+    "secondaryTrade": "Plumber",
+    "equipmentTag": "Wall Putty & Dampness",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 149.0,
+    "likelyCauses": [
+      "Capillary moisture seepage from adjacent bathroom or exterior wall",
+      "Wall putty delamination and paint film blistering",
+      "Efflorescence salt crystals pushing plaster off brickwork"
+    ],
+    "suggestedToolsNeeded": ["Putty Knife Scraper", "Damp-Proof Epoxy Primer", "Waterproof Polymer Putty", "Paint Roller"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Has the underlying plumbing water leak been identified and repaired?",
+        "options": [
+          { "label": "No, wall is currently cold and wet to touch", "probableCategory": "Plumber", "likelyCause": "Plumbing leak must be arrested first before plaster/paint" },
+          { "label": "Yes, leak was fixed, wall is now dry but paint is bubbling and peeling", "probableCategory": "Painter", "likelyCause": "Scraping, anti-efflorescence treatment, and repainting" }
+        ]
+      }
+    ],
+    "keywords": [
+      "wall dampness", "paint peeling", "putty flaking", "seelan", "nami", "wall bubbling",
+      "damp wall", "paint kharab", "safedi", "waterproof putty", "दीवार में सीलन",
+      "பட்டி பெயர்ந்து", "గోడ తేమ", "പെയിന്റ് അടർന്നു"
+    ]
+  },
+  {
+    "id": "bathroom_tile_grouting_seepage",
+    "trade": "Masonry",
+    "secondaryTrade": "Plumber",
+    "equipmentTag": "Bathroom Tiles & Grout",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 149.0,
+    "likelyCauses": [
+      "White cement grout between bathroom floor tiles washed away by acid cleaners",
+      "Water seeping through hairline gaps between tile and toilet trap",
+      "Water accumulating in sunken floor slab leaking down to neighbor ceiling"
+    ],
+    "suggestedToolsNeeded": ["Epoxy Grout Rake Tool", "Waterproof Epoxy Resin Grout (2-Part)", "Rubber Grout Float"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the neighbor below complaining of ceiling seepage under your bathroom?",
+        "options": [
+          { "label": "Yes, water seeps into their ceiling every time we bathe", "probableCategory": "Masonry", "likelyCause": "Floor tile joint epoxy re-grouting and silicone perimeter sealing" },
+          { "label": "Tiles on our bathroom floor feel loose or sound hollow", "probableCategory": "Masonry", "likelyCause": "Tile debonding requiring tile lifting and re-bedding" }
+        ]
+      }
+    ],
+    "keywords": [
+      "tile grouting", "bathroom seepage", "tile gap", "neighbor ceiling leak", "epoxy grout",
+      "tile join leak", "hollow tile", "bathroom floor leak", "டைல்ஸ் கிரவுட்டிங்",
+      "टाइल ग्राउटिंग", "టైల్స్ రీగ్రౌటింగ్"
+    ]
+  },
+  {
+    "id": "iron_gate_hinge_rust_weld",
+    "trade": "Welder / Metal",
+    "secondaryTrade": null,
+    "equipmentTag": "Iron Gates & Grills",
+    "hazardLevel": "CRITICAL",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Heavy iron main gate hinge weld fractured from rust fatigue",
+      "Gate sagging and dragging on road surface unable to lock",
+      "Mild steel pillar bracket weld pulled out"
+    ],
+    "suggestedToolsNeeded": ["Arc Welding Machine 200A", "Welding Electrodes E6013", "Angle Grinder Cutting Wheel", "Safety Welding Mask"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Is the gate hanging precariously or dragging on the ground?",
+        "options": [
+          { "label": "Gate is hanging on only one hinge, at risk of falling", "probableCategory": "Welder / Metal", "likelyCause": "CRITICAL SAFETY: Gate hinge welding and bracket reinforcement required immediately" },
+          { "label": "Sliding gate wheel has derailed from bottom channel track", "probableCategory": "Welder / Metal", "likelyCause": "Wheel replacement and track leveling" }
+        ]
+      }
+    ],
+    "keywords": [
+      "gate weld", "iron gate", "hinge broken", "gate dragging", "welder", "grill weld",
+      "balcony grill broken", "lohe ka gate", "welding wala", "গেট ওয়েল্ডিং",
+      "गेट वेल्डिंग", "கேட் வெல்டிங்", "గేట్ వెల్డింగ్"
+    ]
+  },
+  {
+    "id": "bathroom_deep_cleaning_acid_wash",
+    "trade": "Cleaning",
+    "secondaryTrade": null,
+    "equipmentTag": "Bathroom Sanitization",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Hard water calcium salt and mineral scale encrustation on tiles",
+      "Yellow uric acid stains in toilet bowl not responding to normal cleaners",
+      "Black mold and mildew in shower corners and silicone joints"
+    ],
+    "suggestedToolsNeeded": ["Rotary Tile Buffing Scrubber Machine", "Professional Descaling Acid Chemical", "High Pressure Steam Jet"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "What is the primary issue in the bathroom?",
+        "options": [
+          { "label": "Heavy white/yellow hard water scaling on tiles and fixtures", "probableCategory": "Cleaning", "likelyCause": "Industrial descaling acid wash and buffing" },
+          { "label": "Foul odor and mold in grout joints", "probableCategory": "Cleaning", "likelyCause": "Deep sanitization and anti-fungal steam treatment" }
+        ]
+      }
+    ],
+    "keywords": [
+      "bathroom cleaning", "deep cleaning", "tile acid wash", "hard water stains",
+      "toilet cleaning", "yellow stains", "bathroom wash", "cleaning wala",
+      "बाथरूम की सफाई", "பாத்ரூம் கிளீனிங்", "బాత్‌రూమ్ క్లీనింగ్"
+    ]
+  },
+  {
+    "id": "cockroach_drain_fly_control",
+    "trade": "Cleaning",
+    "secondaryTrade": null,
+    "equipmentTag": "Pest Control",
+    "hazardLevel": "LOW",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "German cockroach infestation breeding inside kitchen modular hinges and motor cavities",
+      "Drain flies emerging from kitchen and bathroom waste pipes",
+      "Food crumbs and moisture sustaining pest colonies"
+    ],
+    "suggestedToolsNeeded": ["Fipronil Pest Gel Bait Gun", "Deltamethrin Micro-Encapsulated Spray", "Drain Foam Chemical"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Where are pests primarily seen?",
+        "options": [
+          { "label": "Kitchen cabinets, drawers, and under gas stove", "probableCategory": "Cleaning", "likelyCause": "Herbal gel baiting in hinge corners (odorless, no utensil removal)" },
+          { "label": "Flying insects emerging from bathroom and balcony floor drains", "probableCategory": "Cleaning", "likelyCause": "Drain pipe chemical flush and anti-pest drain grating" }
+        ]
+      }
+    ],
+    "keywords": [
+      "cockroach", "pest control", "insects", "drain flies", "ants", "kida", "kide",
+      "cockroach gel", "termite", "pest control wala", "कीड़े मकोड़े", "பூச்சி மருந்து", "కీటకాల నివారణ"
+    ]
+  },
+  {
+    "id": "emergency_door_lockout",
+    "trade": "Carpenter",
+    "secondaryTrade": null,
+    "equipmentTag": "Locksmith & Security",
+    "hazardLevel": "HIGH",
+    "diagnosticFee": 99.0,
+    "likelyCauses": [
+      "Door locked automatically with keys left inside the apartment",
+      "Main door key lost or stolen",
+      "Deadbolt latch seized from inside"
+    ],
+    "suggestedToolsNeeded": ["Non-Destructive Lock Pick Kit", "Bypass Air Wedge", "Cylinder Core Extractor"],
+    "clarifyingQuestions": [
+      {
+        "id": "q1",
+        "questionText": "Are you locked outside the home right now?",
+        "options": [
+          { "label": "Yes, emergency lockout outside main door", "probableCategory": "Carpenter", "likelyCause": "Immediate priority locksmith dispatch for non-destructive bypass" },
+          { "label": "No, lock is just getting stuck intermittently", "probableCategory": "Carpenter", "likelyCause": "Lock lubrication and cylinder pin alignment" }
+        ]
+      }
+    ],
+    "keywords": [
+      "locked out", "door locked", "keys lost", "lock bypass", "locksmith", "emergency lock",
+      "chabi kho gayi", "darwaza kholna", "ghar band ho gaya", "lock break",
+      "ताला खोलना", "चाबी खो गई", "பூட்டு திறக்க"
+    ]
+  }
+]

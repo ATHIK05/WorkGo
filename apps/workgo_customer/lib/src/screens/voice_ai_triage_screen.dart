@@ -94,6 +94,7 @@ class _VoiceAiTriageScreenState extends State<VoiceAiTriageScreen>
     _voiceService.soundLevelNotifier.addListener(_onSoundLevelUpdate);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      MultilingualSemanticFallback.instance.warmUp();
       _startVoiceListening();
     });
   }

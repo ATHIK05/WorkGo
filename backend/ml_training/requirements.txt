@@ -1,0 +1,4 @@
+# WorkGo Multilingual Bi-Encoder & Catalog Embedding Pipeline Requirements
+sentence-transformers>=2.2.2
+torch>=2.0.0
+numpy>=1.21.0

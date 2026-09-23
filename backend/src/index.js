@@ -24,6 +24,12 @@ loadDemandModel().catch((err) => {
   console.warn("[index] ONNX Demand Model initialization deferred:", err.message);
 });
 
+// ── Vector Triage Catalog Init (675 phrasings & 45 centroid vectors) ──────────
+const { vectorTriage } = require("./services/vector_triage");
+vectorTriage.initialize().catch((err) => {
+  console.warn("[index] Vector triage catalog initialization deferred:", err.message);
+});
+
 // ── Express App ──────────────────────────────────────────────────────────────
 const app = express();
 app.use(helmet());

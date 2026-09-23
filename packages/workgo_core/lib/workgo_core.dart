@@ -86,6 +86,8 @@ export "src/services/face_comparison_service.dart";
 export "src/services/session_manager.dart";
 export "src/services/ai_diagnostic_service.dart";
 export "src/services/semantic_triage_matcher.dart";
+export "src/services/hazard_scanner.dart";
+export "src/services/multilingual_semantic_fallback.dart";
 export "src/services/emergency_sos_service.dart";
 export "src/services/trade_tool_catalog.dart";
 export "src/widgets/interactive_map_picker_sheet.dart";

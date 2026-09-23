@@ -1,0 +1,121 @@
+name: Build & Release WorkGo APKs
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build & Release APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Flutter (Stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+
+      - name: Verify Flutter Installation
+        run: flutter --version
+
+      # Check / fallback for google-services.json if passed via repository secret
+      - name: Setup Firebase Configuration
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "Injecting GOOGLE_SERVICES_JSON secret..."
+            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > apps/workgo_customer/android/app/google-services.json
+            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > apps/workgo_karya/android/app/google-services.json
+          fi
+
+      # 1. Prepare Shared Core Package
+      - name: Pub Get (workgo_core)
+        run: |
+          cd packages/workgo_core
+          flutter pub get
+
+      # 2. Build Customer App APK
+      - name: Build WorkGo Customer APK
+        run: |
+          cd apps/workgo_customer
+          flutter pub get
+          flutter build apk --release
+        env:
+          CI: "true"
+
+      # 3. Build Karya (Worker) App APK
+      - name: Build WorkGo Karya APK
+        run: |
+          cd apps/workgo_karya
+          flutter pub get
+          flutter build apk --release
+        env:
+          CI: "true"
+
+      # 4. Stage & Version Artifacts
+      - name: Prepare Release Artifacts
+        run: |
+          mkdir -p release-apks
+          VERSION_TAG="v1.0.${{ github.run_number }}"
+          
+          # Copy and rename Customer APK
+          cp apps/workgo_customer/build/app/outputs/flutter-apk/app-release.apk \
+             release-apks/WorkGo-Customer-${VERSION_TAG}.apk
+          
+          # Copy and rename Karya APK
+          cp apps/workgo_karya/build/app/outputs/flutter-apk/app-release.apk \
+             release-apks/WorkGo-Karya-${VERSION_TAG}.apk
+
+          echo "VERSION_TAG=${VERSION_TAG}" >> $GITHUB_ENV
+          ls -lh release-apks/
+
+      # 5. Upload Artifacts to GitHub Actions (Available in workflow summary for 30 days)
+      - name: Upload APKs as Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorkGo-APKs-${{ env.VERSION_TAG }}
+          path: release-apks/*.apk
+          retention-days: 30
+
+      # 6. Publish to GitHub Releases (Permanent Version Control distribution)
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION_TAG }}
+          name: "WorkGo Release ${{ env.VERSION_TAG }}"
+          draft: false
+          prerelease: false
+          body: |
+            ## 🚀 WorkGo Release `${{ env.VERSION_TAG }}`
+            
+            Automated production build for commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).
+            
+            ### 📱 Download Applications:
+            - **Customer App**: `WorkGo-Customer-${{ env.VERSION_TAG }}.apk`
+            - **Worker/Karya App**: `WorkGo-Karya-${{ env.VERSION_TAG }}.apk`
+            
+            ---
+            *Built automatically via GitHub Actions CI/CD pipeline.*
+          files: |
+            release-apks/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

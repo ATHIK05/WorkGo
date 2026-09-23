@@ -16,6 +16,7 @@ const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
 const https = require("https");
+const { vectorTriage } = require("../services/vector_triage");
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const GEMINI_MODEL = "gemini-1.5-flash";
@@ -578,6 +579,21 @@ router.post("/triage", async (req, res) => {
     }
 
     console.log(`[ai/triage] CACHE MISS  query="${cleanQuery.slice(0, 60)}"`);
+
+    // ── Server-Side Vector Search (Tier 1.5 — ~15ms, ₹0 cost) ─────────────────
+    try {
+      const vectorMatch = await vectorTriage.match(cleanQuery, 0.65);
+      if (vectorMatch) {
+        console.log(
+          `[ai/triage] VECTOR HIT  category="${vectorMatch.primaryCategory}"` +
+          `  tag="${vectorMatch.equipmentTag}"  conf=${vectorMatch.confidence}` +
+          `${vectorMatch.source ? `  source=${vectorMatch.source}` : ""}`
+        );
+        return res.json(vectorMatch);
+      }
+    } catch (vErr) {
+      console.warn("[ai/triage] Vector triage notice (falling through to Gemini):", vErr.message);
+    }
 
     // ── Gemini 1.5 Flash Inference (Tier 2) ──────────────────────────────────
     let result;

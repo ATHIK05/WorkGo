@@ -3,7 +3,8 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import '../api_client/workgo_api_client.dart';
 import '../models/symptom_catalog.dart';
-import 'semantic_triage_matcher.dart';
+import 'hazard_scanner.dart';
+import 'multilingual_semantic_fallback.dart';
 
 /// On-device self-learning cache: remembers high-confidence Tier 3 (Gemini) diagnoses
 /// and serves them as instantaneous 0ms Tier 1.5 hits for identical or normalized queries.
@@ -293,11 +294,18 @@ class AiDiagnosticService {
       return SymptomCatalog.matchSymptom('', contextEquipmentHint: contextEquipmentHint);
     }
 
+    // ── Tier 0: Deterministic Hazard Scanner (Raw String, Zero ML) ─────────
+    // Runs unconditionally on the raw query before any model or network.
+    final hazardFlag = HazardScanner.scan(query);
+    if (hazardFlag != null) {
+      debugPrint('[AiDiagnosticService] Tier 0 HAZARD: ${hazardFlag.type} ("${hazardFlag.matchedPhrase}")');
+    }
+
     // ── Tier 1: On-Device Keyword / Stem / Fuzzy Match ───────────────────
     final t1 = SymptomCatalog.matchSymptom(query, contextEquipmentHint: contextEquipmentHint);
     if (!t1.isOutOfScope && t1.confidence >= _tier1MinConfidence) {
       debugPrint('[AiDiagnosticService] Tier 1 HIT  cat=${t1.primaryCategory}  conf=${t1.confidence}');
-      return t1;
+      return _enrichWithHazard(t1, hazardFlag, TriageTier.tier1Catalog);
     }
     debugPrint('[AiDiagnosticService] Tier 1 MISS  conf=${t1.confidence} → Checking Tier 1.5 Adaptive Cache');
 
@@ -305,24 +313,20 @@ class AiDiagnosticService {
     final cachedResult = TriageAdaptiveCache.instance.get(query);
     if (cachedResult != null) {
       debugPrint('[AiDiagnosticService] Tier 1.5 ADAPTIVE CACHE HIT  cat=${cachedResult.primaryCategory}  conf=${cachedResult.confidence}');
-      return cachedResult;
+      return _enrichWithHazard(cachedResult, hazardFlag, cachedResult.triageTier);
     }
 
-    // ── Tier 2: On-Device Semantic TF-IDF ─────────────────────────────────
-    if (SemanticTriageMatcher.instance.isReady) {
-      try {
-        final t2 = await SemanticTriageMatcher.instance.findBestMatch(query);
-        if (t2 != null && t2.confidence >= _tier2MinConfidence) {
-          debugPrint('[AiDiagnosticService] Tier 2 HIT  cat=${t2.primaryCategory}  conf=${t2.confidence}');
-          return t2;
-        }
-      } catch (e) {
-        debugPrint('[AiDiagnosticService] Tier 2 ERROR (non-fatal): $e');
+    // ── Tier 2: On-Device Multilingual Bi-Encoder Semantic Fallback ───────
+    try {
+      final t2 = await MultilingualSemanticFallback.instance.match(query, minConfidence: _tier2MinConfidence);
+      if (t2 != null && !t2.isOutOfScope) {
+        debugPrint('[AiDiagnosticService] Tier 2 HIT  cat=${t2.primaryCategory}  conf=${t2.confidence}');
+        return _enrichWithHazard(t2, hazardFlag, TriageTier.tier2Semantic);
       }
-    } else {
-      debugPrint('[AiDiagnosticService] Tier 2 SKIP  (SemanticTriageMatcher not ready)');
+    } catch (e) {
+      debugPrint('[AiDiagnosticService] Tier 2 non-fatal notice: $e');
     }
-    debugPrint('[AiDiagnosticService] Tier 2 MISS → Tier 3 (backend cloud)');
+    debugPrint('[AiDiagnosticService] Tier 2 MISS → Tier 3 (backend cloud last resort)');
 
     // ── Tier 3 (+ Tier 4 fallback), coalesced ──────────────────────────────
     // Keyed on query + language + equipment hint, since those together fully
@@ -338,6 +342,7 @@ class AiDiagnosticService {
       query: query,
       languageCode: languageCode,
       contextEquipmentHint: contextEquipmentHint,
+      hazardFlag: hazardFlag,
     );
     _tier3InFlight[flightKey] = flight;
     try {
@@ -354,6 +359,7 @@ class AiDiagnosticService {
     required String query,
     required String? languageCode,
     required String? contextEquipmentHint,
+    required HazardFlag? hazardFlag,
   }) async {
     if (_tier3Breaker.allowsRequest) {
       try {
@@ -375,7 +381,7 @@ class AiDiagnosticService {
           if (result.confidence >= _tier1_5MinConfidence && !result.isOutOfScope) {
             TriageAdaptiveCache.instance.put(query, result);
           }
-          return result;
+          return _enrichWithHazard(result, hazardFlag, TriageTier.tier3Cloud);
         }
         // Backend responded but not with the expected shape — treat as a
         // failure for breaker purposes so a misbehaving deploy still trips it.
@@ -394,7 +400,55 @@ class AiDiagnosticService {
 
     // ── Tier 4: Deterministic Safety Net ──────────────────────────────────
     debugPrint('[AiDiagnosticService] Tier 4 FALLBACK  (SymptomCatalog deterministic)');
-    return SymptomCatalog.matchSymptom(query, contextEquipmentHint: contextEquipmentHint);
+    final t4 = SymptomCatalog.matchSymptom(query, contextEquipmentHint: contextEquipmentHint);
+    return _enrichWithHazard(t4, hazardFlag, TriageTier.tier4Fallback);
+  }
+
+  /// Attaches [hazardFlag] to a [base] result, setting appropriate safety flags
+  /// and ensuring physical hazards are never rejected as Out of Scope.
+  DiagnosticResult _enrichWithHazard(
+    DiagnosticResult base,
+    HazardFlag? hazardFlag,
+    TriageTier tier,
+  ) {
+    if (hazardFlag == null) {
+      return base.copyWith(triageTier: tier);
+    }
+
+    // If an emergency hazard was detected, but base triage was Out of Scope,
+    // upgrade it immediately to an emergency triage result!
+    if (base.isOutOfScope) {
+      return DiagnosticResult(
+        symptomQuery: base.symptomQuery,
+        primaryCategory: hazardFlag.emergencyTrade,
+        secondaryCategory: 'Appliance Repair',
+        confidence: 0.95,
+        equipmentTag: hazardFlag.type == HazardType.gasLeak
+            ? 'Kitchen Gas Stove & Hob'
+            : 'Electrical Fixture',
+        summary: hazardFlag.safetyInstruction,
+        likelyCauses: [
+          'Immediate physical hazard: ${hazardFlag.matchedPhrase}',
+          'Insulation breakdown, wire overheating, or earth leakage fault',
+        ],
+        clarifyingQuestions: const [],
+        suggestedKeywords: ['Emergency', hazardFlag.type.name],
+        suggestedToolsNeeded: ['Insulated Screwdriver', 'Multimeter', 'Neon Tester'],
+        requiresSmartDiagnosticVisit: true,
+        diagnosticFee: 99.0,
+        isAiGenerated: false,
+        isOutOfScope: false,
+        hazardFlag: hazardFlag,
+        triageTier: TriageTier.tier0Hazard,
+      );
+    }
+
+    // Attach hazard flag and ensure safety visit is required
+    return base.copyWith(
+      hazardFlag: hazardFlag,
+      triageTier: TriageTier.tier0Hazard,
+      requiresSmartDiagnosticVisit: true,
+    );
   }
 
   /// True while the Tier 3 circuit breaker is open, i.e. the backend is

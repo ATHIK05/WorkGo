@@ -16,7 +16,7 @@ serviceAccountKey.json
 **/android/.gradle/
 **/android/local.properties
 **/android/key.properties
-**/android/app/google-services.json
+
 
 # iOS
 **/ios/Pods/
@@ -32,3 +32,8 @@ backend/.env
 .idea/
 *.iml
 .agents/
+
+# Python / ML artifacts
+__pycache__/
+*.pyc
+backend/ml_training/output/

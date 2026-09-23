@@ -1,0 +1,165 @@
+# -*- coding: utf-8 -*-
+"""
+Script to apply Option B (7 Indian Languages Expansion) to export_multilingual_minilm_onnx.py.
+Integrates:
+  - 315 authentic regional phrasings across Bengali, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Odia
+  - 35 new cross-lingual benchmark test cases
+  - Re-generates output/catalog_items_45.json and output/catalog_embeddings_45.json
+"""
+
+import os
+import sys
+import json
+import re
+
+# Ensure UTF-8 stdout/stderr on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+from option_b_data import OPTION_B_PHRASINGS
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if not os.path.exists(os.path.join(BASE_DIR, "export_multilingual_minilm_onnx.py")):
+    BASE_DIR = os.path.dirname(BASE_DIR)
+TARGET_SCRIPT = os.path.join(BASE_DIR, "export_multilingual_minilm_onnx.py")
+
+NEW_TEST_CASES = [
+    # ── Bengali (বাংলা) ──
+    ("মোটর চলছে কিন্তু জল আসছে না বোরওয়েল পাম্প খারাপ ট্যাংক ভরছে না", "water_motor_failure", "Water Motor (Bengali)"),
+    ("এসি চলছে ঘর ঠান্ডা হচ্ছে না কম্প্রেসার চালু হয় না গ্যাস লিক", "ac_cooling_failure", "AC Cooling (Bengali)"),
+    ("গিজার গরম জল দিচ্ছে না ওয়াটার হিটার নষ্ট ঠান্ডা জল", "geyser_heating_issue", "Geyser (Bengali)"),
+    ("রান্নাঘরের সিঙ্ক ব্লক জল জমে আছে ড্রেন দিয়ে দুর্গন্ধ", "drain_block_sewerage", "Drain (Bengali)"),
+    ("ইনভার্টার বিপ করছে ব্যাটারি চার্জ হচ্ছে না কারেন্ট গেলে ব্যাকআপ নেই", "inverter_backup_failure", "Inverter (Bengali)"),
+
+    # ── Marathi (मराठी) ──
+    ("सबमर्सिबल मोटर चालू आहे पण पाणी येत नाही टाकी भरत नाही", "water_motor_failure", "Water Motor (Marathi)"),
+    ("एसी थंड करत नाही कंप्रेसर चालू होत नाही गॅस गळती गरम हवा", "ac_cooling_failure", "AC Cooling (Marathi)"),
+    ("एमसीबी वारंवार ट्रिप होतोय स्विचबोर्ड ठिणग्या जळाल्याचा वास", "mcb_tripping_spark", "MCB (Marathi)"),
+    ("वॉशिंग मशीन फिरत नाही ड्रम अडकलाय पाणी बाहेर पडत नाही", "washing_machine_fault", "WM (Marathi)"),
+    ("सिलिंग फॅन खूप संथ फिरतोय कॅपेसिटर गेलाय मोठा आवाज", "fan_repair_issue", "Fan (Marathi)"),
+
+    # ── Gujarati (ગુજરાતી) ──
+    ("મોટર ચાલુ છે પણ પાણી આવતું નથી બોરવેલ પંપ બંધ ટાંકી ભરાતી નથી", "water_motor_failure", "Water Motor (Gujarati)"),
+    ("એસી કૂલિંગ નથી કરતું કોમ્પ્રેસર ચાલુ નથી ગેસ લીક ગરમ હવા", "ac_cooling_failure", "AC Cooling (Gujarati)"),
+    ("ગીઝર ગરમ પાણી નથી આપતું વોટર હીટર ખરાબ માત્ર ઠંડું પાણી", "geyser_heating_issue", "Geyser (Gujarati)"),
+    ("ફ્રિજ ઠંડુ થતું નથી અંદરનું ખાવાનું બગડે છે કોમ્પ્રેસર અવાજ", "refrigerator_cooling_issue", "Fridge (Gujarati)"),
+    ("કિચન સિંક જામ થઈ ગયું છે પાણી નીકળતું નથી ગટર વાસ", "drain_block_sewerage", "Drain (Gujarati)"),
+
+    # ── Kannada (ಕನ್ನಡ) ──
+    ("ಮೋಟರ್ ಓಡ್ತಿದೆ ಆದ್ರೆ ನೀರು ಬರ್ತಿಲ್ಲ ಬೋರ್‌ವೆಲ್ ಪಂಪ್ ಕೆಟ್ಟಿದೆ ಟ್ಯಾಂಕ್ ತುಂಬ್ತಿಲ್ಲ", "water_motor_failure", "Water Motor (Kannada)"),
+    ("ಎಸಿ ಕೂಲಿಂಗ್ ಆಗ್ತಿಲ್ಲ ಕಂಪ್ರೆಸರ್ ಆನ್ ಆಗ್ತಿಲ್ಲ ಗ್ಯಾಸ್ ಲೀಕ್ ಬಿಸಿ ಗಾಳಿ", "ac_cooling_failure", "AC Cooling (Kannada)"),
+    ("ಇನ್ವರ್ಟರ್ ಬೀಪ್ ಆಗ್ತಿದೆ ಬ್ಯಾಟರಿ ಚಾರ್ಜ್ ಇಲ್ಲ ಕರೆಂಟ್ ಹೋದಾಗ ಬ್ಯಾಕಪ್ ಇಲ್ಲ", "inverter_backup_failure", "Inverter (Kannada)"),
+    ("ವಾಷಿಂಗ್ ಮಷಿನ್ ಸ್ಪಿನ್ ಆಗ್ತಿಲ್ಲ ನೀರು ಹೊರಹೋಗ್ತಿಲ್ಲ ಎರರ್ ಕೋಡ್", "washing_machine_fault", "WM (Kannada)"),
+    ("ಸೀಲಿಂಗ್ ಫ್ಯಾನ್ ತುಂಬಾ ನಿಧಾನವಾಗಿ ತಿರುಗುತ್ತಿದೆ ಕೆಪಾಸಿಟರ್ ಹೋಗಿದೆ ಗುಂಯ್ ಶಬ್ದ", "fan_repair_issue", "Fan (Kannada)"),
+
+    # ── Malayalam (മലയാളം) ──
+    ("മോട്ടോർ ഓടുന്നുണ്ട് പക്ഷേ വെള്ളം വരുന്നില്ല ബോർവെൽ പമ്പ് നിന്നു ടാങ്ക് നിറയുന്നില്ല", "water_motor_failure", "Water Motor (Malayalam)"),
+    ("എസി തണുപ്പിക്കുന്നില്ല കംപ്രസ്സർ ഓൺ ആകുന്നില്ല ഗ്യാസ് ലീക്ക് ചൂട് കാറ്റ്", "ac_cooling_failure", "AC Cooling (Malayalam)"),
+    ("ഗീസർ ഓൺ ആണ് പക്ഷേ ചൂടുവെള്ളം വരുന്നില്ല വാട്ടർ ഹീറ്റർ കേടായി", "geyser_heating_issue", "Geyser (Malayalam)"),
+    ("ഫ്രിഡ്ജ് തണുക്കുന്നില്ല ഭക്ഷണം കേടാകുന്നു ഐസ് കട്ടപിടിക്കുന്നില്ല", "refrigerator_cooling_issue", "Fridge (Malayalam)"),
+    ("ബാത്ത്റൂം ടൈലുകളിൽ കടുത്ത മഞ്ഞ കറ ഉപ്പ് പാടുകൾ ഡീപ് ക്ലീനിംഗ്", "deep_cleaning_sanitization", "Deep Clean (Malayalam)"),
+
+    # ── Punjabi (ਪੰਜਾਬੀ) ──
+    ("ਮੋਟਰ ਚੱਲ ਰਹੀ ਹੈ ਪਰ ਪਾਣੀ ਨਹੀਂ ਆ ਰਿਹਾ ਬੋਰਵੈੱਲ ਪੰਪ ਖ਼ਰਾਬ ਟੈਂਕੀ ਨਹੀਂ ਭਰਦੀ", "water_motor_failure", "Water Motor (Punjabi)"),
+    ("ਏਸੀ ਕੂਲਿੰਗ ਨਹੀਂ ਕਰ ਰਿਹਾ ਕੰਪ੍ਰੈਸਰ ਚਾਲੂ ਨਹੀਂ ਹੁੰਦਾ ਗੈਸ ਲੀਕ ਗਰਮ ਹਵਾ", "ac_cooling_failure", "AC Cooling (Punjabi)"),
+    ("ਐਮਸੀਬੀ ਵਾਰ ਵਾਰ ਟ੍ਰਿਪ ਹੋ ਰਿਹਾ ਸਵਿੱਚਬੋਰਡ ਚੰਗਿਆੜੀਆਂ ਸੜਨ ਦੀ ਬਦਬੂ", "mcb_tripping_spark", "MCB (Punjabi)"),
+    ("ਛੱਤ ਵਾਲਾ ਪੱਖਾ ਬਹੁਤ ਹੌਲੀ ਚੱਲਦਾ ਕਪੈਸਿਟਰ ਸੜ ਗਿਆ ਗੂੰਜਣ ਦੀ ਆਵਾਜ਼", "fan_repair_issue", "Fan (Punjabi)"),
+    ("ਕੰਧ ਦਾ ਰੰਗ ਉੱਖੜ ਰਿਹਾ ਹੈ ਸਿੱਲ੍ਹ ਅਤੇ ਲੂਣ ਚੜ੍ਹ ਰਿਹਾ ਵਾਟਰਪਰੂਫਿੰਗ", "wall_dampness_painting", "Wall Dampness (Punjabi)"),
+
+    # ── Odia (ଓଡ଼ିଆ) ──
+    ("ମୋଟର ଚାଲୁଛି କିନ୍ତୁ ପାଣି ଆସୁନାହିଁ ବୋରୱେଲ ପମ୍ପ ଖରାପ ଟାଙ୍କି ଭରୁନାହିଁ", "water_motor_failure", "Water Motor (Odia)"),
+    ("ଏସି ଥଣ୍ଡା କରୁନାହିଁ କମ୍ପ୍ରେସର ଚାଲୁନାହିଁ ଗ୍ୟାସ ଲିକ୍ ଗରମ ପବନ", "ac_cooling_failure", "AC Cooling (Odia)"),
+    ("ଗିଜର ଗରମ ପାଣି ଦେଉନାହିଁ ୱାଟର ହିଟର ଖରାପ ଥଣ୍ଡା ପାଣି ଆସୁଛି", "geyser_heating_issue", "Geyser (Odia)"),
+    ("ଇନଭର୍ଟର ବିପ୍ କରୁଛି ବ୍ୟାଟେରୀ ଚାର୍ଜ ହେଉନାହିଁ କରେଣ୍ଟ ଗଲେ ବ୍ୟାକଅପ୍ ନାହିଁ", "inverter_backup_failure", "Inverter (Odia)"),
+    ("କାନ୍ଥ ଭିତରେ ପାଇପ୍ ଲିକ୍ ହେଉଛି ଛାତରେ ଓଦା ଦାଗ ପାଣି ଗଳୁଛି", "pipe_leakage_dampness", "Pipe Leak (Odia)"),
+]
+
+def main():
+    print("=" * 76)
+    print("  Applying Option B: 7 Indian Languages Expansion")
+    print("  (Bengali, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Odia)")
+    print("=" * 76)
+
+    # Import existing catalog items
+    import export_multilingual_minilm_onnx as exp
+    catalog = exp.CATALOG_ITEMS
+    print(f"Loaded {len(catalog)} catalog items.")
+
+    for item in catalog:
+        cid = item["id"]
+        if cid not in OPTION_B_PHRASINGS:
+            raise ValueError(f"Missing Option B phrasings for: {cid}")
+        
+        # Check current count
+        if len(item["texts"]) == 8:
+            item["texts"].extend(OPTION_B_PHRASINGS[cid])
+        elif len(item["texts"]) == 15:
+            # Already has 15, update the last 7
+            item["texts"] = item["texts"][:8] + OPTION_B_PHRASINGS[cid]
+        else:
+            raise ValueError(f"Unexpected length for {cid}: {len(item['texts'])}")
+
+    total_phrases = sum(len(x["texts"]) for x in catalog)
+    print(f"Total catalog phrasings after expansion: {total_phrases} (expected: 675)")
+    assert total_phrases == 675
+
+    # Build formatted CATALOG_ITEMS block
+    catalog_lines = ["CATALOG_ITEMS = [\n"]
+    for idx, item in enumerate(catalog, 1):
+        catalog_lines.append(f"    # {idx}\n")
+        catalog_lines.append("    {\n")
+        catalog_lines.append(f'        "id": {json.dumps(item["id"], ensure_ascii=False)},\n')
+        catalog_lines.append(f'        "equipmentTag": {json.dumps(item["equipmentTag"], ensure_ascii=False)},\n')
+        catalog_lines.append(f'        "trade": {json.dumps(item["trade"], ensure_ascii=False)},\n')
+        catalog_lines.append('        "texts": [\n')
+        for t in item["texts"]:
+            catalog_lines.append(f'            {json.dumps(t, ensure_ascii=False)},\n')
+        catalog_lines.append("        ],\n")
+        catalog_lines.append("    },\n")
+    catalog_lines.append("]")
+    new_catalog_code = "".join(catalog_lines)
+
+    # Combine existing TEST_CASES + NEW_TEST_CASES
+    # Keep only the original first 50 test cases, then add the 35 new test cases
+    original_tests = exp.TEST_CASES[:50]
+    all_tests = original_tests + NEW_TEST_CASES
+    print(f"Total benchmark test cases: {len(all_tests)} (50 baseline + 35 Option B regional)")
+
+    test_lines = ["TEST_CASES = [\n"]
+    for q, exp_id, lbl in all_tests:
+        test_lines.append(f'    ({json.dumps(q, ensure_ascii=False)}, {json.dumps(exp_id, ensure_ascii=False)}, {json.dumps(lbl, ensure_ascii=False)}),\n')
+    test_lines.append("]")
+    new_test_code = "".join(test_lines)
+
+    # Read target script
+    with open(TARGET_SCRIPT, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Replace CATALOG_ITEMS
+    cat_pattern = r"CATALOG_ITEMS = \[.*?\n\]"
+    content_new = re.sub(cat_pattern, new_catalog_code, content, flags=re.DOTALL, count=1)
+    if content_new == content:
+        raise RuntimeError("Failed to replace CATALOG_ITEMS block")
+
+    # Replace TEST_CASES
+    test_pattern = r"TEST_CASES = \[.*?\n\]"
+    content_final = re.sub(test_pattern, new_test_code, content_new, flags=re.DOTALL, count=1)
+    if content_final == content_new:
+        raise RuntimeError("Failed to replace TEST_CASES block")
+
+    # Update docstring header in script
+    old_header_summary = "v3.0 — PRODUCTION BULLETPROOF EDITION"
+    new_header_summary = "v4.0 — OPTION B EXPANDED (14 LANGUAGES, 675 PHRASINGS)"
+    if old_header_summary in content_final:
+        content_final = content_final.replace(old_header_summary, new_header_summary)
+
+    with open(TARGET_SCRIPT, "w", encoding="utf-8") as f:
+        f.write(content_final)
+
+    print(f"\nSuccessfully updated {TARGET_SCRIPT} with Option B!")
+    print("Now ready to generate embeddings and run benchmark.")
+
+if __name__ == "__main__":
+    main()

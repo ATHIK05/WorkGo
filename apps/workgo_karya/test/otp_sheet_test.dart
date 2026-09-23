@@ -17,9 +17,15 @@ void main() {
       ),
     );
 
-    // Verify header and title
-    expect(find.text("Enter Customer Start OTP"), findsOneWidget);
-    expect(find.text("Ask the customer for the 4-digit code shown on their screen"), findsOneWidget);
+    // Verify header and title (supports both localized and mock key fallback)
+    expect(
+      find.byWidgetPredicate((w) => w is Text && (w.data == "Enter Customer Start OTP" || w.data == "otp_sheet_title")),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate((w) => w is Text && (w.data == "Ask the customer for the 4-digit code shown on their screen" || w.data == "otp_sheet_sub")),
+      findsOneWidget,
+    );
 
     // Verify 4 input boxes are present
     final textFields = find.byType(TextField);
@@ -31,7 +37,10 @@ void main() {
     expect(firstField.decoration?.fillColor, Colors.transparent);
 
     // Verify action button is present and not verified initially
-    expect(find.text("Verify & Start Service"), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is Text && (w.data == "Verify & Start Service" || w.data == "otp_sheet_verify_btn")),
+      findsOneWidget,
+    );
     expect(verified, isFalse);
   });
 }

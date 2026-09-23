@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "793078865015",
+    "project_id": "workgo-sih2026",
+    "storage_bucket": "workgo-sih2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793078865015:android:a0ddecb74efe0dbaf0fa72",
+        "android_client_info": {
+          "package_name": "com.workgo.workgo_admin_console"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHs5v4PNWRIDf6T6FcbXucoydpno6uWQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793078865015:android:76ce87a9d688e350f0fa72",
+        "android_client_info": {
+          "package_name": "com.workgo.workgo_customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHs5v4PNWRIDf6T6FcbXucoydpno6uWQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:793078865015:android:c357b4bc50e7590af0fa72",
+        "android_client_info": {
+          "package_name": "com.workgo.workgo_karya"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHs5v4PNWRIDf6T6FcbXucoydpno6uWQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
