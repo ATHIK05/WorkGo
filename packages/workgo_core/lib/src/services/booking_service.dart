@@ -200,14 +200,14 @@ class BookingService {
           final isOnline = data["availabilityStatus"] == "online" ||
               data["isCheckedIn"] == true ||
               data["availabilityStatus"] == null;
-          final isNotRejected = data["verificationStatus"] != "rejected";
+          final isApproved = data["verificationStatus"] == "approved";
           final isVisible = data["visibilityStatus"] != "hidden" &&
               data["visibilityStatus"] != "suspended";
           final matchesSkill = serviceType.isEmpty ||
               serviceType == "All" ||
               skills.any((s) => s.matchesTrade(serviceType));
 
-          if (!isOnline || !isNotRejected || !isVisible || !matchesSkill) {
+          if (!isOnline || !isApproved || !isVisible || !matchesSkill) {
             continue;
           }
 
@@ -856,7 +856,7 @@ class BookingService {
       for (final doc in snap.docs) {
         try {
           final w = Worker.fromFirestore(doc);
-          if (w.verificationStatus == VerificationStatus.rejected) continue;
+          if (w.verificationStatus != VerificationStatus.approved) continue;
           if (w.visibilityStatus == VisibilityStatus.hidden || w.visibilityStatus == VisibilityStatus.suspended) continue;
 
           // Must match primary trade or secondary trade (flexible cluster matching)

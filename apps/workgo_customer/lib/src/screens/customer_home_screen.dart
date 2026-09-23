@@ -1560,8 +1560,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                                 ),
                                                 child: Text(
                                                   worker.isOnlineOrCheckedIn
-                                                      ? "checked_in".tr()
-                                                      : "verified_pro".tr(),
+                                                      ? "artisan_online_status".tr()
+                                                      : "artisan_offline_status".tr(),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
                                                   style: TextStyle(
                                                     color:
                                                         worker
@@ -8099,8 +8101,8 @@ class _ArtisanSpotlightCard extends StatelessWidget {
                                   Flexible(
                                     child: Text(
                                       worker.isOnlineOrCheckedIn
-                                          ? "checked_in".tr()
-                                          : "checked_out".tr(),
+                                          ? "artisan_online_status".tr()
+                                          : "artisan_offline_status".tr(),
                                       style: TextStyle(
                                         color: worker.isOnlineOrCheckedIn
                                             ? const Color(0xFF065F46)

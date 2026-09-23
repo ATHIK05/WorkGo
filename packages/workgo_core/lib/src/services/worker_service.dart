@@ -23,7 +23,7 @@ class WorkerService {
           final w = Worker.fromFirestore(doc);
           if (w.visibilityStatus == VisibilityStatus.suspended ||
               w.visibilityStatus == VisibilityStatus.hidden ||
-              w.verificationStatus == VerificationStatus.rejected) {
+              w.verificationStatus != VerificationStatus.approved) {
             continue;
           }
           if (onlineOnly && !w.isOnlineOrCheckedIn) {

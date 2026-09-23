@@ -191,6 +191,9 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
       duration: const Duration(milliseconds: 600),
     );
     if (_isEmergency) _emergencyCtrl.forward();
+    if (widget.worker != null && !widget.worker!.isOnlineOrCheckedIn) {
+      _bookingTimeMode = "slot";
+    }
 
     // Pre-populate with live caller coordinates so distance calculation is immediate and correct
     if (widget.customerLat != null && widget.customerLng != null && widget.customerLat! > 1.0) {
@@ -575,6 +578,67 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                   custLng: custLng,
                 ),
               ),
+              if (worker != null && !worker.isOnlineOrCheckedIn) ...[
+                const SizedBox(height: 12),
+                SlideFadeIn(
+                  delay: const Duration(milliseconds: 40),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFCBD5E1), width: 1.1),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.schedule_rounded,
+                            size: 18,
+                            color: Color(0xFF475569),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "artisan_offline_notice_title".tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFF1E293B),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                "artisan_offline_notice_desc".tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.35,
+                                ),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               // Emergency Toggle
@@ -1675,33 +1739,78 @@ class _ServiceHeroCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 12),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              worker != null ? "coop_certified_artisan".tr() : "cooperative_service".tr(),
-                              style: const TextStyle(
-                                color: Color(0xFF065F46),
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.2,
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFA7F3D0), width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 12),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  worker != null ? "coop_certified_artisan".tr() : "cooperative_service".tr(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF065F46),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            ],
+                          ),
+                        ),
+                        if (worker != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: worker!.isOnlineOrCheckedIn ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: worker!.isOnlineOrCheckedIn ? const Color(0xFFA7F3D0) : const Color(0xFFCBD5E1),
+                                width: 0.9,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: worker!.isOnlineOrCheckedIn ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    worker!.isOnlineOrCheckedIn ? "artisan_online_status".tr() : "artisan_offline_status".tr(),
+                                    style: TextStyle(
+                                      color: worker!.isOnlineOrCheckedIn ? const Color(0xFF065F46) : const Color(0xFF475569),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
+                      ],
                     ),
                   ],
                 ),

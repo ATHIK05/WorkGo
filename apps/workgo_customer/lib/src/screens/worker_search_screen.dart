@@ -3250,7 +3250,9 @@ class _WorkerCardState extends State<_WorkerCard> {
                         child: Text(
                           widget.worker.isDialWorker
                               ? 'dial_call_book'.trSafe('Call & Book This Artisan')
-                              : 'book_this_artisan'.tr(),
+                              : (widget.worker.isOnlineOrCheckedIn
+                                  ? 'artisan_online_instant_action'.tr()
+                                  : 'artisan_offline_schedule_action'.tr()),
                           style: TextStyle(
                             color: widget.worker.isDialWorker ? const Color(0xFFFFDE59) : Colors.white,
                             fontSize: 15,
@@ -3785,7 +3787,7 @@ class _WorkerCardState extends State<_WorkerCard> {
                                   child: Text(
                                     isDial
                                         ? 'direct_phone_call'.trSafe('Direct Call')
-                                        : (isCheckedIn ? 'filter_checked_in'.tr() : 'filter_checked_out'.tr()),
+                                        : (isCheckedIn ? 'artisan_online_status'.tr() : 'artisan_offline_status'.tr()),
                                     style: TextStyle(
                                       color: isDial
                                           ? const Color(0xFFB45309)
@@ -3803,6 +3805,41 @@ class _WorkerCardState extends State<_WorkerCard> {
                         ),
                       ],
                     ),
+                    if (!isCheckedIn) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.schedule_rounded,
+                              size: 13,
+                              color: Color(0xFF64748B),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'artisan_offline_reassurance'.tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFF475569),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.25,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     // Subtle Divider
                     const Padding(
@@ -4003,12 +4040,18 @@ class _WorkerCardState extends State<_WorkerCard> {
                               if (isDial) ...[
                                 const Icon(Icons.phone_in_talk_rounded, color: Color(0xFFFDE68A), size: 13),
                                 const SizedBox(width: 4),
+                              ] else if (isCheckedIn) ...[
+                                const Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
+                                const SizedBox(width: 4),
+                              ] else ...[
+                                const Icon(Icons.calendar_today_rounded, color: Colors.white, size: 12),
+                                const SizedBox(width: 4),
                               ],
                               Flexible(
                                 child: Text(
                                   isDial
                                       ? 'call_book_artisan'.trSafe('Call & Book')
-                                      : (isCheckedIn ? 'book_live'.tr() : 'book_artisan'.tr()),
+                                      : (isCheckedIn ? 'artisan_online_instant_action'.tr() : 'artisan_offline_schedule_action'.tr()),
                                   style: TextStyle(
                                     color: isDial ? const Color(0xFFFDE68A) : Colors.white,
                                     fontSize: 12,
