@@ -47,6 +47,7 @@ class Booking {
   final String? proofPhotoBase64;
   final Map<String, dynamic>? c2paManifest;
   final Map<String, dynamic>? fareBreakdown;
+  final bool isBroadcastPaused;
 
   // AI Diagnostic & Specialist Handoff extensions
   final String bookingType; // 'direct', 'broadcast', 'diagnostic'
@@ -144,6 +145,7 @@ class Booking {
     this.proofSubmittedAt,
     this.proofPhotoBase64,
     this.c2paManifest,
+    this.isBroadcastPaused = false,
     this.bookingType = 'direct',
     this.symptomDescription,
     this.customerIssueDetails,
@@ -298,6 +300,7 @@ class Booking {
       proofSubmittedAt: _parseDateTime(d["proofSubmittedAt"]),
       proofPhotoBase64: d["proofPhotoBase64"] ?? d["completionPhotoBase64"] ?? d["photoBase64"],
       c2paManifest: d["c2paManifest"] != null ? Map<String, dynamic>.from(d["c2paManifest"] as Map) : null,
+      isBroadcastPaused: d["isBroadcastPaused"] == true,
       bookingType: d["bookingType"] ?? 'direct',
       symptomDescription: d["symptomDescription"],
       customerIssueDetails: d["customerIssueDetails"] ?? d["issueNotes"] ?? d["customerNotes"],
@@ -381,6 +384,7 @@ class Booking {
     "proofSubmittedAt": proofSubmittedAt != null ? Timestamp.fromDate(proofSubmittedAt!) : null,
     "proofPhotoBase64": proofPhotoBase64,
     "c2paManifest": c2paManifest,
+    "isBroadcastPaused": isBroadcastPaused,
     "bookingType": bookingType,
     "symptomDescription": symptomDescription,
     "customerIssueDetails": customerIssueDetails,
@@ -459,6 +463,7 @@ class Booking {
     DateTime? proofSubmittedAt,
     String? proofPhotoBase64,
     Map<String, dynamic>? c2paManifest,
+    bool? isBroadcastPaused,
     String? bookingType,
     String? symptomDescription,
     String? customerIssueDetails,
@@ -534,6 +539,7 @@ class Booking {
       proofSubmittedAt: proofSubmittedAt ?? this.proofSubmittedAt,
       proofPhotoBase64: proofPhotoBase64 ?? this.proofPhotoBase64,
       c2paManifest: c2paManifest ?? this.c2paManifest,
+      isBroadcastPaused: isBroadcastPaused ?? this.isBroadcastPaused,
       bookingType: bookingType ?? this.bookingType,
       symptomDescription: symptomDescription ?? this.symptomDescription,
       customerIssueDetails: customerIssueDetails ?? this.customerIssueDetails,

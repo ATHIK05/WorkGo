@@ -39,9 +39,27 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   double _selectedBroadcastRadius = 10.0;
   String? _realtimeAddress;
   bool _isResolvingAddress = false;
-  bool _showArtisanList = true;
+  bool _isDirectSelectionMode = false;
+  bool _hasUserToggledDirectSelection = false;
   Set<String> _previouslyBookedWorkerIds = {};
   String? _loadedCustomerHistoryId;
+
+  void _toggleDirectSelection(bool val) async {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _isDirectSelectionMode = val;
+      _hasUserToggledDirectSelection = true;
+    });
+    try {
+      await _bookingService.setBroadcastPaused(widget.bookingId, val);
+    } catch (_) {}
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeviceLocation();
+  }
 
   void _loadCustomerPastBookings(String customerId) async {
     if (_loadedCustomerHistoryId == customerId || customerId.isEmpty) return;
@@ -62,12 +80,6 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
         });
       }
     } catch (_) {}
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _initDeviceLocation();
   }
 
   void _initDeviceLocation() async {
@@ -116,18 +128,22 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.bolt_rounded, color: CX.amber, size: 20),
+              const Icon(Icons.bolt_rounded, color: Color(0xFFFFB800), size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'fare_boosted_toast'.tr(args: [extraBonus.toInt().toString()]),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF1E1035),
+          backgroundColor: const Color(0xFF1F2937),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
@@ -188,6 +204,10 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
 
         if (booking != null && booking.broadcastRadiusKm > _selectedBroadcastRadius) {
           _selectedBroadcastRadius = booking.broadcastRadiusKm;
+        }
+
+        if (!_hasUserToggledDirectSelection && booking != null) {
+          _isDirectSelectionMode = booking.isBroadcastPaused;
         }
 
         final custLat = booking?.customerLatitude;
@@ -258,10 +278,8 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                             mode: MapMode.broadcastScanning,
                             pickupAddress: address,
                             height: 360,
-                            // Real pickup coords (customer location saved at booking creation or current GPS)
                             pickupLatitude: effectivePickupLat,
                             pickupLongitude: effectivePickupLng,
-                            // Customer's live device location (Rapido pulsing blue dot)
                             myLocationLatitude: _myLat,
                             myLocationLongitude: _myLng,
                             nearbyWorkers: onlineWorkers,
@@ -278,8 +296,11 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                               if (mounted) {
                                 messenger.showSnackBar(
                                   SnackBar(
-                                    content: Text('searching_within_radius'
-                                        .tr(args: [newRad.toInt().toString()])),
+                                    content: Text(
+                                      'searching_within_radius'.tr(args: [newRad.toInt().toString()]),
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: const Color(0xFF1F2937),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -290,85 +311,166 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                               }
                             },
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 18),
 
-                          // Broadcasting Status Text
-                          Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: CX.emerald,
+                          // Clean White Scanning Status Card with Gold Accents
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: const Color(0xFFFDE68A),
+                                width: 1.2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (_isDirectSelectionMode) ...[
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Color(0xFFFEF3C7),
+                                        ),
+                                        child: const Icon(
+                                          Icons.touch_app_rounded,
+                                          size: 14,
+                                          color: Color(0xFFD97706),
+                                        ),
+                                      ),
+                                    ] else ...[
+                                      Container(
+                                        width: 9,
+                                        height: 9,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Color(0xFFD97706),
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        _isDirectSelectionMode
+                                            ? 'direct_selection_active_title'.tr()
+                                            : (onlineWorkers.isNotEmpty
+                                                ? 'active_artisans_online_nearby'.tr(args: [
+                                                    onlineWorkers.length.toString(),
+                                                    widget.serviceCategory.toLocalizedTrade(),
+                                                  ])
+                                                : 'broadcasting_active_title'.tr()),
+                                        style: WorkGoFonts.heading(
+                                          color: CX.textPrimary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _isDirectSelectionMode
+                                      ? 'direct_selection_active_desc'.tr()
+                                      : 'broadcasting_active_desc'.tr(args: [
+                                          _selectedBroadcastRadius.toInt().toString(),
+                                        ]),
+                                  style: WorkGoFonts.body(
+                                    color: CX.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 10),
+                                if (!_isDirectSelectionMode) ...[
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: const SizedBox(
+                                      width: 140,
+                                      height: 3,
+                                      child: LinearProgressIndicator(
+                                        backgroundColor: Color(0xFFFEF3C7),
+                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFB800)),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      onlineWorkers.isNotEmpty
-                                          ? 'active_artisans_online_nearby'.tr(args: [
-                                              onlineWorkers.length.toString(),
-                                              widget.serviceCategory.toLocalizedTrade(),
-                                            ])
-                                          : 'broadcasting_live_nearest'.tr(),
-                                      style: WorkGoFonts.heading(
-                                        color: CX.emerald,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                ] else ...[
+                                  Container(
+                                    width: 100,
+                                    height: 3,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFDE68A),
+                                      borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),
                                 ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'scanning_radius_for_artisans'.tr(args: [
-                                  address.split(',').first.trim(),
-                                  widget.serviceCategory.toLocalizedTrade(),
-                                ]),
-                                style: WorkGoFonts.body(
-                                  color: CX.textSecondary,
-                                  fontSize: 12.5,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 10),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: const SizedBox(
-                                  width: 140,
-                                  height: 3,
-                                  child: LinearProgressIndicator(
-                                    backgroundColor: Color(0x1FFFFFFF),
-                                    valueColor: AlwaysStoppedAnimation<Color>(CX.emerald),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              _buildExpandRadarSection(
-                                _selectedBroadcastRadius,
-                                hasWorkers: onlineWorkers.isNotEmpty,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildArtisanListToggle(),
-                              if (_showArtisanList) ...[
                                 const SizedBox(height: 16),
-                                _buildNearbyArtisansSection(
-                                  onlineWorkers,
-                                  effectivePickupLat,
-                                  effectivePickupLng,
-                                  booking,
+                                _buildExpandRadarSection(
+                                  _selectedBroadcastRadius,
+                                  hasWorkers: onlineWorkers.isNotEmpty,
                                 ),
+                                const SizedBox(height: 16),
+                                _buildArtisanListToggle(),
+                                if (_isDirectSelectionMode) ...[
+                                  const SizedBox(height: 16),
+                                  _buildNearbyArtisansSection(
+                                    onlineWorkers,
+                                    effectivePickupLat,
+                                    effectivePickupLng,
+                                    booking,
+                                  ),
+                                ] else ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFFBEB),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: const Color(0xFFFDE68A)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.info_outline_rounded,
+                                          color: Color(0xFFD97706),
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'broadcast_running_hint'.tr(),
+                                            style: WorkGoFonts.body(
+                                              color: CX.textPrimary,
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ],
                       );
@@ -393,11 +495,11 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                       );
                       if (context.mounted) Navigator.of(context).pop();
                     },
-                    icon: const Icon(Icons.close_rounded, color: CX.rose, size: 18),
+                    icon: const Icon(Icons.close_rounded, color: Color(0xFFDC2626), size: 18),
                     label: Text(
                       'cancel_broadcast'.tr(),
                       style: WorkGoFonts.heading(
-                        color: CX.rose,
+                        color: const Color(0xFFDC2626),
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -417,6 +519,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   Widget _buildFareSummaryCard(double currentTotal, double currentBonus) {
     return AuroraCard(
       padding: const EdgeInsets.all(18),
+      borderColor: const Color(0xFFFDE68A),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -445,7 +548,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                       Text(
                         "₹${currentTotal.toStringAsFixed(0)}",
                         style: WorkGoFonts.numeric(
-                          color: CX.amber,
+                          color: CX.textPrimary,
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
                         ),
@@ -455,13 +558,14 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                           decoration: BoxDecoration(
-                            color: CX.emerald.withValues(alpha: 0.2),
+                            color: const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
                           ),
                           child: Text(
                             'tip_included_badge'.tr(args: [currentBonus.toInt().toString()]),
                             style: WorkGoFonts.badge(
-                              color: CX.emerald,
+                              color: const Color(0xFF92400E),
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
                             ),
@@ -475,19 +579,19 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: CX.emerald.withValues(alpha: 0.12),
+                  color: const Color(0xFFFFFBEB),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: CX.emerald.withValues(alpha: 0.35)),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.verified_user_rounded, color: CX.emerald, size: 14),
+                    const Icon(Icons.verified_user_rounded, color: Color(0xFFD97706), size: 14),
                     const SizedBox(width: 5),
                     Text(
                       'zero_commission_badge'.tr(),
                       style: WorkGoFonts.badge(
-                        color: CX.emerald,
+                        color: const Color(0xFF92400E),
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),
@@ -501,18 +605,19 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: CX.canvasMid,
+              color: const Color(0xFFFFFBF2),
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFF0EDE6)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.shield_outlined, color: CX.cyan, size: 14),
+                const Icon(Icons.shield_outlined, color: Color(0xFFD97706), size: 14),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     'direct_to_artisan_transit'.tr(),
                     style: WorkGoFonts.body(
-                      color: CX.textMuted,
+                      color: CX.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -531,12 +636,13 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   Widget _buildRaiseFareSection() {
     return AuroraCard(
       padding: const EdgeInsets.all(16),
+      borderColor: const Color(0xFFFDE68A),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.bolt_rounded, color: CX.amber, size: 20),
+              const Icon(Icons.bolt_rounded, color: Color(0xFFD97706), size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -584,16 +690,16 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
     return OutlinedButton(
       onPressed: () => _raiseFare(amount),
       style: OutlinedButton.styleFrom(
-        foregroundColor: CX.amber,
-        side: const BorderSide(color: CX.amber, width: 1.3),
+        foregroundColor: const Color(0xFF92400E),
+        side: const BorderSide(color: Color(0xFFFFB800), width: 1.3),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         padding: const EdgeInsets.symmetric(vertical: 10),
-        backgroundColor: CX.amber.withValues(alpha: 0.08),
+        backgroundColor: const Color(0xFFFFFBEB),
       ),
       child: Text(
         label,
         style: WorkGoFonts.heading(
-          color: CX.amber,
+          color: const Color(0xFF92400E),
           fontSize: 13,
           fontWeight: FontWeight.w900,
         ),
@@ -602,7 +708,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   }
 
   // ──────────────────────────────────────────────────────────────
-  //  EXPAND RADAR RADIUS ENLARGEMENT SECTION
+  //  EXPAND RADAR RADIUS ENLARGEMENT SECTION (WHITE & GOLD)
   // ──────────────────────────────────────────────────────────────
   Widget _buildExpandRadarSection(double currentRadius, {bool hasWorkers = false}) {
     final expandOptions = [15.0, 20.0, 25.0, 35.0]
@@ -615,14 +721,11 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: hasWorkers
-            ? const Color(0xFF150B28)
-            : const Color(0xFFFFFBEB),
+        color: const Color(0xFFFFFDF5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: hasWorkers
-              ? const Color(0x408B5CF6)
-              : const Color(0xFFFDE68A),
+          color: const Color(0xFFFDE68A),
+          width: 1.2,
         ),
       ),
       child: Column(
@@ -630,12 +733,10 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.radar_rounded,
                 size: 16,
-                color: hasWorkers
-                    ? const Color(0xFFA78BFA)
-                    : const Color(0xFFD97706),
+                color: Color(0xFFD97706),
               ),
               const SizedBox(width: 6),
               Flexible(
@@ -643,10 +744,8 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                   hasWorkers
                       ? '${'active_radius_coverage'.tr(args: [currentRadius.toInt().toString()])} · ${'expand_search_radius'.tr()}'
                       : 'expand_radius_prompt'.tr(args: [currentRadius.toInt().toString()]),
-                  style: TextStyle(
-                    color: hasWorkers
-                        ? const Color(0xFFE2E8F0)
-                        : const Color(0xFF92400E),
+                  style: WorkGoFonts.heading(
+                    color: CX.textPrimary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -675,8 +774,11 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('searching_within_radius'
-                                .tr(args: [targetRad.toInt().toString()])),
+                            content: Text(
+                              'searching_within_radius'.tr(args: [targetRad.toInt().toString()]),
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            backgroundColor: const Color(0xFF1F2937),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -688,50 +790,22 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                     },
                     borderRadius: BorderRadius.circular(10),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: hasWorkers
-                            ? const Color(0xFF281545)
-                            : Colors.white,
+                        color: const Color(0xFFFFFBEB),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: hasWorkers
-                              ? const Color(0xFF8B5CF6)
-                              : const Color(0xFFF59E0B),
+                          color: const Color(0xFFFCD34D),
                           width: 1.2,
                         ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0A000000),
-                            blurRadius: 4,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.zoom_out_map_rounded,
-                            size: 12,
-                            color: hasWorkers
-                                ? const Color(0xFFA78BFA)
-                                : const Color(0xFFD97706),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'expand_radar_to'
-                                .tr(args: [targetRad.toInt().toString()]),
-                            style: TextStyle(
-                              color: hasWorkers
-                                  ? Colors.white
-                                  : const Color(0xFFB45309),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        "${targetRad.toInt()} km",
+                        style: WorkGoFonts.heading(
+                          color: const Color(0xFF92400E),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ),
@@ -745,35 +819,43 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   }
 
   // ──────────────────────────────────────────────────────────────
-  //  ARTISAN SELECTION TOGGLE & LIST (UBER-STYLE)
+  //  ARTISAN SELECTION TOGGLE (WHITE & YELLOW/GOLD)
   // ──────────────────────────────────────────────────────────────
   Widget _buildArtisanListToggle() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF150B28),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _showArtisanList
-              ? CX.indigo.withValues(alpha: 0.5)
-              : const Color(0x25FFFFFF),
+          color: _isDirectSelectionMode
+              ? const Color(0xFFFFB800)
+              : const Color(0xFFE5E7EB),
+          width: 1.3,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _showArtisanList
-                  ? CX.indigo.withValues(alpha: 0.2)
-                  : const Color(0x15FFFFFF),
+              color: _isDirectSelectionMode
+                  ? const Color(0xFFFEF3C7)
+                  : const Color(0xFFF3F4F6),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.people_alt_rounded,
               size: 18,
-              color: _showArtisanList ? CX.indigo : CX.textMuted,
+              color: _isDirectSelectionMode ? const Color(0xFFD97706) : CX.textSecondary,
             ),
           ),
           const SizedBox(width: 12),
@@ -782,21 +864,23 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'broadcast_toggle_title'.tr(),
+                  'direct_selection_toggle_title'.tr(),
                   style: WorkGoFonts.heading(
                     color: CX.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'broadcast_toggle_desc'.tr(),
+                  _isDirectSelectionMode
+                      ? 'direct_selection_toggle_on_desc'.tr()
+                      : 'direct_selection_toggle_off_desc'.tr(),
                   style: WorkGoFonts.body(
                     color: CX.textSecondary,
-                    fontSize: 11,
+                    fontSize: 11.5,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -805,19 +889,19 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
             ),
           ),
           Switch.adaptive(
-            value: _showArtisanList,
-            activeThumbColor: CX.indigo,
-            activeTrackColor: CX.indigo.withValues(alpha: 0.4),
-            onChanged: (val) {
-              HapticFeedback.lightImpact();
-              setState(() => _showArtisanList = val);
-            },
+            value: _isDirectSelectionMode,
+            activeThumbColor: const Color(0xFFFFB800),
+            activeTrackColor: const Color(0xFFFFE082),
+            onChanged: (val) => _toggleDirectSelection(val),
           ),
         ],
       ),
     );
   }
 
+  // ──────────────────────────────────────────────────────────────
+  //  NEARBY ARTISANS LIST (WHITE CARD WITH GOLD & DARK ACCENTS)
+  // ──────────────────────────────────────────────────────────────
   Widget _buildNearbyArtisansSection(
     List<Worker> onlineWorkers,
     double? pickupLat,
@@ -834,20 +918,27 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF130924),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0x358B5CF6)),
+        border: Border.all(color: const Color(0xFFFFE082), width: 1.3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle indicator (Uber-style)
+          // Drag handle indicator (clean light divider)
           Center(
             child: Container(
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: const Color(0xFFD1D5DB),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -861,7 +952,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                   'choose_artisan_heading'.tr(),
                   style: WorkGoFonts.heading(
                     color: CX.textPrimary,
-                    fontSize: 13.5,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
                   maxLines: 1,
@@ -872,9 +963,9 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: CX.emerald.withValues(alpha: 0.15),
+                  color: const Color(0xFFFFFBEB),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: CX.emerald.withValues(alpha: 0.3)),
+                  border: Border.all(color: const Color(0xFFFCD34D), width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -884,14 +975,14 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                       height: 6,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: CX.emerald,
+                        color: Color(0xFFD97706),
                       ),
                     ),
                     const SizedBox(width: 5),
                     Text(
                       "${verifiedOnlineWorkers.length} online",
                       style: WorkGoFonts.badge(
-                        color: CX.emerald,
+                        color: const Color(0xFF92400E),
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),
@@ -906,19 +997,21 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1C1035),
+                color: const Color(0xFFFFFBEB),
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFDE68A)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search_rounded, color: CX.amber, size: 20),
+                  const Icon(Icons.search_rounded, color: Color(0xFFD97706), size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'no_nearby_artisans_found'.tr(),
                       style: WorkGoFonts.body(
-                        color: CX.textSecondary,
+                        color: CX.textPrimary,
                         fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -950,13 +1043,23 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E1038),
+                        color: isRecentlyBooked
+                            ? const Color(0xFFFFFDF5)
+                            : const Color(0xFFFAFAFA),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: isRecentlyBooked
-                              ? const Color(0xFF3B82F6).withValues(alpha: 0.6)
-                              : const Color(0x25FFFFFF),
+                              ? const Color(0xFFFFB800)
+                              : const Color(0xFFE5E7EB),
+                          width: isRecentlyBooked ? 1.5 : 1,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
@@ -976,10 +1079,10 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                   width: 11,
                                   height: 11,
                                   decoration: BoxDecoration(
-                                    color: CX.emerald,
+                                    color: const Color(0xFF10B981),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: const Color(0xFF1E1038),
+                                      color: Colors.white,
                                       width: 2,
                                     ),
                                   ),
@@ -991,7 +1094,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                 child: Container(
                                   padding: const EdgeInsets.all(2),
                                   decoration: const BoxDecoration(
-                                    color: Color(0xFF2563EB),
+                                    color: Color(0xFFD97706),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -1015,7 +1118,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                         w.name,
                                         style: WorkGoFonts.heading(
                                           color: CX.textPrimary,
-                                          fontSize: 14,
+                                          fontSize: 14.5,
                                           fontWeight: FontWeight.w800,
                                         ),
                                         maxLines: 1,
@@ -1027,11 +1130,11 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF1E3A8A),
+                                          color: const Color(0xFFFEF3C7),
                                           borderRadius: BorderRadius.circular(6),
                                           border: Border.all(
-                                            color: const Color(0xFF3B82F6),
-                                            width: 0.8,
+                                            color: const Color(0xFFF59E0B),
+                                            width: 0.9,
                                           ),
                                         ),
                                         child: Row(
@@ -1040,15 +1143,15 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                             const Icon(
                                               Icons.history_rounded,
                                               size: 10,
-                                              color: Color(0xFF93C5FD),
+                                              color: Color(0xFFB45309),
                                             ),
                                             const SizedBox(width: 3),
                                             Text(
                                               'artisan_booked_recently'.tr(),
                                               style: const TextStyle(
                                                 fontSize: 9.5,
-                                                color: Color(0xFFBFDBFE),
-                                                fontWeight: FontWeight.w700,
+                                                color: Color(0xFF92400E),
+                                                fontWeight: FontWeight.w800,
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -1065,7 +1168,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                     const Icon(
                                       Icons.star_rounded,
                                       size: 13,
-                                      color: CX.amber,
+                                      color: Color(0xFFF59E0B),
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
@@ -1078,49 +1181,57 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    Text(
+                                    const Text(
                                       " · ",
                                       style: TextStyle(
-                                        color: CX.textMuted.withValues(alpha: 0.6),
+                                        color: Color(0xFF9CA3AF),
                                         fontSize: 12,
                                       ),
                                     ),
                                     const Icon(
                                       Icons.near_me_outlined,
                                       size: 12,
-                                      color: CX.cyan,
+                                      color: Color(0xFF6B7280),
                                     ),
                                     const SizedBox(width: 3),
                                     Flexible(
                                       child: Text(
-                                        'artisan_distance_km'.tr(args: [distStr]),
+                                        'artisan_distance_km'
+                                            .tr(args: [distStr])
+                                            .replaceAll('{0}', distStr)
+                                            .replaceAll('{}', distStr),
                                         style: WorkGoFonts.body(
-                                          color: CX.textSecondary,
+                                          color: CX.textPrimary,
                                           fontSize: 11,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    Text(
+                                    const Text(
                                       " · ",
                                       style: TextStyle(
-                                        color: CX.textMuted.withValues(alpha: 0.6),
+                                        color: Color(0xFF9CA3AF),
                                         fontSize: 12,
                                       ),
                                     ),
                                     const Icon(
                                       Icons.work_outline_rounded,
                                       size: 12,
-                                      color: CX.emerald,
+                                      color: Color(0xFFD97706),
                                     ),
                                     const SizedBox(width: 3),
                                     Flexible(
                                       child: Text(
-                                        'artisan_experience_years'.tr(args: [w.experienceYears.toString()]),
+                                        'artisan_experience_years'
+                                            .tr(args: [w.experienceYears.toString()])
+                                            .replaceAll('{0}', w.experienceYears.toString())
+                                            .replaceAll('{}', w.experienceYears.toString()),
                                         style: WorkGoFonts.body(
-                                          color: CX.textSecondary,
+                                          color: CX.textPrimary,
                                           fontSize: 11,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -1138,7 +1249,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                               Text(
                                 "₹${w.baseRate > 0 ? w.baseRate.toInt() : 199}",
                                 style: WorkGoFonts.numeric(
-                                  color: CX.amber,
+                                  color: CX.textPrimary,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -1146,7 +1257,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                               const SizedBox(height: 2),
                               const Icon(
                                 Icons.chevron_right_rounded,
-                                color: CX.textMuted,
+                                color: Color(0xFF9CA3AF),
                                 size: 18,
                               ),
                             ],
@@ -1164,7 +1275,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
   }
 
   // ──────────────────────────────────────────────────────────────
-  //  ARTISAN PROFILE DETAIL SHEET (IMAGE 3 STYLE)
+  //  ARTISAN PROFILE DETAIL SHEET (WHITE & GOLD - IMAGE 3 STYLE)
   // ──────────────────────────────────────────────────────────────
   void _openArtisanDetailSheet(
     Worker worker,
@@ -1189,9 +1300,16 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
         return Container(
           padding: EdgeInsets.fromLTRB(20, 14, 20, MediaQuery.of(sheetCtx).padding.bottom + 20),
           decoration: const BoxDecoration(
-            color: Color(0xFF140A28),
+            color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-            border: Border(top: BorderSide(color: Color(0x408B5CF6))),
+            border: Border(top: BorderSide(color: Color(0xFFFFB800), width: 2.5)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x1F000000),
+                blurRadius: 24,
+                offset: Offset(0, -6),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1200,10 +1318,10 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               // Top grab handle
               Center(
                 child: Container(
-                  width: 40,
+                  width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: const Color(0xFFD1D5DB),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1214,13 +1332,13 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E1038),
+                  color: const Color(0xFFFFFBEB),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0x25FFFFFF)),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.near_me_rounded, color: CX.cyan, size: 18),
+                    const Icon(Icons.near_me_rounded, color: Color(0xFFD97706), size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -1238,14 +1356,14 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: CX.emerald.withValues(alpha: 0.4)),
+                        border: Border.all(color: const Color(0xFFFFB800), width: 1.2),
                       ),
                       child: Text(
                         "$etaMin min",
                         style: WorkGoFonts.heading(
-                          color: CX.emerald,
+                          color: const Color(0xFF92400E),
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -1260,12 +1378,13 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E1038),
+                  color: const Color(0xFFFAFAFA),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: isRecentlyBooked
-                        ? const Color(0xFF3B82F6).withValues(alpha: 0.7)
-                        : const Color(0x35FFFFFF),
+                        ? const Color(0xFFFFB800)
+                        : const Color(0xFFE5E7EB),
+                    width: isRecentlyBooked ? 1.5 : 1,
                   ),
                 ),
                 child: Column(
@@ -1288,10 +1407,10 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                 width: 14,
                                 height: 14,
                                 decoration: BoxDecoration(
-                                  color: CX.emerald,
+                                  color: const Color(0xFF10B981),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: const Color(0xFF1E1038),
+                                    color: Colors.white,
                                     width: 2.5,
                                   ),
                                 ),
@@ -1323,19 +1442,19 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF1E3A8A),
+                                        color: const Color(0xFFFEF3C7),
                                         borderRadius: BorderRadius.circular(6),
                                         border: Border.all(
-                                          color: const Color(0xFF3B82F6),
-                                          width: 0.8,
+                                          color: const Color(0xFFF59E0B),
+                                          width: 0.9,
                                         ),
                                       ),
                                       child: Text(
                                         'artisan_booked_recently'.tr(),
                                         style: const TextStyle(
                                           fontSize: 9.5,
-                                          color: Color(0xFFBFDBFE),
-                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF92400E),
+                                          fontWeight: FontWeight.w800,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -1348,9 +1467,9 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                               Text(
                                 "${widget.serviceCategory.toLocalizedTrade()} · ${worker.verificationBadge.isNotEmpty ? worker.verificationBadge : 'artisan_safety_badge'.tr()}",
                                 style: WorkGoFonts.body(
-                                  color: CX.cyan,
+                                  color: const Color(0xFF92400E),
                                   fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1361,7 +1480,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                   const Icon(
                                     Icons.star_rounded,
                                     size: 15,
-                                    color: CX.amber,
+                                    color: Color(0xFFF59E0B),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
@@ -1378,7 +1497,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                                   Text(
                                     "(${worker.totalRatings > 0 ? worker.totalRatings : 12} reviews)",
                                     style: WorkGoFonts.body(
-                                      color: CX.textMuted,
+                                      color: CX.textSecondary,
                                       fontSize: 11,
                                     ),
                                   ),
@@ -1394,8 +1513,9 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF130924),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1403,22 +1523,22 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                           _buildDetailStatPill(
                             Icons.work_outline_rounded,
                             "${worker.experienceYears} yrs",
-                            "Experience",
-                            CX.emerald,
+                            'experience_label'.tr(),
+                            const Color(0xFFD97706),
                           ),
-                          Container(width: 1, height: 26, color: Colors.white12),
+                          Container(width: 1, height: 26, color: const Color(0xFFE5E7EB)),
                           _buildDetailStatPill(
                             Icons.near_me_outlined,
                             "${dist.toStringAsFixed(1)} km",
-                            "Distance",
-                            CX.cyan,
+                            'distance_label'.tr(),
+                            const Color(0xFF6B7280),
                           ),
-                          Container(width: 1, height: 26, color: Colors.white12),
+                          Container(width: 1, height: 26, color: const Color(0xFFE5E7EB)),
                           _buildDetailStatPill(
                             Icons.verified_user_outlined,
-                            "${worker.trustScore}/5",
-                            "Trust Score",
-                            CX.amber,
+                            "${worker.trustScore > 0 ? worker.trustScore : 4.9}/5",
+                            'trust_score_label'.tr(),
+                            const Color(0xFFD97706),
                           ),
                         ],
                       ),
@@ -1435,16 +1555,19 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                     child: _buildDetailActionButton(
                       Icons.shield_outlined,
                       'artisan_safety_badge'.tr(),
-                      CX.cyan,
+                      const Color(0xFFD97706),
                       () {
                         HapticFeedback.lightImpact();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text(
-                              "100% Aadhaar KYC & Police Clearance Verified Artisan",
+                            content: Text(
+                              'artisan_safety_verified_toast'.trSafe(
+                                '100% Aadhaar KYC & Police Clearance Verified Artisan',
+                              ),
+                              style: const TextStyle(color: Colors.white),
                             ),
                             behavior: SnackBarBehavior.floating,
-                            backgroundColor: const Color(0xFF1E1035),
+                            backgroundColor: const Color(0xFF1F2937),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         );
@@ -1456,7 +1579,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                     child: _buildDetailActionButton(
                       Icons.share_location_rounded,
                       'artisan_share_details'.tr(),
-                      CX.emerald,
+                      const Color(0xFF2563EB),
                       () {
                         HapticFeedback.lightImpact();
                         Clipboard.setData(ClipboardData(
@@ -1464,9 +1587,12 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                         ));
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text("Artisan details copied to clipboard"),
+                            content: Text(
+                              'artisan_copied_toast'.trSafe('Artisan details copied to clipboard'),
+                              style: const TextStyle(color: Colors.white),
+                            ),
                             behavior: SnackBarBehavior.floating,
-                            backgroundColor: const Color(0xFF1E1035),
+                            backgroundColor: const Color(0xFF1F2937),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         );
@@ -1476,31 +1602,73 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildDetailActionButton(
-                      Icons.phone_rounded,
-                      'artisan_call_action'.tr(),
-                      CX.amber,
+                      Icons.phone_locked_rounded,
+                      'contact_locked_badge'.tr(),
+                      const Color(0xFF6B7280),
                       () {
                         HapticFeedback.lightImpact();
-                        final phone = worker.phoneForCalling;
-                        if (phone != null && phone.isNotEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("Direct artisan contact: $phone"),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: const Color(0xFF1E1035),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text("Audio calling enabled upon booking confirmation"),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: const Color(0xFF1E1035),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            title: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFFBEB),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.privacy_tip_outlined,
+                                    color: Color(0xFFD97706),
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'contact_privacy_title'.tr(),
+                                    style: WorkGoFonts.heading(
+                                      color: CX.textPrimary,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        }
+                            content: Text(
+                              'contact_privacy_desc'.tr(),
+                              style: WorkGoFonts.body(
+                                color: CX.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                            actions: [
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFFB800),
+                                  foregroundColor: const Color(0xFF1A1A1A),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'understood_action'.tr(),
+                                  style: const TextStyle(fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -1512,19 +1680,19 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E1038),
+                  color: const Color(0xFFF9FAFB),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0x20FFFFFF)),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.place_rounded, color: CX.rose, size: 20),
+                    const Icon(Icons.place_rounded, color: Color(0xFFDC2626), size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         address,
                         style: WorkGoFonts.body(
-                          color: CX.textSecondary,
+                          color: CX.textPrimary,
                           fontSize: 12,
                         ),
                         maxLines: 2,
@@ -1567,21 +1735,22 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
                       );
                     }
                   },
-                  icon: const Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
+                  icon: const Icon(Icons.bolt_rounded, color: Color(0xFF1A1A1A), size: 20),
                   label: Text(
                     'artisan_direct_book_action'.tr(),
                     style: WorkGoFonts.heading(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1A1A1A),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: CX.emerald,
-                    elevation: 4,
-                    shadowColor: CX.emerald.withValues(alpha: 0.4),
+                    backgroundColor: const Color(0xFFFFB800),
+                    foregroundColor: const Color(0xFF1A1A1A),
+                    elevation: 3,
+                    shadowColor: const Color(0xFFFFB800).withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -1607,7 +1776,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               val,
               style: WorkGoFonts.numeric(
                 color: CX.textPrimary,
-                fontSize: 12,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -1617,8 +1786,8 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
         Text(
           label,
           style: WorkGoFonts.body(
-            color: CX.textMuted,
-            fontSize: 10,
+            color: CX.textSecondary,
+            fontSize: 10.5,
           ),
         ),
       ],
@@ -1637,9 +1806,16 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1038),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Column(
           children: [
@@ -1649,8 +1825,8 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
               label,
               style: WorkGoFonts.body(
                 color: CX.textPrimary,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1663,7 +1839,7 @@ class _RapidoLiveBroadcastScreenState extends State<RapidoLiveBroadcastScreen>
 }
 
 // ──────────────────────────────────────────────────────────────
-//  ARTISAN ACCEPTED CELEBRATION MODAL
+//  ARTISAN ACCEPTED CELEBRATION MODAL (WHITE & GOLD)
 // ──────────────────────────────────────────────────────────────
 class _ArtisanAcceptedCelebration extends StatelessWidget {
   const _ArtisanAcceptedCelebration({
@@ -1684,23 +1860,19 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
       context.locale.languageCode,
     );
 
-    final borderColor = isDialWorker ? const Color(0xFFF59E0B) : CX.emerald;
-    final glowColor = isDialWorker ? const Color(0xFFF59E0B) : CX.emerald;
-    final iconGradient = isDialWorker ? CX.auroraVioletAmber : CX.auroraSuccess;
-
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: CX.canvasCard,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: borderColor, width: 1.8),
+        border: Border.all(color: const Color(0xFFFFB800), width: 2),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withValues(alpha: 0.4),
-            blurRadius: 36,
-            spreadRadius: -4,
-            offset: const Offset(0, -6),
+            color: const Color(0xFFFFB800).withValues(alpha: 0.25),
+            blurRadius: 30,
+            spreadRadius: -2,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -1712,11 +1884,11 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
             height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: iconGradient,
+              color: const Color(0xFFFFB800),
               boxShadow: [
                 BoxShadow(
-                  color: glowColor.withValues(alpha: 0.5),
-                  blurRadius: 20,
+                  color: const Color(0xFFFFB800).withValues(alpha: 0.4),
+                  blurRadius: 16,
                   spreadRadius: -2,
                 ),
               ],
@@ -1724,7 +1896,7 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
             child: Center(
               child: Icon(
                 isDialWorker ? Icons.phone_in_talk_rounded : Icons.check_circle_rounded,
-                color: Colors.white,
+                color: const Color(0xFF1A1A1A),
                 size: 38,
               ),
             ),
@@ -1742,7 +1914,7 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
                 ),
                 AuroraBadge(
                   label: 'dial_karya_subtitle'.trSafe('Voice IVR • Peer Verified'),
-                  style: AuroraBadgeStyle.violet,
+                  style: AuroraBadgeStyle.amber,
                 ),
               ],
             ),
@@ -1775,13 +1947,30 @@ class _ArtisanAcceptedCelebration extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 22),
-          GlowButton(
-            label: 'track_artisan_and_otp'.tr(),
-            icon: Icons.navigation_rounded,
-            onPressed: onContinue,
-            gradient: iconGradient,
-            glowColor: glowColor,
+          SizedBox(
+            width: double.infinity,
             height: 52,
+            child: ElevatedButton.icon(
+              onPressed: onContinue,
+              icon: const Icon(Icons.navigation_rounded, color: Color(0xFF1A1A1A), size: 20),
+              label: Text(
+                'track_artisan_and_otp'.tr(),
+                style: WorkGoFonts.heading(
+                  color: const Color(0xFF1A1A1A),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFB800),
+                foregroundColor: const Color(0xFF1A1A1A),
+                elevation: 3,
+                shadowColor: const Color(0xFFFFB800).withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
           ),
         ],
       ),

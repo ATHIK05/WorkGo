@@ -271,6 +271,11 @@ class BookingService {
                 continue;
               }
 
+              // 2b. Direct artisan selection pause check: If customer paused auto-broadcast to pick manually, don't alert unassigned workers
+              if (b.isBroadcastPaused && b.workerId != workerId) {
+                continue;
+              }
+
               // 3. STRICT GEODESIC HAVERSINE DISTANCE FILTER (Service Layer)
               if (workerLat != null && workerLng != null && maxRadiusKm != null && maxRadiusKm > 0) {
                 final dist = b.distanceTo(workerLat, workerLng);
@@ -459,6 +464,14 @@ class BookingService {
   Future<void> expandBroadcastRadius(String bookingId, double newRadiusKm) async {
     await _db.collection("bookings").doc(bookingId).update({
       "broadcastRadiusKm": newRadiusKm,
+    });
+  }
+
+  /// Pause or resume broadcast to all artisans when customer enters or leaves Direct Selection mode.
+  Future<void> setBroadcastPaused(String bookingId, bool isPaused) async {
+    await _db.collection("bookings").doc(bookingId).update({
+      "isBroadcastPaused": isPaused,
+      "broadcastPausedAt": isPaused ? FieldValue.serverTimestamp() : null,
     });
   }
 
