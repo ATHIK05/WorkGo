@@ -61,6 +61,7 @@ jobs:
           flutter build apk --release
         env:
           CI: "true"
+          GRADLE_OPTS: "-Dorg.gradle.vfs.watch=false"
 
       # 3. Build Karya (Worker) App APK
       - name: Build WorkGo Karya APK
@@ -70,6 +71,7 @@ jobs:
           flutter build apk --release
         env:
           CI: "true"
+          GRADLE_OPTS: "-Dorg.gradle.vfs.watch=false"
 
       # 4. Stage & Version Artifacts
       - name: Prepare Release Artifacts
