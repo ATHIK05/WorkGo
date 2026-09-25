@@ -46,11 +46,19 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _preferredStoreController = TextEditingController();
+  final _customMaterialController = TextEditingController();
   String? _customerName;
   String? _customerPhone;
   String? _customerEmail;
   UserAddress? _selectedAddress;
   bool _isSubmitting = false;
+
+  // AI Materials & Hardware Procurement State
+  bool _customerHasAllEquipment = false;
+  List<MaterialChecklistItem> _materialsChecklist = [];
+  bool _isLoadingMaterials = false;
+  bool _isAiMaterialsEnriched = false;
 
   late AnimationController _emergencyCtrl;
 
@@ -208,6 +216,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     }
 
     _loadUserDefaultAddress();
+    _loadInitialMaterials();
   }
 
   @override
@@ -215,8 +224,64 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
     _addressController.dispose();
     _notesController.dispose();
     _phoneController.dispose();
+    _preferredStoreController.dispose();
+    _customMaterialController.dispose();
     _emergencyCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadInitialMaterials() async {
+    setState(() => _isLoadingMaterials = true);
+    try {
+      final res = await AIMaterialsService.instance.resolve(
+        serviceType: widget.serviceCategory,
+        issueDescription: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+      );
+      if (mounted) {
+        setState(() {
+          _materialsChecklist = res.items;
+          _isAiMaterialsEnriched = res.isAiEnriched;
+          _isLoadingMaterials = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMaterials = false);
+    }
+  }
+
+  void _addCustomMaterial() {
+    final text = _customMaterialController.text.trim();
+    if (text.isEmpty) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _materialsChecklist.add(
+        MaterialChecklistItem(
+          name: text,
+          category: 'custom',
+          isProvidedByCustomer: false,
+        ),
+      );
+      _customMaterialController.clear();
+      _customerHasAllEquipment = false;
+    });
+  }
+
+  void _markAllMaterialsProvided(bool allProvided) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _customerHasAllEquipment = allProvided;
+      for (final item in _materialsChecklist) {
+        item.isProvidedByCustomer = allProvided;
+      }
+    });
+  }
+
+  List<String> get _artisanPurchaseList {
+    if (_customerHasAllEquipment) return [];
+    return _materialsChecklist
+        .where((i) => !i.isProvidedByCustomer)
+        .map((i) => i.name)
+        .toList();
   }
 
   Future<void> _loadUserDefaultAddress() async {
@@ -397,7 +462,7 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
           ? _selectedAddress!.longitude
           : widget.customerLng;
       final realDist = worker?.calculateDistanceKm(custLatInit, custLngInit) ?? (worker?.distanceKm ?? 1.2);
-      final fare = CooperativePricingEngine.instance.calculateFare(
+      FareBreakdown fare = CooperativePricingEngine.instance.calculateFare(
         category: widget.serviceCategory,
         distanceKm: realDist,
         experienceYears: worker?.experienceYears ?? 3,
@@ -406,6 +471,29 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         customBaseRate: worker?.baseRate,
         customPerKmRate: worker?.perKmRate,
       );
+
+      // Cryptographically sign quote on server to guarantee statutory floor pricing
+      try {
+        final signRes = await WorkGoApiClient().post('/api/quote/sign', {
+          'category': widget.serviceCategory,
+          'distanceKm': realDist,
+          'experienceYears': worker?.experienceYears ?? 3,
+          'isEmergency': _isEmergency,
+          'urgencyTip': _urgencyTip,
+        }).timeout(const Duration(seconds: 4));
+
+        if (signRes is Map<String, dynamic> && signRes['quoteSignature'] != null) {
+          fare = fare.copyWith(
+            quoteSignature: signRes['quoteSignature'] as String?,
+            quoteExpiresAt: signRes['quoteExpiresAt'] != null
+                ? DateTime.tryParse(signRes['quoteExpiresAt'].toString())
+                : null,
+            isSignatureVerified: signRes['isSignatureVerified'] == true,
+          );
+        }
+      } catch (_) {
+        // Fallback gracefully to client-side fare if offline or server timeout
+      }
 
       final totalAmount = fare.totalEstimatedFare;
 
@@ -480,6 +568,11 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
         customerIssueDetails: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
         fareBreakdown: fare.toMap(),
         isAssignedToDialWorker: worker?.isDialWorker == true,
+        customerHasAllEquipment: _customerHasAllEquipment,
+        materialsNeededList: _artisanPurchaseList,
+        preferredHardwareStore: _preferredStoreController.text.trim().isNotEmpty
+            ? _preferredStoreController.text.trim()
+            : null,
       );
 
       if (mounted) {
@@ -1249,6 +1342,37 @@ class _BookingCreationScreenState extends State<BookingCreationScreen>
                       ),
                     ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Fair Metered Labor Overtime Notice
+              SlideFadeIn(
+                delay: const Duration(milliseconds: 240),
+                child: const _OvertimeNoticeCard(),
+              ),
+              const SizedBox(height: 20),
+
+              // AI Materials & Spare Parts Checklist Section
+              SlideFadeIn(
+                delay: const Duration(milliseconds: 250),
+                child: _AIMaterialsChecklistCard(
+                  items: _materialsChecklist,
+                  isLoading: _isLoadingMaterials,
+                  isAiEnriched: _isAiMaterialsEnriched,
+                  customerHasAllEquipment: _customerHasAllEquipment,
+                  onToggleItem: (index) {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _materialsChecklist[index].isProvidedByCustomer =
+                          !_materialsChecklist[index].isProvidedByCustomer;
+                      _customerHasAllEquipment = _materialsChecklist.every((i) => i.isProvidedByCustomer);
+                    });
+                  },
+                  onMarkAll: _markAllMaterialsProvided,
+                  customController: _customMaterialController,
+                  onAddCustom: _addCustomMaterial,
+                  storeController: _preferredStoreController,
                 ),
               ),
               const SizedBox(height: 20),
@@ -2610,6 +2734,713 @@ class _PriceCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OvertimeNoticeCard extends StatelessWidget {
+  const _OvertimeNoticeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.alarm_on_rounded,
+                  color: Color(0xFFD97706),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'overtime_notice_title'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFF1A1A1A),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'overtime_included_value'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFFB45309),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Text(
+                  'overtime_included_label'.tr(),
+                  style: const TextStyle(
+                    color: Color(0xFF92400E),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'overtime_notice_desc'.tr(),
+            style: const TextStyle(
+              color: Color(0xFF4B5563),
+              fontSize: 11.5,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFDF5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFEF3C7)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.speed_rounded, size: 14, color: Color(0xFFD97706)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'overtime_rate_value'.tr(),
+                          style: const TextStyle(
+                            color: Color(0xFF1A1A1A),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 16,
+                  color: const Color(0xFFFDE68A),
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.shield_outlined, size: 14, color: Color(0xFFD97706)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'overtime_cap_value'.tr(),
+                          style: const TextStyle(
+                            color: Color(0xFF1A1A1A),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AIMaterialsChecklistCard extends StatefulWidget {
+  final List<MaterialChecklistItem> items;
+  final bool isLoading;
+  final bool isAiEnriched;
+  final bool customerHasAllEquipment;
+  final ValueChanged<int> onToggleItem;
+  final ValueChanged<bool> onMarkAll;
+  final TextEditingController customController;
+  final VoidCallback onAddCustom;
+  final TextEditingController storeController;
+
+  const _AIMaterialsChecklistCard({
+    required this.items,
+    required this.isLoading,
+    required this.isAiEnriched,
+    required this.customerHasAllEquipment,
+    required this.onToggleItem,
+    required this.onMarkAll,
+    required this.customController,
+    required this.onAddCustom,
+    required this.storeController,
+  });
+
+  @override
+  State<_AIMaterialsChecklistCard> createState() => _AIMaterialsChecklistCardState();
+}
+
+class _AIMaterialsChecklistCardState extends State<_AIMaterialsChecklistCard> {
+  bool _isExpanded = true;
+  bool _showAllItems = false;
+  static const int _previewCount = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final toBuyCount = widget.customerHasAllEquipment
+        ? 0
+        : widget.items.where((i) => !i.isProvidedByCustomer).length;
+
+    final displayedCount = !_showAllItems && widget.items.length > _previewCount
+        ? _previewCount
+        : widget.items.length;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Accordion Header
+          InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isExpanded = !_isExpanded);
+            },
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.build_circle_outlined,
+                      color: Color(0xFFD97706),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'materials_checklist_title'.tr(),
+                          style: const TextStyle(
+                            color: Color(0xFF1A1A1A),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _isExpanded
+                              ? 'materials_checklist_subtitle'.tr()
+                              : (widget.customerHasAllEquipment
+                                  ? 'materials_all_set_pill'.tr()
+                                  : 'materials_to_buy_pill'.tr(args: [toBuyCount.toString()])),
+                          style: TextStyle(
+                            color: _isExpanded ? const Color(0xFF6B7280) : const Color(0xFFB45309),
+                            fontSize: 11,
+                            fontWeight: _isExpanded ? FontWeight.w500 : FontWeight.w700,
+                          ),
+                          maxLines: _isExpanded ? 2 : 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Icon(
+                      _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                      size: 20,
+                      color: const Color(0xFFB45309),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Expandable Body
+          if (_isExpanded) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Badge showing AI or Catalog status
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: widget.isAiEnriched ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: widget.isAiEnriched ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          widget.isAiEnriched ? Icons.auto_awesome_rounded : Icons.inventory_2_outlined,
+                          size: 13,
+                          color: widget.isAiEnriched ? const Color(0xFFD97706) : const Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            widget.isAiEnriched
+                                ? 'materials_ai_enriched_badge'.tr()
+                                : 'materials_catalog_badge'.tr(),
+                            style: TextStyle(
+                              color: widget.isAiEnriched ? const Color(0xFF92400E) : const Color(0xFF475569),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Quick Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => widget.onMarkAll(false),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: !widget.customerHasAllEquipment ? const Color(0xFFFFFBEB) : Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: !widget.customerHasAllEquipment ? const Color(0xFFD97706) : const Color(0xFFE2E8F0),
+                                width: !widget.customerHasAllEquipment ? 1.4 : 1.0,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'materials_none_btn'.tr(),
+                                style: TextStyle(
+                                  color: !widget.customerHasAllEquipment ? const Color(0xFFB45309) : const Color(0xFF4B5563),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => widget.onMarkAll(true),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: widget.customerHasAllEquipment ? const Color(0xFFFFFBEB) : Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: widget.customerHasAllEquipment ? const Color(0xFFD97706) : const Color(0xFFE2E8F0),
+                                width: widget.customerHasAllEquipment ? 1.4 : 1.0,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'materials_all_btn'.tr(),
+                                style: TextStyle(
+                                  color: widget.customerHasAllEquipment ? const Color(0xFFB45309) : const Color(0xFF4B5563),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Items Checklist
+                  if (widget.isLoading)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFD97706)),
+                            ),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                'materials_loading'.tr(),
+                                style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else ...[
+                    for (int i = 0; i < displayedCount; i++) ...[
+                      InkWell(
+                        onTap: () => widget.onToggleItem(i),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: widget.items[i].isProvidedByCustomer ? const Color(0xFFF9FAFB) : const Color(0xFFFFFDF5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: widget.items[i].isProvidedByCustomer ? const Color(0xFFE5E7EB) : const Color(0xFFFDE68A),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                widget.items[i].isProvidedByCustomer
+                                    ? Icons.check_circle_rounded
+                                    : Icons.shopping_bag_outlined,
+                                size: 16,
+                                color: widget.items[i].isProvidedByCustomer
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFD97706),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  widget.items[i].name.toLocalizedTool(context),
+                                  style: TextStyle(
+                                    color: const Color(0xFF1A1A1A),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: widget.items[i].isProvidedByCustomer
+                                        ? TextDecoration.none
+                                        : null,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 130),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: widget.items[i].isProvidedByCustomer ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    widget.items[i].isProvidedByCustomer
+                                        ? 'materials_have_item'.tr()
+                                        : 'materials_need_purchase'.tr(),
+                                    style: TextStyle(
+                                      color: widget.items[i].isProvidedByCustomer ? const Color(0xFF047857) : const Color(0xFFB45309),
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // Expander / Accordion Toggle for large item lists
+                    if (widget.items.length > _previewCount) ...[
+                      const SizedBox(height: 4),
+                      InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          setState(() => _showAllItems = !_showAllItems);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFFBEB),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                !_showAllItems
+                                    ? 'materials_show_more'.tr(args: [(widget.items.length - _previewCount).toString()])
+                                    : 'materials_show_less'.tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFFB45309),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                !_showAllItems ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_up_rounded,
+                                size: 16,
+                                color: const Color(0xFFB45309),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+
+                  const SizedBox(height: 8),
+
+                  // Add Custom Material Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 38,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF9FAFB),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                          ),
+                          child: TextField(
+                            controller: widget.customController,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF1A1A1A)),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'materials_custom_hint'.tr(),
+                              hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                              contentPadding: const EdgeInsets.only(bottom: 10),
+                            ),
+                            onSubmitted: (_) => widget.onAddCustom(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: widget.onAddCustom,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          height: 38,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFB800),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.add_rounded, size: 16, color: Color(0xFF1A1A1A)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'materials_custom_add_btn'.tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFF1A1A1A),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+                  const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                  const SizedBox(height: 12),
+
+                  // Preferred Hardware Store Input
+                  Row(
+                    children: [
+                      const Icon(Icons.storefront_rounded, size: 16, color: Color(0xFFD97706)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'preferred_shop_label'.tr(),
+                          style: const TextStyle(
+                            color: Color(0xFF1A1A1A),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'preferred_shop_optional'.tr(),
+                    style: const TextStyle(color: Color(0xFF6B7280), fontSize: 10.5),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: TextField(
+                      controller: widget.storeController,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF1A1A1A)),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'preferred_shop_hint'.tr(),
+                        hintStyle: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                        contentPadding: const EdgeInsets.only(bottom: 10),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Summary Chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: toBuyCount > 0 ? const Color(0xFFFFFBEB) : const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: toBuyCount > 0 ? const Color(0xFFFDE68A) : const Color(0xFFBBF7D0),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          toBuyCount > 0 ? Icons.info_outline_rounded : Icons.check_circle_outline_rounded,
+                          size: 14,
+                          color: toBuyCount > 0 ? const Color(0xFFD97706) : const Color(0xFF16A34A),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            toBuyCount > 0
+                                ? 'materials_artisan_will_buy'.tr(args: [toBuyCount.toString()])
+                                : 'materials_all_provided'.tr(),
+                            style: TextStyle(
+                              color: toBuyCount > 0 ? const Color(0xFF92400E) : const Color(0xFF15803D),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

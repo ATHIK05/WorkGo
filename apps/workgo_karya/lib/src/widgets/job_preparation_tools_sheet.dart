@@ -178,7 +178,7 @@ class _JobPreparationToolsSheetState extends State<JobPreparationToolsSheet> {
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                tool,
+                tool.toLocalizedTool(context),
                 style: TextStyle(
                   color: isChecked ? const Color(0xFF065F46) : KX.textPrimary,
                   fontSize: 12,

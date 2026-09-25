@@ -103,6 +103,10 @@ class BookingService {
     List<String>? suggestedToolsNeeded,
     Map<String, dynamic>? fareBreakdown,
     bool isAssignedToDialWorker = false,
+    // ── AI Materials & Hardware Procurement ──
+    bool customerHasAllEquipment = false,
+    List<String> materialsNeededList = const [],
+    String? preferredHardwareStore,
   }) async {
     final docRef = _db.collection("bookings").doc();
 
@@ -145,6 +149,9 @@ class BookingService {
       customerIssueDetails: customerIssueDetails,
       suggestedToolsNeeded: effectiveTools,
       fareBreakdown: fareBreakdown,
+      customerHasAllEquipment: customerHasAllEquipment,
+      materialsNeededList: materialsNeededList,
+      preferredHardwareStore: preferredHardwareStore,
     );
 
     await docRef.set(booking.toFirestore());
@@ -571,6 +578,8 @@ class BookingService {
     DateTime? completedAt,
     Map<String, dynamic>? fareBreakdown,
     double? finalAmount,
+    double? materialCost,
+    String? materialReceiptPhotoBase64,
   }) async {
     final Map<String, dynamic> updateData = {
       "status": BookingStatus.paymentPending.name,
@@ -585,6 +594,12 @@ class BookingService {
     if (finalAmount != null) {
       updateData["amount"] = finalAmount;
     }
+    if (materialCost != null && materialCost > 0) {
+      updateData["materialCost"] = materialCost;
+    }
+    if (materialReceiptPhotoBase64 != null) {
+      updateData["materialReceiptPhotoBase64"] = materialReceiptPhotoBase64;
+    }
     await _db.collection("bookings").doc(bookingId).update(updateData);
   }
 
@@ -598,6 +613,21 @@ class BookingService {
     proofPhotoBase64: proofPhotoBase64,
     c2paManifest: c2paManifest,
   );
+
+  /// Artisan submits the physical hardware store material purchase bill after procuring spare parts.
+  /// The [materialCost] is 100% reimbursed to the artisan from the customer at final settlement
+  /// with zero platform markup. [receiptPhotoBase64] is the photo of the physical cash memo / GST invoice.
+  Future<void> submitMaterialReceipt({
+    required String bookingId,
+    required double materialCost,
+    required String receiptPhotoBase64,
+  }) async {
+    await _db.collection("bookings").doc(bookingId).update({
+      "materialCost": materialCost,
+      "materialReceiptPhotoBase64": receiptPhotoBase64,
+      "materialReceiptSubmittedAt": FieldValue.serverTimestamp(),
+    });
+  }
 
   /// Update the live worker GPS coordinates and heading on an active booking in real time.
   Future<void> updateLiveWorkerLocation({

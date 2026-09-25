@@ -38,6 +38,10 @@ class FareBreakdown {
   final String estimatedArrival;
   final String estimatedJobDuration;
   final bool isFinalSettlement;
+  // HMAC-SHA256 Server Signature & Anti-Tampering Guarantee
+  final String? quoteSignature;
+  final DateTime? quoteExpiresAt;
+  final bool isSignatureVerified;
 
   const FareBreakdown({
     required this.category,
@@ -65,7 +69,23 @@ class FareBreakdown {
     required this.estimatedArrival,
     required this.estimatedJobDuration,
     this.isFinalSettlement = false,
+    this.quoteSignature,
+    this.quoteExpiresAt,
+    this.isSignatureVerified = false,
   });
+
+  bool get isExpired => quoteExpiresAt != null && DateTime.now().isAfter(quoteExpiresAt!);
+
+  String generateCanonicalPayload() {
+    final exp = quoteExpiresAt?.toIso8601String() ?? '';
+    return [
+      category.trim(),
+      distanceKm.toStringAsFixed(2),
+      baseVisitFare.toStringAsFixed(2),
+      totalEstimatedFare.toStringAsFixed(2),
+      exp,
+    ].join(':');
+  }
 
   String get formattedTotal => "₹${totalEstimatedFare.toStringAsFixed(0)}";
   String get formattedBase => "₹${baseVisitFare.toStringAsFixed(0)}";
@@ -103,9 +123,21 @@ class FareBreakdown {
         'estimatedArrival': estimatedArrival,
         'estimatedJobDuration': estimatedJobDuration,
         'isFinalSettlement': isFinalSettlement,
+        'quoteSignature': quoteSignature,
+        'quoteExpiresAt': quoteExpiresAt?.toIso8601String(),
+        'isSignatureVerified': isSignatureVerified,
       };
 
   factory FareBreakdown.fromMap(Map<String, dynamic> map) {
+    DateTime? expires;
+    if (map['quoteExpiresAt'] != null) {
+      if (map['quoteExpiresAt'] is DateTime) {
+        expires = map['quoteExpiresAt'] as DateTime;
+      } else {
+        expires = DateTime.tryParse(map['quoteExpiresAt'].toString());
+      }
+    }
+
     return FareBreakdown(
       category: map['category'] as String? ?? 'General Repair',
       baseVisitFare: (map['baseVisitFare'] as num?)?.toDouble() ?? 149.0,
@@ -132,6 +164,71 @@ class FareBreakdown {
       estimatedArrival: map['estimatedArrival'] as String? ?? '',
       estimatedJobDuration: map['estimatedJobDuration'] as String? ?? '',
       isFinalSettlement: map['isFinalSettlement'] as bool? ?? false,
+      quoteSignature: map['quoteSignature'] as String?,
+      quoteExpiresAt: expires,
+      isSignatureVerified: map['isSignatureVerified'] as bool? ?? false,
+    );
+  }
+
+  FareBreakdown copyWith({
+    String? category,
+    double? baseVisitFare,
+    double? distanceKm,
+    double? perKmRate,
+    double? distanceTransitFare,
+    double? experienceBonus,
+    int? experienceYears,
+    double? emergencySurcharge,
+    double? urgencyTip,
+    double? toolAllowance,
+    String? toolType,
+    double? temporalSurcharge,
+    String? temporalTier,
+    int? baseLaborIncludedMinutes,
+    double? hourlyExtensionRate,
+    int? actualDurationMinutes,
+    int? timeExtensionSlabs,
+    double? timeExtensionFare,
+    double? welfareContributionPercent,
+    double? welfareContributionFare,
+    double? workerTakeHomeFare,
+    double? totalEstimatedFare,
+    String? estimatedArrival,
+    String? estimatedJobDuration,
+    bool? isFinalSettlement,
+    String? quoteSignature,
+    DateTime? quoteExpiresAt,
+    bool? isSignatureVerified,
+  }) {
+    return FareBreakdown(
+      category: category ?? this.category,
+      baseVisitFare: baseVisitFare ?? this.baseVisitFare,
+      distanceKm: distanceKm ?? this.distanceKm,
+      perKmRate: perKmRate ?? this.perKmRate,
+      distanceTransitFare: distanceTransitFare ?? this.distanceTransitFare,
+      experienceBonus: experienceBonus ?? this.experienceBonus,
+      experienceYears: experienceYears ?? this.experienceYears,
+      emergencySurcharge: emergencySurcharge ?? this.emergencySurcharge,
+      urgencyTip: urgencyTip ?? this.urgencyTip,
+      toolAllowance: toolAllowance ?? this.toolAllowance,
+      toolType: toolType ?? this.toolType,
+      temporalSurcharge: temporalSurcharge ?? this.temporalSurcharge,
+      temporalTier: temporalTier ?? this.temporalTier,
+      baseLaborIncludedMinutes: baseLaborIncludedMinutes ?? this.baseLaborIncludedMinutes,
+      hourlyExtensionRate: hourlyExtensionRate ?? this.hourlyExtensionRate,
+      actualDurationMinutes: actualDurationMinutes ?? this.actualDurationMinutes,
+      timeExtensionSlabs: timeExtensionSlabs ?? this.timeExtensionSlabs,
+      timeExtensionFare: timeExtensionFare ?? this.timeExtensionFare,
+      welfareContributionPercent: welfareContributionPercent ?? this.welfareContributionPercent,
+      welfareContributionFare: welfareContributionFare ?? this.welfareContributionFare,
+      workerTakeHomeFare: workerTakeHomeFare ?? this.workerTakeHomeFare,
+      totalEstimatedFare: totalEstimatedFare ?? this.totalEstimatedFare,
+      estimatedArrival: estimatedArrival ?? this.estimatedArrival,
+      estimatedJobDuration: estimatedJobDuration ?? this.estimatedJobDuration,
+      isFinalSettlement: isFinalSettlement ?? this.isFinalSettlement,
+      quoteSignature: quoteSignature ?? this.quoteSignature,
+      quoteExpiresAt: quoteExpiresAt ?? this.quoteExpiresAt,
+      isSignatureVerified: isSignatureVerified ?? this.isSignatureVerified,
     );
   }
 }

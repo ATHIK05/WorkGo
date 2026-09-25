@@ -101,7 +101,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Default authenticated fallback for all other collections (bookings, users, reviews)
+    // Bookings: Statutory floor price protection (Code on Wages 2019).
+    // No client write can set amount below Rs. 149 (statutory minimum base visit floor).
+    // Material receipt data is protected from unauthorized tampering.
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        request.resource.data.amount >= 149.0;
+      allow update: if isAuthenticated() &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['materialReceiptPhotoBase64', 'materialCost'])
+          || request.auth.uid == resource.data.workerId
+          || request.auth.uid == resource.data.customerId
+          || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Default authenticated fallback for all other collections (users, reviews)
     match /{document=**} {
       allow read, write: if isAuthenticated();
     }

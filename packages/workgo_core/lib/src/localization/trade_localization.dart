@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'locale_config.dart';
 import '../models/booking.dart';
 import '../models/worker.dart';
+export 'tool_localization.dart';
 
 /// Extension on String to localize dynamic Firebase skill names, trade tags, and areas.
 extension DynamicTradeLocalization on String {
@@ -2043,24 +2044,6 @@ extension SafeTranslationExtension on String {
   String toLocalizedRegion([String? locale]) {
     final key = 'region_${toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}';
     return key.trSafe(this);
-  }
-}
-
-/// Extension on tool names to provide localized labels for tool checklists
-extension ToolNameLocalization on String {
-  String toLocalizedTool() {
-    final lower = toLowerCase().trim();
-    if (lower.contains('pipe wrench')) return 'tool_pipe_wrench'.trSafe(this);
-    if (lower.contains('adjustable spanner') || lower.contains('adjustable wrench')) return 'tool_adjustable_spanner'.trSafe(this);
-    if (lower.contains('basin wrench')) return 'tool_basin_wrench'.trSafe(this);
-    if (lower.contains('plunger')) return 'tool_plunger'.trSafe(this);
-    if (lower.contains('slip-joint') || lower.contains('pliers')) return 'tool_pliers'.trSafe(this);
-    if (lower.contains('thread seal') || lower.contains('ptfe') || lower.contains('teflon')) return 'tool_ptfe_tape'.trSafe(this);
-    if (lower.contains('washer')) return 'tool_washers'.trSafe(this);
-    if (lower.contains('silicone') || lower.contains('sealant')) return 'tool_sealant'.trSafe(this);
-    if (lower.contains('gloves')) return 'tool_gloves'.trSafe(this);
-    if (lower.contains('glasses') || lower.contains('goggles')) return 'tool_safety_glasses'.trSafe(this);
-    return this;
   }
 }
 

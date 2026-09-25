@@ -1,7 +1,9 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:workgo_core/workgo_core.dart';
 import '../karya_theme.dart';
+import 'cooperative_voting_screen.dart';
 import 'welfare_claim_submission_screen.dart';
 
 class WorkerWelfareScreen extends StatelessWidget {
@@ -176,6 +178,10 @@ class WorkerWelfareScreen extends StatelessWidget {
 
                   // ── File a Welfare Claim Hero Action Card
                   _FileClaimCard(worker: liveWorker),
+                  const SizedBox(height: 14),
+
+                  // ── Cooperative AGM Voting Entry Card
+                  _CoopVotingEntryCard(worker: liveWorker),
                   const SizedBox(height: 16),
 
                   // ── Live Claims Tracking Section
@@ -968,5 +974,84 @@ class _WorkerClaimsTrackingSection extends StatelessWidget {
 
 /// Navigation alias for WorkerWelfareScreen
 typedef WorkerWelfareManagementScreen = WorkerWelfareScreen;
+
+// ── Cooperative AGM Voting Entry Card ─────────────────────────────────────────
+class _CoopVotingEntryCard extends StatelessWidget {
+  const _CoopVotingEntryCard({required this.worker});
+  final Worker worker;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => CooperativeVotingScreen(worker: worker),
+          ));
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: KX.gold.withValues(alpha: 0.35)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x08000000),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(Icons.how_to_vote_rounded,
+                    color: KX.gold, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'coop_voting_entry_btn'.tr(),
+                      style: WorkGoFonts.heading(
+                        color: KX.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'coop_voting_entry_desc'.tr(),
+                      style: WorkGoFonts.body(
+                          color: KX.textSecondary, fontSize: 11.5),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded,
+                  color: KX.gold, size: 22),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 

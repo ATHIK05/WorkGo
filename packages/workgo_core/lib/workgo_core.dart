@@ -13,6 +13,7 @@ export "package:google_fonts/google_fonts.dart";
 // Localization (easy_localization config constants & extensions)
 export "src/localization/locale_config.dart";
 export "src/localization/trade_localization.dart";
+export "src/localization/tool_localization.dart";
 export "src/localization/firestore_asset_loader.dart";
 
 // Models
@@ -90,6 +91,7 @@ export "src/services/hazard_scanner.dart";
 export "src/services/multilingual_semantic_fallback.dart";
 export "src/services/emergency_sos_service.dart";
 export "src/services/trade_tool_catalog.dart";
+export "src/services/ai_materials_service.dart";
 export "src/widgets/interactive_map_picker_sheet.dart";
 
 export "src/models/payment_provider_model.dart";

@@ -86,6 +86,7 @@ app.use("/api/notifications", require("./routes/notifications"));
 app.use("/api/locales", require("./routes/locales"));
 app.use("/api/ai", require("./routes/ai_triage")); // Gemini 1.5 Flash triage proxy + Firestore cache
 app.use("/api/ai", require("./routes/ai_transcribe")); // Cloud-assisted vernacular speech-to-text (Gemini Audio + Bhashini)
+app.use("/api/quote", verifyToken, require("./routes/quotes")); // Server-side HMAC-SHA256 floor price signing
 app.use("/api/ivr/voice", require("./routes/ivr_voice")); // Dial Karya IVR (called by Asterisk — no Firebase auth)
 app.use("/api/welfare", verifyToken, require("./routes/welfare")); // SIH 26089 Welfare & Micro-Insurance Claim Engine
 

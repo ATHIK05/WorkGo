@@ -38,6 +38,7 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_tts: ^4.2.2
   http: ^1.2.0
+  crypto: ^3.0.6
 
   # Biometric 3D Multi-Angle Liveness & Screen Flash Booster
   camera: ^0.11.1

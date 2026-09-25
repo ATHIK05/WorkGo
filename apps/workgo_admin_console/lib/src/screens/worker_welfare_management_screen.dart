@@ -52,6 +52,11 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
   // Corpus Roster Search
   String _rosterSearchQuery = "";
 
+  // DBT Ledger Sweep State
+  String _dbtPurpose = 'pmjjby';
+  bool _isDbtSweeping = false;
+  Map<String, dynamic>? _lastDbtResult;
+
   @override
   void dispose() {
     _doctorCallNoteCtrl.dispose();
@@ -1365,6 +1370,10 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
                     ),
                   ],
                 ),
+                const SizedBox(height: 18),
+
+                // ── Jan Dhan DBT Ledger Sweep Button ─────────────────────────────────
+                _buildDbtSweepCard(welfareCorpus, workers),
                 const SizedBox(height: 20),
 
                 // ── Search & Filter Controls ──────────────────────────────
@@ -1508,6 +1517,459 @@ class _WorkerWelfareManagementScreenState extends State<WorkerWelfareManagementS
               await _workerService.toggleInsurance(w.id, val);
               if (mounted) setState(() {});
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── DBT Ledger Sweep Build Methods ──────────────────────────────────────────
+
+  Widget _buildDbtSweepCard(double welfareCorpus, List<Worker> workers) {
+    final dbtLinkedWorkers = workers
+        .where((w) =>
+            w.upiId != null && w.upiId!.isNotEmpty && w.insuranceStatus)
+        .toList();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFB800).withValues(alpha: 0.3)),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x06000000), blurRadius: 16, offset: Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3D6),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.account_balance_rounded,
+                    color: Color(0xFFFFB800), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Jan Dhan DBT Ledger Sweep",
+                      style: AX.display(fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      "Disburse welfare corpus via PFMS / NPCI ACH batch transfer",
+                      style: AX.body(fontSize: 11, color: AX.textSecondary),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Pool + Beneficiaries Row
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8EE),
+                    borderRadius: BorderRadius.circular(10),
+                    border:
+                        Border.all(color: const Color(0xFFFFB800).withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Available Welfare Pool",
+                          style: AX.body(fontSize: 10, color: AX.textMuted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Rs. ${welfareCorpus.toStringAsFixed(2)}",
+                        style: AX.display(
+                            fontSize: 16,
+                            color: const Color(0xFFFFB800)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: AX.emeraldDark.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("DBT-Linked Beneficiaries",
+                          style: AX.body(fontSize: 10, color: AX.textMuted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text(
+                        "${dbtLinkedWorkers.length} artisans",
+                        style: AX.display(
+                            fontSize: 16, color: AX.emeraldDark),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Purpose Dropdown
+          Text("Disbursement Purpose",
+              style: AX.heading(fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 6),
+          DropdownButtonFormField<String>(
+            initialValue: _dbtPurpose,
+            style: const TextStyle(
+                color: AX.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFFF9F6EE),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AX.divider),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+            items: [
+              DropdownMenuItem(
+                value: 'pmjjby',
+                child: Text(
+                  "PMJJBY / PMSBY Annual Premium Sweep (Rs. 456 per member)",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'dividend',
+                child: Text(
+                  "Cooperative Patronage Dividend Distribution",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'relief',
+                child: Text(
+                  "Emergency Relief Grant",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+            onChanged: (val) => setState(() => _dbtPurpose = val ?? 'pmjjby'),
+          ),
+          const SizedBox(height: 14),
+
+          // Action Buttons
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isDbtSweeping || dbtLinkedWorkers.isEmpty
+                      ? null
+                      : () => _runDbtSweep(dbtLinkedWorkers, welfareCorpus),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFB800),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: const Color(0xFFF0EDE6),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: _isDbtSweeping
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.send_rounded, size: 15),
+                            const SizedBox(width: 8),
+                            const Flexible(
+                              child: Text(
+                                "Simulate Direct Settlement",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          ),
+
+          // Last Sweep Result
+          if (_lastDbtResult != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: AX.emeraldDark.withValues(alpha: 0.25)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded,
+                          color: Color(0xFF065F46), size: 14),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          "Sweep Simulated: ${_lastDbtResult!['records']} records / Rs. ${_lastDbtResult!['total']}",
+                          style: AX.heading(
+                              fontSize: 11.5,
+                              color: const Color(0xFF065F46)),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "UTR: ${_lastDbtResult!['utr']}",
+                    style: AX.mono(
+                        fontSize: 10.5, color: const Color(0xFF065F46)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              _showDbtBatchDialog(_lastDbtResult!),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                                color: Color(0xFF065F46)),
+                            foregroundColor: const Color(0xFF065F46),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text(
+                            "View Batch File",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  double _computePerWorkerAmount(Worker w, double pool) {
+    switch (_dbtPurpose) {
+      case 'pmjjby':
+        // Rs. 436 (PMJJBY Rs. 436/yr) + Rs. 20 (PMSBY Rs. 20/yr) = Rs. 456 per member
+        return 456.0;
+      case 'dividend':
+        // Pro-rata equal share for patronage dividend
+        return pool > 0 ? pool : 0;
+      case 'relief':
+        return 500.0; // Flat emergency relief grant
+      default:
+        return 0.0;
+    }
+  }
+
+  Future<void> _runDbtSweep(List<Worker> workers, double pool) async {
+    if (workers.isEmpty) return;
+    setState(() {
+      _isDbtSweeping = true;
+      _lastDbtResult = null;
+    });
+
+    // Simulate async processing delay (as if calling PFMS API)
+    await Future.delayed(const Duration(milliseconds: 1400));
+
+    final utr =
+        'UTR${DateTime.now().millisecondsSinceEpoch.toString().substring(4)}';
+    double totalDisbursed = 0;
+    final perWorker = _dbtPurpose == 'dividend' && workers.isNotEmpty
+        ? (pool / workers.length)
+        : _computePerWorkerAmount(workers.first, pool);
+
+    final records = <Map<String, String>>[];
+    for (final w in workers) {
+      final amount = perWorker.toStringAsFixed(2);
+      totalDisbursed += perWorker;
+      records.add({
+        'worker_id': w.id,
+        'name': w.name,
+        'upi_id': w.upiId ?? 'N/A',
+        'ifsc': 'JAND0001234', // Jan Dhan placeholder IFSC
+        'amount': amount,
+        'utr': '$utr-${records.length + 1}',
+        'purpose': _dbtPurpose.toUpperCase(),
+        'status': 'SIMULATED_SUCCESS',
+      });
+    }
+
+    setState(() {
+      _isDbtSweeping = false;
+      _lastDbtResult = {
+        'records': records.length,
+        'total': totalDisbursed.toStringAsFixed(2),
+        'utr': utr,
+        'batch': records,
+        'purpose': _dbtPurpose,
+      };
+    });
+  }
+
+  void _showDbtBatchDialog(Map<String, dynamic> result) {
+    final batchRecords = result['batch'] as List<Map<String, String>>? ?? [];
+    final batchText = batchRecords
+        .map((r) =>
+            '${r['worker_id']} | ${r['name']} | ${r['upi_id']} | ${r['ifsc']} | Rs.${r['amount']} | ${r['purpose']} | ${r['status']} | UTR:${r['utr']}')
+        .join('\n');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.account_balance_rounded,
+                color: Color(0xFFFFB800), size: 18),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                "PFMS / NPCI ACH Batch File",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 600,
+          height: 400,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      "${batchRecords.length} beneficiary records · UTR: ${result['utr']} · Total: Rs. ${result['total']}",
+                      style: AX.mono(fontSize: 10.5, color: AX.textSecondary),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: batchText));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Batch payload copied to clipboard"),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.copy_rounded, size: 13),
+                    label: const Text(
+                      "Copy",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFFFB800),
+                      side: const BorderSide(color: Color(0xFFFFB800)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F6EE),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AX.divider),
+                  ),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      batchText,
+                      style: AX.mono(fontSize: 10.5, color: AX.textPrimary),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text("Close", style: AX.body(color: AX.textSecondary)),
           ),
         ],
       ),

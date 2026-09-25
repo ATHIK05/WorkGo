@@ -42,6 +42,12 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
   StreamSubscription<Position>? _activeJobGpsSub;
   bool _hasAnnouncedCompletion = false;
 
+  // Material purchase bill state
+  final _materialCostController = TextEditingController();
+  String? _materialReceiptPhotoBase64;
+  Uint8List? _materialReceiptBytes;
+  bool _isSavingMaterialBill = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +56,10 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         : widget.booking.status;
     _c2paManifest = widget.booking.parsedC2paManifest;
     _capturedPhotoBase64 = widget.booking.proofPhotoBase64;
+    if (widget.booking.materialCost > 0) {
+      _materialCostController.text = widget.booking.materialCost.toStringAsFixed(0);
+    }
+    _materialReceiptPhotoBase64 = widget.booking.materialReceiptPhotoBase64;
     if (widget.booking.status == BookingStatus.completed &&
         widget.booking.paymentStatus == PaymentStatus.paid) {
       _hasAnnouncedCompletion = true;
@@ -130,7 +140,77 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
   void dispose() {
     _stopActiveJobGpsStream();
     _pulseCtrl.dispose();
+    _materialCostController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickReceiptPhoto(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final XFile? file = await picker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 80,
+      );
+      if (file != null) {
+        final bytes = await file.readAsBytes();
+        final b64 = base64Encode(bytes);
+        setState(() {
+          _materialReceiptBytes = bytes;
+          _materialReceiptPhotoBase64 = b64;
+        });
+        HapticFeedback.mediumImpact();
+      }
+    } catch (e) {
+      debugPrint("[ActiveJobScreen] Receipt capture error: $e");
+    }
+  }
+
+  Future<void> _saveMaterialBill(Booking currentBooking) async {
+    final cost = double.tryParse(_materialCostController.text.trim()) ?? 0.0;
+    if (cost <= 0) return;
+    if (_materialReceiptPhotoBase64 == null || _materialReceiptPhotoBase64!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("material_bill_photo_label".tr()),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSavingMaterialBill = true);
+    try {
+      await _bookingService.submitMaterialReceipt(
+        bookingId: currentBooking.id,
+        materialCost: cost,
+        receiptPhotoBase64: _materialReceiptPhotoBase64!,
+      );
+      if (mounted) {
+        setState(() => _isSavingMaterialBill = false);
+        HapticFeedback.heavyImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("material_bill_saved_toast".tr()),
+            backgroundColor: const Color(0xFF059669),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSavingMaterialBill = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _advanceJob() async {
@@ -549,6 +629,12 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         actualDuration: actualDuration,
       );
 
+      final currentMatCost = widget.booking.materialCost > 0
+          ? widget.booking.materialCost
+          : (double.tryParse(_materialCostController.text.trim()) ?? 0.0);
+      final currentReceipt = _materialReceiptPhotoBase64 ?? widget.booking.materialReceiptPhotoBase64;
+      final totalFinalAmount = finalSettlementFare.totalEstimatedFare + currentMatCost;
+
       // Atomically submit Base64 photo proof & C2PA manifest in Firestore, transitioning to paymentPending
       await _bookingService.submitWorkProof(
         bookingId: widget.booking.id,
@@ -556,7 +642,9 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
         c2paManifest: manifest.toMap(),
         completedAt: now,
         fareBreakdown: finalSettlementFare.toMap(),
-        finalAmount: finalSettlementFare.totalEstimatedFare,
+        finalAmount: totalFinalAmount,
+        materialCost: currentMatCost,
+        materialReceiptPhotoBase64: currentReceipt,
       );
 
       if (mounted) {
@@ -1022,6 +1110,23 @@ class _ActiveJobScreenState extends State<ActiveJobScreen>
                     ),
                   ),
                   const SizedBox(height: 12),
+
+                  // ── Material Purchase Bill & Store Receipt Card
+                  if (status != BookingStatus.cancelled) ...[
+                    KSlideFadeIn(
+                      delay: const Duration(milliseconds: 60),
+                      child: _MaterialBillUploadCard(
+                        booking: currentBooking,
+                        costController: _materialCostController,
+                        receiptPhotoBase64: _materialReceiptPhotoBase64,
+                        receiptBytes: _materialReceiptBytes,
+                        isSaving: _isSavingMaterialBill,
+                        onPickPhoto: _pickReceiptPhoto,
+                        onSave: () => _saveMaterialBill(currentBooking),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   // ── Payout Breakdown
                   KSlideFadeIn(
@@ -1613,6 +1718,7 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
   final Set<String> _verifiedTools = {};
   String? _resolvedCustomerName;
   String? _resolvedCustomerPhone;
+  bool _materialsCardExpanded = true;
 
   @override
   void initState() {
@@ -2107,6 +2213,149 @@ class _ServiceCustomerCardState extends State<_ServiceCustomerCard> {
               ),
             ),
           ],
+
+          // Customer Materials & Preferred Hardware Store
+          if (booking.customerHasAllEquipment ||
+              booking.materialsNeededList.isNotEmpty ||
+              (booking.preferredHardwareStore != null && booking.preferredHardwareStore!.isNotEmpty)) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFDF5),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _materialsCardExpanded = !_materialsCardExpanded);
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.shopping_bag_outlined, size: 16, color: Color(0xFFD97706)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'materials_checklist_title'.tr(),
+                            style: const TextStyle(
+                              color: Color(0xFF1A1A1A),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (booking.materialsNeededList.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              booking.customerHasAllEquipment
+                                  ? 'materials_all_set_pill'.tr()
+                                  : 'materials_to_buy_pill'.tr(args: [booking.materialsNeededList.length.toString()]),
+                              style: const TextStyle(color: Color(0xFFB45309), fontSize: 9.5, fontWeight: FontWeight.w700),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Icon(
+                          _materialsCardExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: const Color(0xFFD97706),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_materialsCardExpanded) ...[
+                    const SizedBox(height: 8),
+                    if (booking.customerHasAllEquipment) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF10B981)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'materials_all_provided'.tr(),
+                              style: const TextStyle(color: Color(0xFF047857), fontSize: 11.5, fontWeight: FontWeight.w600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else if (booking.materialsNeededList.isNotEmpty) ...[
+                      Text(
+                        'materials_artisan_will_buy'.tr(args: [booking.materialsNeededList.length.toString()]),
+                        style: const TextStyle(color: Color(0xFF92400E), fontSize: 11, fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: booking.materialsNeededList.map((item) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFFDE68A)),
+                            ),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 200),
+                              child: Text(
+                                item.toLocalizedTool(context),
+                                style: const TextStyle(color: Color(0xFF92400E), fontSize: 10.5, fontWeight: FontWeight.w700),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                    if (booking.preferredHardwareStore != null && booking.preferredHardwareStore!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.storefront_rounded, size: 14, color: Color(0xFFD97706)),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'material_bill_customer_store'.tr(args: [booking.preferredHardwareStore!]),
+                                style: const TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w700),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -2579,6 +2828,349 @@ class _PayoutLedgerCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+}
+
+class _MaterialBillUploadCard extends StatefulWidget {
+  final Booking booking;
+  final TextEditingController costController;
+  final String? receiptPhotoBase64;
+  final Uint8List? receiptBytes;
+  final bool isSaving;
+  final Future<void> Function(ImageSource source) onPickPhoto;
+  final VoidCallback onSave;
+
+  const _MaterialBillUploadCard({
+    required this.booking,
+    required this.costController,
+    required this.receiptPhotoBase64,
+    required this.receiptBytes,
+    required this.isSaving,
+    required this.onPickPhoto,
+    required this.onSave,
+  });
+
+  @override
+  State<_MaterialBillUploadCard> createState() => _MaterialBillUploadCardState();
+}
+
+class _MaterialBillUploadCardState extends State<_MaterialBillUploadCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasExistingBill = widget.booking.materialCost > 0 &&
+        widget.booking.materialReceiptPhotoBase64 != null;
+    final effectivePhoto = widget.receiptPhotoBase64 ?? widget.booking.materialReceiptPhotoBase64;
+    final effectiveCost = widget.booking.materialCost > 0
+        ? widget.booking.materialCost
+        : (double.tryParse(widget.costController.text) ?? 0.0);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: hasExistingBill ? const Color(0xFF10B981) : const Color(0xFFFDE68A),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: hasExistingBill ? const Color(0xFFECFDF5) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  hasExistingBill ? Icons.receipt_long_rounded : Icons.add_shopping_cart_rounded,
+                  color: hasExistingBill ? const Color(0xFF059669) : const Color(0xFFD97706),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'material_bill_section_title'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFF1A1A1A),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasExistingBill
+                          ? "${'material_cost_label'.tr()}: ₹${effectiveCost.toStringAsFixed(0)}"
+                          : 'material_bill_section_subtitle'.tr(),
+                      style: TextStyle(
+                        color: hasExistingBill ? const Color(0xFF047857) : const Color(0xFF6B7280),
+                        fontSize: 11,
+                        fontWeight: hasExistingBill ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (hasExistingBill)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF10B981)),
+                  ),
+                  child: Text(
+                    'material_receipt_verified_badge'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF047857),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                )
+              else
+                IconButton(
+                  onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                  icon: Icon(
+                    _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    color: const Color(0xFFD97706),
+                  ),
+                ),
+            ],
+          ),
+
+          // If not expanded and no existing bill, show quick action toggle
+          if (!hasExistingBill && !_isExpanded) ...[
+            const SizedBox(height: 10),
+            InkWell(
+              onTap: () => setState(() => _isExpanded = true),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.add_a_photo_outlined, size: 16, color: Color(0xFFD97706)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'material_bill_photo_btn'.tr(),
+                        style: const TextStyle(color: Color(0xFFB45309), fontSize: 11.5, fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFFD97706)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          if (hasExistingBill || _isExpanded) ...[
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            const SizedBox(height: 12),
+
+            // Customer Preferred Store Banner
+            if (widget.booking.preferredHardwareStore != null && widget.booking.preferredHardwareStore!.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.storefront_rounded, size: 14, color: Color(0xFFD97706)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'material_bill_customer_store'.tr(args: [widget.booking.preferredHardwareStore!]),
+                        style: const TextStyle(color: Color(0xFF92400E), fontSize: 11, fontWeight: FontWeight.w800),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+
+            // Cost Input Field
+            Text(
+              'material_bill_amount_label'.tr(),
+              style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 12, fontWeight: FontWeight.w700),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  const Text('₹', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: widget.costController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A)),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'material_bill_amount_hint'.tr(),
+                        hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                        contentPadding: const EdgeInsets.only(bottom: 6),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Receipt Photo Preview or Buttons
+            if (effectivePhoto != null && effectivePhoto.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  height: 140,
+                  width: double.infinity,
+                  color: const Color(0xFFF3F4F6),
+                  child: Image.memory(
+                    base64Decode(effectivePhoto.contains(",") ? effectivePhoto.split(",").last : effectivePhoto),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.receipt_rounded, size: 40, color: Color(0xFF9CA3AF)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => widget.onPickPhoto(ImageSource.camera),
+                      icon: const Icon(Icons.refresh_rounded, size: 14, color: Color(0xFFD97706)),
+                      label: Text(
+                        'material_bill_photo_retake'.tr(),
+                        style: const TextStyle(color: Color(0xFFD97706), fontSize: 11, fontWeight: FontWeight.w800),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFFDE68A)),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => widget.onPickPhoto(ImageSource.camera),
+                      icon: const Icon(Icons.camera_alt_rounded, size: 16, color: Color(0xFF1A1A1A)),
+                      label: Text(
+                        'material_bill_photo_btn'.tr(),
+                        style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 11.5, fontWeight: FontWeight.w800),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFB800),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => widget.onPickPhoto(ImageSource.gallery),
+                    icon: const Icon(Icons.photo_library_rounded, color: Color(0xFF6B7280)),
+                    tooltip: "Gallery",
+                  ),
+                ],
+              ),
+            ],
+
+            const SizedBox(height: 10),
+            // Reimbursed Note
+            Text(
+              'material_bill_reimbursed_note'.tr(),
+              style: const TextStyle(color: Color(0xFF059669), fontSize: 10.5, fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 10),
+
+            // Save Button
+            SizedBox(
+              width: double.infinity,
+              height: 42,
+              child: ElevatedButton(
+                onPressed: widget.isSaving ? null : widget.onSave,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF059669),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: widget.isSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : Text(
+                        'material_bill_submit_btn'.tr(),
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

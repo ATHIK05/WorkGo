@@ -49,6 +49,27 @@ class Booking {
   final Map<String, dynamic>? fareBreakdown;
   final bool isBroadcastPaused;
 
+  // ── AI Materials & Hardware Procurement Fields ─────────────────────────────
+  /// True if customer confirms they already have all required materials on hand.
+  /// False means artisan should procure missing parts from the designated store.
+  final bool customerHasAllEquipment;
+
+  /// AI-generated + customer-curated list of materials / spare parts.
+  /// Each entry is a plain string: "1/2\" PTFE Thread Tape", "16A Single-Pole MCB".
+  /// Items the customer has are tracked at the UI layer; this list stores what the artisan needs to buy.
+  final List<String> materialsNeededList;
+
+  /// Optional customer-specified hardware store name or landmark for part procurement.
+  /// e.g. "Shree Ganesh Hardware, 2nd Cross Main Rd"
+  final String? preferredHardwareStore;
+
+  /// Actual cost of physical spare parts purchased by the artisan from the store.
+  /// 100% reimbursed to artisan at final settlement; zero platform deduction.
+  final double materialCost;
+
+  /// Base64 photo of physical hardware store cash memo / GST invoice captured by artisan.
+  final String? materialReceiptPhotoBase64;
+
   // AI Diagnostic & Specialist Handoff extensions
   final String bookingType; // 'direct', 'broadcast', 'diagnostic'
   final String? symptomDescription;
@@ -146,6 +167,11 @@ class Booking {
     this.proofPhotoBase64,
     this.c2paManifest,
     this.isBroadcastPaused = false,
+    this.customerHasAllEquipment = false,
+    this.materialsNeededList = const [],
+    this.preferredHardwareStore,
+    this.materialCost = 0.0,
+    this.materialReceiptPhotoBase64,
     this.bookingType = 'direct',
     this.symptomDescription,
     this.customerIssueDetails,
@@ -301,6 +327,11 @@ class Booking {
       proofPhotoBase64: d["proofPhotoBase64"] ?? d["completionPhotoBase64"] ?? d["photoBase64"],
       c2paManifest: d["c2paManifest"] != null ? Map<String, dynamic>.from(d["c2paManifest"] as Map) : null,
       isBroadcastPaused: d["isBroadcastPaused"] == true,
+      customerHasAllEquipment: d["customerHasAllEquipment"] ?? false,
+      materialsNeededList: List<String>.from(d["materialsNeededList"] ?? []),
+      preferredHardwareStore: d["preferredHardwareStore"] as String?,
+      materialCost: (d["materialCost"] as num?)?.toDouble() ?? 0.0,
+      materialReceiptPhotoBase64: d["materialReceiptPhotoBase64"] as String?,
       bookingType: d["bookingType"] ?? 'direct',
       symptomDescription: d["symptomDescription"],
       customerIssueDetails: d["customerIssueDetails"] ?? d["issueNotes"] ?? d["customerNotes"],
@@ -385,6 +416,11 @@ class Booking {
     "proofPhotoBase64": proofPhotoBase64,
     "c2paManifest": c2paManifest,
     "isBroadcastPaused": isBroadcastPaused,
+    "customerHasAllEquipment": customerHasAllEquipment,
+    "materialsNeededList": materialsNeededList,
+    "preferredHardwareStore": preferredHardwareStore,
+    "materialCost": materialCost,
+    "materialReceiptPhotoBase64": materialReceiptPhotoBase64,
     "bookingType": bookingType,
     "symptomDescription": symptomDescription,
     "customerIssueDetails": customerIssueDetails,
@@ -464,6 +500,11 @@ class Booking {
     String? proofPhotoBase64,
     Map<String, dynamic>? c2paManifest,
     bool? isBroadcastPaused,
+    bool? customerHasAllEquipment,
+    List<String>? materialsNeededList,
+    String? preferredHardwareStore,
+    double? materialCost,
+    String? materialReceiptPhotoBase64,
     String? bookingType,
     String? symptomDescription,
     String? customerIssueDetails,
@@ -540,6 +581,11 @@ class Booking {
       proofPhotoBase64: proofPhotoBase64 ?? this.proofPhotoBase64,
       c2paManifest: c2paManifest ?? this.c2paManifest,
       isBroadcastPaused: isBroadcastPaused ?? this.isBroadcastPaused,
+      customerHasAllEquipment: customerHasAllEquipment ?? this.customerHasAllEquipment,
+      materialsNeededList: materialsNeededList ?? this.materialsNeededList,
+      preferredHardwareStore: preferredHardwareStore ?? this.preferredHardwareStore,
+      materialCost: materialCost ?? this.materialCost,
+      materialReceiptPhotoBase64: materialReceiptPhotoBase64 ?? this.materialReceiptPhotoBase64,
       bookingType: bookingType ?? this.bookingType,
       symptomDescription: symptomDescription ?? this.symptomDescription,
       customerIssueDetails: customerIssueDetails ?? this.customerIssueDetails,
